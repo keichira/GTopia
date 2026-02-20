@@ -1,0 +1,192 @@
+#pragma once
+
+#include "../Precompiled.h"
+#include "../Utils/Variant.h"
+
+enum eTCPPacketType 
+{
+    TCP_PACKET_HELLO,
+    TCP_PACKET_AUTH
+};
+
+enum eMessagePacketType 
+{
+    NET_MESSAGE_UNKNOWN,
+    NET_MESSAGE_SERVER_HELLO,
+    NET_MESSAGE_GENERIC_TEXT,
+    NET_MESSAGE_GAME_MESSAGE,
+    NET_MESSAGE_GAME_PACKET,
+    NET_MESSAGE_ERROR,
+    NET_MESSAGE_TRACK,
+    NET_MESSAGE_CLIENT_LOG_REQUEST,
+    NET_MESSAGE_CLIENT_LOG_RESPONSE
+};
+
+enum eGamePacketType 
+{
+    NET_GAME_PACKET_STATE,
+    NET_GAME_PACKET_CALL_FUNCTION,
+    NET_GAME_PACKET_UPDATE_STATUS,
+    NET_GAME_PACKETILE_CHANGE_REQUEST,
+    NET_GAME_PACKET_SEND_MAP_DATA,
+    NET_GAME_PACKET_SENDILE_UPDATE_DATA,
+    NET_GAME_PACKET_SENDILE_UPDATE_DATA_MULTIPLE,
+    NET_GAME_PACKETILE_ACTIVATE_REQUEST,
+    NET_GAME_PACKETILE_APPLY_DAMAGE,
+    NET_GAME_PACKET_SEND_INVENTORY_STATE,
+    NET_GAME_PACKET_ITEM_ACTIVATE_REQUEST,
+    NET_GAME_PACKET_ITEM_ACTIVATE_OBJECT_REQUEST,
+    NET_GAME_PACKET_SENDILEREE_STATE,
+    NET_GAME_PACKET_MODIFY_ITEM_INVENTORY,
+    NET_GAME_PACKET_ITEM_CHANGE_OBJECT,
+    NET_GAME_PACKET_SEND_LOCK,
+    NET_GAME_PACKET_SEND_ITEM_DATABASE_DATA,
+    NET_GAME_PACKET_SEND_PARTICLE_EFFECT,
+    NET_GAME_PACKET_SET_ICON_STATE,
+    NET_GAME_PACKET_ITEM_EFFECT,
+    NET_GAME_PACKET_SET_CHARACTER_STATE,
+    NET_GAME_PACKET_PING_REPLY,
+    NET_GAME_PACKET_PING_REQUEST,
+    NET_GAME_PACKET_GOT_PUNCHED,
+    NET_GAME_PACKET_APP_CHECK_RESPONSE,
+    NET_GAME_PACKET_APP_INTEGRITY_FAIL,
+    NET_GAME_PACKET_DISCONNECT,
+    NET_GAME_PACKET_BATTLE_JOIN,
+    NET_GAME_PACKET_BATTLE_EVENT,
+    NET_GAME_PACKET_USE_DOOR,
+    NET_GAME_PACKET_SEND_PARENTAL,
+    NET_GAME_PACKET_GONE_FISHIN,
+    NET_GAME_PACKET_STEAM,
+    NET_GAME_PACKET_PET_BATTLE,
+    NET_GAME_PACKET_NPC,
+    NET_GAME_PACKET_SPECIAL,
+    NET_GAME_PACKET_SEND_PARTICLE_EFFECT_V2,
+    NET_GAME_PACKET_ACTIVE_ARROWO_ITEM,
+    NET_GAME_PACKET_SELECTILE_INDEX,
+    NET_GAME_PACKET_SEND_PLAYERRIBUTE_DATA,
+    NET_GAME_PACKET_ON_STEP_ONILE_MOD
+};
+
+enum eGamePacketFlags 
+{
+    NET_GAME_PACKET_FLAGS_NONE = 0,
+    NET_GAME_PACKET_FLAGS_FLYING = 1 << 1,
+    NET_GAME_PACKET_FLAGS_UPDATE = 1 << 2,
+    NET_GAME_PACKET_FLAGS_EXTENDED = 1 << 3,
+    NET_GAME_PACKET_FLAGS_FACINGLEFT = 1 << 4,
+    NET_GAME_PACKET_FLAGS_ONGROUND = 1 << 5,
+    NET_GAME_PACKET_FLAGS_LAVA = 1 << 6,
+    NET_GAME_PACKET_FLAGS_JUMPSOUND = 1 << 7,
+    NET_GAME_PACKET_FLAGS_DEATH = 1 << 8,
+    NET_GAME_PACKET_FLAGS_PUNCH = 1 << 9,
+    NET_GAME_PACKET_FLAGS_PLACE = 1 << 10,
+    NET_GAME_PACKET_FLAGSILEACTION = 1 << 11,
+    NET_GAME_PACKET_FLAGS_KNOCKBACK = 1 << 12,
+    NET_GAME_PACKET_FLAGS_RESPAWN = 1 << 13,
+    NET_GAME_PACKET_FLAGS_PICKUPSOUND = 1 << 14,
+    NET_GAME_PACKET_FLAGSRAMPOLINE = 1 << 15,
+    NET_GAME_PACKET_FLAGS_CACTUS = 1 << 16,
+    NET_GAME_PACKET_FLAGS_SLIDING = 1 << 17,
+    NET_GAME_PACKET_FLAGS_JUMPPEAK = 1 << 18,
+    NET_GAME_PACKET_FLAGS_FALLING_SLOWLY = 1 << 19,
+    NET_GAME_PACKET_FLAGS_SWIM_SOUND = 1 << 20,
+    NET_GAME_PACKET_FLAGS_WALLHANG = 1 << 21,
+    NET_GAME_PACKET_FLAGS_RAYMAN_START = 1 << 22,
+    NET_GAME_PACKET_FLAGS_RAYMAN_END = 1 << 23,
+    NET_GAME_PACKET_FLAGS_RAYMAN_LOAD = 1 << 24,
+    NET_GAME_PACKET_FLAGS_FORCE_RING = 1 << 25,
+    NET_GAME_PACKET_FLAGS_CACTUS_RAPE = 1 << 26,
+    NET_GAME_PACKET_FLAGS_ACID = 1 << 28
+};
+
+#pragma pack(push, 1)
+struct GameUpdatePacket
+{
+    GameUpdatePacket() { Clear(); }
+    void Clear() { memset(this, 0, sizeof(GameUpdatePacket)); }
+
+    uint8 type = NET_GAME_PACKET_STATE;
+
+    union
+    {
+        uint8 field0 = 0;
+        uint8 punchType;
+    };
+
+    union
+    {
+        uint8 field1 = 0;
+        uint8 jumpCount;
+        uint8 buildRange;
+    };
+
+    union
+    {
+        uint8 field2 = 0;
+        uint8 animType;
+        uint8 punchRange;
+    };
+
+    union
+    {
+        int32 field3 = 0;
+        int32 netID;
+    };
+
+    union
+    {
+        int32 field4 = 0;
+    };
+
+    int32 flags = 0;
+
+    union
+    {
+        float field5 = 0;
+    };
+
+    union
+    {
+        int32 field6 = 0;
+        int32 delay;
+    };
+
+    union
+    {
+        float field7 = 0;
+        float waterSpeed;
+    };
+
+    union
+    {
+        float field8 = 0;
+    };
+
+    union
+    {
+        float field9 = 0;
+    };
+
+    union
+    {
+        float field10 = 0;
+    };
+
+    union
+    {
+        float field11 = 0;
+    };
+
+    union
+    {
+        uint32 field12 = 0;
+    };
+
+    union
+    {
+        uint32 field13 = 0;
+    };
+
+    uint32 extraDataSize = 0;
+};
+#pragma pack(pop)
