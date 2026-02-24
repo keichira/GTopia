@@ -49,44 +49,60 @@ string ToHex(const void* str, uint32 size)
     return out;
 }
 
-void ToUpper(string& str)
+string ToUpper(const string& str)
 {
-    char* data = &str[0];
-    ToUpper(data);
+    return ToUpper(str.c_str());
 }
 
-void ToUpper(char* str)
+string ToUpper(const char* str)
 {
     if(!str) {
-        return;
+        return "";
     }
 
-    char* src = str;
+    const char* src = str;
+    string out;
 
     while(*src) {
         if(*src >= 'a' && *src <= 'z') {
-            *src -= ('a' - 'A');
-        };
-
-        ++src;
-    }
-}
-
-void ToLower(string& str)
-{
-    if(str.empty()) {
-        return;
-    }
-
-    char* src = &str[0];
-
-    while(*src) {
-        if(*src >= 'A' && *src >= 'Z') {
-            *src += ('a' - 'A');
+            out += (*src - ('a' - 'A'));
+        }
+        else {
+            out += *src;
         }
 
         ++src;
     }
+
+    return out;
+}
+
+string ToLower(const string& str)
+{
+    return ToLower(str.c_str());
+}
+
+string ToLower(const char* str)
+{
+    if(!str) {
+        return "";
+    }
+
+    const char* src = str;
+    string out;
+
+    while(*src) {
+        if(*src >= 'A' && *src <= 'Z') {
+            out += (*src + ('a' - 'A'));
+        }
+        else {
+            out += *src;
+        }
+
+        ++src;
+    }
+
+    return out;
 }
 
 float ToFloat(const string& str)
@@ -150,6 +166,29 @@ uint32 CountCharacter(const char* str, char character)
     }
 
     return count;
+}
+
+bool IsAlpha(char c)
+{
+    return isalpha(c) != 0;
+}
+
+bool IsDigit(char c)
+{
+    return isdigit(c) != 0;
+}
+
+void ReplaceString(string& str, const string& replaceThis, const string& replaceTo)
+{
+    if(str.empty()) {
+        return;
+    }
+
+    int32 pos = 0;
+    while((pos = str.find(replaceThis, pos)) != -1) {
+        str.replace(pos, replaceThis.length(), replaceTo);
+        pos += replaceTo.length();
+    }
 }
 
 std::vector<string> Split(const string& str, char delim)

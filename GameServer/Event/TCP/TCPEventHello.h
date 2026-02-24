@@ -1,6 +1,8 @@
-#include "Event/TCP/TCPEventBase.h"
+#pragma once
 
-class TCPEventHello : public TCPEventBase {
+#include "Network/NetClient.h"
+
+class TCPEventHello {
 public:
-    void Execute(NetClient* pClient, VariantVector& data) override;
+    static void Execute(NetClient* pClient, VariantVector& data);
 };

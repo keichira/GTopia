@@ -13,6 +13,10 @@
     #include <errno.h>
 #endif
 
+#ifdef SOCKET_TLS
+    #include <openssl/ssl.h>
+#endif
+
 #include "../Precompiled.h"
 #include "NetClient.h"
 #include "../Event/EventDispatcher.h"
@@ -37,8 +41,10 @@ public:
 
 public:
     bool Init(const string& host, uint16 port, int32 backLog = 50);
-    void Connect(const string& host, uint16 port);
+    int16 Connect(const string& host, uint16 port, bool nonBlocking);
     void Kill();
+
+    void CreateSSLCtx();
 
     void Update(bool asClient);
     void UpdateIO(const fd_set& rs, const fd_set& ws);
@@ -48,7 +54,7 @@ public:
     void CloseAllClients();
     NetClient* GetClient(int16 connectionID);
 
-    bool Send(NetClient* pClient, uint8* pData, uint32 size);
+    bool Send(NetClient* pClient, void* pData, uint32 size);
 
     SocketEventDispatcher& GetEvents() { return m_events; }
 
@@ -58,4 +64,9 @@ private:
 
     SocketEventDispatcher m_events;
     std::unordered_map<int16, NetClient*> m_clients;
+
+#ifdef SOCKET_USE_TLS
+    SSL_CTX* m_pSslCtx;
+#endif
+
 };

@@ -36,4 +36,7 @@ public:
 public:
     std::vector<ServerConfigSchema> servers;
     DatabaseConfigSchema database;
+
+    string cdnServer = "";
+    string cdnPath = "";
 };

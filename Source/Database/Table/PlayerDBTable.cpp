@@ -56,7 +56,7 @@ QueryRequest MakePlayerCreateReq(const string& guestName, uint8 platformType, ui
     return req;
 }
 
-void DatabasePlayerSetIdentifiers(DatabasePool* pPool, QueryRequest& req, bool prepared)
+/*void DatabasePlayerSetIdentifiers(DatabasePool* pPool, QueryRequest& req, bool prepared)
 {
     uint16 flags = QUERY_FLAG_NONE;
     if(prepared) {
@@ -69,4 +69,4 @@ void DatabasePlayerSetIdentifiers(DatabasePool* pPool, QueryRequest& req, bool p
         req,
         flags
     );
-}
+}*/

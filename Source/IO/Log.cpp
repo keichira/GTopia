@@ -33,7 +33,7 @@ void Log::Print(eLogLevel logLvl, const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
 
-    char buffer[1024];
+    char buffer[4096];
     vsnprintf(buffer, sizeof(buffer), fmt, args);
     va_end(args);
 

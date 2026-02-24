@@ -13,12 +13,16 @@ include(${CMAKE_CURRENT_LIST_DIR}/FindMySQL.cmake)
 set(MASTER_ROOT "${CMAKE_CURRENT_LIST_DIR}/../Master")
 set(MASTER_PLAYER "${MASTER_ROOT}/Player")
 set(MASTER_SERVER "${MASTER_ROOT}/Server")
+set(MASTER_EVENT "${MASTER_ROOT}/Event")
 
 set(MASTER_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/PlayerDBTable.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
+
+    ${MASTER_EVENT}/TCP/TCPEventHello.cpp
+    ${MASTER_EVENT}/TCP/TCPEventAuth.cpp
 
     ${SOURCE_PLAYER}/Player.cpp
     ${SOURCE_PLAYER}/PlayerLoginDetail.cpp
@@ -35,6 +39,8 @@ set(MASTER_FILES PRIVATE
 
 add_executable(Master)
 add_default_sources(Master)
+add_database_sources(Master)
+add_network_sources(Master)
 target_sources(Master PRIVATE ${MASTER_FILES})
 
 set_target_properties(Master PROPERTIES

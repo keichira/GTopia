@@ -1,3 +1,4 @@
 .vscode/
 Runtime/
 Build/build_*/
+HTTPServer/static/

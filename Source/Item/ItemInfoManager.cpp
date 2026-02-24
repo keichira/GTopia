@@ -1,7 +1,8 @@
 #include "ItemInfoManager.h"
-#include "File.h"
+#include "../IO/File.h"
 #include "../Utils/StringUtils.h"
 #include "../IO/Log.h"
+#include "../Proton/ProtonUtils.h"
 
 ItemInfoManager::ItemInfoManager()
 {
@@ -12,6 +13,9 @@ ItemInfoManager::~ItemInfoManager()
     for(auto& pItem : m_items) {
         SAFE_DELETE(pItem);
     }
+
+    SAFE_DELETE_ARRAY(m_itemDataMp3.pItemData);
+    SAFE_DELETE_ARRAY(m_itemDataOgg.pItemData);
 
     m_items.clear();
 }
@@ -72,7 +76,7 @@ bool ItemInfoManager::Load(const string& filePath)
             pItem->visualEffect = StrToItemVisualEffect(args[7]);
             pItem->storage = StrToStorageType(args[8]);
             pItem->collisionType = StrToCollisionType(args[9]);
-            pItem->hp = (uint8)ToInt(args[10]);
+            pItem->hp = (uint8)ToUInt(args[10]);
             pItem->restoreTime = ToInt(args[11]);
 
             m_items.push_back(pItem);
@@ -126,16 +130,6 @@ bool ItemInfoManager::Load(const string& filePath)
             pLastItem->description = args[1];
         }
 
-        if(args[0] == "set_rarity") {
-            if(!pLastItem) {
-                continue;
-            }
-
-            ItemInfo* pSeed = m_items[pLastItem->id + 1];
-            pLastItem->rarity = (uint32)ToInt(args[1]);
-            pSeed->rarity = (uint32)ToInt(args[1]);
-        }
-
         if(args[0] == "set_element") {
             if(!pLastItem) {
                 continue;
@@ -175,16 +169,45 @@ bool ItemInfoManager::Load(const string& filePath)
     return true;
 }
 
-/**
- * add ios & mac serialization
- */
-bool ItemInfoManager::LoadFileHashes(const std::vector<string>& fileData)
+bool ItemInfoManager::LoadByItemsDat(const string& filePath)
+{
+    File file;
+    if(!file.Open(filePath)) {
+        return false;
+    }
+
+    uint32 fileSize = file.GetSize();
+    uint8* data = new uint8[fileSize];
+    memset(data, 0, fileSize);
+
+    if(file.Read(data, fileSize) != fileSize) {
+        return false;
+    }
+
+    MemoryBuffer memBuffer(data, fileSize);
+    memBuffer.Read(m_version);
+    memBuffer.Read(m_itemCount);
+
+    m_items.reserve(m_itemCount);
+
+    for(uint32 i = 0; i < m_itemCount; ++i) {
+        ItemInfo* pItem = new ItemInfo();
+        pItem->Serialize(memBuffer, false, m_version);
+
+        m_items.push_back(pItem);
+    }
+
+    SAFE_DELETE_ARRAY(data);
+    return true;
+}
+
+void ItemInfoManager::LoadFileHashes(const std::vector<string>& fileData, bool forOgg)
 {
     auto findHash = [&](const string& fileName) -> uint32
     {
         for(uint32 i = 0; i < fileData.size(); i += 2) {
-            if(fileData[i] == fileName) {
-                return ToUInt(fileData[i+1]);
+            if(fileName == fileData[i]) {
+                return ToUInt(fileData[i + 1]);
             }
         }
 
@@ -202,7 +225,12 @@ bool ItemInfoManager::LoadFileHashes(const std::vector<string>& fileData)
         }
 
         if(!pItem->extraString.empty()) {
-            uint32 extraStringHash = findHash(pItem->extraString);
+            string filePath = pItem->extraString;
+            if(forOgg) {
+                ReplaceString(filePath, "mp3", "ogg");
+            }
+
+            uint32 extraStringHash = findHash(filePath);
 
             if(extraStringHash == 0) {
                 LOGGER_LOG_WARN("Unable to get EXTRA STRING hash for %s %s, it wasnt set to 0 right?!", pItem->name.c_str(), pItem->extraString.c_str());
@@ -214,6 +242,37 @@ bool ItemInfoManager::LoadFileHashes(const std::vector<string>& fileData)
     }
 }
 
+void ItemInfoManager::LoadItemsClientData(bool forOgg)
+{
+    MemoryBuffer memSizeBuffer;
+    memSizeBuffer.Seek(sizeof(m_version) + sizeof(m_itemCount));
+
+    for(auto& pItem : m_items) {
+        pItem->Serialize(memSizeBuffer, true, m_version);
+    }
+
+    uint32 memSize = memSizeBuffer.GetOffset();
+    uint8* pData = new uint8[memSize];
+    memset(pData, 0, memSize);
+
+    MemoryBuffer memBuffer(pData, memSize);
+
+    for(auto& pItem : m_items) {
+        pItem->Serialize(memBuffer, true, m_version);
+    }
+
+    if(forOgg) {
+        m_itemDataOgg.pItemData = pData;
+        m_itemDataOgg.size = memSize;
+        m_itemDataOgg.hash = Proton::HashString((const char*)pData, memSize);
+    }
+    else {
+        m_itemDataMp3.pItemData = pData;
+        m_itemDataMp3.size = memSize;
+        m_itemDataMp3.hash = Proton::HashString((const char*)pData, memSize);
+    }
+}
+
 ItemInfo* ItemInfoManager::GetItemByID(uint32 itemID)
 {
     if(itemID > m_itemCount) {
@@ -221,6 +280,27 @@ ItemInfo* ItemInfoManager::GetItemByID(uint32 itemID)
     }
 
     return m_items[itemID];
+}
+
+ItemInfo* ItemInfoManager::GetItemByName(const string& name)
+{
+    string searchName = ToLower(name);
+
+    for(auto& pItem : m_items) {
+        if(ToLower(pItem->name) == searchName) {
+            return pItem;
+        }
+    }
+
+    return nullptr;
+}
+
+ItemsClientData& ItemInfoManager::GetClientData(uint8 platformType)
+{
+    if(platformType == Proton::PLATFORM_ID_ANDROID) {
+        return m_itemDataMp3;
+    }
+    return m_itemDataOgg;
 }
 
 void ItemInfoManager::SetupItemExtras()

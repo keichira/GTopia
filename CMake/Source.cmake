@@ -15,14 +15,9 @@ set(SOURCE_WORLD "${SOURCE_ROOT}/World")
 set(THIRD_PARTY_ROOT "${CMAKE_CURRENT_LIST_DIR}/../ThirdParty")
 set(THIRD_PARTY_ENET "${THIRD_PARTY_ROOT}/enet")
 set(THIRD_PARTY_CONCURRENTQUEUE "${THIRD_PARTY_ROOT}/concurrentqueue")
+set(THIRD_PARTY_NLOHMANN "${THIRD_PARTY_ROOT}/nlohmann")
 
 set(SOURCE_DEFAULT_FILES
-    ${SOURCE_DATABASE}/DatabaseManager.cpp
-    ${SOURCE_DATABASE}/DatabasePool.cpp 
-    ${SOURCE_DATABASE}/DatabaseResult.cpp
-    ${SOURCE_DATABASE}/DatabaseWorker.cpp
-    ${SOURCE_DATABASE}/PreparedParam.cpp
-
     ${SOURCE_IO}/File.cpp
     ${SOURCE_IO}/Log.cpp
 
@@ -32,11 +27,6 @@ set(SOURCE_DEFAULT_FILES
     ${SOURCE_MEMORY}/MemoryBuffer.cpp
     ${SOURCE_MEMORY}/RingBuffer.cpp
 
-    ${SOURCE_NETWORK}/ENetServer.cpp 
-    ${SOURCE_NETWORK}/NetClient.cpp
-    ${SOURCE_NETWORK}/NetSocket.cpp
-    ${SOURCE_NETWORK}/NetEntity.cpp
-
     ${SOURCE_PROTON}/ProtonUtils.cpp
 
     ${SOURCE_UTILS}/StringUtils.cpp
@@ -44,6 +34,21 @@ set(SOURCE_DEFAULT_FILES
     ${SOURCE_UTILS}/Variant.cpp
 
     ${SOURCE_ROOT}/ContextBase.cpp
+)
+
+set(SOURCE_DATABASE_FILES
+    ${SOURCE_DATABASE}/DatabaseManager.cpp
+    ${SOURCE_DATABASE}/DatabasePool.cpp 
+    ${SOURCE_DATABASE}/DatabaseResult.cpp
+    ${SOURCE_DATABASE}/DatabaseWorker.cpp
+    ${SOURCE_DATABASE}/PreparedParam.cpp
+)
+
+set(SOURCE_NETWORK_FILES
+    ${SOURCE_NETWORK}/ENetServer.cpp 
+    ${SOURCE_NETWORK}/NetClient.cpp
+    ${SOURCE_NETWORK}/NetSocket.cpp
+    ${SOURCE_NETWORK}/NetEntity.cpp
 
     ${THIRD_PARTY_ENET}/callbacks.c
     ${THIRD_PARTY_ENET}/compress.c
@@ -65,3 +70,11 @@ endif(WIN32)
 function(add_default_sources target_name)
     target_sources(${target_name} PRIVATE ${SOURCE_DEFAULT_FILES})
 endfunction(add_default_sources target_name)
+
+function(add_database_sources target_name)
+    target_sources(${target_name} PRIVATE ${SOURCE_DATABASE_FILES})
+endfunction(add_database_sources target_name)
+
+function(add_network_sources target_name)
+    target_sources(${target_name} PRIVATE ${SOURCE_NETWORK_FILES})
+endfunction(add_network_sources target_name)

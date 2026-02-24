@@ -18,12 +18,12 @@ struct ServerInfo
     uint32 playerCount = 0;
     uint32 worldCount = 0;
     int32 socketConnID = -1;
+    string wanIP;
+    uint16 port;
+
 };
 
 class ServerManager : public ServerBroadwayBase {
-public:
-    typedef EventDispatcher<eTCPPacketType, NetClient*, VariantVector> TCPEventDispatcher;
-
 public:
     ServerManager();
     ~ServerManager();
@@ -40,13 +40,16 @@ public:
     void OnClientDisconnect(NetClient* pClient) override;
     void UpdateTCPLogic(uint64 maxTimeMS) override;
     void Kill() override;
+    void RegisterEvents() override;
 
 public:
     void AddServer(uint16 serverID, NetClient* pClient);
     void RemoveServer(uint16 serverID);
+    ServerInfo* GetBestServer();
 
 private:
     std::unordered_map<uint16, ServerInfo*> m_servers;
+    EventDispatcher<int8, NetClient*, VariantVector&> m_events;
 };
 
 ServerManager* GetServerManager();

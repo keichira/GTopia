@@ -16,6 +16,15 @@ bool NetClient::Send(const VariantVector& data)
     return succeed;
 }
 
+bool NetClient::Send(void* pData, uint32 size)
+{
+    if(socket < 0 || !pNetSocket) {
+        return false;
+    }
+
+    return pNetSocket->Send(this, pData, size);
+}
+
 uint8* SerializeVariantVectorForTCP(const VariantVector& varVector, uint32& outSize)
 {
     uint32 size = 5;
@@ -34,14 +43,33 @@ uint8* SerializeVariantVectorForTCP(const VariantVector& varVector, uint32& outS
 
     for(auto& var : varVector) {
         uint32 varSize = var.GetSize();
-        memBuffer.Write(var.GetType());
+        memBuffer.Write((uint8)var.GetType());
 
-        if(var.GetType() == VARIANT_TYPE_STRING) {
-            memBuffer.WriteString<uint16>(var.GetString());
-        }
-        else {
-            auto varValue = var.GetValue();
-            memBuffer.WriteRaw(&varValue, varSize);
+        switch(var.GetType()) {
+            case VARIANT_TYPE_STRING: {
+                memBuffer.WriteStringRaw(var.GetString());
+                break;
+            }
+
+            case VARIANT_TYPE_FLOAT: {
+                memBuffer.Write(var.GetFloat());
+                break;
+            }
+
+            case VARIANT_TYPE_UINT: {
+                memBuffer.Write(var.GetUINT());
+                break;
+            }
+
+            case VARIANT_TYPE_BOOL: {
+                memBuffer.Write(var.GetBool());
+                break;
+            }
+
+            case VARIANT_TYPE_INT: {
+                memBuffer.Write(var.GetINT());
+                break;
+            }
         }
     }
 
@@ -66,15 +94,15 @@ void DeSerializeVariantVectorForTCP(MemoryBuffer& memBuffer, VariantVector& out)
 
         switch(type) {
             case VARIANT_TYPE_STRING: {
-                string str;
-                memBuffer.ReadString<uint16>(str);
+                string str = "";
+                memBuffer.ReadStringRaw(str);
     
                 var = str;
                 break;
             }
 
             case VARIANT_TYPE_FLOAT: {
-                float val;
+                float val = 0;
                 memBuffer.Read(val);
 
                 var = val;
@@ -82,7 +110,7 @@ void DeSerializeVariantVectorForTCP(MemoryBuffer& memBuffer, VariantVector& out)
             }
 
             case VARIANT_TYPE_UINT: {
-                uint32 val;
+                uint32 val = 0;
                 memBuffer.Read(val);
 
                 var = val;
@@ -90,7 +118,7 @@ void DeSerializeVariantVectorForTCP(MemoryBuffer& memBuffer, VariantVector& out)
             }
 
             case VARIANT_TYPE_BOOL: {
-                bool val;
+                bool val = 0;
                 memBuffer.Read(val);
 
                 var = val;
@@ -98,7 +126,7 @@ void DeSerializeVariantVectorForTCP(MemoryBuffer& memBuffer, VariantVector& out)
             }
 
             case VARIANT_TYPE_INT: {
-                int32 val;
+                int32 val = 0;
                 memBuffer.Read(val);
 
                 var = val;

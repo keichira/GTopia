@@ -2,6 +2,7 @@
 #include "../../Server/ServerManager.h"
 #include "Utils/StringUtils.h"
 #include "Utils/Timer.h"
+#include "IO/Log.h"
 
 void TCPEventAuth::Execute(NetClient* pClient, VariantVector& data)
 {
@@ -13,6 +14,7 @@ void TCPEventAuth::Execute(NetClient* pClient, VariantVector& data)
     NetClientInfo* pClientInfo = (NetClientInfo*)pClient->data;
 
     if(pClientInfo->authKey != data[1].GetString()) {
+        LOGGER_LOG_WARN("Failed to authorize server! closing connection...");
         pClient->status = SOCKET_CLIENT_CLOSE;
         return;
     }

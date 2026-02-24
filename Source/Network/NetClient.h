@@ -5,6 +5,10 @@
 #include "../Memory/MemoryBuffer.h"
 #include <mutex>
 
+#ifdef SOCKET_USE_TLS
+    #include <openssl/ssl.h>
+#endif
+
 #define SOCKET_MAX_BUFFER_SIZE 4096
 
 class NetSocket;
@@ -27,13 +31,18 @@ struct NetClient
     int16 connectionID;
     eSocketClientStatus status = SOCKET_CLIENT_UNKNOWN;
 
-    RingBuffer sendQueue = RingBuffer(SOCKET_MAX_BUFFER_SIZE/2);
-    RingBuffer recvQueue = RingBuffer(SOCKET_MAX_BUFFER_SIZE/2);
+    RingBuffer sendQueue = RingBuffer(24 * 1024);
+    RingBuffer recvQueue = RingBuffer(8 * 1024);
 
     NetSocket* pNetSocket = nullptr;
     void* data = nullptr;
 
     std::mutex mutex;
 
+#ifdef SOCKET_USE_TLS
+    SSL* pSsl = nullptr;
+#endif
+
     bool Send(const VariantVector& data);
+    bool Send(void* pData, uint32 size);
 };

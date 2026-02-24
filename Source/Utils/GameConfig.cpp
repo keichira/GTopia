@@ -38,6 +38,11 @@ bool GameConfig::LoadConfig(const string &filePath)
             database.database = args[4];
             database.port = (uint16)ToUInt(args[5]);
         }
+
+        if(args[0] == "cdn_info") {
+            cdnServer = args[1];
+            cdnPath = args[2];
+        }
     }
 
     return true;
@@ -100,12 +105,12 @@ uint16 GameConfig::LoadServers(const string &filePath, uint16 serverID)
             uint16 serverCount = ToUInt(args[3]);
 #ifdef SERVER_MASTER
             for(uint16 i = 0; i < serverCount; ++i) {
-                uint16 serverID = servers.size() + 1;
+                uint16 serverID = servers.size();
 
                 servers.emplace_back(
                     ServerConfigSchema{
                         serverID, args[1], args[2],
-                        tcpStart, udpStart
+                        (uint16)(tcpStart + serverID), (uint16)(udpStart + serverID)
                     }
                 );
             }

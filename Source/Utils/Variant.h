@@ -64,6 +64,12 @@ public:
         m_str = rhs;
     }
 
+    void operator=(const char* rhs)
+    {
+        m_type = VARIANT_TYPE_STRING;
+        m_str = rhs ? rhs : "";
+    }
+
     void operator=(const Vector2Int& rhs)
     {
         m_type = VARIANT_TYPE_VECTOR2INT;

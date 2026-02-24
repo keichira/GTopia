@@ -1,5 +1,7 @@
 #include "TCPEventHello.h"
 #include "Utils/StringUtils.h"
+#include "Packet/GamePacket.h"
+#include "Network/NetClient.h"
 #include "../../Context.h"
 
 void TCPEventHello::Execute(NetClient* pClient, VariantVector& data)
@@ -13,7 +15,7 @@ void TCPEventHello::Execute(NetClient* pClient, VariantVector& data)
      * planned to use HMAC for here for non-TLS socket but openssl lib is so big
      */
     packet[1] = data[1].GetString();
-    packet[2] = GetContext()->GetID();
+    packet[2] = (uint32)GetContext()->GetID();
 
     pClient->Send(packet);
 }

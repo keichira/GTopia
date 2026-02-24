@@ -3,10 +3,11 @@
 #include "../Precompiled.h"
 #include "../Utils/Variant.h"
 
-enum eTCPPacketType 
+enum eTCPPacketType
 {
     TCP_PACKET_HELLO,
-    TCP_PACKET_AUTH
+    TCP_PACKET_AUTH,
+    TCP_PACKET_PLAYER_SESSION
 };
 
 enum eMessagePacketType 

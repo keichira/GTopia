@@ -2,6 +2,8 @@
 #include "../../Server/ServerManager.h"
 #include "Utils/StringUtils.h"
 
+#include "IO/Log.h"
+
 void TCPEventHello::Execute(NetClient* pClient, VariantVector& data)
 {
     if(data.size() != 1) {

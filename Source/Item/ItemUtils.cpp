@@ -32,12 +32,12 @@ uint16 StrToItemFlag(const string& type)
 
 uint8 StrToItemVisualEffect(const string& type)
 {
-    static const std::unordered_map<string, uint16> itemVisualMap 
+    static const std::unordered_map<string, uint8> itemVisualMap 
     {
-        { "VISUAL_EFFECT_NONE", VISUAL_EFFECT_NORMAL },
+        { "VISUAL_EFFECT_NORMAL", VISUAL_EFFECT_NORMAL },
         { "VISUAL_EFFECT_FLAME_LICK", VISUAL_EFFECT_FLAME_LICK },
         { "VISUAL_EFFECT_SMOKING", VISUAL_EFFECT_SMOKING },
-        { "VISUAL_EFFECT_GLOW_TINT1", VISUAL_EFFECT_GLOW_TINT1 },
+        { "VISUAL_EFFECT_GLOW_TINT", VISUAL_EFFECT_GLOW_TINT },
         { "VISUAL_EFFECT_ANIM", VISUAL_EFFECT_ANIM },
         { "VISUAL_EFFECT_BUBBLES", VISUAL_EFFECT_BUBBLES },
         { "VISUAL_EFFECT_PET", VISUAL_EFFECT_PET },
@@ -95,7 +95,7 @@ uint8 StrToItemVisualEffect(const string& type)
 
 uint8 StrToStorageType(const string& type)
 {
-    static const std::unordered_map<string, uint16> itemStorageMap 
+    static const std::unordered_map<string, uint8> itemStorageMap 
     {
         { "STORAGE_SINGLE_FRAME_ALONE", STORAGE_SINGLE_FRAME_ALONE },
         { "STORAGE_SINGLE_FRAME", STORAGE_SINGLE_FRAME },
@@ -120,21 +120,21 @@ uint8 StrToStorageType(const string& type)
 
 uint8 StrToCollisionType(const string& type)
 {
-    static const std::unordered_map<string, uint16> itemCollisionMap 
+    static const std::unordered_map<string, uint8> itemCollisionMap 
     {
-        { "TILE_COLLISION_NONE", COLLISION_NONE },
-        { "TILE_COLLISION_SOLID", COLLISION_SOLID },
-        { "TILE_COLLISION_JUMP_THROUGH", COLLISION_JUMP_THROUGH },
-        { "TILE_COLLISION_JUMP_DOWN", COLLISION_JUMP_DOWN },
-        { "TILE_COLLISION_GATEWAY", COLLISION_GATEWAY },
-        { "TILE_COLLISION_IF_OFF", COLLISION_IF_OFF },
-        { "TILE_COLLISION_IF_ON", COLLISION_IF_ON },
-        { "TILE_COLLISION_ONE_WAY", COLLISION_ONE_WAY },
-        { "TILE_COLLISION_VIP", COLLISION_VIP },
-        { "TILE_COLLISION_ADVENTURE", COLLISION_ADVENTURE },
-        { "TILE_COLLISION_FACTION", COLLISION_FACTION },
-        { "TILE_COLLISION_GUILD", COLLISION_GUILD },
-        { "TILE_COLLISION_CLOUD", COLLISION_CLOUD }
+        { "COLLISION_NONE", COLLISION_NONE },
+        { "COLLISION_SOLID", COLLISION_SOLID },
+        { "COLLISION_JUMP_THROUGH", COLLISION_JUMP_THROUGH },
+        { "COLLISION_JUMP_DOWN", COLLISION_JUMP_DOWN },
+        { "COLLISION_GATEWAY", COLLISION_GATEWAY },
+        { "COLLISION_IF_OFF", COLLISION_IF_OFF },
+        { "COLLISION_IF_ON", COLLISION_IF_ON },
+        { "COLLISION_ONE_WAY", COLLISION_ONE_WAY },
+        { "COLLISION_VIP", COLLISION_VIP },
+        { "COLLISION_ADVENTURE", COLLISION_ADVENTURE },
+        { "COLLISION_FACTION", COLLISION_FACTION },
+        { "COLLISION_GUILD", COLLISION_GUILD },
+        { "COLLISION_CLOUD", COLLISION_CLOUD }
         
     };
 
@@ -176,7 +176,7 @@ uint8 StrToItemElement(const string& type)
 
 uint8 StrToBodyPartType(const string& type)
 {
-    static const std::unordered_map<string, uint16> bodyPartMap 
+    static const std::unordered_map<string, uint8> bodyPartMap 
     {
         { "HAIR", BODY_PART_HAIR },
         { "SHIRT", BODY_PART_SHIRT },
@@ -199,7 +199,7 @@ uint8 StrToBodyPartType(const string& type)
 
 uint8 StrToItemType(const string& type)
 {
-    static const std::unordered_map<string, uint16> itemTypeMap 
+    static const std::unordered_map<string, uint8> itemTypeMap 
     {
         { "TYPE_FIST", ITEM_TYPE_FIST },
         { "TYPE_WRENCH", ITEM_TYPE_WRENCH },
@@ -353,4 +353,358 @@ uint8 StrToItemType(const string& type)
     }
 
     return ITEM_TYPE_CONSUMABLE;
+}
+
+string ItemFlagToStr(uint16 type)
+{
+    static const std::unordered_map<uint16, string> itemStrFlagMap 
+    {
+        { ITEM_FLAG_FLIPPABLE, "FLIPPABLE" },
+        { ITEM_FLAG_EDITABLE, "EDITABLE" },
+        { ITEM_FLAG_SEEDLESS, "SEEDLESS" },
+        { ITEM_FLAG_PERMANENT, "PERMANENT" },
+        { ITEM_FLAG_DROPLESS, "DROPLESS" },
+        { ITEM_FLAG_NOSELF, "NOSELF" },
+        { ITEM_FLAG_RANDGROW, "NOSHADOW" },
+        { ITEM_FLAG_WORLDLOCKED, "WORLDLOCKED" },
+        { ITEM_FLAG_BETA, "BETA" },
+        { ITEM_FLAG_AUTOPICKUP, "AUTOPICKUP" },
+        { ITEM_FLAG_MOD, "MOD" },
+        { ITEM_FLAG_RANDGROW, "RANDGROW" },
+        { ITEM_FLAG_PUBLIC, "PUBLIC" },
+        { ITEM_FLAG_FOREGROUND, "FOREGROUND" },
+        { ITEM_FLAG_HOLIDAY, "HOLIDAY" },
+        { ITEM_FLAG_UNTRADEABLE, "UNTRADEABLE" }
+    };
+
+    auto it = itemStrFlagMap.find(type);
+    if(it != itemStrFlagMap.end()) {
+        return it->second;
+    }
+
+    return "UNTRADEABLE";
+}
+
+string ItemVisualEffectToStr(uint8 type)
+{
+    static const std::unordered_map<uint8, string> itemStrVisualMap 
+    {
+        { VISUAL_EFFECT_NORMAL, "VISUAL_EFFECT_NORMAL" },
+        { VISUAL_EFFECT_FLAME_LICK, "VISUAL_EFFECT_FLAME_LICK" },
+        { VISUAL_EFFECT_SMOKING, "VISUAL_EFFECT_SMOKING" },
+        { VISUAL_EFFECT_GLOW_TINT, "VISUAL_EFFECT_GLOW_TINT" },
+        { VISUAL_EFFECT_ANIM, "VISUAL_EFFECT_ANIM" },
+        { VISUAL_EFFECT_BUBBLES, "VISUAL_EFFECT_BUBBLES" },
+        { VISUAL_EFFECT_PET, "VISUAL_EFFECT_PET" },
+        { VISUAL_EFFECT_PET_ANIM, "VISUAL_EFFECT_PET_ANIM" },
+        { VISUAL_EFFECT_NO_ARMS, "VISUAL_EFFECT_NO_ARMS" },
+        { VISUAL_EFFECT_WAVEY, "VISUAL_EFFECT_WAVEY" },
+        { VISUAL_EFFECT_WAVEY_ANIM, "VISUAL_EFFECT_WAVEY_ANIM" },
+        { VISUAL_EFFECT_BOTHARMS, "VISUAL_EFFECT_BOTHARMS" },
+        { VISUAL_EFFECT_LOWHAIR, "VISUAL_EFFECT_LOWHAIR" },
+        { VISUAL_EFFECT_UNDERFACE, "VISUAL_EFFECT_UNDERFACE" },
+        { VISUAL_EFFECT_SKINTINT, "VISUAL_EFFECT_SKINTINT" },
+        { VISUAL_EFFECT_MASK, "VISUAL_EFFECT_MASK" },
+        { VISUAL_EFFECT_ANIM_MASK, "VISUAL_EFFECT_ANIM_MASK" },
+        { VISUAL_EFFECT_LOWHAIR_MASK, "VISUAL_EFFECT_LOWHAIR_MASK" },
+        { VISUAL_EFFECT_GHOST, "VISUAL_EFFECT_GHOST" },
+        { VISUAL_EFFECT_PULSE, "VISUAL_EFFECT_PULSE" },
+        { VISUAL_EFFECT_COLORIZE, "VISUAL_EFFECT_COLORIZE" },
+        { VISUAL_EFFECT_COLORIZE_TO_SHIRT, "VISUAL_EFFECT_COLORIZE_TO_SHIRT" },
+        { VISUAL_EFFECT_COLORIZE_ANIM, "VISUAL_EFFECT_COLORIZE_ANIM" },
+        { VISUAL_EFFECT_HIGHFACE, "VISUAL_EFFECT_HIGHFACE" },
+        { VISUAL_EFFECT_HIGHFACE_ANIM, "VISUAL_EFFECT_HIGHFACE_ANIM" },
+        { VISUAL_EFFECT_RAINBOW_SHIFT, "VISUAL_EFFECT_RAINBOW_SHIFT" },
+        { VISUAL_EFFECT_BACKFORE, "VISUAL_EFFECT_BACKFORE" },
+        { VISUAL_EFFECT_COLORIZE_WITH_SKIN, "VISUAL_EFFECT_COLORIZE_WITH_SKIN" },
+        { VISUAL_EFFECT_NO_RENDER, "VISUAL_EFFECT_NO_RENDER" },
+        { VISUAL_EFFECT_SPIN, "VISUAL_EFFECT_SPIN" },
+        { VISUAL_EFFECT_OFFHAND, "VISUAL_EFFECT_OFFHAND" },
+        { VISUAL_EFFECT_WINGED, "VISUAL_EFFECT_WINGED" },
+        { VISUAL_EFFECT_SINK, "VISUAL_EFFECT_SINK" },
+        { VISUAL_EFFECT_DARKNESS, "VISUAL_EFFECT_DARKNESS" },
+        { VISUAL_EFFECT_LIGHTSOURCE, "VISUAL_EFFECT_LIGHTSOURCE" },
+        { VISUAL_EFFECT_LIGHT_IF_ON, "VISUAL_EFFECT_LIGHT_IF_ON" },
+        { VISUAL_EFFECT_DISCOLOR, "VISUAL_EFFECT_DISCOLOR" },
+        { VISUAL_EFFECT_STEP_SPIN, "VISUAL_EFFECT_STEP_SPIN" },
+        { VISUAL_EFFECT_PETCOLORED, "VISUAL_EFFECT_PETCOLORED" },
+        { VISUAL_EFFECT_SILKFOOT, "VISUAL_EFFECT_SILKFOOT" },
+        { VISUAL_EFFECT_TILTY, "VISUAL_EFFECT_TILTY" },
+        { VISUAL_EFFECT_TILTY_DARK, "VISUAL_EFFECT_TILTY_DARK" },
+        { VISUAL_EFFECT_NEXT_FRAME_IF_ON, "VISUAL_EFFECT_NEXT_FRAME_IF_ON" },
+        { VISUAL_EFFECT_WOBBLE, "VISUAL_EFFECT_WOBBLE" },
+        { VISUAL_EFFECT_SCROLL, "VISUAL_EFFECT_SCROLL" },
+        { VISUAL_EFFECT_LIGHTSOURCE_PULSE, "VISUAL_EFFECT_LIGHTSOURCE_PULSE" },
+        { VISUAL_EFFECT_BUBBLE_MACHINE, "VISUAL_EFFECT_BUBBLE_MACHINE" },
+        { VISUAL_EFFECT_VERYLOWHAIR, "VISUAL_EFFECT_VERYLOWHAIR" },
+        { VISUAL_EFFECT_VERYLOWHAIR_MASK, "VISUAL_EFFECT_VERYLOWHAIR_MASK" }
+    };
+
+    auto it = itemStrVisualMap.find(type);
+    if(it != itemStrVisualMap.end()) {
+        return it->second;
+    }
+
+    return "VISUAL_EFFECT_NORMAL";
+}
+
+string ItemStorageTypeToStr(uint8 type)
+{
+    static const std::unordered_map<uint8, string> itemStorageStrMap 
+    {
+        { STORAGE_SINGLE_FRAME_ALONE, "STORAGE_SINGLE_FRAME_ALONE" },
+        { STORAGE_SINGLE_FRAME, "STORAGE_SINGLE_FRAME" },
+        { STORAGE_SMART_EDGE, "STORAGE_SMART_EDGE" },
+        { STORAGE_SMART_EDGE_HORIZ, "STORAGE_SMART_EDGE_HORIZ" },
+        { STORAGE_SMART_CLING, "STORAGE_SMART_CLING" },
+        { STORAGE_SMART_CLING2, "STORAGE_SMART_CLING2" },
+        { STORAGE_SMART_OUTER, "STORAGE_SMART_OUTER" },
+        { STORAGE_RANDOM, "STORAGE_RANDOM" },
+        { STORAGE_SMART_EDGE_VERT, "STORAGE_SMART_EDGE_VERT" },
+        { STORAGE_SMART_EDGE_HORIZ_CAVE, "STORAGE_SMART_EDGE_HORIZ_CAVE" },
+        { STORAGE_SMART_EDGE_DIAGON, "STORAGE_SMART_EDGE_DIAGON" }
+    };
+
+    auto it = itemStorageStrMap.find(type);
+    if(it != itemStorageStrMap.end()) {
+        return it->second;
+    }
+
+    return "STORAGE_SINGLE_FRAME_ALONE";
+}
+
+string ItemCollisionTypeToStr(uint8 type)
+{
+    static const std::unordered_map<uint8, string> itemCollisionStrMap 
+    {
+        { COLLISION_NONE, "COLLISION_NONE" },
+        { COLLISION_SOLID, "COLLISION_SOLID" },
+        { COLLISION_JUMP_THROUGH, "COLLISION_JUMP_THROUGH" },
+        { COLLISION_JUMP_DOWN, "COLLISION_JUMP_DOWN" },
+        { COLLISION_GATEWAY, "COLLISION_GATEWAY" },
+        { COLLISION_IF_OFF, "COLLISION_IF_OFF" },
+        { COLLISION_IF_ON, "COLLISION_IF_ON" },
+        { COLLISION_ONE_WAY, "COLLISION_ONE_WAY" },
+        { COLLISION_VIP, "COLLISION_VIP" },
+        { COLLISION_ADVENTURE, "COLLISION_ADVENTURE" },
+        { COLLISION_FACTION, "COLLISION_FACTION" },
+        { COLLISION_GUILD, "COLLISION_GUILD" },
+        { COLLISION_CLOUD, "COLLISION_CLOUD" }
+    };
+
+    auto it = itemCollisionStrMap.find(type);
+    if(it != itemCollisionStrMap.end()) {
+        return it->second;
+    }
+
+    return "COLLISION_NONE";
+}
+
+string ItemMaterialToStr(uint8 type)
+{
+    if(type == MATERIAL_WOOD)
+        return "MATERIAL_WOOD";
+    if(type == MATERIAL_GLASS)
+        return "MATERIAL_GLASS";
+    if(type == MATERIAL_ROCK)
+        return "MATERIAL_ROCK";
+    if(type == MATERIAL_METAL)
+        return "MATERIAL_METAL";
+
+    return "MATERIAL_WOOD";
+}
+
+string ItemElementToStr(uint8 type)
+{
+    if(type == ITEM_ELEMENT_EARTH)
+        return "EARTH";
+    if(type == ITEM_ELEMENT_FIRE)
+        return "FIRE";
+    if(type == ITEM_ELEMENT_AIR)
+        return "AIR";
+    if(type == ITEM_ELEMENT_WATER)
+        return "WATER";
+
+    return "NONE";
+}
+
+string ItemBodyPartToStr(uint8 type)
+{
+    static const std::unordered_map<uint8, string> bodyPartStrMap 
+    {
+        { BODY_PART_HAIR, "HAIR" },
+        { BODY_PART_SHIRT, "SHIRT" },
+        { BODY_PART_PANT, "PANT" },
+        { BODY_PART_SHOE, "SHOE" },
+        { BODY_PART_FACEITEM, "FACEITEM" },
+        { BODY_PART_HAND, "HAND" },
+        { BODY_PART_BACK, "BACK" },
+        { BODY_PART_HAT, "HAT" },
+        { BODY_PART_CHESTITEM, "CHESTITEM" }
+    };
+
+    auto it = bodyPartStrMap.find(type);
+    if(it != bodyPartStrMap.end()) {
+        return it->second;
+    }
+
+    return "HAIR";
+}
+
+string ItemTypeToStr(uint8 type)
+{
+    static const std::unordered_map<uint8, string> itemTypeStrMap 
+    {
+        { ITEM_TYPE_FIST, "TYPE_FIST" },
+        { ITEM_TYPE_WRENCH, "TYPE_WRENCH" },
+        { ITEM_TYPE_USER_DOOR, "TYPE_USER_DOOR" },
+        { ITEM_TYPE_LOCK, "TYPE_LOCK" },
+        { ITEM_TYPE_GEMS, "TYPE_GEMS" },
+        { ITEM_TYPE_TREASURE, "TYPE_TREASURE" },
+        { ITEM_TYPE_DEADLY, "TYPE_DEADLY" },
+        { ITEM_TYPE_TRAMPOLINE, "TYPE_TRAMPOLINE" },
+        { ITEM_TYPE_CONSUMABLE, "TYPE_CONSUMABLE" },
+        { ITEM_TYPE_GATEWAY, "TYPE_GATEWAY" },
+        { ITEM_TYPE_SIGN, "TYPE_SIGN" },
+        { ITEM_TYPE_SFX_WITH_EXTRA_FRAME, "TYPE_SFX_WITH_EXTRA_FRAME" },
+        { ITEM_TYPE_BOOMBOX, "TYPE_BOOMBOX" },
+        { ITEM_TYPE_DOOR, "TYPE_DOOR" },
+        { ITEM_TYPE_PLATFORM, "TYPE_PLATFORM" },
+        { ITEM_TYPE_BEDROCK, "TYPE_BEDROCK" },
+        { ITEM_TYPE_LAVA, "TYPE_LAVA" },
+        { ITEM_TYPE_NORMAL, "TYPE_NORMAL" },
+        { ITEM_TYPE_BACKGROUND, "TYPE_BACKGROUND" },
+        { ITEM_TYPE_SEED, "TYPE_SEED" },
+        { ITEM_TYPE_CLOTHES, "TYPE_CLOTHES" },
+        { ITEM_TYPE_NORMAL_WITH_EXTRA_FRAME, "TYPE_NORMAL_WITH_EXTRA_FRAME" },
+        { ITEM_TYPE_BACKGD_SFX_EXTRA_FRAME, "TYPE_BACKGD_SFX_EXTRA_FRAME" },
+        { ITEM_TYPE_BACK_BOOMBOX, "TYPE_BACK_BOOMBOX" },
+        { ITEM_TYPE_BOUNCY, "TYPE_BOUNCY" },
+        { ITEM_TYPE_POINTY, "TYPE_POINTY" },
+        { ITEM_TYPE_PORTAL, "TYPE_PORTAL" },
+        { ITEM_TYPE_CHECKPOINT, "TYPE_CHECKPOINT" },
+        { ITEM_TYPE_MUSICNOTE, "TYPE_MUSICNOTE" },
+        { ITEM_TYPE_ICE, "TYPE_ICE" },
+        { ITEM_TYPE_RACE_FLAG, "TYPE_RACE_FLAG" },
+        { ITEM_TYPE_SWITCHEROO, "TYPE_SWITCHEROO" },
+        { ITEM_TYPE_CHEST, "TYPE_CHEST" },
+        { ITEM_TYPE_MAILBOX, "TYPE_MAILBOX" },
+        { ITEM_TYPE_BULLETIN, "TYPE_BULLETIN" },
+        { ITEM_TYPE_PINATA, "TYPE_PINATA" },
+        { ITEM_TYPE_COMPONENT, "TYPE_COMPONENT" },
+        { ITEM_TYPE_DICE, "TYPE_DICE" },
+        { ITEM_TYPE_PROVIDER, "TYPE_PROVIDER" },
+        { ITEM_TYPE_ACHIEVEMENT, "TYPE_ACHIEVEMENT" },
+        { ITEM_TYPE_LAB, "TYPE_LAB" },
+        { ITEM_TYPE_WEATHER_MACHINE, "TYPE_WEATHER_MACHINE" },
+        { ITEM_TYPE_SCOREBOARD, "TYPE_SCOREBOARD" },
+        { ITEM_TYPE_SUNGATE, "TYPE_SUNGATE" },
+        { ITEM_TYPE_PROFILE, "TYPE_PROFILE" },
+        { ITEM_TYPE_DEADLY_IF_ON, "TYPE_DEADLY_IF_ON" },
+        { ITEM_TYPE_HEART_MONITOR, "TYPE_HEART_MONITOR" },
+        { ITEM_TYPE_DONATION_BOX, "TYPE_DONATION_BOX" },
+        { ITEM_TYPE_TOYBOX, "TYPE_TOYBOX" },
+        { ITEM_TYPE_MANNEQUIN, "TYPE_MANNEQUIN" },
+        { ITEM_TYPE_CAMERA, "TYPE_CAMERA" },
+        { ITEM_TYPE_MAGICEGG, "TYPE_MAGICEGG" },
+        { ITEM_TYPE_TEAM, "TYPE_TEAM" },
+        { ITEM_TYPE_GAME_GEN, "TYPE_GAME_GEN" },
+        { ITEM_TYPE_XENONITE, "TYPE_XENONITE" },
+        { ITEM_TYPE_DRESSUP, "TYPE_DRESSUP" },
+        { ITEM_TYPE_CRYSTAL, "TYPE_CRYSTAL" },
+        { ITEM_TYPE_BURGLAR, "TYPE_BURGLAR" },
+        { ITEM_TYPE_COMPACTOR, "TYPE_COMPACTOR" },
+        { ITEM_TYPE_SPOTLIGHT, "TYPE_SPOTLIGHT" },
+        { ITEM_TYPE_WIND, "TYPE_WIND" },
+        { ITEM_TYPE_DISPLAY_BLOCK, "TYPE_DISPLAY_BLOCK" },
+        { ITEM_TYPE_VENDING, "TYPE_VENDING" },
+        { ITEM_TYPE_FISHTANK, "TYPE_FISHTANK" },
+        { ITEM_TYPE_PETFISH, "TYPE_PETFISH" },
+        { ITEM_TYPE_SOLAR, "TYPE_SOLAR" },
+        { ITEM_TYPE_FORGE, "TYPE_FORGE" },
+        { ITEM_TYPE_GIVING_TREE, "TYPE_GIVING_TREE" },
+        { ITEM_TYPE_GIVING_TREE_STUMP, "TYPE_GIVING_TREE_STUMP" },
+        { ITEM_TYPE_STEAMPUNK, "TYPE_STEAMPUNK" },
+        { ITEM_TYPE_STEAM_LAVA_IF_ON, "TYPE_STEAM_LAVA_IF_ON" },
+        { ITEM_TYPE_STEAM_ORGAN, "TYPE_STEAM_ORGAN" },
+        { ITEM_TYPE_TAMAGOTCHI, "TYPE_TAMAGOTCHI" },
+        { ITEM_TYPE_SEWING, "TYPE_SEWING" },
+        { ITEM_TYPE_FLAG, "TYPE_FLAG" },
+        { ITEM_TYPE_LOBSTER_TRAP, "TYPE_LOBSTER_TRAP" },
+        { ITEM_TYPE_ARTCANVAS, "TYPE_ARTCANVAS" },
+        { ITEM_TYPE_BATTLE_CAGE, "TYPE_BATTLE_CAGE" },
+        { ITEM_TYPE_PET_TRAINER, "TYPE_PET_TRAINER" },
+        { ITEM_TYPE_STEAM_ENGINE, "TYPE_STEAM_ENGINE" },
+        { ITEM_TYPE_LOCK_BOT, "TYPE_LOCK_BOT" },
+        { ITEM_TYPE_WEATHER_SPECIAL, "TYPE_WEATHER_SPECIAL" },
+        { ITEM_TYPE_SPIRIT_STORAGE, "TYPE_SPIRIT_STORAGE" },
+        { ITEM_TYPE_DISPLAY_SHELF, "TYPE_DISPLAY_SHELF" },
+        { ITEM_TYPE_VIP_DOOR, "TYPE_VIP_DOOR" },
+        { ITEM_TYPE_CHAL_TIMER, "TYPE_CHAL_TIMER" },
+        { ITEM_TYPE_CHAL_FLAG, "TYPE_CHAL_FLAG" },
+        { ITEM_TYPE_FISH_MOUNT, "TYPE_FISH_MOUNT" },
+        { ITEM_TYPE_PORTRAIT, "TYPE_PORTRAIT" },
+        { ITEM_TYPE_WEATHER_SPECIAL2, "TYPE_WEATHER_SPECIAL2" },
+        { ITEM_TYPE_FOSSIL, "TYPE_FOSSIL" },
+        { ITEM_TYPE_FOSSIL_PREP, "TYPE_FOSSIL_PREP" },
+        { ITEM_TYPE_DNA_MACHINE, "TYPE_DNA_MACHINE" },
+        { ITEM_TYPE_BLASTER, "TYPE_BLASTER" },
+        { ITEM_TYPE_VALHOWLA, "TYPE_VALHOWLA" },
+        { ITEM_TYPE_CHEMSYNTH, "TYPE_CHEMSYNTH" },
+        { ITEM_TYPE_CHEMTANK, "TYPE_CHEMTANK" },
+        { ITEM_TYPE_STORAGE, "TYPE_STORAGE" },
+        { ITEM_TYPE_OVEN, "TYPE_OVEN" },
+        { ITEM_TYPE_SUPER_MUSIC, "TYPE_SUPER_MUSIC" },
+        { ITEM_TYPE_GEIGERCHARGE, "TYPE_GEIGERCHARGE" },
+        { ITEM_TYPE_ADVENTURE_RESET, "TYPE_ADVENTURE_RESET" },
+        { ITEM_TYPE_TOMB_ROBBER, "TYPE_TOMB_ROBBER" },
+        { ITEM_TYPE_FACTION, "TYPE_FACTION" },
+        { ITEM_TYPE_RED_FACTION, "TYPE_RED_FACTION" },
+        { ITEM_TYPE_GREEN_FACTION, "TYPE_GREEN_FACTION" },
+        { ITEM_TYPE_BLUE_FACTION, "TYPE_BLUE_FACTION" },
+        { ITEM_TYPE_ARTIFACT, "TYPE_ARTIFACT" },
+        { ITEM_TYPE_TRAMPOLINE_MOMENTUM, "TYPE_TRAMPOLINE_MOMENTUM" },
+        { ITEM_TYPE_FISHGOTCHI_TANK, "TYPE_FISHGOTCHI_TANK" },
+        { ITEM_TYPE_FISHING_BLOCK, "TYPE_FISHING_BLOCK" },
+        { ITEM_TYPE_SUCKER, "TYPE_SUCKER" },
+        { ITEM_TYPE_PLANTER, "TYPE_PLANTER" },
+        { ITEM_TYPE_ROBOT, "TYPE_ROBOT" },
+        { ITEM_TYPE_COMMAND, "TYPE_COMMAND" },
+        { ITEM_TYPE_LUCKY_TICKET, "TYPE_LUCKY_TICKET" },
+        { ITEM_TYPE_STATS_BLOCK, "TYPE_STATS_BLOCK" },
+        { ITEM_TYPE_FIELD_NODE, "TYPE_FIELD_NODE" },
+        { ITEM_TYPE_OUIJA_BOARD, "TYPE_OUIJA_BOARD" },
+        { ITEM_TYPE_ARCHITECT_MACHINE, "TYPE_ARCHITECT_MACHINE" },
+        { ITEM_TYPE_STARSHIP, "TYPE_STARSHIP" },
+        { ITEM_TYPE_AUTODELETE, "TYPE_AUTODELETE" },
+        { ITEM_TYPE_BOOMBOX2, "TYPE_BOOMBOX2" },
+        { ITEM_TYPE_AUTO_ACTION_BREAK, "TYPE_AUTO_ACTION_BREAK" },
+        { ITEM_TYPE_AUTO_ACTION_HARVEST, "TYPE_AUTO_ACTION_HARVEST" },
+        { ITEM_TYPE_AUTO_ACTION_HARVEST_SUCK, "TYPE_AUTO_ACTION_HARVEST_SUCK" },
+        { ITEM_TYPE_LIGHTNING_CLOUD, "TYPE_LIGHTNING_CLOUD" },
+        { ITEM_TYPE_PHASED_BLOCK, "TYPE_PHASED_BLOCK" },
+        { ITEM_TYPE_MUD, "TYPE_MUD" },
+        { ITEM_TYPE_ROOT_CUTTING, "TYPE_ROOT_CUTTING" },
+        { ITEM_TYPE_PASSWORD_STORAGE, "TYPE_PASSWORD_STORAGE" },
+        { ITEM_TYPE_PHASED_BLOCK_2, "TYPE_PHASED_BLOCK_2" },
+        { ITEM_TYPE_BOMB, "TYPE_BOMB" },
+        { ITEM_TYPE_PVE_NPC, "TYPE_PVE_NPC" },
+        { ITEM_TYPE_INFINITY_WEATHER_MACHINE, "TYPE_INFINITY_WEATHER_MACHINE" },
+        { ITEM_TYPE_SLIME, "TYPE_SLIME" },
+        { ITEM_TYPE_ACID, "TYPE_ACID" },
+        { ITEM_TYPE_COMPLETIONIST, "TYPE_COMPLETIONIST" },
+        { ITEM_TYPE_PUNCH_TOGGLE, "TYPE_PUNCH_TOGGLE" },
+        { ITEM_TYPE_ANZU_BLOCK, "TYPE_ANZU_BLOCK" },
+        { ITEM_TYPE_FEEDING_BLOCK, "TYPE_FEEDING_BLOCK" },
+        { ITEM_TYPE_KRANKENS_BLOCK, "TYPE_KRANKENS_BLOCK" },
+        { ITEM_TYPE_FRIENDS_ENTRANCE, "TYPE_FRIENDS_ENTRANCE" },
+        { ITEM_TYPE_PEARLS, "TYPE_PEARLS" }
+    };
+
+    auto it = itemTypeStrMap.find(type);
+    if(it != itemTypeStrMap.end()) {
+        return it->second;
+    }
+
+    return "TYPE_NORMAL";
 }

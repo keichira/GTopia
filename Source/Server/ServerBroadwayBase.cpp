@@ -64,6 +64,8 @@ void ServerBroadwayBase::OnClientReceive(NetClient* pClient)
         pClient->recvQueue.Read(&packetSize, sizeof(uint32));
 
         uint8* pPacketData = new uint8[packetSize];
+        pClient->recvQueue.Read(pPacketData, packetSize);
+
         MemoryBuffer memBuffer(pPacketData, packetSize);
 
         DeSerializeVariantVectorForTCP(memBuffer, data);
@@ -84,9 +86,20 @@ void ServerBroadwayBase::OnClientDisconnect(NetClient* pClient)
 
 void ServerBroadwayBase::RegisterEvents()
 {
-    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_CONNECT, *this, &ServerBroadwayBase::OnClientConnect);
-    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_RECEIVE, *this, &ServerBroadwayBase::OnClientReceive);
-    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_DISCONNECT, *this, &ServerBroadwayBase::OnClientDisconnect);
+    m_pNetSocket->GetEvents().Register(
+        SOCKET_EVENT_TYPE_CONNECT, 
+        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientConnect>(this)
+    );
+
+    m_pNetSocket->GetEvents().Register(
+        SOCKET_EVENT_TYPE_RECEIVE, 
+        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientReceive>(this)
+    );
+
+    m_pNetSocket->GetEvents().Register(
+        SOCKET_EVENT_TYPE_DISCONNECT, 
+        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientDisconnect>(this)
+    );
 }
 
 void ServerBroadwayBase::Update(bool asClient)

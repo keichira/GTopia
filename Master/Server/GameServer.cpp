@@ -83,4 +83,19 @@ void GameServer::Kill()
     ServerBase::Kill();
 }
 
+PlayerSession* GameServer::GetPlayerSessionByUserID(uint32 userID)
+{
+    auto it = m_sessionCache.find(userID);
+    if(it != m_sessionCache.end()) {
+        return it->second;
+    }
+
+    return nullptr;
+}
+
+void GameServer::AddPlayerSession(PlayerSession* pSession)
+{
+    m_sessionCache.insert_or_assign(pSession->userID, pSession);
+}
+
 GameServer* GetGameServer() { return GameServer::GetInstance(); }

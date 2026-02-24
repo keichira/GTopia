@@ -17,10 +17,11 @@ uint32 HashString(const char* str);
 string ToHex(const string& str);
 string ToHex(const void* str, uint32 size);
 
-void ToUpper(string& str);
-void ToUpper(char* str);
+string ToUpper(const string& str);
+string ToUpper(const char* str);
 
-void ToLower(string& str);
+string ToLower(const string& str);
+string ToLower(const char* str);
 
 float ToFloat(const string& str);
 float ToFloat(const char* str);
@@ -33,6 +34,11 @@ uint32 ToUInt(const char* str);
 
 uint32 CountCharacter(const string& str, char character);
 uint32 CountCharacter(const char* str, char character);
+
+bool IsAlpha(char c);
+bool IsDigit(char c);
+
+void ReplaceString(string& str, const string& replaceThis, const string& replaceTo);
 
 std::vector<string> Split(const string& str, char delim);
 std::vector<string> Split(const char* str, uint32 size, char delim);

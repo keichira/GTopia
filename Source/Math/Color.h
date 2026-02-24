@@ -16,5 +16,5 @@ public:
     }
 
 public:
-    uint8 r, g, b, a;
+    uint8 a, r, g, b;
 };

@@ -3,12 +3,14 @@ set -e
 echo "Select project to build:"
 echo "1) Master"
 echo "2) GameServer"
+echo "3) ItemManager"
 read -n1 -p "Project: " project_choice
 echo ""
 
 case "$project_choice" in
     1) PROJECT="Master" ;;
     2) PROJECT="GameServer" ;;
+    3) PROJECT="ItemManager" ;;
     *) echo "Invalid project type"
        exit 1 ;;
 esac
@@ -32,6 +34,6 @@ mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
 echo "Building for $PROJECT"
-cmake ../../CMake -DCMAKE_BUILD_TYPE=$MODE -DSERVER_TO_BUILD=$PROJECT
+cmake ../../CMake -DCMAKE_BUILD_TYPE=$MODE -DPROJECT_TO_BUILD=$PROJECT
 cmake --build .
 echo "$PROJECT build completed!"

@@ -40,7 +40,7 @@ public:
     string extraString = "";
     uint32 extraStringHash = 0;
 
-    int32 animMS = 0;
+    int32 animMS = 200;
     
     string petName = "";
     string petSubName = "";
@@ -61,11 +61,17 @@ public:
 
     uint32 fxFlags = 0;
     string multiAnim1;
-    string overlayTextureFile;
-    string multiAnim2;
+    string overlayTextureFile = "";
+    string multiAnim2 = "";
 
     Vector2Int dualAnimLayer;
-    uint32 flags2;
+    uint32 flags2 = 0;
+
+    int32 clientData[15] = { 0 };
+
+    uint32 tileRange = 0;
+    uint32 pileSize = 0;
+    string customizedPunchParameters = "";
 
     string description = "No info.";
     uint8 element = ITEM_ELEMENT_NONE;
@@ -73,7 +79,6 @@ public:
 public:
     bool HasFlag(uint16 flag) { return (flags & flag) != 0; }
     void Serialize(MemoryBuffer& memBuffer, bool write, uint16 version);
-
     bool IsBackground();
 };
 

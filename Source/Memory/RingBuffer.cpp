@@ -83,3 +83,9 @@ uint32 RingBuffer::Peek(void* pDest, uint32 size)
 
     return totalPeeked;
 }
+
+void RingBuffer::Skip(uint32 size)
+{
+    m_readIndex = (m_readIndex + size) % m_data.capacity();
+    m_size -= size;
+}

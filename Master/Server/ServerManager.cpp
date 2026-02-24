@@ -2,7 +2,9 @@
 #include "Utils/Timer.h"
 #include "IO/Log.h"
 #include "../Context.h"
+
 #include "../Event/TCP/TCPEventHello.h"
+#include "../Event/TCP/TCPEventAuth.h"
 
 ServerManager::ServerManager()
 {
@@ -34,6 +36,29 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
 
     while(m_packetQueue.try_dequeue(event)) {
         LOGGER_LOG_ERROR("IPHONE KUPI");
+        if(!event.pClient) {
+            continue;
+        }
+
+        int8 type = event.data[0].GetINT();
+
+        switch(type) {
+            case TCP_PACKET_HELLO: 
+            case TCP_PACKET_AUTH: {
+                m_events.Dispatch(type, event.pClient, event.data);
+                break;
+            }
+
+            default: {
+                if(!((NetClientInfo*)(event.pClient->data))->authed) {
+                    LOGGER_LOG_WARN("Client trying to access un-authorized packets?! CLOSING!");
+                    event.pClient->status = SOCKET_CLIENT_CLOSE;
+                    continue;
+                }
+
+                m_events.Dispatch(type, event.pClient, event.data);
+            }
+        }
 
         processed++;
         if(Time::GetSystemTime() - startTime >= maxTimeMS) {
@@ -57,10 +82,25 @@ void ServerManager::Kill()
     m_servers.clear();
 }
 
+void ServerManager::RegisterEvents()
+{
+    ServerBroadwayBase::RegisterEvents();
+
+    m_events.Register(
+        TCP_PACKET_HELLO,
+        Delegate<NetClient*, VariantVector&>::Create<&TCPEventHello::Execute>()
+    );
+
+    m_events.Register(
+        TCP_PACKET_AUTH,
+        Delegate<NetClient*, VariantVector&>::Create<&TCPEventAuth::Execute>()
+    );
+}
+
 void ServerManager::AddServer(uint16 serverID, NetClient* pClient)
 {
     auto it = m_servers.find(serverID);
-    if(it != m_servers.end()) {
+    if(it != m_servers.end() || serverID == 0) {
         pClient->status = SOCKET_CLIENT_CLOSE;
 
         LOGGER_LOG_ERROR("Server %d already exists but we tried to add it again??", serverID);
@@ -73,9 +113,12 @@ void ServerManager::AddServer(uint16 serverID, NetClient* pClient)
         return;
     }
 
+    LOGGER_LOG_INFO("Server %d added to cache %s:%d", serverID, serverNetInfo.wanIP.c_str(), serverNetInfo.udpPort);
     ServerInfo* pServer = new ServerInfo();
     pServer->serverID = serverID;
     pServer->socketConnID = pClient->connectionID;
+    pServer->wanIP = serverNetInfo.wanIP;
+    pServer->port = serverNetInfo.udpPort;
 
     m_servers.insert_or_assign(pServer->serverID, pServer);
 }
@@ -89,6 +132,15 @@ void ServerManager::RemoveServer(uint16 serverID)
 
     SAFE_DELETE(it->second);
     m_servers.erase(it);
+}
+
+ServerInfo* ServerManager::GetBestServer()
+{
+    if(m_servers.empty()) {
+        return nullptr;
+    }
+
+    return m_servers[1];
 }
 
 ServerManager* GetServerManager() { return ServerManager::GetInstance(); }

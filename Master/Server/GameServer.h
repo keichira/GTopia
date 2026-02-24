@@ -9,11 +9,12 @@ struct PlayerSession
     string name;
     uint32 loginToken;
     uint16 serverID;
+    string ip;
 };
 
 class GameServer : public ServerBase {
 public:
-    typedef std::vector<PlayerSession*> PlayerSessionCache;
+    typedef std::unordered_map<uint32, PlayerSession*> PlayerSessionCache;
 
 public:
     GameServer();
@@ -32,7 +33,8 @@ public:
     void Kill() override;
 
 public:
-    PlayerSessionCache& GetPlayerSessionCache() { return m_sessionCache; }
+    PlayerSession* GetPlayerSessionByUserID(uint32 userID);
+    void AddPlayerSession(PlayerSession* pSession);
 
 private:
     PlayerSessionCache m_sessionCache;

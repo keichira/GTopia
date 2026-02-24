@@ -4,7 +4,10 @@
 #include "Utils/Timer.h"
 #include "Server/MasterBroadway.h"
 #include "Utils/StringUtils.h"
-//#include "Item/ItemInfoManager.h"
+#include "Item/ItemInfoManager.h"
+#include "IO/File.h"
+#include "Server/GameServer.h"
+#include "Server/MasterBroadway.h"
 
 const int32 TICK_RATE = 20;
 const uint64 TICK_INTERVAL = 1000/TICK_RATE;
@@ -71,7 +74,7 @@ void DatabaseThreadFunc() {
 
 void EventThreadFunc() {
     while(GetContext()->IsRunning()) {
-        //GetGameServer()->Update();
+        GetGameServer()->Update();
         GetMasterBroadway()->Update(true);
 
         SleepMS(1);
@@ -90,7 +93,7 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
     QueryTaskResult taskRes;
     uint32 processed = 0;
 
-    /*while(pDatabasePool->GetResult(taskRes)) {
+    while(pDatabasePool->GetResult(taskRes)) {
         switch(taskRes.ownerID) {
             case NET_ID_FALLBACK: {
                 break;
@@ -114,23 +117,55 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
         if(Time::GetSystemTime() - startTime >= maxTimeMS) {
             break;
         }
-    }*/
+    }
 
     if(processed > 0) {
         LOGGER_LOG_DEBUG("Processed %d Database result maxMS %d, took %d MS", processed, maxTimeMS, Time::GetSystemTime() - startTime);
     }
 }
 
-/*
+
 bool LoadItemData()
 {
-    if(!GetItemInfoManager()->Load(GetProgramPath() + "/items.txt")) {
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+
+    if(!pItemMgr->Load(GetProgramPath() + "/items.txt")) {
         LOGGER_LOG_ERROR("Failed to load items.txt");
         return false;
     }
 
+    File fileHashes;
+    if(!fileHashes.Open(GetProgramPath() + "/filehashes.txt")) {
+        LOGGER_LOG_ERROR("Failed to load filehashes.txt");
+        return false;
+    }
 
-}*/
+    uint32 fileSize = fileHashes.GetSize();
+    string fileData(fileSize, '\0');
+
+    if(fileHashes.Read(fileData.data(), fileSize) != fileSize) {
+        return false;
+    }
+    auto lines = Split(fileData, '\n');
+
+    std::vector<string> hashData;
+    for(auto& line : lines) {
+        if(line.empty()) {
+            continue;
+        }
+
+        auto args = Split(line, '|');
+        hashData.push_back(args[0]);
+        hashData.push_back(args[1]);
+    }
+
+    pItemMgr->LoadFileHashes(hashData, false);
+    pItemMgr->LoadItemsClientData(false);
+
+    pItemMgr->LoadFileHashes(hashData, true);
+    pItemMgr->LoadItemsClientData(true);
+    return true;
+}
 
 int main(int argc, char const* argv[])
 {
@@ -194,7 +229,7 @@ int main(int argc, char const* argv[])
             connStartTime = now;
         }
 
-        SleepMS(1);
+        SleepMS(10);
     }
     
     if(!GetMasterBroadway()->IsConnected()) {
@@ -206,8 +241,11 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
-    LOGGER_LOG_INFO("Connected to master server");
+    if(!LoadItemData()) {
+        return 0;
+    }
 
+    LOGGER_LOG_INFO("Connected to master server");
     GetMasterBroadway()->SendHelloPacket();
 
     DatabaseConnectConfig dbConfig;
@@ -223,13 +261,13 @@ int main(int argc, char const* argv[])
     }
     LOGGER_LOG_INFO("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
 
-    /*if(!GetGameServer()->Init(gameServerInfo.wanIP, gameServerInfo.udpPort)) {
+    if(!GetGameServer()->Init(gameServerInfo.wanIP, gameServerInfo.udpPort)) {
         LOGGER_LOG_ERROR("Failed to initialize game server on %s:%d", gameServerInfo.wanIP, gameServerInfo.udpPort);
         return 0;
     }
-    LOGGER_LOG_INFO("Started game server on %s:%d", gameServerInfo.wanIP, gameServerInfo.udpPort);*/
+    LOGGER_LOG_INFO("Started game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
 
-    //std::thread dbThread(DatabaseThreadFunc);
+    std::thread dbThread(DatabaseThreadFunc);
     std::thread eventThread(EventThreadFunc);
     
     uint64 nextTick = Time::GetSystemTime();
@@ -237,7 +275,7 @@ int main(int argc, char const* argv[])
     while(GetContext()->IsRunning()) {
         uint64 tickStart = Time::GetSystemTime();
         
-        //GetGameServer()->UpdateGameLogic(15);
+        GetGameServer()->UpdateGameLogic(15);
         GetMasterBroadway()->UpdateTCPLogic(15);
         ProcessDatabaseResults(15);
 
@@ -257,10 +295,10 @@ int main(int argc, char const* argv[])
 
     LOGGER_LOG_ERROR("Killing Game server %d", GetContext()->GetID());
 
-    //if(dbThread.joinable()) dbThread.join();
+    if(dbThread.joinable()) dbThread.join();
     if(eventThread.joinable()) eventThread.join();
 
-    //GetGameServer()->Kill();
+    GetGameServer()->Kill();
     GetMasterBroadway()->Kill();
 
     GetLog()->Flush();

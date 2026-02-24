@@ -25,7 +25,7 @@ public:
     void UpdateGameLogic(uint64 maxTimeMS);
 
     Player* GetPlayerByNetID(int32 netID);
-    PlayerCache& GetPlayerCache() { return m_playerCache; }
+    //PlayerCache& GetPlayerCache() { return m_playerCache; }
 
 protected:
     ENetServer* m_pENetServer;

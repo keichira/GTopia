@@ -16,6 +16,7 @@ public:
     NetEntity(int32 id);
     virtual ~NetEntity();
 
+public:
     int32 GetNetID() const { return m_netID; }
     
     virtual void OnHandleDatabase(QueryTaskResult&&);

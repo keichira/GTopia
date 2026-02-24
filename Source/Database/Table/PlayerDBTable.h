@@ -8,4 +8,4 @@ QueryRequest MakePlayerByMacReq(const string& mac, const string& rid, uint8 plat
 void DatabasePlayerCreate(DatabasePool* pPool, QueryRequest& req, bool prepared = false);
 QueryRequest MakePlayerCreateReq(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, const string& rid, int32 ownerID);
 
-void DatabasePlayerSetIdentifiers(DatabasePool* pPool, QueryRequest& req, bool prepared = false);
+//void DatabasePlayerSetIdentifiers(DatabasePool* pPool, QueryRequest& req, bool prepared = false);

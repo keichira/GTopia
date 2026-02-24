@@ -13,6 +13,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/FindMySQL.cmake)
 set(GAME_ROOT "${CMAKE_CURRENT_LIST_DIR}/../GameServer")
 set(GAME_PLAYER "${GAME_ROOT}/Player")
 set(GAME_SERVER "${GAME_ROOT}/Server")
+set(GAME_EVENT "${GAME_ROOT}/Event")
 
 set(GAME_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/PlayerDBTable.cpp
@@ -20,13 +21,20 @@ set(GAME_FILES PRIVATE
 
     ${SOURCE_PACKET}/NetPacket.cpp
 
+    ${SOURCE_ITEM}/ItemInfo.cpp
+    ${SOURCE_ITEM}/ItemInfoManager.cpp
+    ${SOURCE_ITEM}/ItemUtils.cpp
+
+    ${GAME_EVENT}/TCP/TCPEventHello.cpp
+    ${GAME_EVENT}/TCP/TCPEventAuth.cpp
+
     ${SOURCE_PLAYER}/Player.cpp
     ${SOURCE_PLAYER}/PlayerLoginDetail.cpp
-    #${GAME_PLAYER}/GamePlayer.cpp
+    ${GAME_PLAYER}/GamePlayer.cpp
 
-    #${SOURCE_SERVER}/ServerBase.cpp
+    ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp
-    #${GAME_SERVER}/GameServer.cpp
+    ${GAME_SERVER}/GameServer.cpp
     ${GAME_SERVER}/MasterBroadway.cpp
 
     ${GAME_ROOT}/Context.cpp
@@ -35,6 +43,8 @@ set(GAME_FILES PRIVATE
 
 add_executable(GameServer)
 add_default_sources(GameServer)
+add_database_sources(GameServer)
+add_network_sources(GameServer)
 target_sources(GameServer PRIVATE ${GAME_FILES})
 
 set_target_properties(GameServer PROPERTIES

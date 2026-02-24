@@ -120,7 +120,7 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
 
     ItemInfoManager* pItemManager = GetItemInfoManager();
 
-    auto pickItem = [&](const TileMapFillVector& items, float totalChance) -> ItemInfo*
+    auto PickItem = [&](const TileMapFillVector& items, float totalChance) -> ItemInfo*
     {
         if (totalChance <= 0.f)
             return nullptr;
@@ -143,11 +143,11 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
 
         for(auto x = xStart; x < xEnd; ++x) {
 
-            if(ItemInfo* pBgItem = pickItem(bgItems, totalBgChance)) {
+            if(ItemInfo* pBgItem = PickItem(bgItems, totalBgChance)) {
                 pTile->SetBG(pBgItem->id);
             }
 
-            if(ItemInfo* pFgItem = pickItem(fgItems, totalFgChance)) {
+            if(ItemInfo* pFgItem = PickItem(fgItems, totalFgChance)) {
                 pTile->SetFG(pFgItem->id);
             }
 

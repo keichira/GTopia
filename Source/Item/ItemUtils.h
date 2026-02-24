@@ -11,6 +11,15 @@ uint8 StrToItemElement(const string& type);
 uint8 StrToBodyPartType(const string& type);
 uint8 StrToItemType(const string& type);
 
+string ItemFlagToStr(uint16 type);
+string ItemVisualEffectToStr(uint8 type);
+string ItemStorageTypeToStr(uint8 type);
+string ItemCollisionTypeToStr(uint8 type);
+string ItemMaterialToStr(uint8 type);
+string ItemElementToStr(uint8 type);
+string ItemBodyPartToStr(uint8 type);
+string ItemTypeToStr(uint8 type);
+
 enum eItemFlags 
 {
     ITEM_FLAG_FLIPPABLE = 1 << 0,
@@ -85,7 +94,7 @@ enum eTileVisualEffect
     VISUAL_EFFECT_NORMAL = 0,
     VISUAL_EFFECT_FLAME_LICK = 1,
     VISUAL_EFFECT_SMOKING = 2,
-    VISUAL_EFFECT_GLOW_TINT1 = 3,
+    VISUAL_EFFECT_GLOW_TINT = 3,
     VISUAL_EFFECT_ANIM = 4,
     VISUAL_EFFECT_BUBBLES = 5,
     VISUAL_EFFECT_PET = 6,

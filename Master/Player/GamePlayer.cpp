@@ -3,6 +3,8 @@
 #include "../Context.h"
 #include "Math/Random.h"
 #include "IO/Log.h"
+#include "../Server/ServerManager.h"
+#include "../Server/GameServer.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer)
 : Player(pPeer)
@@ -87,6 +89,11 @@ void GamePlayer::LoginCheckingAccount(QueryTaskResult&& result)
         m_state = PLAYER_STATE_CREATING_ACCOUNT;
     }
 
+    /*if(GetGameServer()->GetPlayerSessionByUserID(m_userID)) {
+        SendLogonFailWithLog("`3Already on");
+        return;
+    }*/
+
     m_state = PLAYER_STATE_SWITCHING_TO_GAME;
     SwitchingToGame();
 }
@@ -116,5 +123,19 @@ void GamePlayer::SwitchingToGame()
         return;
     }
 
-    
+    ServerInfo* pServer = GetServerManager()->GetBestServer();
+    if(!pServer) {
+        SendLogonFailWithLog("");
+        LOGGER_LOG_WARN("Tried to switching player to game but the server is NULL?");
+        return;
+    }
+
+    PlayerSession* pSession = new PlayerSession();
+    pSession->serverID = pServer->serverID;
+    pSession->userID = m_userID;
+    pSession->loginToken = RandomRangeInt(100000, 9999999);
+    pSession->ip = m_address;
+
+    SendOnSendToServer(pServer->port, pSession->loginToken, m_userID, pServer->wanIP);
+    GetGameServer()->AddPlayerSession(pSession);
 }

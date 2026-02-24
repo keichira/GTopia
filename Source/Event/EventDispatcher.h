@@ -3,7 +3,7 @@
 #include "../Precompiled.h"
 #include <functional>
 
-template<typename... Args>
+/*template<typename... Args>
 class CCallbackBase {
 public:
     virtual ~CCallbackBase() {};
@@ -27,46 +27,89 @@ public:
 private:
     T& m_target;
     fn m_operation;
+};*/
+
+template<typename... Args>
+class Delegate {
+public:
+    typedef void(*Opr)(void*, Args...);
+
+public:
+    Delegate() : m_target(nullptr), m_operation(nullptr) {}
+
+public:
+    template<class T, void(T::*fn)(Args...)>
+    static Delegate Create(T* target)
+    {
+        Delegate delegate;
+        delegate.m_target = target;
+        delegate.m_operation = &FuncOpr<T, fn>;
+
+        return delegate;
+    }
+
+    template<void(*fn)(Args...)>
+    static Delegate Create()
+    {
+        Delegate delegate;
+        delegate.m_target = nullptr;
+        delegate.m_operation = &FuncOpr<fn>;
+        return delegate;
+    }
+
+    void Execute(Args... args)
+    {
+        if(m_operation) {
+            (*m_operation)(m_target, args...);
+        }
+    }
+
+    bool IsInitialized() const
+    {
+        return m_operation != nullptr;
+    }
+
+private:
+    template<class T, void(T::*fn)(Args...)>
+    static void FuncOpr(void* target, Args... args)
+    {
+        T* tg = (T*)target;
+        (tg->*fn)(args...);
+    }
+
+    template<void(*fn)(Args...)>
+    static void FuncOpr(void*, Args... args)
+    {
+        fn(args...);
+    }
+
+private:
+    void* m_target;
+    Opr m_operation;
 };
 
 template<typename EventType, typename... Args>
 class EventDispatcher {
 public:
-    EventDispatcher() {}
-    ~EventDispatcher()
-    {
-        Kill();
-    }
+    typedef Delegate<Args...> Handler;
 
 public:
-    template<class T>
-    void Register(const EventType& eventType, T& target, void(T::*fn)(Args...)) 
+    EventDispatcher() {}
+
+public:
+    void Register(EventType type, Handler handler)
     {
-        m_handlers[eventType] = new CCallback<T, Args...>(target, fn);
+        m_handlers[type] = handler;
     }
 
-    void Dispatch(const EventType& eventType, Args... args) 
+    void Dispatch(EventType type, Args... args)
     {
-        auto it = m_handlers.find(eventType);
-        if(it != m_handlers.end() && it->second) {
-            it->second->Execute(args...);
+        auto it = m_handlers.find(type);
+        if(it != m_handlers.end() && it->second.IsInitialized()) {
+            it->second.Execute(args...);
         }
-    }
-
-    bool Has(const EventType& eventType) 
-    {
-        return m_handlers.find(eventType) != m_handlers.end();
-    }
-
-    void Kill() 
-    {
-        for(auto& [_, pCb] : m_handlers) {
-            SAFE_DELETE(pCb);
-        }
-
-        m_handlers.clear();
     }
 
 private:
-    std::unordered_map<EventType, CCallbackBase<Args...>*> m_handlers;
+    std::unordered_map<EventType, Handler> m_handlers;
 };
