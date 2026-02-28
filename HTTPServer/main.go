@@ -92,7 +92,7 @@ func loginHandler(res http.ResponseWriter, req *http.Request) {
 
 	// for now hardcoded theres only 1 login server LOL
 	// also gonna update here later
-	serverData := "server|192.168.1.36\nport|18000\ntype|1\n#maint|maintennace\nmeta|" + meta + "\nRTENDMARKERBS1001"
+	serverData := "server|192.168.1.37\nport|18000\ntype|1\n#maint|maintennace\nmeta|" + meta + "\nRTENDMARKERBS1001"
 	res.Write([]byte(serverData))
 
 	fmt.Println(serverData + "\n")
@@ -105,7 +105,7 @@ func cacheHandler(res http.ResponseWriter, req *http.Request) {
 
 	resolvedPath, resolvedPathErr := filepath.EvalSymlinks(filePath)
 	if resolvedPathErr != nil {
-		fmt.Print("1")
+		fmt.Printf("Unable to resolve %v\n", filePath)
 		res.WriteHeader(http.StatusNotFound)
 		return
 	}

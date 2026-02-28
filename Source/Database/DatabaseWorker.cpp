@@ -3,8 +3,6 @@
 #include "DatabasePool.h"
 #include "../Utils/StringUtils.h"
 
-#include "IO/Log.h"
-
 DatabaseWorker::DatabaseWorker()
 : m_pDatabaseMgr(nullptr), m_pPrepParam(nullptr)
 {
@@ -180,6 +178,7 @@ void DatabaseWorker::MakeFailedTaskAndAdd(QueryTaskRequest& taskReq, QueryTaskRe
 {
     taskRes.extraData = std::move(taskReq.extraData);
     taskRes.status = status;
+    taskRes.ownerID = taskReq.ownerID;
 
     m_pDbPool->AddResult(std::move(taskRes));
 }

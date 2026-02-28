@@ -5,6 +5,8 @@
 
 #include "../Event/TCP/TCPEventHello.h"
 #include "../Event/TCP/TCPEventAuth.h"
+#include "../Event/TCP/TCPEventPlayerSession.h"
+#include "../Event/TCP/TCPEventWorldInit.h"
 
 MasterBroadway::MasterBroadway()
 : m_connected(false)
@@ -21,7 +23,7 @@ void MasterBroadway::OnClientConnect(NetClient* pClient)
         return;
     }
 
-    m_pClient = pClient;
+    m_pNetClient = pClient;
     m_connected = true;
 }
 
@@ -37,6 +39,16 @@ void MasterBroadway::RegisterEvents()
     m_events.Register(
         TCP_PACKET_AUTH,
         Delegate<NetClient*, VariantVector&>::Create<&TCPEventAuth::Execute>()
+    );
+
+    m_events.Register(
+        TCP_PACKET_PLAYER_CHECK_SESSION,
+        Delegate<NetClient*, VariantVector&>::Create<&TCPEventPlayerSession::Execute>()
+    );
+
+    m_events.Register(
+        TCP_PACKET_WORLD_INIT,
+        Delegate<NetClient*, VariantVector&>::Create<&TCPEventWorldInit::Execute>()
     );
 }
 
@@ -83,30 +95,43 @@ void MasterBroadway::RefreshForConnect()
 
 void MasterBroadway::SendHelloPacket()
 {
-    if(!m_connected || !m_pClient) {
+    if(!m_connected || !m_pNetClient) {
         return;
     }
 
     VariantVector data(1);
     data[0] = TCP_PACKET_HELLO;
 
-    m_pClient->Send(data);
+    m_pNetClient->Send(data);
 }
 
 void MasterBroadway::SendCheckSessionPacket(int32 netID, uint32 userID, uint32 token, uint16 serverID)
 {
-    if(!m_connected || !m_pClient) {
+    if(!m_connected || !m_pNetClient) {
         return;
     }
 
     VariantVector data(5);
-    data[0] = TCP_PACKET_PLAYER_SESSION;
+    data[0] = TCP_PACKET_PLAYER_CHECK_SESSION;
     data[1] = netID;
     data[2] = userID;
     data[3] = token;
     data[4] = serverID;
 
-    m_pClient->Send(data);
+    m_pNetClient->Send(data);
+}
+
+bool MasterBroadway::SendPacketRaw(VariantVector& data)
+{
+    if(!m_pNetSocket) {
+        return false;
+    }
+
+    if(!m_pNetClient) {
+        return false;
+    }
+
+    return m_pNetClient->Send(data);
 }
 
 MasterBroadway* GetMasterBroadway() { return MasterBroadway::GetInstance(); }

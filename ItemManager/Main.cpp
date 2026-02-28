@@ -185,12 +185,13 @@ int main(int argc, char const* argv[])
             itemStr += ToString(pItem->textureX) + "," + ToString(pItem->textureY) + "|";
             itemStr += ItemVisualEffectToStr(pItem->visualEffect) + "|";
             itemStr += ItemStorageTypeToStr(pItem->storage) + "|";
+            itemStr += ItemCollisionTypeToStr(pItem->collisionType) + "|";
             itemStr += ToString(pItem->hp/6) + "|";
             itemStr += ToString(pItem->restoreTime) + "|\n";
         }
 
         string httpPath = "/api.php?action=query&prop=revisions&titles=" + pItem->name + "&rvprop=content&format=json";
-        if(http.Get(httpPath)) {
+        if(pItem->id != ITEM_ID_GEMS && http.Get(httpPath)) {
             if(http.GetStatus() == 200 && !http.GetBody().empty()) {
                 ItemWikiData data;
                 if(!ParseWiki(http.GetBody(), data)) {

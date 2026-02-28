@@ -76,7 +76,6 @@ uint32 File::Write(void* pData, uint32 size)
         //fseek(m_pFile, m_pos, SEEK_SET);
         return 0;
     }
-    //fflush(m_pFile);
 
     m_pos += size;
     m_size += size;

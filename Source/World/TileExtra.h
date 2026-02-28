@@ -11,6 +11,8 @@ enum eTileExtraTypes
     TILE_EXTRA_TYPE_SIZE
 };
 
+class TileInfo;
+
 class TileExtra {
 public:
     TileExtra();

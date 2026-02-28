@@ -3,6 +3,7 @@
 #include "../Precompiled.h"
 #include "WorldTileManager.h"
 #include "../Memory/MemoryBuffer.h"
+#include "WorldObjectManager.h"
 
 enum eWorldGenerationType
 {
@@ -29,12 +30,16 @@ public:
     bool Serialize(MemoryBuffer& memBuffer, bool write, bool database);
     void GenerateWorld(eWorldGenerationType type, const Vector2Int& worldSize = {0, 0});
 
+    void SetName(const string& worldName) { m_name = worldName; }
+    const string& GetWorlName() const { return m_name; } 
+
 private:
     uint16 m_version;
     uint32 m_flags;
     string m_name;
 
     WorldTileManager* m_pTileMgr;
+    WorldObjectManager* m_pObjMgr;
 
     uint32 m_defaultWeather;
     uint32 m_currentWeather;

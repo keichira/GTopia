@@ -5,6 +5,7 @@
 #include "../Proton/ProtonUtils.h"
 
 ItemInfoManager::ItemInfoManager()
+: m_version(ITEM_DATA_VERSION)
 {
 }
 
@@ -51,7 +52,7 @@ bool ItemInfoManager::Load(const string& filePath)
             for(int32 i = 0; i < nullItemCount; i += 2) {
                 ItemInfo* pItem = new ItemInfo();
                 pItem->id = ToInt(args[1]) + i;
-                pItem->name = "null_item" + std::stoi(args[1]) + i;
+                pItem->name = "null_item" + ToString(pItem->id + 1);
                 pItem->textureFile = "tiles_page1.rttex";
 
                 m_items.push_back(pItem);
@@ -63,15 +64,15 @@ bool ItemInfoManager::Load(const string& filePath)
         if(args[0] == "add_item") {
             ItemInfo* pItem = new ItemInfo();
 
-            pItem->id = (uint32)ToInt(args[1]);
+            pItem->id = ToUInt(args[1]);
             pItem->name = args[2];
-            pItem->type = StrToItemType(args[3]);
-            pItem->material = StrToItemMaterial(args[4]);
+            //pItem->type = StrToItemType(args[3]);
+            //pItem->material = StrToItemMaterial(args[4]);
             pItem->textureFile = args[5];
 
-            auto coords = Split(args[5], ',');
-            pItem->textureX = (uint8)ToInt(coords[0]);
-            pItem->textureY = (uint8)ToInt(coords[1]);
+            auto coords = Split(args[6], ',');
+            pItem->textureX = (uint8)ToUInt(coords[0]);
+            pItem->textureY = (uint8)ToUInt(coords[1]);
 
             pItem->visualEffect = StrToItemVisualEffect(args[7]);
             pItem->storage = StrToStorageType(args[8]);
@@ -87,14 +88,14 @@ bool ItemInfoManager::Load(const string& filePath)
         if(args[0] == "add_cloth") {
             ItemInfo* pItem = new ItemInfo();
 
-            pItem->id = (uint32)ToInt(args[1]);
+            pItem->id = ToUInt(args[1]);
             pItem->name = args[2];
             pItem->material = StrToItemMaterial(args[3]);
             pItem->textureFile = args[4];
 
             auto coords = Split(args[5], ',');
-            pItem->textureX = (uint8)ToInt(coords[0]);
-            pItem->textureY = (uint8)ToInt(coords[1]);
+            pItem->textureX = (uint8)ToUInt(coords[0]);
+            pItem->textureY = (uint8)ToUInt(coords[1]);
 
             pItem->visualEffect = StrToItemVisualEffect(args[6]);
             pItem->storage = StrToStorageType(args[7]);
@@ -115,8 +116,8 @@ bool ItemInfoManager::Load(const string& filePath)
                 continue;
             }
 
-            pSeed->seed1 = (uint32)ToInt(args[1]);
-            pSeed->seed2 = (uint32)ToInt(args[2]);
+            //pSeed->seed1 = (uint16)ToUInt(args[1]);
+            //pSeed->seed2 = (uint16)ToUInt(args[2]);
 
             //pSeed->seedBgColor;
             //pSeed->seedFgColor;
@@ -201,26 +202,22 @@ bool ItemInfoManager::LoadByItemsDat(const string& filePath)
     return true;
 }
 
-void ItemInfoManager::LoadFileHashes(const std::vector<string>& fileData, bool forOgg)
+void ItemInfoManager::LoadFileHashes(const std::unordered_map<string, uint32>& hashData, bool forOgg)
 {
-    auto findHash = [&](const string& fileName) -> uint32
+    auto FindHash = [&](const string& fileName) -> uint32
     {
-        for(uint32 i = 0; i < fileData.size(); i += 2) {
-            if(fileName == fileData[i]) {
-                return ToUInt(fileData[i + 1]);
-            }
+        auto it = hashData.find(fileName);
+        if(it != hashData.end()) {
+            return it->second;
         }
 
         return 0;
     };
 
     for(auto& pItem : m_items) {
-        uint32 textureFileHash = findHash("game/" + pItem->textureFile);
+        uint32 textureFileHash = FindHash("game/" + pItem->textureFile);
 
-        if(textureFileHash == 0) {
-            LOGGER_LOG_WARN("Unable to get FILE hash for %s %s, it wasnt set to 0 right?!", pItem->name.c_str(), pItem->textureFile.c_str());
-        }
-        else {
+        if(pItem->textureHash == 0) {
             pItem->textureHash = textureFileHash;
         }
 
@@ -230,19 +227,16 @@ void ItemInfoManager::LoadFileHashes(const std::vector<string>& fileData, bool f
                 ReplaceString(filePath, "mp3", "ogg");
             }
 
-            uint32 extraStringHash = findHash(filePath);
+            uint32 extraStringHash = FindHash(filePath);
 
-            if(extraStringHash == 0) {
-                LOGGER_LOG_WARN("Unable to get EXTRA STRING hash for %s %s, it wasnt set to 0 right?!", pItem->name.c_str(), pItem->extraString.c_str());
-            }
-            else {
+            if(pItem->extraStringHash == 0) {
                 pItem->extraString = extraStringHash;
             }
         }
     }
 }
 
-void ItemInfoManager::LoadItemsClientData(bool forOgg)
+void ItemInfoManager::SaveToClientData(bool forOgg)
 {
     MemoryBuffer memSizeBuffer;
     memSizeBuffer.Seek(sizeof(m_version) + sizeof(m_itemCount));
@@ -256,6 +250,8 @@ void ItemInfoManager::LoadItemsClientData(bool forOgg)
     memset(pData, 0, memSize);
 
     MemoryBuffer memBuffer(pData, memSize);
+    memBuffer.Write(m_version);
+    memBuffer.Write(m_itemCount);
 
     for(auto& pItem : m_items) {
         pItem->Serialize(memBuffer, true, m_version);
@@ -383,6 +379,7 @@ void ItemInfoManager::CreateDefaultSeedForItem(ItemInfo* pItem)
     pSeed->textureFile = pItem->textureFile;
 
     pSeed->description = "``Plant this to grow a `3" + pItem->name + " ``Tree";
+    m_items.push_back(pSeed);
 }
 
 ItemInfoManager* GetItemInfoManager() { return ItemInfoManager::GetInstance(); }

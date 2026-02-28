@@ -6,7 +6,7 @@
 #include "Item/ItemInfoManager.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
-: Player(pPeer)
+: Player(pPeer), m_currentWorldName("EXIT"), m_joinWorldName("EXIT")
 {
 }
 
@@ -51,10 +51,10 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
 
 void GamePlayer::CheckingLoginSession(VariantVector&& result)
 {
-    if(!result[1].GetBool()) {
+    /*if(!result[1].GetBool()) {
         SendLogonFailWithLog("");
         return;
-    }
+    }*/
 
     m_state = PLAYER_STATE_LOGIN_GETTING_ACCOUNT;
     /**
@@ -66,11 +66,14 @@ void GamePlayer::CheckingLoginSession(VariantVector&& result)
     /** temp */ TransferingPlayerToGame();
 }
 
+#include "IO/File.h"
+#include "Proton/ProtonUtils.h"
+
 void GamePlayer::TransferingPlayerToGame()
 {
     string settings;
     settings += "proto=144"; /** search it what it effects in client */
-    settings += "|server_tick" + ToString(Time::GetSystemTime());
+    settings += "|server_tick=" + ToString(Time::GetSystemTime());
     settings += "|choosemusic=audio/mp3/about_theme.mp3";
     settings += "|usingStoreNavigation=1";
     settings += "|enableInventoryTab=1";
@@ -78,5 +81,6 @@ void GamePlayer::TransferingPlayerToGame()
     ItemsClientData itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType);
     auto pGameConfig = GetContext()->GetGameConfig();
 
+    m_state = PLAYER_STATE_ENTERING_GAME;
     SendWelcomePacket(itemData.hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, 0);
 }

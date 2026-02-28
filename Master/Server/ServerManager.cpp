@@ -5,6 +5,8 @@
 
 #include "../Event/TCP/TCPEventHello.h"
 #include "../Event/TCP/TCPEventAuth.h"
+#include "../Event/TCP/TCPEventPlayerSession.h"
+#include "../Event/TCP/TCPEventWorldInit.h"
 
 ServerManager::ServerManager()
 {
@@ -95,6 +97,46 @@ void ServerManager::RegisterEvents()
         TCP_PACKET_AUTH,
         Delegate<NetClient*, VariantVector&>::Create<&TCPEventAuth::Execute>()
     );
+
+    m_events.Register(
+        TCP_PACKET_PLAYER_CHECK_SESSION,
+        Delegate<NetClient*, VariantVector&>::Create<&TCPEventPlayerSession::Execute>()
+    );
+
+    m_events.Register(
+        TCP_PACKET_WORLD_INIT,
+        Delegate<NetClient*, VariantVector&>::Create<&TCPEventWorldInit::Execute>()
+    );
+}
+
+ServerInfo* ServerManager::GetServerByID(uint16 serverID)
+{
+    for(auto& [_, pServer] : m_servers) {
+        if(pServer->serverID == serverID) {
+            return pServer;
+        }
+    }
+
+    return nullptr;
+}
+
+bool ServerManager::SendPacketRaw(uint16 serverID, VariantVector& data)
+{
+    if(!m_pNetSocket) {
+        return false;
+    }
+
+    ServerInfo* pServer = GetServerByID(serverID);
+    if(!pServer) {
+        return false;
+    }
+
+    NetClient* pNetClient = m_pNetSocket->GetClient(pServer->socketConnID);
+    if(!pNetClient) {
+        return false;
+    }
+
+    return pNetClient->Send(data);
 }
 
 void ServerManager::AddServer(uint16 serverID, NetClient* pClient)

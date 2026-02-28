@@ -14,9 +14,11 @@ set(GAME_ROOT "${CMAKE_CURRENT_LIST_DIR}/../GameServer")
 set(GAME_PLAYER "${GAME_ROOT}/Player")
 set(GAME_SERVER "${GAME_ROOT}/Server")
 set(GAME_EVENT "${GAME_ROOT}/Event")
+set(GAME_WORLD "${GAME_ROOT}/World")
 
 set(GAME_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/PlayerDBTable.cpp
+    ${SOURCE_DATABASE}/Table/WorldDBTable.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
@@ -27,8 +29,25 @@ set(GAME_FILES PRIVATE
 
     ${GAME_EVENT}/TCP/TCPEventHello.cpp
     ${GAME_EVENT}/TCP/TCPEventAuth.cpp
+    ${GAME_EVENT}/TCP/TCPEventPlayerSession.cpp
+    ${GAME_EVENT}/TCP/TCPEventWorldInit.cpp
+
+    ${GAME_EVENT}/UDP/GameMessage/RefreshItemData.cpp
+    ${GAME_EVENT}/UDP/GameMessage/EnterGame.cpp
+    ${GAME_EVENT}/UDP/GameMessage/RefreshTributeData.cpp
+    ${GAME_EVENT}/UDP/GameMessage/JoinRequest.cpp
+
+    ${SOURCE_WORLD}/TileExtra.cpp
+    ${SOURCE_WORLD}/TileInfo.cpp
+    ${SOURCE_WORLD}/WorldInfo.cpp
+    ${SOURCE_WORLD}/WorldTileManager.cpp
+    ${SOURCE_WORLD}/WorldObjectManager.cpp
+    ${GAME_WORLD}/WorldManager.cpp
+    ${GAME_WORLD}/World.cpp
 
     ${SOURCE_PLAYER}/Player.cpp
+    ${SOURCE_PLAYER}/PlayerTribute.cpp
+    ${SOURCE_PLAYER}/PlayerInventory.cpp
     ${SOURCE_PLAYER}/PlayerLoginDetail.cpp
     ${GAME_PLAYER}/GamePlayer.cpp
 

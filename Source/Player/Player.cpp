@@ -87,8 +87,23 @@ void Player::SendOnConsoleMessage(const string &message)
     SendCallFunctionPacket(data);
 }
 
+void Player::SendOnRequestWorldSelectMenu(const string& worldMenu)
+{
+    VariantVector data(2);
+    data[0] = "OnRequestWorldSelectMenu";
+    data[1] = worldMenu;
 
-#include "../IO/File.h"
+    SendCallFunctionPacket(data);
+}
+
+void Player::SendOnFailedToEnterWorld()
+{
+    VariantVector data(1);
+    data[0] = "OnFailedToEnterWorld";
+
+    SendCallFunctionPacket(data);
+}
+
 void Player::SendCallFunctionPacket(VariantVector& data, int32 netID, int32 delay)
 {
     if(!m_pPeer) {
@@ -104,12 +119,6 @@ void Player::SendCallFunctionPacket(VariantVector& data, int32 netID, int32 dela
     uint32 size = 0;
     uint8* pData = Proton::SerializeToMem(data, &size, nullptr);
     gamePacket.extraDataSize = size;
-
-    File file;
-    file.Open(GetProgramPath() +  "/a.dat", FILE_MODE_WRITE);
-    file.Write(pData, size);
-    file.Close();
-
 
     SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), pData, m_pPeer);
     SAFE_DELETE_ARRAY(pData);

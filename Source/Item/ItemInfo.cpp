@@ -1,8 +1,6 @@
 #include "ItemInfo.h"
 #include "../Proton/ProtonUtils.h"
 
-
-#include "../IO/Log.h"
 ItemInfo::ItemInfo()
 {
 }
@@ -19,8 +17,8 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     }
     else {
         if(write) {
-            name = XorCipherString(name, "PBG892FXX982ABC*", id);
-            memBuffer.WriteStringRaw(name);
+            string writeName = XorCipherString(name, "PBG892FXX982ABC*", id);
+            memBuffer.WriteStringRaw(writeName);
         }
         else {
             memBuffer.ReadStringRaw(name);
@@ -84,8 +82,11 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     if(version > 8) {
         memBuffer.ReadWrite(fxFlags, write);
 
-        for(uint8 i = 0; i < 15; ++i) {
-            memBuffer.ReadWrite(clientData[i], write);
+        if(write) {
+            memBuffer.WriteRaw(clientData, sizeof(clientData));
+        }
+        else {
+            memBuffer.ReadRaw(clientData, sizeof(clientData));
         }
     }
 

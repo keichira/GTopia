@@ -8,6 +8,8 @@
 #include "IO/File.h"
 #include "Server/GameServer.h"
 #include "Server/MasterBroadway.h"
+#include "Player/PlayerTribute.h"
+#include "World/WorldManager.h"
 
 const int32 TICK_RATE = 20;
 const uint64 TICK_INTERVAL = 1000/TICK_RATE;
@@ -100,6 +102,7 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
             }
 
             case NET_ID_WORLD_MANAGER: {
+                GetWorldManager()->OnHandleDatabase(std::move(taskRes));
                 break;
             }
 
@@ -148,22 +151,33 @@ bool LoadItemData()
     }
     auto lines = Split(fileData, '\n');
 
-    std::vector<string> hashData;
+    std::unordered_map<string, uint32> hashData;
     for(auto& line : lines) {
         if(line.empty()) {
             continue;
         }
 
         auto args = Split(line, '|');
-        hashData.push_back(args[0]);
-        hashData.push_back(args[1]);
+        hashData.insert_or_assign(args[0], ToUInt(args[1]));
     }
 
     pItemMgr->LoadFileHashes(hashData, false);
-    pItemMgr->LoadItemsClientData(false);
+    pItemMgr->SaveToClientData(false);
+
+    auto item = pItemMgr->GetItemByID(14);
+    LOGGER_LOG_ERROR("%s %s %d %d %d", item->name.c_str(), item->textureFile.c_str(), item->textureHash, item->textureX, item->textureY);
 
     pItemMgr->LoadFileHashes(hashData, true);
-    pItemMgr->LoadItemsClientData(true);
+    pItemMgr->SaveToClientData(true);
+
+    PlayerTribute* pPlayerTrib = GetPlayerTributeManager();
+    if(!pPlayerTrib->Load(GetProgramPath() + "/player_tribute.txt")) {
+        LOGGER_LOG_ERROR("Failed to load player_tribute.txt anyways skipping it");
+    }
+    else {
+        pPlayerTrib->SaveToClientData();
+    }
+
     return true;
 }
 

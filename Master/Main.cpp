@@ -4,6 +4,8 @@
 #include "Utils/Timer.h"
 #include "Server/GameServer.h"
 #include "Server/ServerManager.h"
+#include "Player/GamePlayer.h"
+#include "World/WorldManager.h"
 
 const int32 TICK_RATE = 20;
 const uint64 TICK_INTERVAL = 1000/TICK_RATE;
@@ -73,11 +75,12 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
             }
 
             case NET_ID_WORLD_MANAGER: {
+                GetWorldManager()->OnHandleDatabase(std::move(taskRes));
                 break;
             }
 
             default: {       
-                Player* pPlayer = GetGameServer()->GetPlayerByNetID(taskRes.ownerID);
+                GamePlayer* pPlayer = GetGameServer()->GetPlayerByNetID(taskRes.ownerID);
                 if(!pPlayer) {
                     LOGGER_LOG_WARN("Trying to process database result but player %d not exits?", taskRes.ownerID);
                 }

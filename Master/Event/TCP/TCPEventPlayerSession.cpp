@@ -7,7 +7,7 @@ void TCPEventPlayerSession::Execute(NetClient* pClient, VariantVector& data)
     PlayerSession* pPlayer = GetGameServer()->GetPlayerSessionByUserID(data[2].GetUINT());
 
     VariantVector packet(3);
-    packet[0] = TCP_PACKET_PLAYER_SESSION;
+    packet[0] = TCP_PACKET_PLAYER_CHECK_SESSION;
     packet[1] = data[1].GetINT();
 
     if(

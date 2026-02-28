@@ -41,12 +41,6 @@ bool ServerBase::Init(const string &host, uint16 port)
 void ServerBase::Kill()
 {
     SAFE_DELETE(m_pENetServer);
-
-    for(auto& [_, pPlayer] : m_playerCache) {
-        SAFE_DELETE(pPlayer);
-    }
-
-    m_playerCache.clear();
 }
 
 void ServerBase::Update()
@@ -102,7 +96,7 @@ void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
     }
 }
 
-Player* ServerBase::GetPlayerByNetID(int32 netID)
+GamePlayer* ServerBase::GetPlayerByNetID(int32 netID)
 {
     auto it = m_playerCache.find(netID);
     if(it != m_playerCache.end()) {

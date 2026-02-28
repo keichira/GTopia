@@ -88,6 +88,15 @@ void NetHTTP::OnDataReceive(NetClient* pClient)
                 pClient->recvQueue.Skip(2);
             }
         }
+        else if(m_contentLength != 0) {
+            if(pClient->recvQueue.GetDataSize() < m_contentLength) {
+                return;
+            }
+
+            m_body.append(data.data(), m_contentLength);
+            pClient->recvQueue.Skip(m_contentLength);
+            m_state = HTTP_STATE_COMPLETE;
+        }
     }
 }
 
@@ -180,6 +189,10 @@ void NetHTTP::ParseHeader(const string& header)
             if(value == "chunked") {
                 m_chunked = true;
             }
+        }
+
+        if(key == "Content-Length") {
+            m_contentLength = ToUInt(value);
         }
     }
 

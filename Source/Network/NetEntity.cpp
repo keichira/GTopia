@@ -1,7 +1,9 @@
 #include "NetEntity.h"
 
+int32 NetEntity::s_netID = NET_ID_RESERVED_UNTIL;
+
 NetEntity::NetEntity()
-: m_netID(sNetID++)
+: m_netID(s_netID++)
 {
 }
 

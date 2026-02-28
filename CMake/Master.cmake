@@ -14,15 +14,21 @@ set(MASTER_ROOT "${CMAKE_CURRENT_LIST_DIR}/../Master")
 set(MASTER_PLAYER "${MASTER_ROOT}/Player")
 set(MASTER_SERVER "${MASTER_ROOT}/Server")
 set(MASTER_EVENT "${MASTER_ROOT}/Event")
+set(MASTER_WORLD "${MASTER_ROOT}/World")
 
 set(MASTER_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/PlayerDBTable.cpp
+    ${SOURCE_DATABASE}/Table/WorldDBTable.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
 
     ${MASTER_EVENT}/TCP/TCPEventHello.cpp
     ${MASTER_EVENT}/TCP/TCPEventAuth.cpp
+    ${MASTER_EVENT}/TCP/TCPEventPlayerSession.cpp
+    ${MASTER_EVENT}/TCP/TCPEventWorldInit.cpp
+
+    ${MASTER_WORLD}/WorldManager.cpp
 
     ${SOURCE_PLAYER}/Player.cpp
     ${SOURCE_PLAYER}/PlayerLoginDetail.cpp

@@ -5,6 +5,7 @@
 
 RoleManager::RoleManager()
 {
+    InitRolePerms();
 }
 
 RoleManager::~RoleManager()
@@ -43,12 +44,12 @@ bool RoleManager::Load(const string& filePath)
 
         if(args[0] == "add_role") {
             Role* pRole = new Role();
-            pRole->SetName(args[1]);
-            pRole->SetID(ToInt(args[2]));
-            pRole->SetPriority(ToInt(args[3]));
-            pRole->SetPrefix(args[4]);
-            pRole->SetSuffix(args[5]);
+            pRole->m_name = args[1];
+            pRole->m_id = ToInt(args[2]);
+            pRole->m_prefix = args[3];
+            pRole->m_suffix = args[4];
 
+            pLastRole = pRole;
             m_roles.insert_or_assign(pRole->GetID(), pRole);
         }
 
@@ -58,7 +59,7 @@ bool RoleManager::Load(const string& filePath)
             }
 
             for(uint8 i = 1; i < args.size(); ++i) {
-                pLastRole->AddInherit(ToInt(args[i]));
+                pLastRole->m_inherits.push_back(ToInt(args[i]));
             }
         }
 
@@ -67,7 +68,7 @@ bool RoleManager::Load(const string& filePath)
                 continue;
             }
 
-            pLastRole->SetNameColor(args[1][0]);
+            pLastRole->m_nameColor = args[1][0];
         }
 
         if(args[0] == "set_chat_color") {
@@ -75,7 +76,7 @@ bool RoleManager::Load(const string& filePath)
                 continue;
             }
 
-            pLastRole->SetChatColor(args[1][0]);
+            pLastRole->m_chatColor = args[1][0];
         }
 
         if(args[0] == "set_perms") {
@@ -83,25 +84,65 @@ bool RoleManager::Load(const string& filePath)
                 continue;
             }
 
-            pLastRole->SetPerms(args);
-        }
-    }
+            for(uint32 i = 1; i < args.size(); ++i) {
+                eRolePerm perm;
+                if(!GetRolePermFromString(args[i], perm)) {
+                    LOGGER_LOG_WARN("Unknown permission %s for %d", args[i].c_str(), pLastRole->GetID());
+                    continue;
+                }
 
-    CheckInherits();
-    return true;
-}
-
-void RoleManager::CheckInherits()
-{
-    for(auto& [_, pRole] : m_roles) {
-        auto inherits = pRole->GetInherits();
-
-        for(auto& inherit : inherits) {
-            if(!GetRole(inherit)) {
-                LOGGER_LOG_WARN("Non exist role %d in inherits, parent: %d", inherit, pRole->GetID());
+                pLastRole->AddPerm(perm);
             }
         }
     }
+
+    for(auto& [_, pRole] : m_roles) {
+        if(pRole->m_state == ROLE_RESOLVE_NONE) {
+            ResolveRole(pRole);
+        }
+    }
+    return true;
+}
+
+bool RoleManager::ResolveRole(Role* pRole)
+{
+    if(!pRole) {
+        return false;
+    }
+
+    if(pRole->m_state == ROLE_RESOLVE_DONE) {
+        return true;
+    }
+
+    if(pRole->m_state == ROLE_RESOLVE_PROCESSING) {
+        return false;
+    }
+
+    pRole->m_state = ROLE_RESOLVE_PROCESSING;
+    pRole->m_finalPerms = pRole->m_basePerms;
+
+    for(uint32 parentID : pRole->m_inherits) {
+        Role* pParent = GetRole(parentID);
+        if(!pParent) {
+            LOGGER_LOG_WARN("Non exists role %d in inherits, parent %d", parentID, pRole->GetID());
+            continue;
+        }
+
+        if(!ResolveRole(pParent)) {
+            return false;
+        }
+
+        if(pParent->m_finalPerms.size() > pRole->m_finalPerms.size()) {
+            pRole->m_finalPerms.resize(pParent->m_finalPerms.size(), 0);
+        }
+
+        for(uint32 i = 0; i < pParent->m_finalPerms.size(); ++i) {
+            pRole->m_finalPerms[i] |= pParent->m_finalPerms[i];
+        }
+    }
+
+    pRole->m_state = ROLE_RESOLVE_DONE;
+    return true;
 }
 
 Role* RoleManager::GetRole(int32 id)
@@ -114,9 +155,21 @@ Role* RoleManager::GetRole(int32 id)
     return it->second;
 }
 
-bool RoleManager::IsValidPerm(uint32 perm)
+void InitRolePerms()
 {
-    return false;
+    /** for now hardcoded */
+    sPermStrMap["chat"] = ROLE_PERM_CHAT;
 }
 
-RoleManager* GetRoleManager() { return RoleManager::GetInstance(); }
+bool GetRolePermFromString(const string& permStr, eRolePerm& permOut)
+{
+    auto it = sPermStrMap.find(permStr);
+    if(it == sPermStrMap.end()) {
+        return false;
+    }
+
+    permOut = it->second;
+    return true;
+}
+
+RoleManager *GetRoleManager() { return RoleManager::GetInstance(); }

@@ -23,11 +23,11 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     }
     protocol = (uint32)ToInt(string(pProto->value, pProto->size));
 
-    auto pHash = packet.Find(CompileTimeHashString("hash"));
+    /*auto pHash = packet.Find(CompileTimeHashString("hash"));
     if(!pHash) {
         return false;
     }
-    hash = (uint32)ToInt(string(pHash->value, pHash->size));
+    hash = (uint32)ToInt(string(pHash->value, pHash->size));*/
 
     auto pTankIDName = packet.Find(CompileTimeHashString("tankIDName"));
     if(pTankIDName) {

@@ -52,6 +52,16 @@ bool NetSocket::Init(const std::string& host, uint16 port, int32 backLog)
         return false;
     }
 
+#ifdef _DEBUG
+    int opt = 1;
+    setsockopt(m_socket, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt));
+
+    linger lin;
+    lin.l_onoff = 0;
+    lin.l_linger = 0;
+    setsockopt(m_socket, SOL_SOCKET, SO_LINGER, (const char*)&lin, sizeof(lin));
+#endif
+
     sockaddr_in sockAddr{};
     sockAddr.sin_family = AF_INET;
     sockAddr.sin_port = htons(port);

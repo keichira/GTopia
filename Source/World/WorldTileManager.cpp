@@ -4,6 +4,7 @@
 #include "../Math/Random.h"
 
 WorldTileManager::WorldTileManager()
+: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
 {
 }
 
@@ -30,7 +31,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
         }
     }
 
-    return false;
+    return true;
 }
 
 void WorldTileManager::Clear(bool reInit)
@@ -39,7 +40,7 @@ void WorldTileManager::Clear(bool reInit)
 
     if(reInit) {
         m_tiles.resize(m_size.x * m_size.y);
-        for(auto i = 0; i < m_tiles.size(); ++i) { m_tiles[i].SetPos(Vector2Int(i % m_size.x, i / m_size.x));}
+        for(uint32 i = 0; i < m_tiles.size(); ++i) { m_tiles[i].SetPos(Vector2Int(i % m_size.x, i / m_size.x));}
     }
 }
 
@@ -47,15 +48,15 @@ void WorldTileManager::GenerateDefaultMap()
 {
     Clear(true);
 
-    RectInt layer(0, 0, m_size.x, 0);
-    FillRectWithThickness(6, layer, ITEM_ID_BEDROCK, ITEM_ID_CAVE_BACKGROUND, 100);
+    RectInt layer(0, 0, m_size.x, m_size.y);
+    FillRectWithThickness(6, layer, ITEM_ID_BEDROCK, ITEM_ID_CAVE_BACKGROUND, 100);  
     FillRectWithThickness(4, layer,
             { { ITEM_ID_DIRT, 60 }, { ITEM_ID_LAVA, 40 }, { ITEM_ID_ROCK, 2 } },
             { { ITEM_ID_CAVE_BACKGROUND, 100 } });
-    FillRectWithThickness(29, layer,
+    FillRectWithThickness(25, layer,
             { { ITEM_ID_DIRT, 94 }, { ITEM_ID_ROCK, 6 } },
-            { { ITEM_ID_CAVE_BACKGROUND, 100 } });    
-    FillRectWithThickness(1, layer, ITEM_ID_DIRT, ITEM_ID_CAVE_BACKGROUND, 100);
+            { { ITEM_ID_CAVE_BACKGROUND, 100 } }); 
+    FillRectWithThickness(1, layer, ITEM_ID_DIRT, ITEM_ID_CAVE_BACKGROUND, 100); 
 }
 
 void WorldTileManager::FillRectWith(const RectInt& rect, uint16 fgItem, uint16 bgItem, float chance)
@@ -160,16 +161,14 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
 
 void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance)
 {
-    rect.bottom = rect.top;
-    rect.top = rect.bottom + thickness;
-
+    rect.top = rect.bottom - thickness;
     FillRectWith(rect, fgItem, bgItem, chance);
+    rect.bottom = rect.top;
 }
 
 void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems)
 {
-    rect.bottom = rect.top;
-    rect.top = rect.bottom + thickness;
-
+    rect.top = rect.bottom - thickness;
     FillRectWith(rect, fgItems, bgItems);
+    rect.bottom = rect.top;
 }

@@ -8,8 +8,6 @@
 #define NET_ID_FALLBACK 0
 #define NET_ID_WORLD_MANAGER 1
 
-static int32 sNetID = NET_ID_RESERVED_UNTIL;
-
 class NetEntity {
 public:
     NetEntity();
@@ -24,4 +22,5 @@ public:
 
 private:
     int32 m_netID;
+    static int32 s_netID;
 };

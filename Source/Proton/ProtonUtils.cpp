@@ -76,7 +76,7 @@ uint8 *Proton::SerializeToMem(VariantVector &varVector, uint32 *pSizeOut, uint8 
 
 	int tempSize;
 
-	for (int i=0; i < varVector.size(); i++)
+	for (int i=0; i < varVector.size(); ++i)
 	{
 		if (varVector[i].GetType() == VARIANT_TYPE_STRING)
 		{
@@ -112,7 +112,7 @@ uint8 *Proton::SerializeToMem(VariantVector &varVector, uint32 *pSizeOut, uint8 
 
 	uint8 type;
 
-	for (int i=0; i < varVector.size(); i++)
+	for (int i=0; i < varVector.size(); ++i)
 	{
 		if (varVector[i].GetType() == VARIANT_TYPE_STRING)
 		{
@@ -122,7 +122,6 @@ uint8 *Proton::SerializeToMem(VariantVector &varVector, uint32 *pSizeOut, uint8 
 			type = ConvertVariantType(VARIANT_TYPE_STRING);
 			memcpy(pCur, &type, 1); pCur += 1; //type
 
-			
 			uint32 s = (int)varVector[i].GetString().size();
 			memcpy(pCur, &s, 4); pCur += 4; //length of string
 			memcpy(pCur, varVector[i].GetString().c_str(), s); pCur += s; //actual string data

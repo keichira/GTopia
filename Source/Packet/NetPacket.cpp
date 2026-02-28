@@ -1,5 +1,8 @@
 #include "NetPacket.h"
 
+#include "../IO/File.h"
+#include "../IO/Log.h"
+
 bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData, ENetPeer* pPeer)
 {
     if(!pPeer) {

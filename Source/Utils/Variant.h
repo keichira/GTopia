@@ -92,7 +92,7 @@ public:
     uint32 GetUINT() const
     {
         if(m_type == VARIANT_TYPE_UINT)
-            return m_value.i_0;
+            return m_value.u_0;
         return 0;
     }
 

@@ -39,4 +39,5 @@ public:
 
     string cdnServer = "";
     string cdnPath = "";
+    string worldSavePath = "";
 };

@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <sys/random.h>
+#include <sys/stat.h>
 
 string GetDateTimeAsStr()
 {
@@ -66,4 +67,10 @@ int32 GetRandomBytes(void* pDest, uint32 size)
     }
 
     return offset;
+}
+
+bool IsFileExists(const string& path)
+{
+    struct stat buffer;
+    return (stat(path.c_str(), &buffer) == 0);
 }

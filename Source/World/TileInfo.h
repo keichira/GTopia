@@ -41,7 +41,7 @@ public:
 
     void SetFlag(uint16 flag) { m_flags |= flag; }
     void RemoveFlag(uint16 flag) { m_flags &= ~flag; }
-    bool HasFlag(uint16 flag) { return (m_flags & flag) != 0; };
+    bool HasFlag(uint16 flag) { return m_flags & flag; };
     void ToggleFlag(uint16 flag) { m_flags ^= flag; }
 
 private:

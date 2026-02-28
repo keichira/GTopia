@@ -9,15 +9,15 @@ void InventoryItemInfo::Serialize(MemoryBuffer& memBuffer, bool write)
     memBuffer.ReadWrite(flags, write);
 }
 
-PlayerInventory::PlayerInventory(uint32 protocol)
+PlayerInventory::PlayerInventory()
 : m_capacity(INVENTORY_DEFAULT_CAPACITY)
 {
-    if(protocol < 93) {
+    /*if(protocol < 93) {
         m_version = 0;
     }
     else {
         m_version = 1;
-    }
+    }*/
 
     for(auto i = 0; i < BODY_PART_SIZE; ++i) {
         m_clothes[i] = 0;

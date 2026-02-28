@@ -2,6 +2,7 @@
 #include "PreparedParam.h"
 #include <ctime>
 #include "../IO/Log.h"
+#include "../Utils/StringUtils.h"
 
 DatabaseResult::DatabaseResult()
 {
@@ -98,8 +99,8 @@ void DatabaseResult::ParseAndInsertField(MYSQL_FIELD& field, void* data, unsigne
         case MYSQL_TYPE_LONGLONG: {
             var = (isNull ? (uint32)0 : 
             (field.flags & UNSIGNED_FLAG ?
-                      *(uint32*)data :
-                      *(int32*)data));
+                      ToUInt((const char*)data) :
+                      ToInt((const char*)data)));
             break;
         }
 
@@ -107,10 +108,11 @@ void DatabaseResult::ParseAndInsertField(MYSQL_FIELD& field, void* data, unsigne
         case MYSQL_TYPE_DOUBLE: 
         case MYSQL_TYPE_DECIMAL:
         case MYSQL_TYPE_NEWDECIMAL:{
-            var = (isNull ? (float)0 : *(float*)data);
+            var = (isNull ? (float)0 : ToFloat((const char*)data));
             break;
         }
 
+        case MYSQL_TYPE_BLOB:
         case MYSQL_TYPE_STRING:
         case MYSQL_TYPE_VAR_STRING: {
             var = (isNull ? "" : string((char*)data, length));

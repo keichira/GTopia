@@ -27,11 +27,12 @@ public:
 
     void SendHelloPacket();
     void SendCheckSessionPacket(int32 netID, uint32 userID, uint32 token, uint16 serverID);
+    bool SendPacketRaw(VariantVector& data);
 
     bool IsConnected() const { return m_connected; }
 
 private:
-    NetClient* m_pClient;
+    NetClient* m_pNetClient;
     bool m_connected;
     EventDispatcher<int8, NetClient*, VariantVector&> m_events;
 };

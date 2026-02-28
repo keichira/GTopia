@@ -60,7 +60,7 @@ public:
     uint32 growTime = 31;
 
     uint32 fxFlags = 0;
-    string multiAnim1;
+    string multiAnim1 = "";
     string overlayTextureFile = "";
     string multiAnim2 = "";
 

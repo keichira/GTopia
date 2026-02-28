@@ -3,7 +3,7 @@
 #include "../Precompiled.h"
 #include "ItemInfo.h"
 
-#define ITEM_DATA_VERSION 1
+#define ITEM_DATA_VERSION 5
 
 struct ItemsClientData
 {
@@ -28,8 +28,8 @@ public:
     bool Load(const string& filePath);
     bool LoadByItemsDat(const string& filePath);
 
-    void LoadFileHashes(const std::vector<string>& fileData, bool forOgg);
-    void LoadItemsClientData(bool forOgg);
+    void LoadFileHashes(const std::unordered_map<string, uint32>& hashData, bool forOgg);
+    void SaveToClientData(bool forOgg);
     
     ItemInfo* GetItemByID(uint32 itemID);
     ItemInfo* GetItemByName(const string& name);

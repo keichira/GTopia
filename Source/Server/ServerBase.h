@@ -4,9 +4,11 @@
 #include "../Network/ENetServer.h"
 #include "../Player/Player.h"
 
+class GamePlayer;
+
 class ServerBase {
 public:
-    typedef std::unordered_map<int32, Player*> PlayerCache;
+    typedef std::unordered_map<int32, GamePlayer*> PlayerCache;
 
 public:
     ServerBase();
@@ -24,7 +26,7 @@ public:
     void Update();
     void UpdateGameLogic(uint64 maxTimeMS);
 
-    Player* GetPlayerByNetID(int32 netID);
+    GamePlayer* GetPlayerByNetID(int32 netID);
     //PlayerCache& GetPlayerCache() { return m_playerCache; }
 
 protected:

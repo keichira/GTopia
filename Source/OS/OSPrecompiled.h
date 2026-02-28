@@ -21,3 +21,4 @@ uint64 GetTick();
 string GetProgramPath();
 int32 SleepMS(uint64 ms);
 int32 GetRandomBytes(void* pDest, uint32 size);
+bool IsFileExists(const string& path);

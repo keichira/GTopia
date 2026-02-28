@@ -24,7 +24,7 @@ enum eInventoryErrors
 
 class PlayerInventory {
 public:
-    PlayerInventory(uint32 protocol);
+    PlayerInventory();
 
 public:
     void Serialize(MemoryBuffer& memBuffer, bool write, uint32 protocol, bool database);

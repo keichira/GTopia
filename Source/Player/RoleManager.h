@@ -3,6 +3,17 @@
 #include "../Precompiled.h" 
 #include "Role.h"
 
+enum eRolePerm
+{
+    ROLE_PERM_CHAT,
+
+    ROLE_PERM_SIZE
+};
+
+static std::unordered_map<string, eRolePerm> sPermStrMap;
+void InitRolePerms();
+bool GetRolePermFromString(const string& permStr, eRolePerm& permOut);
+
 class RoleManager {
 public:
     RoleManager();
@@ -13,11 +24,10 @@ public:
         static RoleManager instance;
         return &instance;
     }
-    static bool IsValidPerm(uint32 perm);
 
 public:
     bool Load(const string& filePath);
-    void CheckInherits();
+    bool ResolveRole(Role* pRole);
 
     Role* GetRole(int32 id);
 

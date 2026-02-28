@@ -39,7 +39,7 @@ bool GameConfig::LoadConfig(const string &filePath)
             database.port = (uint16)ToUInt(args[5]);
         }
 
-        if(args[0] == "cdn_info") {
+        if(args[0] == "cdn_server") {
             cdnServer = args[1];
             cdnPath = args[2];
         }

@@ -22,14 +22,14 @@ enum eQueryFlags
 
 struct QueryRequest
 {
-    uint32 ownerID = 0;
+    int32 ownerID = 0;
     VariantVector data;
     VariantVector extraData;
 };
 
 struct QueryTaskRequest
 {
-    uint32 ownerID = 0;
+    int32 ownerID = 0;
     VariantVector data;
     VariantVector extraData;
     string query = "";
@@ -39,7 +39,7 @@ struct QueryTaskRequest
 
 struct QueryTaskResult
 {
-    uint32 ownerID = 0;
+    int32 ownerID = 0;
     VariantVector extraData;
     eQueryStatus status;
     uint64 increment = 0;

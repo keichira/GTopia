@@ -14,13 +14,11 @@ struct NetClientInfo
 struct ServerInfo
 {
     uint16 serverID = 0;
-    uint32 ping = 0;
     uint32 playerCount = 0;
     uint32 worldCount = 0;
     int32 socketConnID = -1;
     string wanIP;
     uint16 port;
-
 };
 
 class ServerManager : public ServerBroadwayBase {
@@ -46,6 +44,9 @@ public:
     void AddServer(uint16 serverID, NetClient* pClient);
     void RemoveServer(uint16 serverID);
     ServerInfo* GetBestServer();
+
+    ServerInfo* GetServerByID(uint16 serverID);
+    bool SendPacketRaw(uint16 serverID, VariantVector& data);
 
 private:
     std::unordered_map<uint16, ServerInfo*> m_servers;

@@ -81,6 +81,12 @@ void GameServer::OnEventDisconnect(ENetEvent& event)
 void GameServer::Kill()
 {
     ServerBase::Kill();
+
+    for(auto& [_, pPlayer] : m_playerCache) {
+        SAFE_DELETE(pPlayer);
+    }
+
+    m_playerCache.clear();
 }
 
 PlayerSession* GameServer::GetPlayerSessionByUserID(uint32 userID)
