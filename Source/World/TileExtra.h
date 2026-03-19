@@ -8,35 +8,52 @@ enum eTileExtraTypes
     TILE_EXTRA_TYPE_NONE = 0,
     TILE_EXTRA_TYPE_DOOR = 1,
     TILE_EXTRA_TYPE_SIGN = 2,
+    TILE_EXTRA_TYPE_LOCK = 3,
 
     TILE_EXTRA_TYPE_SIZE
 };
+
+uint8 GetTileExtraType(uint8 itemType);
 
 class TileInfo;
 
 class TileExtra {
 public:
-    TileExtra();
+    explicit TileExtra(uint8 tileExtraType) : type(tileExtraType) {}
+    virtual ~TileExtra() {};
+
+    virtual void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) = 0;
+    static TileExtra* Create(uint8 tileExtraType);
+
+protected:
+    virtual void Serialize(MemoryBuffer& memBuffer, bool write);
 
 public:
-    static bool HasExtra(uint8 itemType);
+    uint8 type = TILE_EXTRA_TYPE_NONE;
+};
 
+class TileExtra_Door : public TileExtra {
 public:
-    bool Setup(uint8 itemType);
-    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile);
+    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_DOOR;
 
-    const string& GetName() const { return m_name; }
-    void SetName(const string& name) { m_name = name; }
+    TileExtra_Door() : TileExtra(TYPE) {}
 
-    const string& GetText() const  { return m_text; }
-    void SetText(const string text) { m_text = text; }
+    string name;
+    string text;
+    string id;
 
-    string GetID() const { return m_id; }
+protected:
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
+};
 
-private:
-    uint8 m_type;
-    string m_name;
-    string m_text;
-    string m_id;
-    int32 m_ownerID;
+class TileExtra_Sign : public TileExtra {
+public:
+    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_SIGN;
+
+    TileExtra_Sign() : TileExtra(TYPE) {}
+
+    string text;
+
+protected:
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };

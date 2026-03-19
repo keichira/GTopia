@@ -412,6 +412,10 @@ void GamePlayer::UpdatePlayMods()
         PlayerPlayModInfo& playMod = reqUpdtMods[i];
         
         if(playMod.modType == PLAYMOD_TYPE_CARRYING_A_TORCH) {
+            if(m_currentWorldID == 0) {
+                continue;
+            }
+
             if(GetInventory().GetClothByPart(BODY_PART_HAND) != ITEM_ID_HAND_TORCH) {
                 RemovePlayMod(PLAYMOD_TYPE_CARRYING_A_TORCH);
                 continue;

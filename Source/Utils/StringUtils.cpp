@@ -256,7 +256,7 @@ eToIntResult ToUInt(const string& str, uint32& out, int32 base)
 
 eToIntResult ToUInt(const char* str, uint32& out, int32 base)
 {
-    if(!str || *str == '\0') {
+    if(!str) {
         return TO_INT_FAIL;
     }
     

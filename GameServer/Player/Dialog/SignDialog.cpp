@@ -6,7 +6,12 @@
 
 void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
 {
-    if(!pPlayer || !pTile->GetExtra()) {
+    if(!pPlayer) {
+        return;
+    }
+
+    TileExtra_Sign* pTileExtra = pTile->GetExtra<TileExtra_Sign>();
+    if(!pTileExtra) {
         return;
     }
 
@@ -20,7 +25,7 @@ void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
     ->AddSpacer()
     ->AddTextBox("What would you like to write on this sign?")
-    ->AddTextInput("sign_text", "", pTile->GetExtra()->GetText(), 128)
+    ->AddTextInput("sign_text", "", pTileExtra->text, 128)
     ->EmbedData("tilex", pTile->GetPos().x)
     ->EmbedData("tiley", pTile->GetPos().y)
     ->EndDialog("sign_edit", "OK", "Cancel");
@@ -48,11 +53,19 @@ void SignDialog::Handle(GamePlayer* pPlayer, const string& text, int32 tileX, in
     }
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
-    if(!pTile || !pTile->GetExtra()) {
+    if(!pTile) {
         pPlayer->SendOnTalkBubble("Huh? The sign is gone!", false);
+        printf("pufff");
         return;
     }
 
-    pTile->GetExtra()->SetText(written);
+    TileExtra_Sign* pTileExtra = pTile->GetExtra<TileExtra_Sign>();
+    if(!pTileExtra) {
+        pPlayer->SendOnTalkBubble("Huh? The sign is gone!", false);
+        printf("pffpffp2");
+        return;
+    }
+
+    pTileExtra->text = written;
     pWorld->SendTileUpdate(tileX, tileY);
 }

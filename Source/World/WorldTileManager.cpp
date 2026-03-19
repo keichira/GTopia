@@ -4,12 +4,12 @@
 #include "../Math/Random.h"
 
 WorldTileManager::WorldTileManager()
-: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT),
-m_pMainDoorTile(nullptr), m_pGuardPineappleTile(nullptr)
+: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
 {
+    m_keyTiles.reserve(KEY_TILE_SIZE);
 }
 
-bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
+bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion)
 {
     memBuffer.ReadWrite(m_size, write);
 
@@ -25,7 +25,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     }
 
     for(auto i = 0; i < m_tiles.size(); ++i) {
-        m_tiles[i].Serialize(memBuffer, write, database);
+        m_tiles[i].Serialize(memBuffer, write, database, worldVersion);
 
         if(!write) {
             m_tiles[i].SetPos(i % m_size.x, i / m_size.x);
@@ -38,9 +38,12 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
 void WorldTileManager::Clear(bool reInit)
 {
     m_tiles.clear();
+    m_keyTiles.clear();
+    m_onFireTiles.clear();
 
     if(reInit) {
         m_tiles.resize(m_size.x * m_size.y);
+        m_keyTiles.reserve(KEY_TILE_SIZE);
         for(uint32 i = 0; i < m_tiles.size(); ++i) { m_tiles[i].SetPos(i % m_size.x, i / m_size.x); }
     }
 }
@@ -52,6 +55,24 @@ TileInfo* WorldTileManager::GetTile(int32 x, int32 y)
     }
 
     return &m_tiles[y * m_size.x + x];
+}
+
+TileInfo* WorldTileManager::GetTile(eKeyTile keyTile)
+{
+    return m_keyTiles[keyTile];
+}
+
+void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
+{
+    if(IsMainDoor(pTile->GetFG())) {
+        m_keyTiles[KEY_TILE_MAIN_DOOR] = remove ? nullptr : pTile;
+    }
+    else if(pTile->GetFG() == ITEM_ID_GUARDIAN_PINEAPPLE) {
+        m_keyTiles[KEY_TILE_GUARD_PINEAPPLE] = remove ? nullptr : pTile;
+    }
+    else if(IsWorldLock(pTile->GetFG())) {
+        m_keyTiles[KEY_TILE_WORLD_LOCK] = remove ? nullptr : pTile;
+    }
 }
 
 void WorldTileManager::GenerateDefaultMap()
@@ -82,7 +103,9 @@ void WorldTileManager::GenerateDefaultMap()
     TileInfo* pDoorTile = GetTile(doorPosX, layer.top - 1);
 
     pDoorTile->SetFG(ITEM_ID_MAIN_DOOR, this);
-    pDoorTile->GetExtra()->SetName("EXIT");
+    if(TileExtra_Door* pTileExtra = pDoorTile->GetExtra<TileExtra_Door>()) {
+        pTileExtra->name = "EXIT";
+    }
 
     TileInfo* pBedrockTile = GetTile(doorPosX, layer.top);
     pBedrockTile->SetFG(ITEM_ID_BEDROCK, this);
@@ -99,7 +122,10 @@ void WorldTileManager::GenerateClearMap()
     
     TileInfo* pDoorTile = GetTile( mainDoorAtRight ? m_size.x : 0, layer.top - 1 );
     pDoorTile->SetFG(ITEM_ID_MAIN_DOOR, this);
-    pDoorTile->GetExtra()->SetName("EXIT");
+    
+    if(TileExtra_Door* pTileExtra = pDoorTile->GetExtra<TileExtra_Door>()) {
+        pTileExtra->name = "EXIT";
+    }
 }
 
 void WorldTileManager::GenerateBeachMap()

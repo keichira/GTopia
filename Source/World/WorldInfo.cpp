@@ -17,7 +17,7 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
     memBuffer.ReadWrite(m_flags, write);
     memBuffer.ReadWriteString(m_name, write);
 
-    if(!m_pTileMgr->Serialize(memBuffer, write, database)) {
+    if(!m_pTileMgr->Serialize(memBuffer, write, database, m_version)) {
         return false;
     }
 

@@ -50,6 +50,7 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
             if(!delim && *c == '|') {
                 delim = c;
             }
+
             if(*c == '\n') {
                 fieldEnd = c;
                 break;
@@ -64,7 +65,7 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
             uint32 hash = HashString(start, delim - start);
 
             const char* valEnd = fieldEnd;
-            if(valEnd > delim + 1 && *(valEnd - 1) == '\r') {
+            if(valEnd > delim + 1 && (*(valEnd - 1) == '\r' || *(valEnd - 1) == '|')) { // "itemID|5|"
                 --valEnd;
             }
 

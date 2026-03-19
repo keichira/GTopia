@@ -1,77 +1,90 @@
 #include "TileExtra.h"
-#include "../Item/ItemUtils.h"
 #include "TileInfo.h"
-#include "../IO/Log.h"
+#include "Item/ItemUtils.h"
 
-TileExtra::TileExtra()
-: m_type(0)
-{
-}
-
-bool TileExtra::HasExtra(uint8 itemType)
+uint8 GetTileExtraType(uint8 itemType)
 {
     switch(itemType) {
         case ITEM_TYPE_USER_DOOR: case ITEM_TYPE_DOOR:
         case ITEM_TYPE_PORTAL: case ITEM_TYPE_SUNGATE:
+            return TILE_EXTRA_TYPE_DOOR;
+
         case ITEM_TYPE_SIGN:
-            return true;
+            return TILE_EXTRA_TYPE_SIGN;
 
         default:
-            return false;
+            return TILE_EXTRA_TYPE_NONE;
     }
 }
 
-bool TileExtra::Setup(uint8 itemType)
+TileExtra* TileExtra::Create(uint8 tileExtraType)
 {
-    switch(itemType) {
-        case ITEM_TYPE_USER_DOOR: case ITEM_TYPE_DOOR:
-        case ITEM_TYPE_PORTAL: case ITEM_TYPE_SUNGATE: {
-            m_type = TILE_EXTRA_TYPE_DOOR;
-            break;
-        }
+    switch(tileExtraType) {
+        case TILE_EXTRA_TYPE_DOOR:
+            return new TileExtra_Door();
 
-        case ITEM_TYPE_SIGN: {
-            m_type = TILE_EXTRA_TYPE_SIGN;
-            break;
-        }
+        case TILE_EXTRA_TYPE_SIGN:
+            return new TileExtra_Sign();
 
         default:
-            return false;
+            return nullptr;
     }
-
-    return true;
 }
 
-bool TileExtra::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile)
+void TileExtra::Serialize(MemoryBuffer &memBuffer, bool write)
 {
-    if(!pTile || m_type == TILE_EXTRA_TYPE_NONE) {
-        return false;
-    }
-
-    memBuffer.ReadWrite(m_type, write);
-
-    switch(m_type) {
-        case TILE_EXTRA_TYPE_DOOR: {
-            memBuffer.ReadWriteString(m_name, write);
-
-            if(database) {
-                memBuffer.ReadWriteString(m_text, write);
-                memBuffer.ReadWriteString(m_id, write);
-            }
-
-            uint8 unk = 0;
-            memBuffer.ReadWrite(unk, write);
-            break;
-        }
-
-        case TILE_EXTRA_TYPE_SIGN: {
-            memBuffer.ReadWriteString(m_text, write);
-
-            int32 unk = -1; // something with owner union but eh
-            memBuffer.ReadWrite(unk, write);
-            break;
-        }
-    }
-
-    return true;
+    memBuffer.ReadWrite(type, write);
 }
+
+void TileExtra_Door::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    memBuffer.ReadWriteString(name, write);
+
+    if(database) {
+        memBuffer.ReadWriteString(text, write);
+        memBuffer.ReadWriteString(id, write);
+    }
+
+    uint8 unk = 0;
+    memBuffer.ReadWrite(unk, write);
+}
+
+void TileExtra_Sign::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    memBuffer.ReadWriteString(text, write);
+
+    int32 unk = -1; // something with owner union but eh
+    memBuffer.ReadWrite(unk, write);
+}
+
+
+/**
+ * 
+ * memBuffer.ReadWrite(m_flags, write); // u8
+    memBuffer.ReadWrite(m_ownerID, write);
+
+    uint32 extraEntrySize = m_extraEntries.size();
+    memBuffer.ReadWrite(extraEntrySize, write);
+
+    if(!write) {
+        m_extraEntries.resize(extraEntrySize);
+    }
+
+    if(extraEntrySize > 0) {
+    
+        memBuffer.ReadWriteRaw(m_extraEntries.data(), extraEntrySize * sizeof(int32), write);
+    }
+
+    if(worldVersion > 11) {
+        memBuffer.ReadWrite(m_minEntryLevel, write);
+    }
+
+    if(worldVersion > 12) {
+        memBuffer.ReadWrite(m_worldTimer, write);
+    }
+ * 
+ */

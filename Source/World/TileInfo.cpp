@@ -13,7 +13,7 @@ TileInfo::~TileInfo()
     SAFE_DELETE(m_pExtraData)
 }
 
-void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
+void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion)
 {
     memBuffer.ReadWrite(m_fg, write);
     memBuffer.ReadWrite(m_bg, write);
@@ -31,13 +31,19 @@ void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
         }
 
         if(!write) {
-            m_pExtraData = new TileExtra();
-            if(m_pExtraData->Setup(pItem->type)) {
-                m_pExtraData->Serialize(memBuffer, write, database, this);
+            m_pExtraData = TileExtra::Create(GetTileExtraType(pItem->type));
+            if(!m_pExtraData) {
+                LOGGER_LOG_ERROR("Tile flagged with extra data but extra data is NULL? fg:%d itemType:%d", m_fg, pItem->type);
+                return;
             }
+            m_pExtraData->Serialize(memBuffer, write, database, this, worldVersion);
         }
         else {
-            m_pExtraData->Serialize(memBuffer, write, database, this);
+            if(!m_pExtraData) {
+                LOGGER_LOG_ERROR("Tile flagged with extra data but extra data is NULL? fg:%d itemType:%d", m_fg, pItem->type);
+                return;
+            }
+            m_pExtraData->Serialize(memBuffer, write, database, this, worldVersion);
         }
     }
 }
@@ -62,45 +68,30 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
         m_lastDamageTime.Reset();
         m_damage = 0;
 
-        if(m_fg == ITEM_ID_GUARDIAN_PINEAPPLE) {
-            pTileMgr->SetGuardPineappleTile(nullptr);
-        }
-        // else if
-        else {
-            ItemInfo* pBrokenItem = GetItemInfoManager()->GetItemByID(m_fg);
-            // really need to get it from here?
-    
-            if(pBrokenItem->IsMainDoor()) {
-                pTileMgr->SetMainDoorTile(nullptr);
-            }
-        }
-
+        pTileMgr->ModifyKeyTile(this, true);
         m_fg = itemID;
         return;
     }
 
-    if(pItem->id == ITEM_ID_GUARDIAN_PINEAPPLE) {
-        pTileMgr->SetGuardPineappleTile(this);
-    }
-
-    if(TileExtra::HasExtra(pItem->type)) {
+    uint8 tileExtraType = GetTileExtraType(pItem->type);
+    if(tileExtraType != TILE_EXTRA_TYPE_NONE) {
         SetFlag(TILE_FLAG_HAS_EXTRA_DATA);
         
-        m_pExtraData = new TileExtra();
-        m_pExtraData->Setup(pItem->type);
-    }
-
-    if(pItem->IsMainDoor()) {
-        pTileMgr->SetMainDoorTile(this);
+        m_pExtraData = TileExtra::Create(tileExtraType);
     }
 
     m_fg = itemID;
+    pTileMgr->ModifyKeyTile(this, false);
 }
 
 void TileInfo::SetBG(uint16 itemID)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItem && !pItem->IsBackground() && itemID != ITEM_ID_BLANK) {
+    if(!pItem) {
+        return;
+    }
+
+    if(!pItem->IsBackground() && itemID != ITEM_ID_BLANK) {
         return;
     }
 
@@ -174,22 +165,4 @@ float TileInfo::GetHealthPercent()
 uint16 TileInfo::GetDisplayedItem()
 {
     return m_fg != ITEM_ID_BLANK ? m_fg : m_bg;
-}
-
-uint32 TileInfo::GetMemEstimate()
-{
-    uint32 memSize = 0;
-    memSize += sizeof(m_fg);
-    memSize += sizeof(m_bg);
-    memSize += sizeof(m_parent);
-    memSize += sizeof(m_flags);
-
-    if(HasFlag(TILE_FLAG_HAS_PARENT)) {
-        memSize += 2;
-    }
-
-    /**
-     * pre-calc size for extras?
-     */
-    return memSize;
 }

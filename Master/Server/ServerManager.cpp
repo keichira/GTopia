@@ -39,7 +39,7 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
     uint32 processed = 0;
 
     while(m_packetQueue.try_dequeue(event)) {
-        LOGGER_LOG_ERROR("IPHONE KUPI");
+        LOGGER_LOG_DEBUG("IPHONE KUPI");
         if(!event.pClient) {
             continue;
         }

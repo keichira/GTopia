@@ -8,6 +8,15 @@
 #define WORLD_DEFAULT_WIDTH 100
 #define WORLD_DEFAULT_HEIGHT 60
 
+enum eKeyTile
+{
+    KEY_TILE_MAIN_DOOR,
+    KEY_TILE_GUARD_PINEAPPLE,
+    KEY_TILE_WORLD_LOCK,
+
+    KEY_TILE_SIZE
+};
+
 struct TileMapFillData
 {
     uint32 itemID = 0;
@@ -21,7 +30,7 @@ public:
     WorldTileManager();
 
 public:
-    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database);
+    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion);
 
     void Clear(bool reInit = false);
 
@@ -29,6 +38,9 @@ public:
     void SetSize(const Vector2Int& size) { m_size = size; }
 
     TileInfo* GetTile(int32 x, int32 y);
+    TileInfo* GetTile(eKeyTile keyTile);
+
+    void ModifyKeyTile(TileInfo* pTile, bool remove);
 
     void GenerateDefaultMap();
     void GenerateClearMap();
@@ -36,12 +48,6 @@ public:
 
     void FillRectWith(const RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
     bool FillRectWith(const RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems);
-
-    void SetMainDoorTile(TileInfo* pTile) { m_pMainDoorTile = pTile; }
-    TileInfo* GetMainDoorTile() { return m_pMainDoorTile; }
-
-    void SetGuardPineappleTile(TileInfo* pTile) { m_pGuardPineappleTile = pTile; }
-    TileInfo* GetGuardPineappleTile() { return m_pGuardPineappleTile; }
 
     bool IsSameTile(TileInfo* pTile, int32 x, int32 y, bool forBackground);
 
@@ -53,6 +59,6 @@ private:
     Vector2Int m_size;
     std::vector<TileInfo> m_tiles;
 
-    TileInfo* m_pMainDoorTile;
-    TileInfo* m_pGuardPineappleTile;
+    std::vector<TileInfo*> m_keyTiles;
+    std::vector<Vector2Int> m_onFireTiles;
 };

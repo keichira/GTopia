@@ -25,7 +25,7 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     pPlayer->SetCurrentWorld(m_worldID);
     m_players.push_back(pPlayer);
 
-    TileInfo* pMainDoorTile = GetTileManager()->GetMainDoorTile();
+    TileInfo* pMainDoorTile = GetTileManager()->GetTile(KEY_TILE_MAIN_DOOR);
     if(!pMainDoorTile) {
         pPlayer->SetWorldPos(0, 0);
         pPlayer->SetRespawnPos(0, 0);
@@ -161,19 +161,15 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY)
     packet.tileY = tileY;
     packet.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
 
-    uint32 memSize = pTile->GetMemEstimate();
-    if(pTile->GetExtra()) {
-        MemoryBuffer memSizeBuf;
-        pTile->Serialize(memSizeBuf, true, false);
+    MemoryBuffer memSizeBuf;
+    pTile->Serialize(memSizeBuf, true, false, GetWorldVersion());
 
-        memSize = memSizeBuf.GetOffset();
-    }
-
+    uint32 memSize = memSizeBuf.GetOffset();
     packet.extraDataSize = memSize;
 
     uint8* pTileData = new uint8[memSize];
     MemoryBuffer memBuffer(pTileData, memSize);
-    pTile->Serialize(memBuffer, true, false);
+    pTile->Serialize(memBuffer, true, false, GetWorldVersion());
 
     SendGamePacketToAll(&packet, nullptr, pTileData);
 

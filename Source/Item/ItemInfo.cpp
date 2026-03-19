@@ -112,18 +112,7 @@ bool ItemInfo::IsBackground()
     return false;
 }
 
-bool ItemInfo::IsMainDoor()
-{
-    if(
-        id == ITEM_ID_MAIN_DOOR
-    ) {
-        return true;
-    }
-
-    return false;
-}
-
-bool IsIllegalItem(uint32 itemID)
+bool IsIllegalItem(uint16 itemID)
 {
     switch(itemID) {
         case ITEM_ID_BLANK_SEED:
@@ -131,6 +120,28 @@ bool IsIllegalItem(uint32 itemID)
         case ITEM_ID_MAIN_DOOR_SEED:
         case ITEM_ID_FIST_SEED:
         case ITEM_ID_WRENCH_SEED:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool IsWorldLock(uint16 itemID)
+{
+    switch(itemID) {
+        case ITEM_ID_WORLD_LOCK:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+bool IsMainDoor(uint16 itemID)
+{
+    switch(itemID) {
+        case ITEM_ID_MAIN_DOOR:
             return true;
 
         default:

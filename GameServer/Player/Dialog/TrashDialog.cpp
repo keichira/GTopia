@@ -30,7 +30,7 @@ void TrashDialog::Request(GamePlayer* pPlayer, uint16 itemID)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-    ->AddLabelWithIcon("`4Trash " + pItem->name, pItem->id, true)
+    ->AddLabelWithIcon("`4Trash ``" + pItem->name, pItem->id, true)
     ->AddTextBox("How many to `4destory``? (you have " + ToString(invItemCount) + ")")
     ->AddTextInput("count", "", "0", 4)
     ->EmbedData("itemID", itemID)
@@ -50,6 +50,10 @@ void TrashDialog::Handle(GamePlayer* pPlayer, uint16 itemID, int16 itemCount)
         return;
     }
 
+    if(itemCount <= 0) {
+        return;
+    }
+
     if(pItem->HasFlag(ITEM_FLAG_UNTRADEABLE)) {
         if(itemCount > pPlayer->GetInventory().GetCountOfItem(itemID)) {
             return;
@@ -57,7 +61,7 @@ void TrashDialog::Handle(GamePlayer* pPlayer, uint16 itemID, int16 itemCount)
 
         DialogBuilder db;
         db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`4Recycle ``" + ToString(itemCount) + " " + pItem->name, pItem->id, true)
+        ->AddLabelWithIcon("`4Trash ``" + ToString(itemCount) + " " + pItem->name, pItem->id, true)
         ->AddTextBox("You are recycling an `9UNTRADABLE`` item. Are you absolutely sure you want to do this? There is no way to get the item back if you click yes.")
         ->EmbedData("itemID", itemID)
         ->EmbedData("count", itemCount)

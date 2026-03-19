@@ -34,7 +34,7 @@ public:
     ~TileInfo();
 
 public:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database);
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion);
 
     void SetFG(uint16 itemID, WorldTileManager* pTileMgr);
     void SetBG(uint16 itemID);
@@ -54,9 +54,15 @@ public:
     float GetHealthPercent();
 
     uint16 GetDisplayedItem();
+        
+    template<class T>
+    T* GetExtra() {
+        if(!m_pExtraData || m_pExtraData->type != T::TYPE) {
+            return nullptr;
+        }
     
-    uint32 GetMemEstimate();
-    TileExtra* GetExtra() { return m_pExtraData; }
+        return static_cast<T*>(m_pExtraData);
+    }
 
 private:
     uint16 m_fg;

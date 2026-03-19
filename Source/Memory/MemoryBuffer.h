@@ -51,6 +51,16 @@ public:
         }
     }
 
+    uint32 ReadWriteRaw(void* data, uint32 size, bool write)
+    {
+        if(write) {
+            return WriteRaw(data, size);
+        }
+        else {
+            return ReadRaw(data, size);
+        }
+    }
+
     uint32 ReadRaw(void* pDest, uint32 size);
     uint32 WriteRaw(const void* pData, uint32 size);
     uint32 ReadStringRaw(string& pDest);

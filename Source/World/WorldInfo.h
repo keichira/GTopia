@@ -39,6 +39,8 @@ public:
 
     uint32 GetDefaultWeather() const { return m_defaultWeather; }
 
+    uint16 GetWorldVersion() const { return m_version; }
+
     WorldTileManager* GetTileManager() { return m_pTileMgr; };
 
 private:

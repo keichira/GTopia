@@ -2,7 +2,11 @@ cmake_minimum_required(VERSION 3.20)
 project(GameServer)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_compile_definitions(_DEBUG)
+    add_definitions(-D_DEBUG)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_definitions(-D_NDEBUG -O2)
 endif()
 
 add_definitions(-DSERVER_GAME)

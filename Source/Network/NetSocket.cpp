@@ -146,7 +146,6 @@ int16 NetSocket::Connect(const string& host, uint16 port, bool nonBlocking)
 
     int32 sslRes = SSL_connect(pSsl);
     if(sslRes <= 0) {
-        LOGGER_LOG_ERROR("fail ssl connect");
         return -1;
     }
 

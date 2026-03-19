@@ -58,7 +58,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         pPlayer->SendFakePingReply();
 
         if(pPacket->itemID == ITEM_ID_FIST) {
-            if(pTileItem->IsMainDoor()) {
+            if(IsMainDoor(pTileItem->id)) {
                 pPlayer->SendOnTalkBubble("`w(stand over and punch to use)", true);
             }
             else {
@@ -119,7 +119,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     }
 
     if(pPacket->itemID != ITEM_ID_FIST) {
-        if(pPacket->itemID == ITEM_ID_GUARDIAN_PINEAPPLE && pWorld->GetTileManager()->GetGuardPineappleTile()) {
+        if(pPacket->itemID == ITEM_ID_GUARDIAN_PINEAPPLE && pWorld->GetTileManager()->GetTile(KEY_TILE_GUARD_PINEAPPLE)) {
             pPlayer->SendFakePingReply();
             pPlayer->SendOnTalkBubble("This world already has a Guardian Pineapple somewhere on it, installing two would be dangerous!", true);
             return;

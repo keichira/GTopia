@@ -27,10 +27,21 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
                 return;
             }
 
-            string tileX(pTileX->value, pTileX->size); // we need toint without null term
-            string tileY(pTileY->value, pTileY->size);
+            // we need to int converter that supports non null term
+            // idk if its good ways to convert it to a str
+            // really we need it??
 
-            SignDialog::Handle(pPlayer, string(pSignText->value, pSignText->size), ToInt(tileX), ToInt(tileY));
+            int32 tileX = 0;
+            if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS) {
+                return;
+            }
+
+            int32 tileY = 0;
+            if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS) {
+                return;
+            }
+
+            SignDialog::Handle(pPlayer, string(pSignText->value, pSignText->size), tileX, tileY);
             break;
         }
 
@@ -43,14 +54,21 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
                 return;
             }
 
-            string itemID(pItemID->value, pItemID->size); // we need toint without null term
-            string count(pCount->value, pCount->size);
+            uint32 itemID = 0;
+            if(ToUInt(string(pItemID->value, pItemID->size), itemID) != TO_INT_SUCCESS) {
+                return;
+            }
+
+            int32 count = 0;
+            if(ToInt(string(pCount->value, pCount->size), count) != TO_INT_SUCCESS) {
+                return;
+            }
 
             if(hashedDialogName == CompileTimeHashString("trash_item2")) {
-                TrashDialog::HandleUntradeable(pPlayer, ToUInt(itemID), ToInt(count));
+                TrashDialog::HandleUntradeable(pPlayer, itemID, count);
             }
             else {
-                TrashDialog::Handle(pPlayer, ToUInt(itemID), ToInt(count));
+                TrashDialog::Handle(pPlayer, itemID, count);
             }
             break;
         }
