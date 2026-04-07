@@ -1,0 +1,6 @@
+[submodule "ThirdParty/blend2d"]
+	path = ThirdParty/blend2d
+	url = https://github.com/blend2d/blend2d
+[submodule "ThirdParty/zlib"]
+	path = ThirdParty/zlib
+	url = https://github.com/madler/zlib
