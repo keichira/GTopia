@@ -146,8 +146,6 @@ void NetHTTP::AddPostData(const string& key, const string& value)
 
 bool NetHTTP::Post(const string& path) // broken currently
 {
-    return false;
-
     Clear();
 
     string header =
@@ -157,8 +155,8 @@ bool NetHTTP::Post(const string& path) // broken currently
     "Content-Type: application/x-www-form-urlencoded\r\n"
     "Content-Length: " + ToString(m_postData.size()) + "\r\n"
     "Connection: close\r\n"
-    "\r\n";
-    //+ m_postData;
+    "\r\n"
+    + m_postData;
 
     int16 val = m_netSocket.Connect(m_server, m_port, false);
     

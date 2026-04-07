@@ -47,7 +47,7 @@ public:
     void CreateSSLCtx();
 
     void Update(bool asClient);
-    void UpdateIO(const fd_set& rs, const fd_set& ws);
+    void UpdateIO(const fd_set& rs, const fd_set& ws, bool asClient);
     void AcceptConnection();
 
     void CloseClient(uint16 connectionID);
