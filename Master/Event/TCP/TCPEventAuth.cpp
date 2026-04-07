@@ -30,6 +30,7 @@ void TCPEventAuth::Execute(NetClient* pClient, VariantVector& data)
 
     pClientInfo->authed = true;
     pClientInfo->lastHeartbeatTime.Reset();
+    pClientInfo->serverID = eventData.serverID;
 
     GetServerManager()->AddServer(eventData.serverID, pClient, eventData.serverType);
     GetServerManager()->SendAuthPacket(true, eventData.serverID);

@@ -11,10 +11,10 @@ endif()
 
 add_definitions(-DSERVER_MASTER)
 
-include(${CMAKE_CURRENT_LIST_DIR}/Source.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/FindMySQL.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../CMake/Source.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../CMake/FindMySQL.cmake)
 
-set(MASTER_ROOT "${CMAKE_CURRENT_LIST_DIR}/../Master")
+set(MASTER_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 set(MASTER_PLAYER "${MASTER_ROOT}/Player")
 set(MASTER_SERVER "${MASTER_ROOT}/Server")
 set(MASTER_EVENT "${MASTER_ROOT}/Event")
@@ -58,8 +58,8 @@ add_network_sources(Master)
 target_sources(Master PRIVATE ${MASTER_FILES})
 
 set_target_properties(Master PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/../Runtime"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/../Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/Runtime"
 )
 
 target_include_directories(Master PRIVATE

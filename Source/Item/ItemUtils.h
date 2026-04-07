@@ -10,6 +10,8 @@ uint8 StrToItemMaterial(const string& type);
 uint8 StrToItemElement(const string& type);
 uint8 StrToBodyPartType(const string& type);
 uint8 StrToItemType(const string& type);
+uint32 StrToFxFlag(const string& type);
+uint32 StrToFlags2(const string& type);
 
 string ItemFlagToStr(uint16 type);
 string ItemVisualEffectToStr(uint8 type);
@@ -19,8 +21,10 @@ string ItemMaterialToStr(uint8 type);
 string ItemElementToStr(uint8 type);
 string ItemBodyPartToStr(uint8 type);
 string ItemTypeToStr(uint8 type);
+string FxFlagToStr(uint32 flag);
+string Flag2ToStr(uint32 flag);
 
-enum eItemFlags 
+enum eItemFlag
 {
     ITEM_FLAG_FLIPPABLE = 1 << 0,
     ITEM_FLAG_EDITABLE = 1 << 1,
@@ -38,6 +42,59 @@ enum eItemFlags
     ITEM_FLAG_FOREGROUND = 1 << 13,
     ITEM_FLAG_HOLIDAY = 1 << 14,
     ITEM_FLAG_UNTRADEABLE = 1 << 15
+};
+
+enum eItemFxFlag
+{
+    ITEM_FX_FLAG_MULTI_ANIM = 1 << 0,
+    ITEM_FX_FLAG_PING_PONG_ANIM = 1 << 1,
+    ITEM_FX_FLAG_OVERLAY_OBJECT = 1 << 2,
+    ITEM_FX_FLAG_OFFSET_UP = 1 << 3,
+    ITEM_FX_FLAG_DUAL_LAYER = 1 << 4,
+    ITEM_FX_FLAG_MULTI_ANIM2 = 1 << 5,
+    ITEM_FX_FLAG_USE_SKIN_TINT = 1 << 7,
+    ITEM_FX_FLAG_SEED_TINT_LAYER1 = 1 << 8,
+    ITEM_FX_FLAG_SEED_TINT_LAYER2 = 1 << 9,
+    ITEM_FX_FLAG_RAINBOW_TINT_LAYER1 = 1 << 10,
+    ITEM_FX_FLAG_RAINBOW_TINT_LAYER2 = 1 << 11,
+    ITEM_FX_FLAG_GLOW = 1 << 12,
+    ITEM_FX_FLAG_NO_ARMS = 1 << 13,
+    ITEM_FX_FLAG_FRONT_ARM_PUNCH = 1 << 14,
+    ITEM_FX_FLAG_RENDER_OFFHAND = 1 << 15,
+    ITEM_FX_FLAG_SLOWFALL_OBJECT = 1 << 16,
+    ITEM_FX_FLAG_REPLACEMENT_SPRITE = 1 << 17,
+    ITEM_FX_FLAG_ORB_FLOAT = 1 << 18,
+    ITEM_FX_FLAG_RENDER_FX_VARIANT_VERSION = 1 << 20
+};
+
+enum eItemFlag2
+{
+    ITEM_FLAG_ROBOT_DEADLY = 1 << 0,
+    ITEM_FLAG_ROBOT_SHOOT_LEFT = 1 << 1,
+    ITEM_FLAG_ROBOT_SHOOT_RIGHT = 1 << 2,
+    ITEM_FLAG_ROBOT_SHOOT_DOWN = 1 << 3,
+    ITEM_FLAG_ROBOT_SHOOT_UP = 1 << 4,
+    ITEM_FLAG_ROBOT_CAN_SHOOT = 1 << 5,
+    ITEM_FLAG_ROBOT_LAVA = 1 << 6,
+    ITEM_FLAG_ROBOT_POINTY = 1 << 7,
+    ITEM_FLAG_ROBOT_SHOOT_DEADLY = 1 << 8,
+    ITEM_FLAG_GUILD_ITEM = 1 << 9,
+    ITEM_FLAG_GUILD_FLAG = 1 << 10,
+    ITEM_FLAG_STARSHIP_HELM = 1 << 11,
+    ITEM_FLAG_STARSHIP_REACTOR = 1 << 12,
+    ITEM_FLAG_STARSHIP_VIEWSCREEN = 1 << 13,
+    ITEM_FLAG_SMOD = 1 << 14,
+    ITEM_FLAG_TILE_DEADLY_IF_ON = 1 << 15,
+    ITEM_FLAG_LONG_HAND_ITEM64x32 = 1 << 16,
+    ITEM_FLAG_GEMLESS = 1 << 17,
+    ITEM_FLAG_TRANSMUTABLE = 1 << 18,
+    ITEM_FLAG_DUNGEON_ITEM = 1 << 19,
+    ITEM_FLAG_ONE_IN_WORLD = 1 << 23,
+    ITEM_FLAG_ONLY_FOR_WORLD_OWNER = 1 << 24,
+    ITEM_FLAG_PVE_MELEE = 1 << 20,
+    ITEM_FLAG_PVE_RANGED = 1 << 21,
+    ITEM_FLAG_PVE_AUTOAIM = 1 << 22,
+    ITEM_FLAG_NO_UPGRADE = 1 << 25
 };
 
 enum eMaterial 

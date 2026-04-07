@@ -11,6 +11,7 @@ struct NetServerInfo
     Timer lastHeartbeatTime;
     string authKey = "";
     bool authed = false;
+    uint32 serverID = 0;
 };
 
 struct ServerInfo
@@ -57,7 +58,7 @@ public:
     void SendWorldPlayerSuccessPacket(int32 playerNetID, uint32 serverID, uint32 worldID, const string& serverIP, uint16 serverPort, uint32 serverIDForPacket);
     void SendWorldInitPacket(const string& worldName, uint32 serverID);
     void SendAuthPacket(bool succeed, uint32 serverID);
-    void SendRenderResult(int32 result, uint32 playerUserID, uint32 serverID);
+    void SendRenderResult(int32 result, uint32 playerUserID, const string& worldName, uint32 serverID);
     void SendRenderRequest(uint32 playerUserID, uint32 worldID, uint32 serverID);
 
     void SendPlayerSessionCheck(bool hasSession, int32 playerNetID, int16 connectionID);

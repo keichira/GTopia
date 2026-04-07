@@ -13,7 +13,7 @@ void TCPRenderWorldEventData::FromVariant(VariantVector& varVec)
     playerUserID = varVec[3].GetUINT();
 }
 
-void TCPEventRenderWorldRes::Execute(NetClient* pClient, VariantVector& data)
+void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
 {
     TCPRenderWorldEventData eventData;
     eventData.FromVariant(data);
@@ -25,7 +25,7 @@ void TCPEventRenderWorldRes::Execute(NetClient* pClient, VariantVector& data)
 
     GamePlayer* pPlayer = GetGameServer()->GetPlayerByUserID(eventData.playerUserID);
     if(!pPlayer) {
-        LOGGER_LOG_WARN("Received player session packet but player not found?");
+        LOGGER_LOG_WARN("Received player render world packet but player not found?");
         return;
     }
 

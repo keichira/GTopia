@@ -178,14 +178,15 @@ void ServerManager::SendAuthPacket(bool succeed, uint32 serverID)
     SendPacketRaw(serverID, data);
 }
 
-void ServerManager::SendRenderResult(int32 result, uint32 playerUserID, uint32 serverID)
+void ServerManager::SendRenderResult(int32 result, uint32 playerUserID, const string& worldName, uint32 serverID)
 {
-    VariantVector data(4);
+    VariantVector data(5);
 
     data[0] = TCP_PACKET_RENDER_WORLD;
     data[1] = TCP_RENDER_RESULT;
     data[2] = result;
     data[3] = playerUserID;
+    data[4] = worldName;
 
     SendPacketRaw(serverID, data);
 }

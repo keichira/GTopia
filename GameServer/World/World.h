@@ -20,6 +20,7 @@ public:
 
     void SendSkinColorUpdateToAll(GamePlayer* pPlayer);
     void SendTalkBubbleAndConsoleToAll(const string& message, bool stackBubble, GamePlayer* pPlayer = nullptr);
+    void SendConsoleMessageToAll(const string& message);
     void SendNameChangeToAll(GamePlayer* pPlayer);
     void SendSetCharPacketToAll(GamePlayer* pPlayer);
     void SendClothUpdateToAll(GamePlayer* pPlayer);
@@ -40,7 +41,13 @@ public:
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
 
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
-    bool IsPlayerWorldAmin(GamePlayer* pPlayer);
+    bool IsPlayerWorldAdmin(GamePlayer* pPlayer);
+
+    void DropObject(TileInfo* pTile, WorldObject& obj, bool merge);
+
+    void DropObject(const WorldObject& obj);
+    void RemoveObject(uint32 objectID);
+    void ModifyObject(const WorldObject& obj);
 
     void SendCurrentWeatherToAll();
     uint32 GetPlayerCount() const { return m_players.size(); }

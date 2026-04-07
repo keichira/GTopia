@@ -1,7 +1,7 @@
 #include "ResourceManager.h"
 #include "../IO/File.h"
 #include "../Proton/ProtonUtils.h"
-#include "../Memory/MemoryBuffer.h"
+#include "../Utils/ZLibUtils.h"
 #include "../Item/ItemInfoManager.h"
 #include "../IO/Log.h"
 

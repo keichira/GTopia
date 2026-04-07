@@ -29,7 +29,7 @@ public:
     virtual void UpdateTCPLogic(uint64 maxTimeMS);
 
 public:
-    bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* stopFlag = nullptr);
+    bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag = nullptr);
     bool IsConnected() const { return m_connected; }
     bool SendPacketRaw(VariantVector& data);
 

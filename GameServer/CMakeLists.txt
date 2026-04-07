@@ -11,10 +11,10 @@ endif()
 
 add_definitions(-DSERVER_GAME)
 
-include(${CMAKE_CURRENT_LIST_DIR}/Source.cmake)
-include(${CMAKE_CURRENT_LIST_DIR}/FindMySQL.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../CMake/Source.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../CMake/FindMySQL.cmake)
 
-set(GAME_ROOT "${CMAKE_CURRENT_LIST_DIR}/../GameServer")
+set(GAME_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 set(GAME_PLAYER "${GAME_ROOT}/Player")
 set(GAME_SERVER "${GAME_ROOT}/Server")
 set(GAME_EVENT "${GAME_ROOT}/Event")
@@ -73,6 +73,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/SignDialog.cpp
     ${GAME_DIALOG}/TrashDialog.cpp
     ${GAME_DIALOG}/LockDialog.cpp
+    ${GAME_DIALOG}/RenderWorldDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
@@ -101,8 +102,8 @@ add_network_sources(GameServer)
 target_sources(GameServer PRIVATE ${GAME_FILES})
 
 set_target_properties(GameServer PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/../Runtime"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/../Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/Runtime"
 )
 
 target_include_directories(GameServer PRIVATE

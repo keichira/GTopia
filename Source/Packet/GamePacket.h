@@ -129,6 +129,7 @@ struct GameUpdatePacket
     {
         uint8 field0 = 0;
         uint8 characterPunchType;
+        uint8 worldObjectFlags;
     };
 
     union
@@ -152,6 +153,7 @@ struct GameUpdatePacket
         int32 field3 = 0;
         int32 netID;
         int32 userID;
+        int32 worldObjectType;
     };
 
     union
@@ -166,6 +168,7 @@ struct GameUpdatePacket
     {
         float field5 = 0;
         float characterWaterSpeed;
+        float worldObjectCount;
     };
 
     union
@@ -175,6 +178,7 @@ struct GameUpdatePacket
         int32 itemID;
         int32 tileDamage;
         int32 characterFlags;
+        int32 worldObjectID;
     };
 
     union

@@ -30,6 +30,7 @@ void MasterBroadway::RegisterEvents()
     RegisterEvent<TCPEventAuth>(TCP_PACKET_AUTH);
     RegisterEvent<TCPEventPlayerSession>(TCP_PACKET_PLAYER_CHECK_SESSION);
     RegisterEvent<TCPEventWorldInit>(TCP_PACKET_WORLD_INIT);
+    RegisterEvent<TCPEventRenderWorld>(TCP_PACKET_RENDER_WORLD);
     RegisterEvent<TCPEventWorldSendPlayer>(TCP_PACKET_WORLD_SEND_PLAYER);
     RegisterEvent<TCPEventKillServer>(TCP_PACKET_KILL_SERVER);
 }

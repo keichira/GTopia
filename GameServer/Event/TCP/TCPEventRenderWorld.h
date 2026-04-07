@@ -11,7 +11,7 @@ struct TCPRenderWorldEventData
     void FromVariant(VariantVector& varVec);
 };
 
-class TCPEventRenderWorldRes {
+class TCPEventRenderWorld {
 public:
     static void Execute(NetClient* pClient, VariantVector& data);
 };

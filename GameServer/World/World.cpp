@@ -3,6 +3,8 @@
 #include "../Player/GamePlayer.h"
 #include "Packet/NetPacket.h"
 #include "Item/ItemInfoManager.h"
+#include "Math/Rect.h"
+#include "Math/Math.h"
 
 #include "IO/File.h"
 
@@ -54,19 +56,18 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     SAFE_DELETE_ARRAY(pWorldData);
 
     pPlayer->SendOnSpawn(pPlayer->GetSpawnData(true));
+    pPlayer->SendOnSetClothing();
+    pPlayer->SendCharacterState();
 
     for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendCharacterState(pPlayer);
+        if(pWorldPlayer && pWorldPlayer != pPlayer) {
+            pPlayer->SendOnSpawn(pWorldPlayer->GetSpawnData(false));
+            pPlayer->SendOnSetClothing(pWorldPlayer);
             pPlayer->SendCharacterState(pWorldPlayer);
 
+            pWorldPlayer->SendOnSpawn(pPlayer->GetSpawnData(false));
             pWorldPlayer->SendOnSetClothing(pPlayer);
-            pPlayer->SendOnSetClothing(pWorldPlayer);
-
-            if(pPlayer != pWorldPlayer) {
-                pPlayer->SendOnSpawn(pWorldPlayer->GetSpawnData(false));
-                pWorldPlayer->SendOnSpawn(pPlayer->GetSpawnData(false));
-            }
+            pWorldPlayer->SendCharacterState(pPlayer);
         }
     }
 
@@ -75,17 +76,27 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
 
 void World::PlayerLeaverWorld(GamePlayer* pPlayer)
 {
-    for(int16 i = m_players.size() - 1; i >= 0; --i) {
+    if(!pPlayer) {
+        return;
+    }
+
+    int32 playerIdx = -1;
+
+    for(uint16 i = 0; i < m_players.size(); ++i) {
         GamePlayer* pWorldPlayer = m_players[i];
 
         pWorldPlayer->SendOnRemove(pPlayer->GetNetID());
 
         if(pWorldPlayer == pPlayer) {
-            pWorldPlayer = m_players.back();
-            m_players.pop_back();
-
-            pPlayer->SetCurrentWorld(0);
+            playerIdx = i;
         }
+    }
+
+    if(playerIdx != -1) {
+        m_players[playerIdx] = m_players.back();
+        m_players.pop_back();
+
+        pPlayer->SetCurrentWorld(0);
     }
 
     if(m_players.empty()) {
@@ -113,6 +124,15 @@ void World::SendTalkBubbleAndConsoleToAll(const string& message, bool stackBubbl
         if(pWorldPlayer) {
             pWorldPlayer->SendOnConsoleMessage(message);
             pWorldPlayer->SendOnTalkBubble(message, stackBubble, pPlayer);
+        }
+    }
+}
+
+void World::SendConsoleMessageToAll(const string& message)
+{
+    for(auto& pWorldPlayer : m_players) {
+        if(pWorldPlayer) {
+            pWorldPlayer->SendOnConsoleMessage(message);
         }
     }
 }
@@ -534,7 +554,8 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
     }
 
     if(IsWorldLock(pItem->id)) {
-
+        SendConsoleMessageToAll("`5[```w" + GetWorlName() + "`` has had its `$World Lock`` removed!`5]``");
+        LOGGER_LOG_INFO("Removed world lock in %s (%d) by %d", GetWorlName().c_str(), GetID(), pPlayer->GetUserID());
     }
     else {
         std::vector<TileInfo*> unlockedTiles = GetTileManager()->RemoveTileParentsLockedBy(pTile);
@@ -565,7 +586,7 @@ bool World::IsPlayerWorldOwner(GamePlayer* pPlayer)
     return false;
 }
 
-bool World::IsPlayerWorldAmin(GamePlayer* pPlayer)
+bool World::IsPlayerWorldAdmin(GamePlayer* pPlayer)
 {
     if(!pPlayer) {
         return false;
@@ -586,4 +607,138 @@ bool World::IsPlayerWorldAmin(GamePlayer* pPlayer)
     }
 
     return false;
+}
+
+void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
+{
+    if(!pTile) {
+        return;
+    }
+
+    Vector2Int vTilePos = pTile->GetPos();
+    Vector2Float vBasePos = Vector2Float(vTilePos.x, vTilePos.y) * 32;
+    vBasePos.x += 16.0f;
+    vBasePos.y += 16.0f;
+
+    obj.pos += vBasePos;
+
+    if(merge) {
+        RectFloat tileRect(vTilePos.x * 32, vTilePos.y * 32, (vTilePos.x + 1) * 32, (vTilePos.y + 1) * 32);
+        auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(tileRect, obj.itemID);
+    
+        if(!objsInRect.empty()) {
+            objsInRect.push_back(&obj);
+
+            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(obj.itemID);
+            if(!pItem) {
+                return;
+            }
+
+            WorldObject* pBaseObj = nullptr;
+    
+            for(auto& pObj : objsInRect) {
+                if(!pObj || pObj->HasFlag(OBJECT_FLAG_NO_STACK)) {
+                    continue;
+                }
+    
+                if(!pBaseObj) {
+                    pBaseObj = pObj;
+                    continue;
+                }
+    
+                if(pBaseObj == pObj) {
+                    continue;
+                }
+    
+                if(pBaseObj->count >= pItem->maxCanHold) {
+                    pBaseObj = pObj;
+                    continue;
+                }
+    
+                uint16 transfer = Min(pItem->maxCanHold - pBaseObj->count, pObj->count);
+        
+                if(transfer > 0) {
+                    pBaseObj->count += transfer;
+                    pBaseObj->SetFlag(OBJECT_FLAG_DIRTY);
+    
+                    pObj->count -= transfer;
+                    pObj->SetFlag(OBJECT_FLAG_DIRTY);
+                }
+    
+                if(pBaseObj->count >= pItem->maxCanHold) {
+                    pBaseObj = pObj;
+                }
+            }
+
+            for(auto& pObj : objsInRect) {
+                if(!pObj) {
+                    continue;
+                }
+
+                if(pObj->objectID == 0 && pObj->count > 0) {
+                    pObj->pos = vBasePos;
+                    DropObject(*pObj);
+                }
+                else if(pObj->count == 0) {
+                    RemoveObject(pObj->objectID);
+                    continue;
+                }
+                else if(pObj->HasFlag(OBJECT_FLAG_DIRTY)) {
+                    pObj->RemoveFlag(OBJECT_FLAG_DIRTY);
+                    ModifyObject(*pObj);
+                }
+            }
+        }
+        else {
+            DropObject(obj);
+        }
+
+        return;
+    }
+
+    DropObject(obj);
+}
+
+void World::DropObject(const WorldObject& obj)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
+    packet.itemID = obj.itemID;
+    packet.posX = obj.pos.x;
+    packet.posY = obj.pos.y;
+    packet.worldObjectCount = obj.count;
+    packet.worldObjectFlags = obj.flags;
+    packet.worldObjectType = -1;
+
+    GetObjectManager()->HandleObjectPackets(&packet);
+    SendGamePacketToAll(&packet);
+}
+
+void World::RemoveObject(uint32 objectID)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
+    packet.worldObjectID = objectID;
+    packet.worldObjectType = -2;
+    packet.field4 = -1;
+
+    GetObjectManager()->HandleObjectPackets(&packet);
+    SendGamePacketToAll(&packet);
+}
+
+void World::ModifyObject(const WorldObject& obj)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
+    packet.itemID = obj.itemID;
+    packet.posX = obj.pos.x;
+    packet.posY = obj.pos.y;
+    packet.worldObjectCount = obj.count;
+    packet.worldObjectFlags = obj.flags;
+    packet.worldObjectType = -3;
+
+    packet.field4 = obj.objectID; // ?
+
+    GetObjectManager()->HandleObjectPackets(&packet);
+    SendGamePacketToAll(&packet);
 }

@@ -109,12 +109,12 @@ int16 NetSocket::Connect(const string& host, uint16 port, bool nonBlocking)
     sockAddr.sin_port = htons(port);
     
     uint32 addr = inet_addr(host.c_str());
-    if(addr != -1) {
+    if(addr != INADDR_NONE) {
         sockAddr.sin_addr.s_addr = addr;
     }
     else {
         hostent* hNet = gethostbyname(host.c_str());
-        if(!hNet) {
+        if(!hNet || !hNet->h_addr_list[0]) {
             return -2;
         }
     
@@ -162,6 +162,10 @@ int16 NetSocket::Connect(const string& host, uint16 port, bool nonBlocking)
 #endif
 
     m_clients.insert_or_assign(pClient->connectionID, pClient);
+
+    if(!nonBlocking && result >= 0) {
+        m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
+    }
     return pClient->connectionID;
 }
 
@@ -259,10 +263,10 @@ void NetSocket::Update(bool asClient)
         AcceptConnection();
     }
 
-    UpdateIO(rs, ws);
+    UpdateIO(rs, ws, asClient);
 }
 
-void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws)
+void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws, bool asClient)
 {
     for(auto it = m_clients.begin(); it != m_clients.end();) {
         NetClient* pClient = it->second;
@@ -304,28 +308,32 @@ void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws)
                 pClient->status = SOCKET_CLIENT_CLOSE;
             }
             else {
-            #ifdef _WIN32
+
+        #ifdef _WIN32
                 if(WSAGetLastError() != WSAEWOULDBLOCK) {
                     pClient->status = SOCKET_CLIENT_CLOSE;
                 }
-            #else
-                if(errno != EAGAIN && errno != EWOULDBLOCK) {
+        #else
+                int32 error = errno;
+                if(error != EAGAIN && error != EWOULDBLOCK) {
                     pClient->status = SOCKET_CLIENT_CLOSE;
+                    LOGGER_LOG_WARN("Socket error %d, closing fd %d", error, pClient->socket);
                 }
-            #endif
+        #endif
             }
         }
 
         if(pClient->status != SOCKET_CLIENT_CLOSE && FD_ISSET(pClient->socket, &ws)) {
             if(pClient->status == SOCKET_CLIENT_CONNECTING) {
-                int error = 0;
     #ifdef _WIN32
+            char error = 0;
             int32 len = sizeof(error);
     #else
+            int32 error = 0;
             uint32 len = sizeof(error);
     #endif
 
-                if (getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, &error, &len) == 0) {
+                if(asClient && getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, &error, &len) == 0) {
                     if (error == 0) {
             #ifdef SOCKET_USE_TLS
                         int32 sslRes = SSL_connect(pClient->pSsl);
@@ -350,6 +358,31 @@ void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws)
                         pClient->status = SOCKET_CLIENT_CLOSE;
                     }
                 }
+                else if(!asClient) {
+                    if(error == 0) {
+            #ifdef SOCKET_USE_TLS
+                    int32 sslRes = SSL_accept(pClient->pSsl);
+                
+                    if(sslRes == 1) {
+                        pClient->status = SOCKET_CLIENT_CONNECTED;
+                        m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
+                    }
+                    else {
+                        int32 sslErr = SSL_get_error(pClient->pSsl, sslRes);
+                        if(sslErr != SSL_ERROR_WANT_READ && sslErr != SSL_ERROR_WANT_WRITE) {
+                            pClient->status = SOCKET_CLIENT_CLOSE;
+                        }
+                    }
+            #else
+                    pClient->status = SOCKET_CLIENT_CONNECTED;
+                    m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
+            #endif
+                    }
+                    else {
+                        LOGGER_LOG_ERROR("Failed to connect socket error %d", error)
+                        pClient->status = SOCKET_CLIENT_CLOSE;
+                    }
+                }
             }
             else if(pClient->sendQueue.GetDataSize() > 0) {
                 std::lock_guard<std::mutex> lock(pClient->mutex);
@@ -367,10 +400,16 @@ void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws)
                         break;
                     }
 
+        #ifdef _WIN32
+            int32 flags = 0;
+        #else
+            int32 flags = MSG_DONTWAIT;
+        #endif
+
         #ifdef SOCKET_USE_TLS
                     uint32 sentSize = SSL_write(pClient->pSsl, buffer, readSize);
         #else
-                    uint32 sentSize = send(pClient->socket, buffer, readSize, MSG_DONTWAIT);
+                    uint32 sentSize = send(pClient->socket, buffer, readSize, flags);
         #endif
 
                     if(sentSize < readSize) {
@@ -425,18 +464,13 @@ void NetSocket::AcceptConnection()
         return;
     }
     SSL_set_accept_state(pSsl);
-
-    if(SSL_accept(pSsl) != 1) {
-        SSL_free(pSsl);
-        CloseSocket(socketClient);
-        return;
-    }
 #endif
 
     NetClient* pClient = new NetClient();
     pClient->socket = socketClient;
     pClient->connectionID = m_lastConnID++;
     pClient->pNetSocket = this;
+    pClient->status = SOCKET_CLIENT_CONNECTING;
 
 #ifdef SOCKET_USE_TLS
     pClient->pSsl = pSsl;

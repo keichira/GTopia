@@ -72,8 +72,8 @@ func loginHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	proto, protoErr := strconv.Atoi(platformStr)
-	if protoErr != nil || proto < 0 || proto > 180 {
-		fmt.Printf("Failed to parse platform %v\n", protoStr)
+	if protoErr != nil || proto < 0 || proto > 99999 {
+		fmt.Printf("Failed to parse proto %v\n", protoStr)
 		res.WriteHeader(http.StatusBadRequest)
 	}
 
@@ -92,7 +92,7 @@ func loginHandler(res http.ResponseWriter, req *http.Request) {
 
 	// for now hardcoded theres only 1 login server LOL
 	// also gonna update here later
-	serverData := "server|192.168.1.37\nport|18000\ntype|1\n#maint|maintennace\nmeta|" + meta + "\nRTENDMARKERBS1001"
+	serverData := "server|192.168.1.37\nport|18000\ntype2|0\n#maint|maintennace\nmeta|" + meta + "\nRTENDMARKERBS1001"
 	res.Write([]byte(serverData))
 
 	fmt.Println(serverData + "\n")

@@ -2,6 +2,7 @@
 #include "Magic.h"
 #include "../World/WorldManager.h"
 #include "Math/Random.h"
+#include "Math/Math.h"
 
 const CommandInfo& Magic::GetInfo()
 {

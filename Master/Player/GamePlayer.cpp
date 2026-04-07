@@ -90,7 +90,7 @@ void GamePlayer::LoginCheckingAccount(QueryTaskResult&& result)
     }
 
     if(GetGameServer()->GetPlayerSessionByUserID(m_userID)) { // add ALREADY ON THINGGGGGGG
-        SendLogonFailWithLog("``You are still online, please wait and re-login again.");
+        SendLogonFailWithLog("`#You are still online, please wait and re-login again.");
         return;
     }
 

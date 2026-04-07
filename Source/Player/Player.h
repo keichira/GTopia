@@ -35,7 +35,7 @@ public:
 
     void SendCallFunctionPacket(VariantVector& data, int32 netID = -1, int32 delay = -1);
 
-    const PlayerLoginDetail& GetLoginDetail() const { return m_loginDetail; }
+    PlayerLoginDetail& GetLoginDetail() { return m_loginDetail; }
     ENetPeer* GetPeer() { return m_pPeer; }
 
     uint32 GetUserID() const { return m_userID; }

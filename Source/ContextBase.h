@@ -23,6 +23,7 @@ public:
     void Shutdown() { m_shutdownFlag = 1; }
 
     volatile sig_atomic_t* GetStopFlag() { return &m_stopFlag; }
+    volatile sig_atomic_t* GetShutdownFlag() { return &m_shutdownFlag; }
 
 protected:
     uint16 m_id;

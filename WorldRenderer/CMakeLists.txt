@@ -11,11 +11,9 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_definitions(-DUSE_ZLIB)
-
-include(${CMAKE_CURRENT_LIST_DIR}/Source.cmake)
-set(WORLD_RENDERER_ROOT "${CMAKE_CURRENT_LIST_DIR}/../WorldRenderer")
-set(WORLD_RENDERER_EVENT "${CMAKE_CURRENT_LIST_DIR}/../WorldRenderer/Event")
+include(${CMAKE_CURRENT_LIST_DIR}/../CMake/Source.cmake)
+set(WORLD_RENDERER_ROOT "${CMAKE_CURRENT_LIST_DIR}")
+set(WORLD_RENDERER_EVENT "${WORLD_RENDERER_ROOT}/Event")
 
 set(BLEND2D_STATIC TRUE)
 include(${THIRD_PARTY_BLEND2D}/CMakeLists.txt)
@@ -37,6 +35,7 @@ set(WORLD_RENDERER_FILES PRIVATE
 
     ${SOURCE_UTILS}/ResourceManager.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
+    ${SOURCE_UTILS}/ZLibUtils.cpp
     ${SOURCE_PROTON}/ProtonUtils.cpp
 
     ${WORLD_RENDERER_ROOT}/MasterBroadway.cpp
@@ -60,8 +59,8 @@ add_zlib_sources(WorldRenderer)
 target_sources(WorldRenderer PRIVATE ${WORLD_RENDERER_FILES})
 
 set_target_properties(WorldRenderer PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/../Runtime"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/../Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/Runtime"
 )
 
 target_include_directories(WorldRenderer PRIVATE

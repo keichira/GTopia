@@ -11,6 +11,7 @@
 #include "../World/WorldManager.h"
 #include "Math/Random.h"
 #include "Dialog/PlayerDialog.h"
+#include "Dialog/RenderWorldDialog.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
 : Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(1), m_lastItemActivateTime(0), m_state(0),
@@ -169,10 +170,13 @@ void GamePlayer::HandleRenderWorld(VariantVector&& result)
     int32 renderResult = result[2].GetINT();
 
     if(renderResult == TCP_RESULT_OK) {
-        SendOnConsoleMessage("``Your world has been rendered");
+        string worldName = result[4].GetString();
+        SendOnConsoleMessage("`oYour world \"`#" + worldName + "`o\" has been rendered!");
+
+        RenderWorldDialog::OnRendered(this, worldName);
     }
     else {
-        SendOnConsoleMessage("``Failed to render your world");
+        SendOnConsoleMessage("`4OOPS! ``Unable to render your world right now.");
     }
 
     RemoveState(PLAYER_STATE_RENDERING_WORLD);
@@ -244,7 +248,7 @@ string GamePlayer::GetDisplayName()
             if(pWorld->IsPlayerWorldOwner(this)) {
                 displayName += "`2";
             }
-            else if(pWorld->IsPlayerWorldAmin(this)) {
+            else if(pWorld->IsPlayerWorldAdmin(this)) {
                 displayName += "`^";
             }
         }

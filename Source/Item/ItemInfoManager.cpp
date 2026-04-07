@@ -111,8 +111,8 @@ bool ItemInfoManager::Load(const string& filePath)
                 continue;
             }
 
-            //pSeed->seed1 = (uint16)ToUInt(args[1]);
-            //pSeed->seed2 = (uint16)ToUInt(args[2]);
+            pSeed->seed1 = (uint16)ToUInt(args[1]);
+            pSeed->seed2 = (uint16)ToUInt(args[2]);
 
             pSeed->seedBgColor = ToColor(args[3], ',');
             pSeed->seedFgColor = ToColor(args[4], ',');
@@ -145,6 +145,74 @@ bool ItemInfoManager::Load(const string& filePath)
             }
         }
 
+        if(args[0] == "set_flags2") {
+            if(!pLastItem) {
+                continue;
+            }
+
+            auto flags = Split(args[1], ',');
+            for(auto& flag : flags) {
+                pLastItem->flags2 |= StrToFlags2(flag);
+            }
+        }
+
+        if(args[0] == "set_fx_flags") {
+            if(!pLastItem) {
+                continue;
+            }
+
+            auto flags = Split(args[1], '|');
+            for(uint16 i = 1; i < flags.size(); ++i) {
+                uint32 convFlag = StrToFxFlag(args[i]);
+                pLastItem->fxFlags |= convFlag;
+
+                if(convFlag == ITEM_FX_FLAG_MULTI_ANIM) {
+                    ++i;
+                    
+                    while(flags[i] != "MULTI_ANIM_END") {
+                        pLastItem->multiAnim1 += flags[i] + "|";
+                        ++i;
+                    }
+
+                    continue;
+                }
+
+                if(convFlag == ITEM_FX_FLAG_MULTI_ANIM2) {
+                    ++i;
+                    
+                    while(flags[i] != "MULTI_ANIM2_END") {
+                        pLastItem->multiAnim2 += flags[i] + "|";
+                        ++i;
+                    }
+
+                    continue;
+                }
+
+                if(convFlag == ITEM_FX_FLAG_DUAL_LAYER) {
+                    ++i;
+
+                    auto dualLayer = Split(flags[i], ',');
+                    pLastItem->dualAnimLayer.x = ToInt(dualLayer[0]);
+                    pLastItem->dualAnimLayer.y = ToInt(dualLayer[1]);
+                    continue;
+                }
+
+                if(convFlag == ITEM_FX_FLAG_OVERLAY_OBJECT) {
+                    ++i;
+
+                    pLastItem->overlayTextureFile = flags[i];
+                    continue;
+                }
+
+                if(convFlag == ITEM_FX_FLAG_RENDER_FX_VARIANT_VERSION) {
+                    ++i;
+
+                    pLastItem->variantVersionItem = ToInt(flags[i]);
+                    continue;
+                }
+            }
+        }
+
         if(args[0] == "set_extra") {
             if(!pLastItem) {
                 continue;
@@ -165,6 +233,22 @@ bool ItemInfoManager::Load(const string& filePath)
             }
 
             pLastItem->maxCanHold = ToUInt(args[1]);
+        }
+
+        if(args[0] == "set_custom_punch") {
+            if(!pLastItem) {
+                continue;
+            }
+
+            pLastItem->customizedPunchParameters = args[1];
+        }
+
+        if(args[0] == "set_config_name") {
+            if(!pLastItem) {
+                continue;
+            }
+
+            pLastItem->configName = args[1];
         }
 
         if(args[0] == "set_rarity") {
@@ -209,6 +293,56 @@ bool ItemInfoManager::LoadByItemsDat(const string& filePath)
     }
 
     SAFE_DELETE_ARRAY(data);
+    return true;
+}
+
+bool ItemInfoManager::LoadWikiData(const string& filePath)
+{
+    File file;
+    if(!file.Open(filePath)) {
+        return false;
+    }
+
+    uint32 fileSize = file.GetSize();
+    string fileData(fileSize, '\0');
+
+    if(file.Read(fileData.data(), fileSize) != fileSize) {
+        return false;
+    }
+
+    auto lines = Split(fileData, '\n');
+    for(auto& line : lines) {
+        if(line.empty() || line[0] == '#') {
+            continue;
+        }
+
+        auto args = Split(line, '|');
+        if(args[0] == "set_wiki") {
+            uint32 itemID = ToUInt(args[1]);
+
+            ItemInfo* pItem = GetItemByID(itemID);
+            if(!pItem) {
+                LOGGER_LOG_ERROR("Tried add wiki data on %d but non exists?", itemID);
+                continue;
+            }
+
+            if(pItem->seed1 == 0 && pItem->seed2 == 0) {
+                pItem->seed1 = ToUInt(args[2]);
+                pItem->seed2 = ToUInt(args[3]);
+            }
+
+            pItem->element = StrToItemElement(args[4]);
+
+            if(pItem->description.empty()) {
+                pItem->description = args[5];
+            }
+        }
+
+        /*if(args[0] == "set_combine") {
+
+        }*/
+    }
+
     return true;
 }
 

@@ -25,9 +25,12 @@ void Context::Kill()
 void Context::LoadPreResources()
 {
     ResourceManager* pResMgr = GetResourceManager();
+
+#ifdef _DEBUG
     if(!pResMgr->LoadFont(FONT_TYPE_CENTURY_GOTHIC_BOLD, "centurygothic_bold.ttf")) {
         LOGGER_LOG_ERROR("Failed to load font %d", FONT_TYPE_CENTURY_GOTHIC_BOLD);
     }
+#endif
 }
 
 Context* GetContext() { return Context::GetInstance(); }

@@ -11,8 +11,8 @@ endif()
 
 add_definitions(-DSOCKET_USE_TLS -DCLI_MEM_ITEM_MANAGER)
 
-include(${CMAKE_CURRENT_LIST_DIR}/Source.cmake)
-set(ITEM_MANAGER_ROOT "${CMAKE_CURRENT_LIST_DIR}/../ItemManager")
+include(${CMAKE_CURRENT_LIST_DIR}/../CMake/Source.cmake)
+set(ITEM_MANAGER_ROOT "${CMAKE_CURRENT_LIST_DIR}")
 
 set(ITEM_MANAGER_FILES PRIVATE
     ${SOURCE_NETWORK}/NetClient.cpp
@@ -33,8 +33,8 @@ target_sources(ItemManager PRIVATE ${ITEM_MANAGER_FILES})
 find_package(OpenSSL REQUIRED)
 
 set_target_properties(ItemManager PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/../Runtime"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/../Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/Runtime"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/Runtime"
 )
 
 target_include_directories(ItemManager PRIVATE

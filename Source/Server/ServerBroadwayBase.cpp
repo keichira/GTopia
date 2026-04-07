@@ -124,7 +124,7 @@ void ServerBroadwayBase::UpdateTCPLogic(uint64 maxTimeMS)
 {
 }
 
-bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* stopFlag)
+bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
 {
     if(!m_pNetSocket) {
         return false;
@@ -135,7 +135,7 @@ bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCou
 
     m_pNetSocket->Connect(host, port, true);
 
-    while(!m_connected && (!stopFlag || !(*stopFlag))) {
+    while(!m_connected && (!shutdownFlag || *shutdownFlag == 0)) {
         m_pNetSocket->Update(true);
 
         if(retriedSoFar == retryCount) {

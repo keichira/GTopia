@@ -4,6 +4,7 @@
 #include "ItemInfo.h"
 
 #define ITEM_DATA_VERSION 5
+#define ITEM_DATA_ZERO_POINT 10000
 
 struct ItemsClientData
 {
@@ -27,6 +28,7 @@ public:
 public:
     bool Load(const string& filePath);
     bool LoadByItemsDat(const string& filePath);
+    bool LoadWikiData(const string& filePath);
 
     void Kill();
 

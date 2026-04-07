@@ -66,7 +66,7 @@ void TileExtra_Sign::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
     memBuffer.ReadWrite(unk, write);
 }
 
-void TileExtra_Lock::Serialize(MemoryBuffer &memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
 

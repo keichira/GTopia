@@ -2,10 +2,6 @@
 
 #include "../Precompiled.h"
 
-#ifdef USE_ZLIB
-    uint8* zLibInflateToMemory(uint8* pCompData, uint32 compSize, uint32 decompSize);
-#endif
-
 class MemoryBuffer {
 public:
     MemoryBuffer();

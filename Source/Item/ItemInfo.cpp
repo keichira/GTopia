@@ -80,14 +80,8 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     }
 
     if(version > 8) {
-        memBuffer.ReadWrite(fxFlags, write);
-
-        if(write) {
-            memBuffer.WriteRaw(clientData, sizeof(clientData));
-        }
-        else {
-            memBuffer.ReadRaw(clientData, sizeof(clientData));
-        }
+        memBuffer.ReadWrite(flags2, write);
+        memBuffer.ReadWriteRaw(clientData, sizeof(clientData), write);
     }
 
     if(version > 9) {
@@ -97,6 +91,70 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
 
     if(version > 10) {
         memBuffer.ReadWriteString(customizedPunchParameters, write);
+    }
+
+    if(version > 11) {
+        memBuffer.ReadWrite(extraSlotCounter, write);
+        memBuffer.ReadWriteRaw(extraSlotBodyParts, sizeof(extraSlotBodyParts), write);
+    }
+
+    if(version > 12) {
+        // actually not sure it was changing for helm soundwave and a wing
+        // and it was changing the light source but it was looking weird
+        memBuffer.ReadWrite(lightSourceRange, write);
+    }
+
+    if(version > 13) {
+        memBuffer.ReadWrite(variantVersionItem, write);
+    }
+
+    if(version > 14) {
+        memBuffer.ReadWrite(chairInfo.enabled, write);
+        memBuffer.ReadWrite(chairInfo.playerOffset, write);
+        memBuffer.ReadWrite(chairInfo.chairArmTexturePos, write);
+        memBuffer.ReadWrite(chairInfo.chairArmOffset, write);
+        memBuffer.ReadWriteString(chairInfo.chairTexture, write);
+    }
+
+    if(version > 15) {
+        memBuffer.ReadWriteString(configName, write);
+    }
+
+    if(version > 16) {
+        memBuffer.ReadWrite(otherPlayerHitParticle, write);
+    }
+
+    if(version > 17) {
+        memBuffer.ReadWrite(configNameHash, write);
+    }
+
+    if(version > 18) {
+        memBuffer.ReadWrite(randomSpriteInfo.enabled, write);
+        memBuffer.ReadWrite(randomSpriteInfo.offset, write);
+        memBuffer.ReadWrite(randomSpriteInfo.chance, write);
+    }
+
+    if(version > 19) { // no idea
+        uint8 unk = 0;
+        memBuffer.ReadWrite(unk, write);
+    }
+
+    if(version > 20) {
+        memBuffer.ReadWrite(canMorph, write);
+    }
+
+    if(version > 21) {
+        memBuffer.ReadWriteString(description, write);
+    }
+
+    if(version > 22) {
+        memBuffer.ReadWrite(seed1, write);
+        memBuffer.ReadWrite(seed2, write);
+    }
+
+    if(version > 23) {
+        uint8 unk = 0;
+        memBuffer.ReadWrite(unk, write);
     }
 }
 

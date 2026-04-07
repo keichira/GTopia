@@ -355,6 +355,79 @@ uint8 StrToItemType(const string& type)
     return ITEM_TYPE_CONSUMABLE;
 }
 
+uint32 StrToFxFlag(const string& type)
+{
+    static const std::unordered_map<string, uint32> itemFxFlagMap
+    {
+        { "MULTI_ANIM", ITEM_FX_FLAG_MULTI_ANIM },
+        { "PING_PONG_ANIM", ITEM_FX_FLAG_PING_PONG_ANIM },
+        { "OVERLAY_OBJECT", ITEM_FX_FLAG_OVERLAY_OBJECT },
+        { "OFFSET_UP", ITEM_FX_FLAG_OFFSET_UP },
+        { "DUAL_LAYER", ITEM_FX_FLAG_DUAL_LAYER },
+        { "MULTI_ANIM2", ITEM_FX_FLAG_MULTI_ANIM2 },
+        { "USE_SKIN_TINT", ITEM_FX_FLAG_USE_SKIN_TINT },
+        { "SEED_TINT_LAYER1", ITEM_FX_FLAG_SEED_TINT_LAYER1 },
+        { "SEED_TINT_LAYER2", ITEM_FX_FLAG_SEED_TINT_LAYER2 },
+        { "RAINBOW_TINT_LAYER1", ITEM_FX_FLAG_RAINBOW_TINT_LAYER1 },
+        { "RAINBOW_TINT_LAYER2", ITEM_FX_FLAG_RAINBOW_TINT_LAYER2 },
+        { "GLOW", ITEM_FX_FLAG_GLOW },
+        { "NO_ARMS", ITEM_FX_FLAG_NO_ARMS },
+        { "FRONT_ARM_PUNCH", ITEM_FX_FLAG_FRONT_ARM_PUNCH },
+        { "RENDER_OFFHAND", ITEM_FX_FLAG_RENDER_OFFHAND },
+        { "SLOWFALL_OBJECT", ITEM_FX_FLAG_SLOWFALL_OBJECT },
+        { "REPLACEMENT_SPRITE", ITEM_FX_FLAG_REPLACEMENT_SPRITE },
+        { "ORB_FLOAT", ITEM_FX_FLAG_ORB_FLOAT },
+        { "RENDER_FX_VARIANT_VERSION", ITEM_FX_FLAG_RENDER_FX_VARIANT_VERSION }
+    };
+
+    auto it = itemFxFlagMap.find(type);
+    if(it != itemFxFlagMap.end()) {
+        return it->second;
+    }
+
+    return 0;
+}
+
+uint32 StrToFlags2(const string& type)
+{
+    static const std::unordered_map<string, uint32> itemFlag2Map
+    {
+        { "ROBOT_DEADLY", ITEM_FLAG_ROBOT_DEADLY },
+        { "ROBOT_SHOOT_LEFT", ITEM_FLAG_ROBOT_SHOOT_LEFT },
+        { "ROBOT_SHOOT_RIGHT", ITEM_FLAG_ROBOT_SHOOT_RIGHT },
+        { "ROBOT_SHOOT_DOWN", ITEM_FLAG_ROBOT_SHOOT_DOWN },
+        { "ROBOT_SHOOT_UP", ITEM_FLAG_ROBOT_SHOOT_UP },
+        { "ROBOT_CAN_SHOOT", ITEM_FLAG_ROBOT_CAN_SHOOT },
+        { "ROBOT_LAVA", ITEM_FLAG_ROBOT_LAVA },
+        { "ROBOT_POINTY", ITEM_FLAG_ROBOT_POINTY },
+        { "ROBOT_SHOOT_DEADLY", ITEM_FLAG_ROBOT_SHOOT_DEADLY },
+        { "GUILD_ITEM", ITEM_FLAG_GUILD_ITEM },
+        { "GUILD_FLAG", ITEM_FLAG_GUILD_FLAG },
+        { "STARSHIP_HELM", ITEM_FLAG_STARSHIP_HELM },
+        { "STARSHIP_REACTOR", ITEM_FLAG_STARSHIP_REACTOR },
+        { "STARSHIP_VIEWSCREEN", ITEM_FLAG_STARSHIP_VIEWSCREEN },
+        { "SMOD", ITEM_FLAG_SMOD },
+        { "TILE_DEADLY_IF_ON", ITEM_FLAG_TILE_DEADLY_IF_ON },
+        { "LONG_HAND_ITEM64x32", ITEM_FLAG_LONG_HAND_ITEM64x32 },
+        { "GEMLESS", ITEM_FLAG_GEMLESS },
+        { "TRANSMUTABLE", ITEM_FLAG_TRANSMUTABLE },
+        { "DUNGEON_ITEM", ITEM_FLAG_DUNGEON_ITEM },
+        { "ONE_IN_WORLD", ITEM_FLAG_ONE_IN_WORLD },
+        { "ONLY_FOR_WORLD_OWNER", ITEM_FLAG_ONLY_FOR_WORLD_OWNER },
+        { "PVE_MELEE", ITEM_FLAG_PVE_MELEE },
+        { "PVE_RANGED", ITEM_FLAG_PVE_RANGED },
+        { "PVE_AUTOAIM", ITEM_FLAG_PVE_AUTOAIM },
+        { "NO_UPGRADE", ITEM_FLAG_NO_UPGRADE }
+    };
+
+    auto it = itemFlag2Map.find(type);
+    if(it != itemFlag2Map.end()) {
+        return it->second;
+    }
+
+    return 0;
+}
+
 string ItemFlagToStr(uint16 type)
 {
     static const std::unordered_map<uint16, string> itemStrFlagMap 
@@ -383,6 +456,79 @@ string ItemFlagToStr(uint16 type)
     }
 
     return "UNTRADEABLE";
+}
+
+string FxFlagToStr(uint32 flag)
+{
+    static const std::unordered_map<uint32, string> itemStrFxFlagMap
+    {
+        { ITEM_FX_FLAG_MULTI_ANIM, "MULTI_ANIM" },
+        { ITEM_FX_FLAG_PING_PONG_ANIM, "PING_PONG_ANIM" },
+        { ITEM_FX_FLAG_OVERLAY_OBJECT, "OVERLAY_OBJECT" },
+        { ITEM_FX_FLAG_OFFSET_UP, "OFFSET_UP" },
+        { ITEM_FX_FLAG_DUAL_LAYER, "DUAL_LAYER" },
+        { ITEM_FX_FLAG_MULTI_ANIM2, "MULTI_ANIM2" },
+        { ITEM_FX_FLAG_USE_SKIN_TINT, "USE_SKIN_TINT" },
+        { ITEM_FX_FLAG_SEED_TINT_LAYER1, "SEED_TINT_LAYER1" },
+        { ITEM_FX_FLAG_SEED_TINT_LAYER2, "SEED_TINT_LAYER2" },
+        { ITEM_FX_FLAG_RAINBOW_TINT_LAYER1, "RAINBOW_TINT_LAYER1" },
+        { ITEM_FX_FLAG_RAINBOW_TINT_LAYER2, "RAINBOW_TINT_LAYER2" },
+        { ITEM_FX_FLAG_GLOW, "GLOW" },
+        { ITEM_FX_FLAG_NO_ARMS, "NO_ARMS" },
+        { ITEM_FX_FLAG_FRONT_ARM_PUNCH, "FRONT_ARM_PUNCH" },
+        { ITEM_FX_FLAG_RENDER_OFFHAND, "RENDER_OFFHAND" },
+        { ITEM_FX_FLAG_SLOWFALL_OBJECT, "SLOWFALL_OBJECT" },
+        { ITEM_FX_FLAG_REPLACEMENT_SPRITE, "REPLACEMENT_SPRITE" },
+        { ITEM_FX_FLAG_ORB_FLOAT, "ORB_FLOAT" },
+        { ITEM_FX_FLAG_RENDER_FX_VARIANT_VERSION, "RENDER_FX_VARIANT_VERSION" }
+    };
+
+    auto it = itemStrFxFlagMap.find(flag);
+    if (it != itemStrFxFlagMap.end()) {
+        return it->second;
+    }
+
+    return "";
+}
+
+string Flag2ToStr(uint32 flag)
+{
+    static const std::unordered_map<uint32, string> itemStrFlag2Map
+    {
+        { ITEM_FLAG_ROBOT_DEADLY, "ROBOT_DEADLY" },
+        { ITEM_FLAG_ROBOT_SHOOT_LEFT, "ROBOT_SHOOT_LEFT" },
+        { ITEM_FLAG_ROBOT_SHOOT_RIGHT, "ROBOT_SHOOT_RIGHT" },
+        { ITEM_FLAG_ROBOT_SHOOT_DOWN, "ROBOT_SHOOT_DOWN" },
+        { ITEM_FLAG_ROBOT_SHOOT_UP, "ROBOT_SHOOT_UP" },
+        { ITEM_FLAG_ROBOT_CAN_SHOOT, "ROBOT_CAN_SHOOT" },
+        { ITEM_FLAG_ROBOT_LAVA, "ROBOT_LAVA" },
+        { ITEM_FLAG_ROBOT_POINTY, "ROBOT_POINTY" },
+        { ITEM_FLAG_ROBOT_SHOOT_DEADLY, "ROBOT_SHOOT_DEADLY" },
+        { ITEM_FLAG_GUILD_ITEM, "GUILD_ITEM" },
+        { ITEM_FLAG_GUILD_FLAG, "GUILD_FLAG" },
+        { ITEM_FLAG_STARSHIP_HELM, "STARSHIP_HELM" },
+        { ITEM_FLAG_STARSHIP_REACTOR, "STARSHIP_REACTOR" },
+        { ITEM_FLAG_STARSHIP_VIEWSCREEN, "STARSHIP_VIEWSCREEN" },
+        { ITEM_FLAG_SMOD, "SMOD" },
+        { ITEM_FLAG_TILE_DEADLY_IF_ON, "TILE_DEADLY_IF_ON" },
+        { ITEM_FLAG_LONG_HAND_ITEM64x32, "LONG_HAND_ITEM64x32" },
+        { ITEM_FLAG_GEMLESS, "GEMLESS" },
+        { ITEM_FLAG_TRANSMUTABLE, "TRANSMUTABLE" },
+        { ITEM_FLAG_DUNGEON_ITEM, "DUNGEON_ITEM" },
+        { ITEM_FLAG_ONE_IN_WORLD, "ONE_IN_WORLD" },
+        { ITEM_FLAG_ONLY_FOR_WORLD_OWNER, "ONLY_FOR_WORLD_OWNER" },
+        { ITEM_FLAG_PVE_MELEE, "PVE_MELEE" },
+        { ITEM_FLAG_PVE_RANGED, "PVE_RANGED" },
+        { ITEM_FLAG_PVE_AUTOAIM, "PVE_AUTOAIM" },
+        { ITEM_FLAG_NO_UPGRADE, "NO_UPGRADE" }
+    };
+
+    auto it = itemStrFlag2Map.find(flag);
+    if (it != itemStrFlag2Map.end()) {
+        return it->second;
+    }
+
+    return "";
 }
 
 string ItemVisualEffectToStr(uint8 type)

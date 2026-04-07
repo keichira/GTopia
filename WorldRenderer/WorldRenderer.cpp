@@ -63,7 +63,7 @@ void WorldRenderer::Draw()
             if(!pTile)
                 continue;
     
-            int idx = y * worldWidth + x;
+            int32 idx = y * worldWidth + x;
     
             if(pTile->GetBG() != ITEM_ID_BLANK && m_visibleBG[idx]) {
                 DrawTile(pTile, pTile->GetBG());

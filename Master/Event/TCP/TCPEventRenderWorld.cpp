@@ -1,6 +1,7 @@
 #include "TCPEventRenderWorld.h"
 #include "../../Server/ServerManager.h"
 #include "../../Server/GameServer.h"
+#include "../../World/WorldManager.h"
 
 void TCPEventRenderWorldData::FromVariant(VariantVector& varVec, bool forResult)
 {
@@ -28,11 +29,23 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
     TCPEventRenderWorldData eventData;
     int32 subType = data[1].GetINT();
 
+    NetServerInfo* pNetServer = (NetServerInfo*)pClient->data;
+    if(!pNetServer) {
+        return;
+    }
+
+    string worldName;
+    WorldSession* pWorld = GetWorldManager()->GetWorldByID(eventData.worldID);
+    if(pWorld) {
+        worldName = pWorld->worldName;
+    }
+
     switch(subType) {
         case TCP_RENDER_REQUEST: {
             ServerInfo* pRenderServer = GetServerManager()->GetBestRenderServer();
             if(!pRenderServer) {
-                //GetServerManager()->SendRenderResult(false, eventData.userID);
+                GetServerManager()->SendRenderResult(false, eventData.userID, worldName, pNetServer->serverID);
+                return;
             }
             eventData.FromVariant(data, false);
 
@@ -48,7 +61,7 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
                 return;
             }
 
-            GetServerManager()->SendRenderResult(eventData.result, eventData.userID, pPlayer->serverID);
+            GetServerManager()->SendRenderResult(eventData.result, eventData.userID, worldName, pPlayer->serverID);
             break;
         }
     }

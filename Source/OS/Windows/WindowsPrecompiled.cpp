@@ -28,7 +28,7 @@ string GetProgramPath()
 {
     wchar_t buf[1024] = { 0 };
 
-    uint32 len = GetModuleFileNameW(NULL, buf, sizeof(buf));
+    uint32 len = GetModuleFileNameW(NULL, buf, 1024);
     if(len == 0) {
         return "";
     }
@@ -36,10 +36,10 @@ string GetProgramPath()
     int32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, buf, len, NULL, 0, NULL, NULL);
 
     string path(sizeNeeded, 0);
-    WideCharToMultiByte(CP_UTF8, 0, buf, len, path.data(), sizeNeeded, NULL, NULL);
+    WideCharToMultiByte(CP_UTF8, 0, buf, len, &path[0], sizeNeeded, NULL, NULL);
 
-    int32 pos = path.find_last_of("\\/");
-    if(pos != -1) {
+    usize pos = path.find_last_of("\\/");
+    if(pos != string::npos) {
         path = path.substr(0, pos);
     }
 
@@ -49,6 +49,7 @@ string GetProgramPath()
 int32 SleepMS(uint64 ms)
 {
     ::Sleep(ms);
+    return 0;
 }
 
 int32 GetRandomBytes(void* pDest, uint32 size) 
@@ -59,11 +60,57 @@ int32 GetRandomBytes(void* pDest, uint32 size)
         return -1;
     }
   
-    if(!CryptGenRandom(hProv, byte_len, (BYTE*)byte_buf)) {
+    if(!CryptGenRandom(hProv, size, (BYTE*)pDest)) {
         CryptReleaseContext(hProv, 0);
         return -1;
     }
   
     CryptReleaseContext(hProv, 0);
     return size; // umm it says always return?
+}
+
+bool IsFileExists(const string& path)
+{
+    int32 size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, NULL, 0);
+    if(size == 0) {
+        return false;
+    }
+
+    std::wstring result(size, 0);
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, &result[0], size);
+
+    DWORD attr = GetFileAttributesW(result.c_str());
+    if(attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool IsFolderExists(const string& path)
+{
+    int32 size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, NULL, 0);
+    if(size == 0) {
+        return false;
+    }
+
+    std::wstring result(size, 0);
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, &result[0], size);
+
+    DWORD attr = GetFileAttributesW(result.c_str());
+    if(attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
+        return false;
+    }
+    
+    return true;
+}
+
+string GetFileExtension(const string& file)
+{
+    usize index = file.find_last_of('.');
+    if(index != string::npos) {
+        return file.substr(index + 1, file.length());
+    }
+
+    return "";
 }

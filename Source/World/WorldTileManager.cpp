@@ -258,16 +258,17 @@ std::vector<TileInfo*> WorldTileManager::RemoveTileParentsLockedBy(TileInfo* pLo
         return unlockedTiles;
     }
 
+    Vector2Int vLockPos = pLockTile->GetPos();
+    uint32 index = vLockPos.x + m_size.x * vLockPos.y;
+
     for(auto& tile : m_tiles) {
-        if(&tile != pLockTile && tile.GetParent() == pLockTile->GetParent()) {
+        if(tile.GetParent() == index) {
             tile.SetParent(0);
             tile.RemoveFlag(TILE_FLAG_HAS_PARENT);
 
             unlockedTiles.push_back(&tile);
         }
     }
-
-    pLockTile->SetParent(0);
 
     return unlockedTiles;
 }
@@ -302,6 +303,8 @@ bool WorldTileManager::AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTarget
     Vector2Int vTargetPos = pTargetTile->GetPos();
     Vector2Int vLockPos = pLockTile->GetPos();
 
+    uint32 parentIndex = vLockPos.x + m_size.x * vLockPos.y;
+
     for(int8 i = 0; i < 4; ++i) {
         TileInfo* pNeighbor = GetTile(vTargetPos.x + neighbors[i][0], vTargetPos.y + neighbors[i][1]);
         if(!pNeighbor) {
@@ -309,7 +312,7 @@ bool WorldTileManager::AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTarget
         }
 
         if(
-            pNeighbor->GetParent() == pLockTile->GetParent() || pTargetTile == pLockTile ||
+            pNeighbor->GetParent() == parentIndex || pTargetTile == pLockTile ||
             (vTargetPos.x + neighbors[i][0] == vLockPos.x + neighbors[i][0] && vTargetPos.y + neighbors[i][0] == vLockPos.y + neighbors[i][0])
         ) {
             return true;
@@ -325,17 +328,9 @@ bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock,
         return false;
     }
 
-    if(pLockTile->GetParent() != 0) {
-        Vector2Int vStartPos = pLockTile->GetPos();
-        pLockTile->SetParent(vStartPos.x + vStartPos.y * m_size.x);
-        return true;
-    }
-
     RemoveTileParentsLockedBy(pLockTile);
 
     Vector2Int vStartPos = pLockTile->GetPos();
-    pLockTile->SetParent(vStartPos.x + vStartPos.y * m_size.x);
-
     std::vector<TileInfo*> lockedTiles;
 
     int32 radius = 1;
@@ -370,7 +365,7 @@ bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock,
             continue;
         }
 
-        pClosestTile->SetParent(pLockTile->GetParent());
+        pClosestTile->SetParent(vStartPos.x + m_size.x * vStartPos.y);
         pClosestTile->SetFlag(TILE_FLAG_HAS_PARENT);
         lockedTiles.push_back(pClosestTile);
         totalLocked++;

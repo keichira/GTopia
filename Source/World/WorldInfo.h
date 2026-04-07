@@ -42,6 +42,7 @@ public:
     uint16 GetWorldVersion() const { return m_version; }
 
     WorldTileManager* GetTileManager() { return m_pTileMgr; };
+    WorldObjectManager* GetObjectManager() { return m_pObjMgr; }
 
 private:
     uint16 m_version;

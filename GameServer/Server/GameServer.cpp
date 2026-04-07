@@ -57,7 +57,7 @@ void GameServer::OnEventReceive(ENetEvent& event)
     }
 
     GamePlayer* pPlayer = (GamePlayer*)event.peer->data;
-    if(event.peer != pPlayer->GetPeer()) {
+    if(!pPlayer || event.peer != pPlayer->GetPeer()) {
         return;
     }
 
@@ -106,7 +106,6 @@ void GameServer::OnEventReceive(ENetEvent& event)
             auto pAction = packet.Find(CompileTimeHashString("action"));
             if(pAction) {
                 uint32 packetType = HashString(pAction->value, pAction->size);
-
                 m_messagePacket.Dispatch(packetType, pPlayer, packet);
             }
 

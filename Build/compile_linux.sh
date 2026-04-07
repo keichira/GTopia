@@ -35,7 +35,7 @@ BUILD_DIR="build_$PROJECT"
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-echo "Building for $PROJECT"
-cmake ../../CMake -DCMAKE_BUILD_TYPE=$MODE -DPROJECT_TO_BUILD=$PROJECT
+echo "Building $PROJECT ($MODE)"
+cmake ../.. -DCMAKE_BUILD_TYPE=$MODE -DPROJECT_TO_BUILD=$PROJECT
 cmake --build .
 echo "$PROJECT build completed!"

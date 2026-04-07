@@ -7,6 +7,22 @@
 #include "ItemUtils.h"
 #include "../Player/PlayMod.h"
 
+struct ItemChairInfo
+{
+    uint8 enabled = 0;
+    Vector2Int playerOffset;
+    Vector2Int chairArmTexturePos;
+    Vector2Int chairArmOffset;
+    string chairTexture = "";
+};
+
+struct ItemRandomSpriteReplaceInfo
+{
+    uint8 enabled = 0;
+    int32 offset = 0; // like x * 32?
+    float chance = 0.0f;
+};
+
 class ItemInfo {
 public:
     ItemInfo();
@@ -45,8 +61,8 @@ public:
     {
         int32 animMS = 200;
         int32 weatherID;
+        int32 petRenderType;
     };
-    
     
     string petName = "";
     string petSubName = "";
@@ -78,6 +94,21 @@ public:
     uint32 tileRange = 0;
     uint32 pileSize = 0;
     string customizedPunchParameters = "";
+
+    uint32 extraSlotCounter = 0;
+    uint8 extraSlotBodyParts[9] = { 0 };
+
+    uint32 lightSourceRange = 0;
+    uint32 variantVersionItem = 0;
+
+    ItemChairInfo chairInfo;
+    string configName = "";
+    int32 otherPlayerHitParticle = 0;
+    uint32 configNameHash = 0;
+
+    ItemRandomSpriteReplaceInfo randomSpriteInfo;
+
+    uint8 canMorph = 0; // ummm???
 
     string description = "No info.";
     uint8 element = ITEM_ELEMENT_NONE;

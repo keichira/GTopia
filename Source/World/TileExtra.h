@@ -108,13 +108,19 @@ public:
             return true;
         }
 
-        return IsAdmin(userID);
+        for(auto& id : accessList) {
+            if(id == userID) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool IsAdmin(int32 userID)
     {
         for(auto& id : accessList) {
-            if(id == userID) {
+            if(id == userID && ownerID != userID) {
                 return true;
             }
         }

@@ -3,6 +3,8 @@
 
 #include "../../../Player/Dialog/SignDialog.h"
 #include "../../../Player/Dialog/TrashDialog.h"
+#include "../../../Player/Dialog/LockDialog.h"
+#include "../../../Player/Dialog/RenderWorldDialog.h"
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
@@ -70,6 +72,16 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
             else {
                 TrashDialog::Handle(pPlayer, itemID, count);
             }
+            break;
+        }
+
+        case CompileTimeHashString("lock_edit"): {
+            LockDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case CompileTimeHashString("render_reply"): {
+            RenderWorldDialog::Handle(pPlayer);
             break;
         }
     }

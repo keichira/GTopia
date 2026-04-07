@@ -171,6 +171,10 @@ bool LoadItemData()
         return false;
     }
 
+    if(!pItemMgr->LoadWikiData(GetProgramPath() + "/wiki_data.txt")) {
+        LOGGER_LOG_ERROR("Failed to load wiki_data.txt!");
+    }
+
     File fileHashes;
     if(!fileHashes.Open(GetProgramPath() + "/filehashes.txt")) {
         LOGGER_LOG_ERROR("Failed to load filehashes.txt");
@@ -216,6 +220,8 @@ int main(int argc, char const* argv[])
 {
     signal(SIGTERM, SignalStop);
     signal(SIGINT, SignalStop);
+    signal(SIGSEGV, SignalStop);
+    signal(SIGABRT, SignalStop);
 
     if(!ReadArgs(argc, argv)) {
         return 0;
@@ -259,8 +265,8 @@ int main(int argc, char const* argv[])
     LOGGER_LOG_INFO("Connecting to master server");
     auto masterServerInfo = pGameConfig->servers[0];
 
-    while(GetContext()->IsRunning()) {
-        if(GetMasterBroadway()->Connect(masterServerInfo.lanIP, masterServerInfo.tcpPort, 5, GetContext()->GetStopFlag())) {
+    while(!GetContext()->IsShutting()) {
+        if(GetMasterBroadway()->Connect(masterServerInfo.lanIP, masterServerInfo.tcpPort, 5, GetContext()->GetShutdownFlag())) {
             break;
         }
         else {
