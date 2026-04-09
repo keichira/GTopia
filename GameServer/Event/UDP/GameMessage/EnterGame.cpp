@@ -2,7 +2,7 @@
 
 void EnterGame::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(!pPlayer) {
+    if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) {
         return;
     }
     

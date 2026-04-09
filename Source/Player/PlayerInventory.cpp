@@ -108,7 +108,10 @@ uint8 PlayerInventory::AddItem(uint16 itemID, uint8 count, Player* pPlayer)
             return 0;
         }
 
-        if(count > pItemInfo->maxCanHold) {
+        if(itemID == ITEM_ID_FIST || itemID == ITEM_ID_WRENCH) {
+            count = 1;
+        }
+        else if(count > pItemInfo->maxCanHold) {
             count = pItemInfo->maxCanHold;
         }
 

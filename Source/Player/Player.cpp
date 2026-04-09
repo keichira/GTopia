@@ -32,7 +32,13 @@ void Player::SendLogonFailWithLog(const string& message)
 
 void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings, uint32 tributeHash)
 {
-    VariantVector data(7);
+    VariantVector data;
+    if(m_loginDetail.protocol < 93) {
+        data = VariantVector(6);
+    }
+    else {
+        data = VariantVector(7);
+    }
     
     string osmHeader;
     if(m_loginDetail.gameVersion <= 2.982) {
@@ -60,7 +66,10 @@ void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, con
     data[3] = cdnPath;
     data[4] = "";
     data[5] = settings;
-    data[6] = tributeHash;
+    
+    if(m_loginDetail.protocol > 93) {
+        data[6] = tributeHash;
+    }
 
     SendCallFunctionPacket(data);
 }
