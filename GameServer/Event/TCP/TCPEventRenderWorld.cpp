@@ -1,5 +1,5 @@
 #include "TCPEventRenderWorld.h"
-#include "../../Server/GameServer.h"
+#include "../../Player/PlayerManager.h"
 #include "../../Player/GamePlayer.h"
 #include "IO/Log.h"
 
@@ -23,11 +23,11 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
         return;
     }
 
-    GamePlayer* pPlayer = GetGameServer()->GetPlayerByUserID(eventData.playerUserID);
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(eventData.playerUserID);
     if(!pPlayer) {
         LOGGER_LOG_WARN("Received player render world packet but player not found?");
         return;
     }
 
-    pPlayer->OnHandleTCP(std::move(data));
+    pPlayer->HandleRenderWorld(std::move(data));
 }

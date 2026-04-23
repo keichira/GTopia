@@ -1,5 +1,5 @@
 #include "TCPEventPlayerSession.h"
-#include "../../Server/GameServer.h"
+#include "../../Player/PlayerManager.h"
 #include "../../Server/ServerManager.h"
 
 void TCPPlayerSessionEventData::FromVariant(VariantVector& varVec)
@@ -19,7 +19,7 @@ void TCPEventPlayerSession::Execute(NetClient* pClient, VariantVector& data)
     TCPPlayerSessionEventData eventData;
     eventData.FromVariant(data);
 
-    PlayerSession* pPlayer = GetGameServer()->GetPlayerSessionByUserID(eventData.userID);
+    PlayerSession* pPlayer = GetPlayerManager()->GetSessionByID(eventData.userID);
     bool hasSession = true;
 
     if(

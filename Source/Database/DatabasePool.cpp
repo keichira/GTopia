@@ -50,10 +50,9 @@ DatabaseWorker* DatabasePool::GetWorker(uint8 index)
     return m_workers[index];
 }
 
-void DatabasePool::AddTask(QueryTaskRequest &&taskReq)
+void DatabasePool::AddTask(QueryTaskRequest&& taskReq)
 {
     taskReq.reqTime = Time::GetSystemTime();
-
     m_workers[taskReq.ownerID % m_workers.size()]->AddTask(std::move(taskReq));
 }
 
@@ -79,6 +78,8 @@ void DatabaseExec(DatabasePool* pPool, const string& query, QueryRequest& req, u
     taskReq.data = req.data;
     taskReq.extraData = req.extraData;
     taskReq.ownerID = req.ownerID;
+    taskReq.queryID = req.queryID;
+    taskReq.callback = req.callback;
 
     pPool->AddTask(std::move(taskReq));
 }

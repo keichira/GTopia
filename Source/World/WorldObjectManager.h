@@ -34,6 +34,7 @@ public:
 
 public:
     void Serialize(MemoryBuffer& memBuffer, bool write);
+    uint32 GetMemEstimate();
     void AddItem(uint16 itemID, uint8 count, Vector2Float pos, uint8 flags = 0);
     void ModifyItem(uint32 objectID, uint16 itemID, uint8 count, Vector2Float pos, uint8 flags);
     void DeleteByID(uint32 objectID);

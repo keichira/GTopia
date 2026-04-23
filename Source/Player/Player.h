@@ -5,6 +5,7 @@
 #include "PlayerLoginDetail.h"
 #include "PlayerInventory.h"
 #include "CharacterData.h"
+#include "../Utils/Variant.h"
 #include <enet/enet.h>
 
 class Player : public NetEntity {
@@ -34,13 +35,13 @@ public:
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);
-
     void SendCallFunctionPacket(VariantVector& data, int32 netID = -1, int32 delay = -1);
 
     PlayerLoginDetail& GetLoginDetail() { return m_loginDetail; }
     ENetPeer* GetPeer() { return m_pPeer; }
 
     uint32 GetUserID() const { return m_userID; }
+    void SetUserID(uint32 userID) { m_userID = userID; }
 
     string GetAddress() const { return m_address; }
 

@@ -266,7 +266,6 @@ bool ItemInfoManager::Load(const string& filePath)
     file.Close();
 
     m_itemCount = m_items.size();
-    SetupItemExtras();
     return true;
 }
 
@@ -331,9 +330,15 @@ bool ItemInfoManager::LoadWikiData(const string& filePath)
                 continue;
             }
 
-            if(pItem->seed1 == 0 && pItem->seed2 == 0) {
-                pItem->seed1 = ToUInt(args[2]);
-                pItem->seed2 = ToUInt(args[3]);
+            ItemInfo* pSeed = GetItemByID(itemID + 1);
+            if(pSeed) {
+                if(pSeed->seed1 == 0 && pSeed->seed2 == 0) {
+                    pSeed->seed1 = ToUInt(args[2]);
+                    pSeed->seed2 = ToUInt(args[3]);
+                }
+            }
+            else {
+                LOGGER_LOG_ERROR("Tried to set wiki seed data on %d but seed not exists!", itemID);
             }
 
             pItem->element = StrToItemElement(args[4]);
@@ -348,6 +353,7 @@ bool ItemInfoManager::LoadWikiData(const string& filePath)
         }*/
     }
 
+    SetupItemExtras();
     return true;
 }
 
@@ -489,9 +495,9 @@ void ItemInfoManager::SetupItemExtras()
         }
 
         ItemInfo* pSeed1 = GetItemByID(pSeed->seed1);
-        ItemInfo* pSeed2 = &m_items[pSeed->seed2];
+        ItemInfo* pSeed2 = GetItemByID(pSeed->seed2);
 
-        if(!pSeed || !pSeed2) {
+        if(!pSeed1 || !pSeed2) {
             continue;
         }
 
@@ -508,7 +514,7 @@ void ItemInfoManager::SetupItemExtras()
             continue;
         }
 
-        pSeed->growTime = rarity^3 + 30 * rarity;
+        pSeed->growTime = rarity * rarity * rarity + 30 * rarity;
     }
 }
 

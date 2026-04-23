@@ -29,6 +29,14 @@ enum eTileFlags
 class WorldTileManager;
 class WorldInfo;
 
+struct TempTileData
+{
+    uint16 fg = 0;
+    uint16 bg = 0;
+    uint16 parent = 0;
+    uint16 flags = 0;
+};
+
 class TileInfo {
 public:
     TileInfo();
@@ -39,6 +47,8 @@ public:
 
     void SetFG(uint16 itemID, WorldTileManager* pTileMgr);
     void SetBG(uint16 itemID);
+
+    void CopyTempData(TempTileData* temp);
 
     uint16 GetFG() const { return m_fg; }
     uint16 GetBG() const { return m_bg; }

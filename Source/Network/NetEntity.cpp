@@ -1,25 +1,6 @@
 #include "NetEntity.h"
 
-int32 NetEntity::s_netID = NET_ID_RESERVED_UNTIL;
-
-NetEntity::NetEntity()
-: m_netID(s_netID++)
+NetEntity::NetEntity(eEntityType type)
 {
-}
-
-NetEntity::NetEntity(int32 id)
-{
-    m_netID = id;
-}
-
-NetEntity::~NetEntity()
-{
-}
-
-void NetEntity::OnHandleDatabase(QueryTaskResult&&)
-{
-}
-
-void NetEntity::OnHandleTCP(VariantVector&&)
-{
+    m_entityID = (uint64(type) << 56) | (++s_netID & 0xFFFFFFFFULL);
 }

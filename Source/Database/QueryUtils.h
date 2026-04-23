@@ -20,11 +20,33 @@ enum eQueryFlags
     QUERY_FLAG_BULK = 1 << 3
 };
 
-struct QueryRequest
+struct QueryTaskResult;
+
+struct QueryRequest 
 {
-    int32 ownerID = 0;
-    VariantVector data;
+    QueryRequest(uint32 _ownerID) : ownerID(_ownerID) {}
+    QueryRequest() {}
+
+    uint32 ownerID = 0;
+    VariantVector data; 
     VariantVector extraData;
+    int32 queryID = -1;
+
+    void (*callback)(QueryTaskResult&& result) = nullptr;
+
+    template<typename... Args>
+    QueryRequest& AddData(Args&&... args)
+    {
+        (data.emplace_back(std::forward<Args>(args)), ...);
+        return *this;
+    }
+
+    template<typename... Args>
+    QueryRequest& AddExtraData(Args&&... args)
+    {
+        (extraData.emplace_back(std::forward<Args>(args)), ...);
+        return *this;
+    }
 };
 
 struct QueryTaskRequest
@@ -35,6 +57,9 @@ struct QueryTaskRequest
     string query = "";
     uint16 flags = 0;
     uint64 reqTime = 0;
+    int32 queryID = -1;
+
+    void (*callback)(QueryTaskResult&& result) = nullptr;
 };
 
 struct QueryTaskResult
@@ -44,6 +69,18 @@ struct QueryTaskResult
     eQueryStatus status;
     uint64 increment = 0;
     DatabaseResult* result = nullptr;
+    int32 queryID = -1;
+
+    void (*callback)(QueryTaskResult&& result) = nullptr;
+
+    Variant* GetExtraData(uint8 index)
+    {
+        if(index >= extraData.size()) {
+            return nullptr;
+        }
+
+        return &extraData[index];
+    }
 
     void Destroy()
     {
@@ -54,7 +91,7 @@ struct QueryTaskResult
 struct TableQuery
 {
     const char* query;
-    uint16 flags;
+    uint16 flags = 0;
 };
 
 QueryTaskRequest MakeErrorQueryTask();

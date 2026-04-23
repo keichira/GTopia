@@ -18,6 +18,7 @@
 #include "../Event/UDP/GameMessage/DialogReturn.h"
 #include "../Event/UDP/GameMessage/Trash.h"
 #include "../Event/UDP/GameMessage/GrowID.h"
+#include "../Event/UDP/GameMessage/Quit.h"
 
 #include "../Command/RenderWorld.h"
 #include "../Command/GiveItem.h"
@@ -26,14 +27,11 @@
 #include "../Command/Magic.h"
 
 GameServer::GameServer()
-: NetEntity(NET_ID_GAME_SERVER)
 {
 }
 
 GameServer::~GameServer()
 {
-    Kill();
-    ServerBase::Kill();
 }
 
 void GameServer::OnEventConnect(ENetEvent& event)
@@ -45,7 +43,7 @@ void GameServer::OnEventConnect(ENetEvent& event)
     GamePlayer* pPlayer = new GamePlayer(event.peer);
     event.peer->data = pPlayer;
 
-    m_playerCache.insert_or_assign(pPlayer->GetNetID(), pPlayer);
+    GetPlayerManager()->AddPlayer(pPlayer);
 
     pPlayer->SetState(PLAYER_STATE_LOGIN_REQUEST);
     pPlayer->SendHelloPacket();
@@ -87,27 +85,23 @@ void GameServer::OnEventReceive(ENetEvent& event)
                     if(
                         packetType == CompileTimeHashString("refresh_item_data") ||
                         packetType == CompileTimeHashString("enter_game") ||
-                        packetType == CompileTimeHashString("refresh_player_tribute_data")
+                        packetType == CompileTimeHashString("refresh_player_tribute_data") ||
+                        packetType == CompileTimeHashString("quit")
                     ) {
                         m_messagePacket.Dispatch(packetType, pPlayer, packet);   
                     }
                 }
                 return;
             }
-
-            if(
-                !pPlayer->HasState(PLAYER_STATE_IN_GAME)
-            ) {
-                return;
-            }
+            else if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) {
+                ParsedTextPacket<8> packet; // increase it for dialog_return?
+                ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
             
-            ParsedTextPacket<8> packet; // increase it for dialog_return?
-            ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
-        
-            auto pAction = packet.Find(CompileTimeHashString("action"));
-            if(pAction) {
-                uint32 packetType = HashString(pAction->value, pAction->size);
-                m_messagePacket.Dispatch(packetType, pPlayer, packet);
+                auto pAction = packet.Find(CompileTimeHashString("action"));
+                if(pAction) {
+                    uint32 packetType = HashString(pAction->value, pAction->size);
+                    m_messagePacket.Dispatch(packetType, pPlayer, packet);
+                }
             }
 
             break;
@@ -138,13 +132,8 @@ void GameServer::OnEventDisconnect(ENetEvent& event)
         return;
     }
 
-    pPlayer->LogOff();
-    
-    auto it = m_playerCache.find(pPlayer->GetNetID());
-    if(it != m_playerCache.end()) {
-        SAFE_DELETE(pPlayer);
-        m_playerCache.erase(it);
-    }
+    pPlayer->LogOff(true);
+    GetPlayerManager()->RemovePlayer(pPlayer->GetNetID());
 }
 
 void GameServer::RegisterEvents()
@@ -158,6 +147,7 @@ void GameServer::RegisterEvents()
     RegisterMessagePacket<DialogReturn>(CompileTimeHashString("dialog_return"));
     RegisterMessagePacket<Trash>(CompileTimeHashString("trash"));
     RegisterMessagePacket<GrowID>(CompileTimeHashString("growid"));
+    RegisterMessagePacket<Quit>(CompileTimeHashString("quit"));
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();
@@ -169,7 +159,7 @@ void GameServer::RegisterEvents()
 void GameServer::UpdateGameLogic(uint64 maxTimeMS)
 {
     ServerBase::UpdateGameLogic(maxTimeMS);
-    UpdatePlayers();
+    GetPlayerManager()->UpdatePlayers();
     GetWorldManager()->UpdateWorlds();
 }
 
@@ -191,55 +181,10 @@ void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)
     );
 }
 
-GamePlayer* GameServer::GetPlayerByUserID(uint32 userID)
+void GameServer::ForceSaveEverything()
 {
-    for(auto& [_, pPlayer] : m_playerCache) {
-        if(pPlayer && pPlayer->GetUserID() == userID) {
-            return pPlayer;
-        }
-    }
-
-    return nullptr;
-}
-
-void GameServer::UpdatePlayers()
-{
-    if(m_playersLastUpdateTime.GetElapsedTime() < TICK_INTERVAL) {
-        return;
-    }
-
-    /**
-     * maybe update a count of players per frame?
-     * really needed that?
-     */
-
-    for(auto& [_, pPlayer] : m_playerCache) {
-        if(!pPlayer) {
-            continue;
-        }
-
-        if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) {
-            pPlayer->Update();
-
-            if(pPlayer->GetLastDBSaveTime().GetElapsedTime() >= 15 * 60 * 1000) {
-                pPlayer->SaveToDatabase();
-                pPlayer->GetLastDBSaveTime().Reset();
-            }
-        }
-    }
-
-    m_playersLastUpdateTime.Reset();
-}
-
-void GameServer::ForceSaveAllPlayers()
-{
-    for(auto& [_, pPlayer] : m_playerCache) {
-        if(!pPlayer) {
-            continue;
-        }
-
-        pPlayer->SaveToDatabase();
-    }
+    GetPlayerManager()->SaveAllToDatabase();
+    GetWorldManager()->ForceSaveAllWorlds();
 }
 
 void GameServer::Kill()
@@ -249,12 +194,7 @@ void GameServer::Kill()
     GetItemInfoManager()->Kill();
     GetRoleManager()->Kill();
     GetWorldManager()->Kill();
-
-    for(auto& [_, pPlayer] : m_playerCache) {
-        SAFE_DELETE(pPlayer);
-    }
-
-    m_playerCache.clear();
+    GetPlayerManager()->RemoveAllPlayers();
 }
 
 GameServer* GetGameServer() { return GameServer::GetInstance(); }

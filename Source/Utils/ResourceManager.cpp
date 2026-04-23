@@ -22,6 +22,11 @@ BLImage* ResourceManager::LoadTileSheet(const string& path)
 
     string fullPath = m_path + "/" + path;
 
+    BLImage* pExistImg = IsTileSheetExists(path);
+    if(pExistImg) {
+        return pExistImg;
+    }
+
     if(GetFileExtension(path) == "rttex") {
         File file;
         if(!file.Open(fullPath)) {
@@ -52,6 +57,8 @@ BLImage* ResourceManager::LoadTileSheet(const string& path)
                 return nullptr;
             }
     
+            SAFE_DELETE_ARRAY(pData);
+            pData = pDecomp;
             memBuffer = MemoryBuffer(pDecomp, rtPackHeader.decompressedSize);
         }
     
@@ -88,6 +95,16 @@ BLImage* ResourceManager::LoadTileSheet(const string& path)
 
     m_tileSheets[path] = pImg;
     return pImg;
+}
+
+BLImage* ResourceManager::IsTileSheetExists(const string& path)
+{
+    auto it = m_tileSheets.find(path);
+    if(it != m_tileSheets.end()) {
+        return it->second;
+    }
+
+    return nullptr;
 }
 
 BLImage* ResourceManager::GetItemTileSheet(uint32 itemID)

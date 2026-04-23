@@ -1,236 +1,187 @@
 #include "PlayerDBTable.h"
 
-void DatabasePlayerExec(DatabasePool* pPool, ePlayerDBQuery queryID, QueryRequest& req, bool preapred)
+QueryRequest PlayerDB::GetByMac(const string& mac, uint8 platformType, uint32 ownerID)
 {
-    TableQuery& query = sQueryTable[queryID];
+    QueryRequest req(ownerID);
+    req.AddData(mac, platformType);
+
+    req.queryID = DB_PLAYER_GET_BY_MAC;
+    return req;
+}
+
+QueryRequest PlayerDB::Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, const string& ip, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(guestName, platformType, guestID, mac, ip);
+
+    req.queryID = DB_PLAYER_CREATE;
+    return req;
+}
+
+QueryRequest PlayerDB::GetData(uint32 userID, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(userID);
+
+    req.queryID = DB_PLAYER_GET_DATA;
+    return req;
+}
+
+QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(roleID, inventoryData, userID, skinColor);
+
+    req.queryID = DB_PLAYER_SAVE;
+    return req;
+}
+
+QueryRequest PlayerDB::CountByIP(const string& ip, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(ip);
+
+    req.queryID = DB_PLAYER_COUNT_IP;
+    return req;
+}
+
+QueryRequest PlayerDB::GetByVID(const string& vid, uint8 platformType, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(vid, platformType);
+
+    req.queryID = DB_PLAYER_GET_BY_VID;
+    return req;
+}
+
+QueryRequest PlayerDB::GetByGID(const string& gid, uint8 platformType, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(gid, platformType);
+
+    req.queryID = DB_PLAYER_GET_BY_GID;
+    return req;
+}
+
+QueryRequest PlayerDB::GetByHash(int32 hash, uint8 platformType, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(hash, platformType);
+
+    req.queryID = DB_PLAYER_GET_BY_HASH;
+    return req;
+}
+
+QueryRequest PlayerDB::CountByGidMacIP(const string& gid, const string& mac, const string& ip, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(gid, mac, ip);
+
+    req.queryID = DB_PLAYER_COUNT_GID_MAC_IP;
+    return req;
+}
+
+QueryRequest PlayerDB::CountByVidMacIP(const string& vid, const string& mac, const string& ip, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(vid, mac, ip);
+
+    req.queryID = DB_PLAYER_COUNT_VID_MAC_IP;
+    return req;
+}
+
+QueryRequest PlayerDB::CountBySidMacIP(const string& sid, const string& mac, const string& ip, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(sid, mac, ip);
+
+    req.queryID = DB_PLAYER_COUNT_SID_MAC_IP;
+    return req;
+}
+
+QueryRequest PlayerDB::CountByMacIP(const string& mac, const string& ip, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(mac, ip);
+
+    req.queryID = DB_PLAYER_COUNT_MAC_IP;
+    return req;
+}
+
+QueryRequest PlayerDB::GrowIDExists(const string& growID, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(growID);
+
+    req.queryID = DB_PLAYER_GROWID_EXISTS;
+    return req;
+}
+
+QueryRequest PlayerDB::GrowIDCreate(uint32 userID, const string& name, const string& pass, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(name, pass, userID);
+
+    req.queryID = DB_PLAYER_GROWID_CREATE;
+    return req;
+}
+
+QueryRequest PlayerDB::GetByNameAndPass(const string& name, const string& pass, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(name, pass);
+
+    req.queryID = DB_PLAYER_GET_BY_NAME_AND_PASS;
+    return req;
+}
+
+void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
+{
+    if(req.queryID < 0) {
+        DatabaseExec(pPool, "", req, QUERY_FLAG_RETURN_RESULT); // fail query
+        return;
+    }
+
+    TableQuery& query = sQueryTable[req.queryID];
 
     if(preapred) {
         query.flags |= QUERY_FLAG_PREPARED;
     }
 
-    DatabaseExec(
-        pPool,
-        query.query,
-        req,
-        query.flags
-    );
+    DatabaseExec(pPool, query.query, req, query.flags);
 }
 
-QueryRequest MakePlayerByMacReq(const string& mac, uint8 platformType, int32 ownerID)
+void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, const string& rid, const string& gid, int32 hash, QueryRequest& req)
 {
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(2);
-    req.data[0] = mac;
-    req.data[1] = platformType;
-    return req;
-}
-
-QueryRequest MakePlayerCreateReq(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, const string& ip, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(5);
-    req.data[0] = guestName;
-    req.data[1] = platformType;
-    req.data[2] = guestID;
-    req.data[3] = mac;
-    req.data[4] = ip;
-    return req;
-}
-
-QueryRequest MakeGetPlayerDataReq(uint32 userID, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(1);
-    req.data[0] = userID;
-    return req;
-}
-
-QueryRequest MakeSavePlayerReq(uint32 userID, uint32 roleID, const string& inventoryData, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(3);
-    req.data[0] = roleID,
-    req.data[1] = inventoryData,
-    req.data[2] = userID;
-    return req;
-}
-
-QueryRequest MakeGetForInactive(uint32 userID, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(1);
-    req.data[0] = userID;
-    return req;
-}
-
-QueryRequest MakeCountCreatedAccByIP(const string& ip, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(1);
-    req.data[0] = ip;
-    return req;
-}
-
-QueryRequest MakePlayerByVIDReq(const string& vid, uint8 platformType, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(2);
-    req.data[0] = vid;
-    req.data[1] = platformType;
-    return req;
-}
-
-QueryRequest MakePlayerByGIDReq(const string& gid, uint8 platformType, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(2);
-    req.data[0] = gid;
-    req.data[1] = platformType;
-    return req;
-}
-
-QueryRequest MakePlayerByHashReq(int32 hash, uint8 platformType, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(2);
-    req.data[0] = hash;
-    req.data[1] = platformType;
-    return req;
-}
-
-QueryRequest MakeCountPlayerByGidMacIP(const string& gid, const string& mac, const string& ip, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(3);
-    req.data[0] = gid;
-    req.data[1] = mac;
-    req.data[2] = ip;
-    return req;
-}
-
-QueryRequest MakeCountPlayerByVidMacIP(const string& vid, const string& mac, const string& ip, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(3);
-    req.data[0] = vid;
-    req.data[1] = mac;
-    req.data[2] = ip;
-    return req;
-}
-
-QueryRequest MakeCountPlayerBySidMacIP(const string& sid, const string& mac, const string& ip, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(3);
-    req.data[0] = sid;
-    req.data[1] = mac;
-    req.data[2] = ip;
-    return req;
-}
-
-QueryRequest MakeCountPlayerByMacIP(const string& mac, const string& ip, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(2);
-    req.data[0] = mac;
-    req.data[1] = ip;
-    return req;
-}
-
-QueryRequest MakePlayerGrowIDExists(const string& growID, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(1);
-    req.data[0] = growID;
-    return req;
-}
-
-QueryRequest MakePlayerGrowIDCreate(uint32 userID, const string& name, const string& pass, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(3);
-    req.data[0] = name;
-    req.data[1] = pass;
-    req.data[2] = userID;
-    return req;
-}
-
-QueryRequest MakeGetPlayerByNameAndPass(const string& name, const string& pass, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
-    req.data.resize(2);
-    req.data[0] = name;
-    req.data[1] = pass;
-    return req;
-}
-
-void ExecUpdatePlayerIdentifier(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, const string& rid, const string& gid, int32 hash, int32 ownerID)
-{
-    QueryRequest req;
-    req.ownerID = ownerID;
-
     string query = "UPDATE Players SET ";
 
     if(!mac.empty() && mac != "02:00:00:00:00:00") {
         query += "Mac = ?, ";
-        req.data.push_back(mac);
+        req.AddData(mac);
     }
 
     if(!vid.empty()) {
         query += "VID = UNHEX(MD5(?)), ";
-        req.data.push_back(vid);
+        req.AddData(vid);
     }
 
     if(!sid.empty()) {
         query += "SID = UNHEX(MD5(?)), ";
-        req.data.push_back(sid);
+        req.AddData(sid);
     }
 
     if(!rid.empty()) {
         query += "RID = UNHEX(?), ";
-        req.data.push_back(rid);
+        req.AddData(rid);
     }
 
     if(!gid.empty()) {
         query += "GID = UNHEX(MD5(?)), ";
-        req.data.push_back(gid);
+        req.AddData(gid);
     }
 
     query += "Hash = ? WHERE ID = ?;";
-    req.data.push_back(hash);
-    req.data.push_back(userID);
+    req.AddData(hash, userID);
 
     DatabaseExec(pPool, query, req, QUERY_FLAG_NONE);
 }

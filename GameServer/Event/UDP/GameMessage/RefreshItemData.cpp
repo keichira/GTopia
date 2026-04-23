@@ -10,9 +10,6 @@ void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     ItemsClientData clientData = GetItemInfoManager()->GetClientData(pPlayer->GetLoginDetail().platformType);
     if(!clientData.pItemData) {
         pPlayer->SendOnConsoleMessage("Someting went wrong while sending updates");
-        /**
-         * disconnect
-         */
         LOGGER_LOG_WARN("Not sending file update data because its NULL");
         return;
     }

@@ -15,6 +15,23 @@ MasterBroadway::~MasterBroadway()
 {
 }
 
+void MasterBroadway::OnClientConnect(NetClient* pClient)
+{
+    if(m_pNetClient && pClient) {
+        pClient->status = SOCKET_CLIENT_CLOSE;
+    }
+    else if(!m_pNetClient && pClient) {
+        m_pNetClient = pClient;
+    }
+}
+
+void MasterBroadway::OnClientDisconnect(NetClient* pClient)
+{
+    if(pClient && m_pNetClient && (m_pNetClient == pClient)) {
+        m_pNetClient = nullptr;
+    }
+}
+
 void MasterBroadway::RegisterEvents()
 {
     ServerBroadwayBase::RegisterEvents();
@@ -52,7 +69,7 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
 
 void MasterBroadway::SendHelloPacket()
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -64,7 +81,7 @@ void MasterBroadway::SendHelloPacket()
 
 void MasterBroadway::SendAuthPacket(const string& authKey)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -101,7 +118,7 @@ void MasterBroadway::SendWorldRenderResult(bool succeed, uint32 userID, uint32 w
 
 void MasterBroadway::SendServerKillPacket()
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -110,6 +127,11 @@ void MasterBroadway::SendServerKillPacket()
     data[1] = (uint32)GetContext()->GetID();
 
     m_pNetClient->Send(data);   
+}
+
+bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
+{
+    return ServerBroadwayBase::Connect(host, port, retryCount, &m_pNetClient, shutdownFlag);
 }
 
 MasterBroadway* GetMasterBroadway() { return MasterBroadway::GetInstance(); }

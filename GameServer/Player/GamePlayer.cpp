@@ -14,53 +14,25 @@
 #include "Dialog/RenderWorldDialog.h"
 #include "Dialog/RegisterDialog.h"
 #include "Proton/ProtonUtils.h"
+#include "PlayerManager.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
-: Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(1), m_lastItemActivateTime(0), m_state(0),
-m_loggingOff(false)
+: Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(1), m_lastItemActivateTime(0), m_state(0)
 {
+    RandomizeNextDBSaveTime();
 }
 
 GamePlayer::~GamePlayer()
 {
 }
 
-void GamePlayer::OnHandleDatabase(QueryTaskResult&& result)
-{
-    if(HasState(PLAYER_STATE_LOGIN_GETTING_ACCOUNT)) {
-        LoadingAccount(std::move(result));
-    }
-
-    if(HasState(PLAYER_STATE_CREATING_GROWID) && HasState(PLAYER_STATE_IN_GAME)) {
-        HandleCreateGrowID(std::move(result));
-    }
-
-    result.Destroy();
-}
-
-void GamePlayer::OnHandleTCP(VariantVector&& result)
-{
-    if(HasState(PLAYER_STATE_CHECKING_SESSION)) {
-        CheckingLoginSession(std::move(result));
-    }
-
-    if(!HasState(PLAYER_STATE_IN_GAME)) {
-        return;
-    }
-
-    if(HasState(PLAYER_STATE_RENDERING_WORLD)) {
-        HandleRenderWorld(std::move(result));
-    }
-}
-
 void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
 {
     if(!HasState(PLAYER_STATE_LOGIN_REQUEST)) {
-        SendLogonFailWithLog("");
         return;
     }
 
-    RemoveState(PLAYER_STATE_LOGIN_REQUEST);
+    m_logonStartTime.Reset();
 
     if(!m_loginDetail.Serialize(packet, this, true)) {
         SendLogonFailWithLog("`4HUH?! ``Are you sure everything is alright?");
@@ -68,32 +40,34 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
     }
 
     m_userID = m_loginDetail.user;
-    SetState(PLAYER_STATE_CHECKING_SESSION);
     GetMasterBroadway()->SendCheckSessionPacket(GetNetID(), m_loginDetail.user, m_loginDetail.token, GetContext()->GetID());
 }
 
-void GamePlayer::CheckingLoginSession(VariantVector&& result)
+void GamePlayer::HandleCheckSession(VariantVector&& result)
 {
-    RemoveState(PLAYER_STATE_CHECKING_SESSION);
-
     bool sessionAgreed = result[2].GetBool();
     if(!sessionAgreed) {
         SendLogonFailWithLog("`4OOPS! ``Please re-connect server says you're not belong to this server");
         return;
     }
 
-    SetState(PLAYER_STATE_LOGIN_GETTING_ACCOUNT);
+    QueryRequest req = PlayerDB::GetData(GetUserID(), GetNetID());
+    req.callback = &GamePlayer::LoadAccountCB;
 
-    QueryRequest req = MakeGetPlayerDataReq(m_userID, GetNetID());
-    DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_DATA, req);
+    DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
 }
 
-void GamePlayer::LoadingAccount(QueryTaskResult&& result)
+void GamePlayer::LoadAccountCB(QueryTaskResult&& result)
 {
-    RemoveState(PLAYER_STATE_LOGIN_GETTING_ACCOUNT);
-    if(!result.result) {
-        SendLogonFailWithLog("`4OOPS! ``Failed to load your account, please re-connect");
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer || !result.result) {
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
         return;
+    }
+
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    if(!loginDetail.tankIDName.empty()) {
+        loginDetail.tankIDName = result.result->GetField("Name", 0).GetString();
     }
 
     uint32 roleID = result.result->GetField("RoleID", 0).GetUINT();
@@ -101,16 +75,24 @@ void GamePlayer::LoadingAccount(QueryTaskResult&& result)
         roleID = GetRoleManager()->GetDefaultRoleID();
     }
 
-    m_pRole = GetRoleManager()->GetRole(roleID);
-
-    if(!m_pRole) {
-        SendLogonFailWithLog("`4OOPS! ``Something went wrong while setting you up, please re-connect");
-        LOGGER_LOG_WARN("Failed to set player role %d for user %d", roleID, m_userID);
+    Role* pRole = GetRoleManager()->GetRole(roleID);
+    if(!pRole) {
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong while setting you up, please re-connect");
+        LOGGER_LOG_WARN("Failed to set player role %d for user %d", roleID, pPlayer->GetUserID());
         return;
     }
+    pPlayer->SetRole(pRole);
 
-    m_inventory.SetVersion(m_loginDetail.protocol);
+    uint32 skinColor = result.result->GetField("SkinColor", 0).GetUINT();
+    if(skinColor != 0) {
+        pPlayer->GetCharData().SetSkinColor(skinColor);
+    }
+
+    PlayerInventory& inventory = pPlayer->GetInventory();
+
+    inventory.SetVersion(pPlayer->GetLoginDetail().protocol);
     string dbInv = result.result->GetField("Inventory", 0).GetString();
+
     if(!dbInv.empty()) {
         uint32 invMemEstimate = dbInv.size() / 2;
         uint8* pInvData = new uint8[invMemEstimate];
@@ -118,23 +100,23 @@ void GamePlayer::LoadingAccount(QueryTaskResult&& result)
         HexToBytes(dbInv, pInvData);
 
         MemoryBuffer invMemBuffer(pInvData, invMemEstimate);
-        m_inventory.Serialize(invMemBuffer, false, true);
+        inventory.Serialize(invMemBuffer, false, true);
 
         SAFE_DELETE_ARRAY(pInvData);
     }
 
-    if(m_inventory.GetCountOfItem(ITEM_ID_FIST) == 0) {
-        m_inventory.AddItem(ITEM_ID_FIST, 1);
+    if(inventory.GetCountOfItem(ITEM_ID_FIST) == 0) {
+        inventory.AddItem(ITEM_ID_FIST, 1);
     }
 
-    if(m_inventory.GetCountOfItem(ITEM_ID_WRENCH) == 0) {
-        m_inventory.AddItem(ITEM_ID_WRENCH, 1);
+    if(inventory.GetCountOfItem(ITEM_ID_WRENCH) == 0) {
+        inventory.AddItem(ITEM_ID_WRENCH, 1);
     }
 
-    m_guestID = result.result->GetField("GuestID", 0).GetUINT();
+    pPlayer->SetGuestID(result.result->GetField("GuestID", 0).GetUINT());
 
     for(uint8 i = 0; i < BODY_PART_SIZE; ++i) {
-        uint16 cloth = m_inventory.GetClothByPart((eBodyPart)i);
+        uint16 cloth = inventory.GetClothByPart((eBodyPart)i);
 
         ItemInfo* pItem = GetItemInfoManager()->GetItemByID(cloth);
         if(!pItem) {
@@ -142,15 +124,14 @@ void GamePlayer::LoadingAccount(QueryTaskResult&& result)
         }
 
         if(pItem->type == ITEM_TYPE_CLOTHES && pItem->playModType != PLAYMOD_TYPE_NONE) {
-            AddPlayMod(pItem->playModType, true);
+            pPlayer->AddPlayMod(pItem->playModType, true);
         }
     }
 
-    SetState(PLAYER_STATE_ENTERING_GAME);
-    TransferingPlayerToGame();
+    pPlayer->TransferToGame();
 }
 
-void GamePlayer::TransferingPlayerToGame()
+void GamePlayer::TransferToGame()
 {
     string settings;
     settings += "proto=144"; /** search it what it effects in client */
@@ -159,11 +140,13 @@ void GamePlayer::TransferingPlayerToGame()
     settings += "|usingStoreNavigation=1";
     settings += "|enableInventoryTab=1";
 
-    ItemsClientData itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType);
+    auto itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType);
     auto pGameConfig = GetContext()->GetGameConfig();
 
-    PlayerTributeClientData tributeData = GetPlayerTributeManager()->GetClientData();
+    auto tributeData = GetPlayerTributeManager()->GetClientData();
 
+    RemoveState(PLAYER_STATE_LOGIN_REQUEST);
+    SetState(PLAYER_STATE_ENTERING_GAME);
     SendWelcomePacket(itemData.hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, tributeData.hash);
 }
 
@@ -188,112 +171,6 @@ void GamePlayer::HandleRenderWorld(VariantVector&& result)
     RemoveState(PLAYER_STATE_RENDERING_WORLD);
 }
 
-void GamePlayer::HandleCreateGrowID(QueryTaskResult&& result)
-{
-    if(!HasState(PLAYER_STATE_CREATING_GROWID)) {
-        return;
-    }
-    RemoveState(PLAYER_STATE_CREATING_GROWID);
-    
-    if(result.extraData.empty()) {
-        return;
-    }
-
-    int32 subType = result.extraData[0].GetINT();
-
-    if(subType == PLAYER_SUB_GROWID_CHECK_IDENTIFIERS) {
-        if(!result.result || result.extraData.size() < 2) {
-            return;
-        }
-
-        Variant* pMac = result.result->GetFieldSafe("mac_count", 0);
-        Variant* pIP = result.result->GetFieldSafe("ip_count", 0);
-        Variant* pOther = nullptr;
-        bool shouldSetOther = true;
-
-        if(m_loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !m_loginDetail.sid.empty()) {
-            pOther = result.result->GetFieldSafe("sid_count", 0);
-        }
-        else if(m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !m_loginDetail.gid.empty()) {
-            pOther = result.result->GetFieldSafe("gid_count", 0);
-        }
-        else if(m_loginDetail.platformType == Proton::PLATFORM_ID_IOS && !m_loginDetail.vid.empty()) {
-            pOther = result.result->GetFieldSafe("vid_count", 0);
-        }
-        else {
-            shouldSetOther = false;
-        }
-
-        if(!pMac && !pIP && (!shouldSetOther || !pOther)) {
-            SendOnTalkBubble("`4Oops! ``Something went wrong while checking for account creating.", true);
-            return;
-        }
-
-        GameConfig* pGameConfig = GetContext()->GetGameConfig();
-        if(
-            pIP->GetUINT() >= pGameConfig->maxAccountsPerIP ||
-            pMac->GetUINT() >= pGameConfig->maxAccountsPerMac ||
-            (shouldSetOther && (
-                pOther->GetUINT() >
-                (
-                    m_loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS ? pGameConfig->maxAccountsPerSid :
-                    m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID ? pGameConfig->maxAccountsPerGid :
-                    pGameConfig->maxAccountsPerVid
-                )
-            ))
-        ) {
-            SendOnTalkBubble("`4Oops! ``You've reached the max `5GrowID ``accounts you can make for this device or IP address!", true);
-            return;
-        }
-
-        bool fromDialog = result.extraData[1].GetBool();
-        if(fromDialog) {
-            if(result.extraData.size() < 3) {
-                return;
-            }
-
-            QueryRequest req = MakePlayerGrowIDExists(result.extraData[2].GetString(), GetNetID());
-            req.extraData = result.extraData;
-            req.extraData[0] = PLAYER_SUB_GROWID_CHECK_NAME;
-
-            SetState(PLAYER_STATE_CREATING_GROWID);
-            DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GROWID_EXISTS, req);
-        }
-        else {
-            RegisterDialog::Request(this);
-        }
-    }
-    else if(subType == PLAYER_SUB_GROWID_CHECK_NAME) {
-        if(result.extraData.size() < 5) {
-            return;
-        }
-
-        if(result.result->GetRowCount() > 0) {
-            RegisterDialog::Request(
-                this, result.extraData[2].GetString(),
-                result.extraData[3].GetString(), result.extraData[4].GetString(),
-                "`4Oops!`` The name `w" + result.extraData[2].GetString() + "`` is so cool someone else has already taken it. Please choose a different name."
-            );
-        }
-        else {
-            QueryRequest req = MakePlayerGrowIDCreate(m_userID, result.extraData[2].GetString(), result.extraData[3].GetString(), GetNetID());
-            req.extraData.resize(3);
-            req.extraData[0] = PLAYER_SUB_GROWID_SUCCESS;
-            req.extraData[1] = result.extraData[2].GetString();
-            req.extraData[2] = result.extraData[3].GetString();
-
-            SetState(PLAYER_STATE_CREATING_GROWID);
-            DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GROWID_CREATE, req);
-        }
-    }
-    else if(subType == PLAYER_SUB_GROWID_SUCCESS) {
-        m_loginDetail.tankIDName = result.extraData[1].GetString();
-        m_loginDetail.tankIDPass = result.extraData[2].GetString();
-
-        RegisterDialog::Success(this, m_loginDetail.tankIDName, m_loginDetail.tankIDPass);
-    }
-}
-
 void GamePlayer::SaveToDatabase()
 {
     uint32 invMemSize = m_inventory.GetMemEstimate(true);
@@ -302,37 +179,46 @@ void GamePlayer::SaveToDatabase()
     MemoryBuffer invMemBuffer(pInvData, invMemSize);
     m_inventory.Serialize(invMemBuffer, true, true);
 
-    QueryRequest req = MakeSavePlayerReq(
+    QueryRequest req = PlayerDB::Save(
         m_userID,
         m_pRole->GetID(),
         ToHex(pInvData, invMemSize),
+        m_characterData.GetSkinColor(),
         GetNetID()
     );
     
-    DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_SAVE, req);
+    DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
     SAFE_DELETE_ARRAY(pInvData);
 }
 
-void GamePlayer::LogOff()
+void GamePlayer::LogOff(bool forceDelete)
 {
-    bool isInGame = HasState(PLAYER_STATE_IN_GAME);
+    if(forceDelete) {
+        SetState(PLAYER_STATE_DELETE);
+    }
 
-    RemoveState(PLAYER_STATE_IN_GAME);
-    m_loggingOff = true;
+    if(!HasState(PLAYER_STATE_LOGGING_OFF)) {
+        SetState(PLAYER_STATE_LOGGING_OFF);
 
-    if(m_currentWorldID != 0) {
-        World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
-        if(pWorld) {
-            pWorld->PlayerLeaverWorld(this);
+        if(HasState(PLAYER_STATE_IN_GAME)) {
+            SaveToDatabase();
         }
-    }
 
-    if(isInGame) {
-        SaveToDatabase();
-    }
+        if(forceDelete && m_pPeer->state != ENET_PEER_STATE_DISCONNECTED) {
+            SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logoff\n", m_pPeer);
+            enet_peer_disconnect(m_pPeer, 0);
+        }
 
-    SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|log_off\n", m_pPeer);
-    GetMasterBroadway()->SendEndPlayerSession(m_userID);
+        if(m_currentWorldID != 0) {
+            World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
+            if(pWorld) {
+                pWorld->PlayerLeaverWorld(this);
+            }
+        }
+
+        SetState(PLAYER_STATE_DELETE);
+        GetMasterBroadway()->SendEndPlayerSession(m_userID);
+    }
 }
 
 void GamePlayer::Update()
@@ -346,7 +232,23 @@ void GamePlayer::Update()
                 pWorld->SendSetCharPacketToAll(this);
                 m_characterData.SetNeedCharStateUpdate(false);
             }
+
+            if(m_characterData.NeededSkinUpdate()) {
+                pWorld->SendSkinColorUpdateToAll(this);
+                m_characterData.SetNeedSkinUpdate(false);
+            }
         }
+    }
+
+    if(m_logonStartTime.GetElapsedTime() >= 8000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) {
+        LogOff(true);
+        return;
+    }
+
+    if(HasState(PLAYER_STATE_IN_GAME)) {
+        /**
+         * todo ping request
+         */
     }
 }
 
@@ -629,48 +531,129 @@ void GamePlayer::UpdateTorchPlayMod()
     SendOnTalkBubble("`2My torch went out, i have " + ToString(leftTorchCount) + " more!", true);
 }
 
-void GamePlayer::ExecGrowIDIdentifierCheck(bool fromDialog, const VariantVector& extraData)
+void GamePlayer::CheckLimitsForAccountCreation(bool fromDialog, const VariantVector& extraData)
 {
-    SetState(PLAYER_STATE_CREATING_GROWID);
-
     QueryRequest req;
 
     if (m_loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !m_loginDetail.sid.empty()) {
-        req = MakeCountPlayerBySidMacIP(m_loginDetail.sid, m_loginDetail.mac, GetAddress(), GetNetID());
+        req = PlayerDB::CountBySidMacIP(m_loginDetail.sid, m_loginDetail.mac, GetAddress(), GetNetID());
     }
     else if (m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !m_loginDetail.gid.empty()) {
-        req = MakeCountPlayerByGidMacIP(m_loginDetail.gid, m_loginDetail.mac, GetAddress(), GetNetID());
+        req = PlayerDB::CountByGidMacIP(m_loginDetail.gid, m_loginDetail.mac, GetAddress(), GetNetID());
     }
     else if (m_loginDetail.platformType == Proton::PLATFORM_ID_IOS && !m_loginDetail.vid.empty()) {
-        req = MakeCountPlayerByVidMacIP(m_loginDetail.vid, m_loginDetail.mac, GetAddress(), GetNetID());
+        req = PlayerDB::CountByVidMacIP(m_loginDetail.vid, m_loginDetail.mac, GetAddress(), GetNetID());
     }
     else {
-        req = MakeCountPlayerByMacIP(m_loginDetail.mac, GetAddress(), GetNetID());
+        req = PlayerDB::CountByMacIP(m_loginDetail.mac, GetAddress(), GetNetID());
     }
 
-    req.extraData.resize(2);
-    req.extraData[0] = PLAYER_SUB_GROWID_CHECK_IDENTIFIERS;
-    req.extraData[1] = fromDialog;
-
+    req.AddExtraData(fromDialog);
     if (!extraData.empty()) {
-        req.extraData.resize(5);
-        req.extraData[2] = extraData[0]; // name
-        req.extraData[3] = extraData[1]; // pass
-        req.extraData[4] = extraData[2]; // verify pass
+        // name, pass, verify pass
+        req.AddExtraData(extraData[0], extraData[1], extraData[2]);
     }
 
-    if (m_loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !m_loginDetail.sid.empty()) {
-        DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_COUNT_SID_MAC_IP, req);
+    req.callback = &GamePlayer::CheckAccountCreationLimitCB; 
+    DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
+}
+
+void GamePlayer::CheckAccountCreationLimitCB(QueryTaskResult&& result)
+{
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer || !result.result) {
+        return;
     }
-    else if (m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !m_loginDetail.gid.empty()) {
-        DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_COUNT_GID_MAC_IP, req);
+
+    Variant* pMac = result.result->GetFieldSafe("mac_count", 0);
+    Variant* pIP = result.result->GetFieldSafe("ip_count", 0);
+    Variant* pOther = nullptr;
+    bool shouldSetOther = true;
+
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+
+    if(loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !loginDetail.sid.empty()) {
+        pOther = result.result->GetFieldSafe("sid_count", 0);
     }
-    else if (m_loginDetail.platformType == Proton::PLATFORM_ID_IOS && !m_loginDetail.vid.empty()) {
-        DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_COUNT_VID_MAC_IP, req);
+    else if(loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !loginDetail.gid.empty()) {
+        pOther = result.result->GetFieldSafe("gid_count", 0);
+    }
+    else if(loginDetail.platformType == Proton::PLATFORM_ID_IOS && !loginDetail.vid.empty()) {
+        pOther = result.result->GetFieldSafe("vid_count", 0);
     }
     else {
-        DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_COUNT_MAC_IP, req);
+        shouldSetOther = false;
     }
+
+    if(!pMac && !pIP && (!shouldSetOther || !pOther)) {
+        pPlayer->SendOnTalkBubble("`4Oops! ``Something went wrong while checking for account creating.", true);
+        return;
+    }
+
+    GameConfig* pGameConfig = GetContext()->GetGameConfig();
+    if(
+        pIP->GetUINT() > pGameConfig->maxAccountsPerIP ||
+        pMac->GetUINT() > pGameConfig->maxAccountsPerMac ||
+        (shouldSetOther && (
+            pOther->GetUINT() >
+            (
+                loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS ? pGameConfig->maxAccountsPerSid :
+                loginDetail.platformType == Proton::PLATFORM_ID_ANDROID ? pGameConfig->maxAccountsPerGid :
+                pGameConfig->maxAccountsPerVid
+            )
+        ))
+    ) {
+        pPlayer->SendOnTalkBubble("`4Oops! ``You've reached the max `5GrowID ``accounts you can make for this device or IP address!", true);
+        return;
+    }
+
+    bool fromDialog = result.extraData[0].GetBool();
+    if(fromDialog) {
+        QueryRequest req = PlayerDB::GrowIDExists(result.extraData[1].GetString(), pPlayer->GetNetID());
+        req.extraData = result.extraData;
+
+        req.callback = &GamePlayer::AccountCreationNameExistsCB;
+        DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
+    }
+    else {
+        RegisterDialog::Request(pPlayer);
+    }
+}
+
+void GamePlayer::AccountCreationNameExistsCB(QueryTaskResult&& result)
+{
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer || !result.result) {
+        return;
+    }
+    
+    if(result.result->GetRowCount() > 0) {
+        RegisterDialog::Request(
+            pPlayer, result.extraData[1].GetString(),
+            result.extraData[2].GetString(), result.extraData[3].GetString(),
+            "`4Oops!`` The name `w" + result.extraData[1].GetString() + "`` is so cool someone else has already taken it. Please choose a different name."
+        );
+    }
+    else {
+        QueryRequest req = PlayerDB::GrowIDCreate(pPlayer->GetUserID(), result.extraData[1].GetString(), result.extraData[2].GetString(), pPlayer->GetNetID());
+        req.AddExtraData(result.extraData[1].GetString(), result.extraData[2].GetString());
+
+        req.callback = &GamePlayer::CreateAccountFinalCB;
+        DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
+    }
+}
+
+void GamePlayer::CreateAccountFinalCB(QueryTaskResult&& result)
+{
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer) {
+        return;
+    }
+
+    pPlayer->GetLoginDetail().tankIDName = result.extraData[0].GetString();
+    pPlayer->GetLoginDetail().tankIDPass = result.extraData[1].GetString();
+
+    RegisterDialog::Success(pPlayer, result.extraData[0].GetString(), result.extraData[1].GetString());
 }
 
 void GamePlayer::SendPositionToWorldPlayers()

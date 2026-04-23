@@ -57,6 +57,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GameMessage/DialogReturn.cpp
     ${GAME_EVENT}/UDP/GameMessage/Trash.cpp
     ${GAME_EVENT}/UDP/GameMessage/GrowID.cpp
+    ${GAME_EVENT}/UDP/GameMessage/Quit.cpp
 
     ${GAME_EVENT}/UDP/GamePacket/ItemActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
@@ -93,6 +94,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_PLAYER}/PlayMod.cpp
     ${SOURCE_PLAYER}/PlayModManager.cpp
     ${GAME_PLAYER}/GamePlayer.cpp
+    ${GAME_PLAYER}/PlayerManager.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp

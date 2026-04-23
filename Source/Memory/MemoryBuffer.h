@@ -61,6 +61,7 @@ public:
     uint32 WriteRaw(const void* pData, uint32 size);
     uint32 ReadStringRaw(string& pDest);
     uint32 WriteStringRaw(const string& pData);
+    void Destroy() { SAFE_DELETE_ARRAY(m_pBuffer); }
 
 private:
     uint8* m_pBuffer;

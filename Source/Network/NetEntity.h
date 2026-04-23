@@ -1,28 +1,29 @@
 #pragma once
 
 #include "../Precompiled.h"
-#include "../Utils/Variant.h"
-#include "../Database/QueryUtils.h"
 
-#define NET_ID_RESERVED_UNTIL 6
-#define NET_ID_FALLBACK 0
-#define NET_ID_WORLD_MANAGER 1
-#define NET_ID_GAME_SERVER 2
-#define NET_ID_CONTEXT 3
+static uint64 s_netID = 0;
+
+enum eEntityType
+{
+    ENTITY_TYPE_SYSTEM,
+    ENTITY_TYPE_PLAYER,
+    ENTITY_TYPE_WORLD,
+    ENTITY_TYPE_GUILD
+};
 
 class NetEntity {
 public:
-    NetEntity();
-    NetEntity(int32 id);
-    virtual ~NetEntity();
+    NetEntity(eEntityType type);
 
 public:
-    int32 GetNetID() const { return m_netID; }
-    
-    virtual void OnHandleDatabase(QueryTaskResult&&);
-    virtual void OnHandleTCP(VariantVector&&);
+    static eEntityType GetType(uint64 id) { return eEntityType(id >> 56); }
+
+public:
+    uint32 GetNetID() const { return uint32(m_entityID & 0xFFFFFFFFULL); }
+    eEntityType GetType() const { return GetType(m_entityID); }
+    uint64 GetEntityID() const { return m_entityID; }
 
 private:
-    int32 m_netID;
-    static int32 s_netID;
+    uint64 m_entityID;
 };

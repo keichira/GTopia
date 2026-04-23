@@ -6,9 +6,10 @@
 #include "../Server/ServerManager.h"
 #include "../Server/GameServer.h"
 #include "Proton/ProtonUtils.h"
+#include "PlayerManager.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer)
-: Player(pPeer)
+: Player(pPeer), m_state(PLAYER_STATE_IDLE)
 {
 }
 
@@ -16,72 +17,34 @@ GamePlayer::~GamePlayer()
 {
 }
 
-void GamePlayer::OnHandleDatabase(QueryTaskResult&& result)
-{    
-    switch(m_state) {
-        case PLAYER_STATE_LOGIN_CHECKING_ACCOUNT: {
-            LoginCheckingAccount(std::move(result));
-            break;
-        }
-
-        case PLAYER_STATE_COUNT_CREATED_FROM_IP: {
-            CheckCountOfCreatedAccsFromIP(std::move(result));
-            break;
-        }
-
-        case PLAYER_STATE_CREATING_ACCOUNT: {
-            CreatingAccount(std::move(result));
-            break;
-        }
-
-        case PLAYER_STATE_UPDATE_IDENTIFIERS: {
-            UpdatedIdentifiers(std::move(result));
-        }
-    }
-
-    result.Destroy();
-}
-
-void GamePlayer::StartLoginRequest(ParsedTextPacket<25> &packet)
+void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
 {
-    if(m_state != PLAYER_STATE_LOGIN_REQUEST) {
-        SendLogonFailWithLog("");
-        return;
-    }
+    SetState(PLAYER_STATE_LOGIN_REQUEST);
 
     if(!m_loginDetail.Serialize(packet, this, false)) {
         SendLogonFailWithLog("`4HUH?! ``Are you sure everything is alright?");
         return;
     }
 
-    m_state = PLAYER_STATE_LOGIN_GETTING_ACCOUNT;
     LoginGetAccount();
 }
 
 void GamePlayer::LoginGetAccount()
 {
-    if(m_state != PLAYER_STATE_LOGIN_GETTING_ACCOUNT) {
-        SendLogonFailWithLog("");
-        return;
-    }
-
-    m_state = PLAYER_STATE_LOGIN_CHECKING_ACCOUNT;
+    QueryRequest req;
 
     if(m_loginDetail.tankIDName.empty()) {
         if(m_loginDetail.platformType == Proton::PLATFORM_ID_IOS) {
             if(m_loginDetail.mac == "02:00:00:00:00:00") {
-                QueryRequest req = MakePlayerByVIDReq(m_loginDetail.vid, m_loginDetail.platformType, GetNetID());
-                DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_BY_VID, req);
+                req = PlayerDB::GetByVID(m_loginDetail.vid, m_loginDetail.platformType, GetNetID());
             }
             else {
-                QueryRequest req = MakePlayerByHashReq(m_loginDetail.hash, m_loginDetail.platformType, GetNetID());
-                DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_BY_HASH, req);
+                req = PlayerDB::GetByHash(m_loginDetail.hash, m_loginDetail.platformType, GetNetID());
             }
         }
         else if(m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID) {
             if(!m_loginDetail.gid.empty()) {
-                QueryRequest req = MakePlayerByGIDReq(m_loginDetail.gid, m_loginDetail.platformType, GetNetID());
-                DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_BY_GID, req);
+                req = PlayerDB::GetByGID(m_loginDetail.gid, m_loginDetail.platformType, GetNetID());
             }
             else {
                 if(m_loginDetail.mac == "02:00:00:00:00:00") {
@@ -89,8 +52,7 @@ void GamePlayer::LoginGetAccount()
                     return;
                 }
 
-                QueryRequest req = MakePlayerByGIDReq(m_loginDetail.mac, m_loginDetail.platformType, GetNetID());
-                DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_BY_MAC, req);
+                req = PlayerDB::GetByMac(m_loginDetail.mac, m_loginDetail.platformType, GetNetID());
             }
         }
         else {
@@ -99,117 +61,140 @@ void GamePlayer::LoginGetAccount()
                 return;
             }
     
-            QueryRequest req = MakePlayerByMacReq(m_loginDetail.mac, m_loginDetail.platformType, GetNetID());
-            DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_BY_MAC, req);
+            req = PlayerDB::GetByMac(m_loginDetail.mac, m_loginDetail.platformType, GetNetID());
         }
     }
     else {
-        QueryRequest req = MakeGetPlayerByNameAndPass(m_loginDetail.tankIDName, m_loginDetail.tankIDPass, GetNetID());
-        DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_GET_BY_NAME_AND_PASS, req);
+        req = PlayerDB::GetByNameAndPass(m_loginDetail.tankIDName, m_loginDetail.tankIDPass, GetNetID());
     }
+
+    req.callback = &GamePlayer::CheckAccountCB;
+
+    DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
 }
 
-void GamePlayer::LoginCheckingAccount(QueryTaskResult&& result)
+void GamePlayer::CheckAccountCB(QueryTaskResult&& result)
 {
-    if(m_state != PLAYER_STATE_LOGIN_CHECKING_ACCOUNT) {
-        SendLogonFailWithLog("");
-        return;
-    }
-
-    if(!result.result) {
-        SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer || !result.result) {
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
         return;
     }
 
     if(result.result->GetRowCount() > 0) {
-        m_userID = result.result->GetField("ID", 0).GetUINT();
+        Variant* pID = result.result->GetFieldSafe("ID", 0);
+
+        if(!pID || pID->GetUINT() < 1) {
+            pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
+            LOGGER_LOG_WARN("Got player but rows are null or id is not valid %s", pPlayer->GetAddress().c_str());
+            return;
+        }
+
+        pPlayer->SetUserID(pID->GetUINT());
     }
     else {
-        if(m_loginDetail.tankIDName.empty()) {
-            m_state = PLAYER_STATE_COUNT_CREATED_FROM_IP;
-        
-            QueryRequest req = MakeCountCreatedAccByIP(m_address, GetNetID());
-            DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_COUNT_ACC_IP, req);
+        if(pPlayer->GetLoginDetail().tankIDName.empty()) {        
+            QueryRequest req = PlayerDB::CountByIP(pPlayer->GetAddress(), pPlayer->GetNetID());
+
+            req.callback = &GamePlayer::CheckCountOfIPCB;
+            DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
         }
         else {
-            SendLogonFailWithLog("`4Unable to log on:`` That `wGrowID`` doesn't seem valid, or the password is wrong. If you don't have one, press `wCancel``, un-check `w'I have a GrowID'``, then click `wConnect``.");
+            pPlayer->SendLogonFailWithLog("`4Unable to log on:`` That `wGrowID`` doesn't seem valid, or the password is wrong. If you don't have one, press `wCancel``, un-check `w'I have a GrowID'``, then click `wConnect``.");
             return;
         }
 
         return;
     }
 
-    if(GetGameServer()->GetPlayerSessionByUserID(m_userID)) { // add ALREADY ON THINGGGGGGG
-        SendLogonFailWithLog("`#You are still online, please wait few seconds and re-login again.");
+    if(GetPlayerManager()->GetSessionByID(pPlayer->GetUserID())) { // TODO ALREADY ON
+        pPlayer->SendLogonFailWithLog("`#You are still online, please wait few seconds and re-login again.");
         return;
     }
 
-    m_state = PLAYER_STATE_UPDATE_IDENTIFIERS;
-    ExecUpdatePlayerIdentifier(
-        GetContext()->GetDatabasePool(), m_userID,
-        m_loginDetail.mac, m_loginDetail.vid, m_loginDetail.sid, m_loginDetail.rid,
-        m_loginDetail.gid, m_loginDetail.hash, GetNetID()
+    QueryRequest req(pPlayer->GetNetID());
+    req.callback = &GamePlayer::IdentifierUpdateResultCB;
+    
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    DatabasePlayerIdentifierExec(
+        GetContext()->GetDatabasePool(),
+        pPlayer->GetUserID(),
+        loginDetail.mac, loginDetail.vid,
+        loginDetail.sid, loginDetail.rid, loginDetail.gid,
+        loginDetail.hash, req
     );
 }
 
-void GamePlayer::CheckCountOfCreatedAccsFromIP(QueryTaskResult&& result)
+void GamePlayer::CheckCountOfIPCB(QueryTaskResult&& result)
 {
-    uint32 createdAccCountFromIP = result.result->GetRowCount();
-    if(createdAccCountFromIP >= GetContext()->GetGameConfig()->maxAccountsPerIP) {
-        SendLogonFailWithLog("``Too many accounts created from this IP address (" + string(m_address) + "). `4Unable to create new account for guest.");
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer || !result.result) {
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
         return;
     }
 
-    QueryRequest req = MakePlayerCreateReq(
-        m_loginDetail.requestedName, 
-        m_loginDetail.platformType, 
-        RandomRangeInt(100, 999),
-        m_loginDetail.mac,
-        m_address,
-        GetNetID());
+    if(result.result->GetRowCount() > GetContext()->GetGameConfig()->maxAccountsPerIP) {
+        pPlayer->SendLogonFailWithLog("``Too many accounts created from this IP address (" + pPlayer->GetAddress() + "). `4Unable to create new account for guest.");
+        return;
+    }
 
-    m_state = PLAYER_STATE_CREATING_ACCOUNT;
-    DatabasePlayerExec(GetContext()->GetDatabasePool(), DB_PLAYER_CREATE, req);
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    QueryRequest req = PlayerDB::Create(
+        loginDetail.requestedName,
+        loginDetail.platformType,
+        RandomRangeInt(100, 999),
+        loginDetail.mac,
+        pPlayer->GetAddress(),
+        pPlayer->GetNetID()
+    );
+
+    req.callback = &GamePlayer::CreateAccountCB;
+
+    DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
 }
 
-void GamePlayer::CreatingAccount(QueryTaskResult&& result)
+void GamePlayer::CreateAccountCB(QueryTaskResult&& result)
 {
-    if(m_state != PLAYER_STATE_CREATING_ACCOUNT) {
-        SendLogonFailWithLog("");
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer) {
         return;
     }
 
     if(result.increment == 0) {
-        SendLogonFailWithLog("`4OOPS! ``Please re-connect");
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Please re-connect");
         return;
     }
 
-    m_userID = result.increment;
+    pPlayer->SetUserID(result.increment);
 
-    m_state = PLAYER_STATE_UPDATE_IDENTIFIERS;
-    ExecUpdatePlayerIdentifier(
-        GetContext()->GetDatabasePool(), m_userID,
-        m_loginDetail.mac, m_loginDetail.vid, m_loginDetail.sid, m_loginDetail.rid,
-        m_loginDetail.gid, m_loginDetail.hash, GetNetID()
+    QueryRequest req(pPlayer->GetNetID());
+    req.callback = &GamePlayer::IdentifierUpdateResultCB;
+    
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    DatabasePlayerIdentifierExec(
+        GetContext()->GetDatabasePool(),
+        pPlayer->GetUserID(),
+        loginDetail.mac, loginDetail.vid,
+        loginDetail.sid, loginDetail.rid, loginDetail.gid,
+        loginDetail.hash, req
     );
 }
 
-void GamePlayer::UpdatedIdentifiers(QueryTaskResult&& result)
+void GamePlayer::IdentifierUpdateResultCB(QueryTaskResult&& result)
 {
-    m_state = PLAYER_STATE_SWITCHING_TO_GAME;
-    SwitchingToGame();
-}
-
-void GamePlayer::SwitchingToGame()
-{
-    if(m_state != PLAYER_STATE_SWITCHING_TO_GAME) {
-        SendLogonFailWithLog("");
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer) {
         return;
     }
 
+    pPlayer->SendToGame();
+}
+
+void GamePlayer::SendToGame()
+{
     ServerInfo* pServer = GetServerManager()->GetBestGameServer();
     if(!pServer) {
-        SendLogonFailWithLog("");
+        SendLogonFailWithLog("`4OOPS! ``Please re-connect");
         LOGGER_LOG_WARN("Tried to send player to game but the server is NULL?");
         return;
     }
@@ -220,6 +205,7 @@ void GamePlayer::SwitchingToGame()
     session.loginToken = RandomRangeInt(100000, 9999999);
     session.ip = m_address;
 
-    GetGameServer()->AddPlayerSession(session);
+    GetPlayerManager()->CreateSession(session);
     SendOnSendToServer(pServer->port, session.loginToken, m_userID, pServer->wanIP);
+    SetState(PLAYER_STATE_IDLE);
 }

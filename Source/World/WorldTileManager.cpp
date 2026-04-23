@@ -8,6 +8,7 @@ WorldTileManager::WorldTileManager()
 : m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
 {
     m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
+    m_tempTiles.resize(m_size.x * m_size.y);
 }
 
 WorldTileManager::~WorldTileManager()
@@ -28,6 +29,36 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
 
     if(!write) {
         m_tiles.resize(totalTiles);
+        m_tempTiles.resize(totalTiles);
+    }
+
+    if(write) {
+        uint32 batchStartIdx = 0;
+
+        for(uint32 i = 0; i < m_tiles.size(); ++i) {
+            TileInfo* pTile = &m_tiles[i];
+
+            if(pTile->HasFlag(TILE_FLAG_HAS_EXTRA_DATA) || pTile->HasFlag(TILE_FLAG_HAS_PARENT)) {
+                uint32 batchCount = i - batchStartIdx;
+
+                if(batchCount > 0) {
+                    memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * batchCount);
+                }
+
+                pTile->Serialize(memBuffer, write, database, pWorld);
+                batchStartIdx = i + 1;
+            }
+            else {
+                pTile->CopyTempData(&m_tempTiles[i]);
+            }
+        }
+
+        uint32 remaining = m_tempTiles.size() - batchStartIdx;
+        if(remaining > 0) {
+            memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * remaining);
+        }
+
+        return true;
     }
 
     for(auto i = 0; i < m_tiles.size(); ++i) {
@@ -42,14 +73,37 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     return true;
 }
 
+uint32 WorldTileManager::GetMemEstimate(bool database, WorldInfo* pWorld)
+{
+    MemoryBuffer memSize;
+
+    uint32 headerSize = sizeof(m_size) + 4;
+    memSize.WriteRaw(nullptr, headerSize);
+
+    for(auto& tile : m_tiles) {
+        if(tile.HasFlag(TILE_FLAG_HAS_EXTRA_DATA)) {
+            tile.Serialize(memSize, true, database, pWorld);
+        }
+        else {
+            uint32 size = 8;
+            if(tile.HasFlag(TILE_FLAG_HAS_PARENT)) size += 2;
+            memSize.WriteRaw(nullptr, size);
+        }
+    }
+
+    return memSize.GetOffset();
+}
+
 void WorldTileManager::Clear(bool reInit)
 {
     m_tiles.clear();
     m_keyTiles.clear();
     m_onFireTiles.clear();
+    m_tempTiles.clear();
 
     if(reInit) {
         m_tiles.resize(m_size.x * m_size.y);
+        m_tempTiles.resize(m_size.x * m_size.y);
         m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
         for(uint32 i = 0; i < m_tiles.size(); ++i) { m_tiles[i].SetPos(i % m_size.x, i / m_size.x); }
     }

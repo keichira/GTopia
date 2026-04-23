@@ -69,6 +69,8 @@ public:
     PlayMod* AddPlayMod(ePlayModType modType);
     PlayMod* RemovePlayMod(ePlayModType modType);
 
+    void SetSkinColor(uint32 skinColor) { m_skinColor = skinColor; SetNeedSkinUpdate(true); }
+
     bool NeededSkinUpdate() const { return m_needSkinUpdate; }
     void SetNeedSkinUpdate(bool val) { m_needSkinUpdate = val; }
 

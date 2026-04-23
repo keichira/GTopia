@@ -28,9 +28,12 @@ void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write)
         m_objects.resize(objectCount);
     }
 
-    for(auto& obj : m_objects) {
-        obj.Serialize(memBuffer, write);
-    }
+    memBuffer.ReadWriteRaw(m_objects.data(), objectCount * sizeof(WorldObject), write);
+}
+
+uint32 WorldObjectManager::GetMemEstimate()
+{
+    return m_objects.size() * sizeof(WorldObject);
 }
 
 void WorldObjectManager::AddItem(uint16 itemID, uint8 count, Vector2Float pos, uint8 flags)

@@ -5,9 +5,9 @@
 
 void GrowID::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(!pPlayer || pPlayer->HasGrowID() || pPlayer->HasState(PLAYER_STATE_CREATING_GROWID)) {
+    if(!pPlayer || pPlayer->HasGrowID()) {
         return;
     }
 
-    pPlayer->ExecGrowIDIdentifierCheck(false);
+    pPlayer->CheckLimitsForAccountCreation(false);
 }

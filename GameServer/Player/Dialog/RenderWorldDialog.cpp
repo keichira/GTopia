@@ -16,10 +16,6 @@ void RenderWorldDialog::Request(GamePlayer* pPlayer)
 
 void RenderWorldDialog::Handle(GamePlayer* pPlayer)
 {
-    if(!pPlayer->HasState(PLAYER_STATE_RENDERING_WORLD)) {
-        return;
-    }
-
     if(pPlayer->GetCurrentWorld() == 0) {
         return;
     }

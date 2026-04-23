@@ -19,6 +19,7 @@ public:
     void SetResourcePath(const string& path) { m_path = path; };
 
     BLImage* LoadTileSheet(const string& path);
+    BLImage* IsTileSheetExists(const string& path);
     BLImage* GetItemTileSheet(uint32 itemID);
     BLImage* GetTileSheet(const string& tileSheet);
 

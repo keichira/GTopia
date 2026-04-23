@@ -15,6 +15,9 @@ public:
     void SetID(uint32 id) { m_worldID = id; }
     uint32 GetID() const { return m_worldID; }
 
+    void SaveToDatabase();
+    void Update();
+
     bool PlayerJoinWorld(GamePlayer* pPlayer);
     void PlayerLeaverWorld(GamePlayer* pPlayer);
 
@@ -54,8 +57,8 @@ public:
     Timer& GetLastSaveTime() { return m_worldLastSaveTime; }
     Timer& GetOfflineTime() { return m_worldOfflineTime; }
 
-    void SetWaitingForClose(bool waiting) { m_waitingForClose = waiting; }
-    bool IsWaitingForClose() const { return m_waitingForClose; }
+    void SetDeleteFlag(bool bDelete) { m_deleteFlag = bDelete; }
+    bool HasDeleteFlag() const { return m_deleteFlag; }
 
 private:
     uint32 m_worldID;
@@ -64,5 +67,5 @@ private:
     Timer m_worldOfflineTime;
     Timer m_worldLastSaveTime;
 
-    bool m_waitingForClose;
+    bool m_deleteFlag;
 };

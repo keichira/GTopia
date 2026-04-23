@@ -34,7 +34,7 @@ bool DatabaseResult::Parse(MYSQL* pConnection, MYSQL_STMT* pStmt)
     return true;
 }
 
-uint32 DatabaseResult::GetSizeOfField(MYSQL_FIELD &field)
+uint32 DatabaseResult::GetSizeOfField(MYSQL_FIELD& field)
 {
     switch(field.type) {
         case MYSQL_TYPE_BOOL:

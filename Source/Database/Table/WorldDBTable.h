@@ -18,9 +18,12 @@ enum eWorldDBQuery
     DB_WORLD_SAVE
 };
 
-void DatabaseWorldExec(DatabasePool* pPool, eWorldDBQuery queryID, QueryRequest& req, bool preapred = false);
+namespace WorldDB
+{
+    QueryRequest ExistsByName(const string& worldName, uint32 ownerID = 0);
+    QueryRequest Create(const string& worldName, uint32 ownerID = 0);
+    QueryRequest GetWorldData(const string& worldName, uint32 ownerID = 0);
+    QueryRequest SaveWorld(const string& worldName, uint32 worldID, uint32 ownerID = 0);
+}
 
-QueryRequest MakeWorldExistsByName(const string& worldName, int32 ownerID);
-QueryRequest MakeWorldCreate(const string& worldName, int32 ownerID);
-QueryRequest MakeGetWorldData(const string& worldName, int32 ownerID);
-QueryRequest MakeSaveWorld(const string& worldName, uint32 worldID, int32 ownerID);
+void DatabaseWorldExec(DatabasePool* pPool, QueryRequest& req, bool preapred = false);

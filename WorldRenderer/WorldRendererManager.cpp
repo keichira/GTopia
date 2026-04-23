@@ -3,6 +3,7 @@
 #include "Utils/Timer.h"
 #include "MasterBroadway.h"
 #include "IO/Log.h"
+#include "Utils/ResourceManager.h"
 
 WorldRendererManager::WorldRendererManager()
 {
@@ -20,16 +21,17 @@ void WorldRendererManager::Update()
 
     WorldRenderInfo renderInfo;
     if(!m_renderQueue.try_dequeue(renderInfo)) {
+        if(m_lastRenderTime.GetElapsedTime() >= 2 * 3600 * 1000) {
+            LOGGER_LOG_INFO("Killing resources due inactivity");
+            GetResourceManager()->Kill();
+            m_lastRenderTime.Reset();
+        }
+
         return;
     }
 
     m_lastRenderTime.Reset();
     MasterBroadway* pMasterBroadway = GetMasterBroadway();
-
-    if(renderInfo.userID == 0) {
-        LOGGER_LOG_ERROR("User id is 0? skipping");
-        return;
-    }
 
     if(renderInfo.worldID == 0) {
         LOGGER_LOG_ERROR("World id is 0? skippping");

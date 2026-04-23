@@ -9,11 +9,16 @@ WorldInfo::WorldInfo()
 
 WorldInfo::~WorldInfo()
 {
+    Kill();
+}
+
+void WorldInfo::Kill()
+{
     SAFE_DELETE(m_pTileMgr);
     SAFE_DELETE(m_pObjMgr);
 }
 
-bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
+bool WorldInfo::Serialize(MemoryBuffer &memBuffer, bool write, bool database)
 {
     memBuffer.ReadWrite(m_version, write);
     memBuffer.ReadWrite(m_flags, write);
@@ -50,4 +55,15 @@ void WorldInfo::GenerateWorld(eWorldGenerationType type)
             break;
         }
     }
+}
+
+uint32 WorldInfo::GetMemEstimate(bool database)
+{
+    uint32 memSize = 0;
+    memSize += sizeof(m_version) + sizeof(m_flags) + 2 + m_name.size();
+    memSize += m_pTileMgr->GetMemEstimate(database, this);
+    memSize += m_pObjMgr->GetMemEstimate();
+    memSize += sizeof(m_defaultWeather) + sizeof(m_currentWeather);
+
+    return memSize;
 }

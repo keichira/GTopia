@@ -63,40 +63,18 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
         return;
     }
 
-    uint64 startTime = Time::GetSystemTime();
-
     QueryTaskResult taskRes;
-    uint32 processed = 0;
+    Timer startTime;
 
     while(pDatabasePool->GetResult(taskRes)) {
-        switch(taskRes.ownerID) {
-            case NET_ID_FALLBACK: {
-                break;
-            }
-
-            case NET_ID_WORLD_MANAGER: {
-                GetWorldManager()->OnHandleDatabase(std::move(taskRes));
-                break;
-            }
-
-            default: {       
-                GamePlayer* pPlayer = GetGameServer()->GetPlayerByNetID(taskRes.ownerID);
-                if(!pPlayer) {
-                    LOGGER_LOG_WARN("Trying to process database result but player %d not exits?", taskRes.ownerID);
-                }
-
-                pPlayer->OnHandleDatabase(std::move(taskRes));
-            }
+        if(taskRes.callback) {
+            taskRes.callback(std::move(taskRes));
+            taskRes.Destroy();
         }
 
-        processed++;
-        if(Time::GetSystemTime() - startTime >= maxTimeMS) {
+        if(startTime.GetElapsedTime() >= maxTimeMS) {
             break;
         }
-    }
-
-    if(processed > 0) {
-        LOGGER_LOG_DEBUG("Processed %d Database result maxMS %d, took %d MS", processed, maxTimeMS, Time::GetSystemTime() - startTime);
     }
 }
 
@@ -105,7 +83,7 @@ int main(int argc, char const* argv[])
     signal(SIGTERM, SignalStop);
     signal(SIGINT, SignalStop);
 
-    LOGGER_LOG_INFO("Starting Master Server");
+    LOGGER_LOG_INFO("Starting Master Server %s", Time::GetDateTimeStr().c_str());
     
     GetContext()->Init();
 

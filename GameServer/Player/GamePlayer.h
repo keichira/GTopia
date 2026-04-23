@@ -4,24 +4,17 @@
 #include "Player/Role.h"
 #include "Utils/Timer.h"
 #include "Player/PlayMod.h"
+#include "Database/QueryUtils.h"
+#include "Math/Random.h"
 
 enum ePlayerState
 {
     PLAYER_STATE_LOGIN_REQUEST = 1 << 0,
-    PLAYER_STATE_CHECKING_SESSION = 1 << 1,
-    PLAYER_STATE_LOGIN_GETTING_ACCOUNT = 1 << 2,
-    PLAYER_STATE_LOADING_ACCOUNT = 1 << 3,
-    PLAYER_STATE_ENTERING_GAME = 1 << 4,
-    PLAYER_STATE_IN_GAME = 1 << 5,
-    PLAYER_STATE_RENDERING_WORLD = 1 << 6,
-    PLAYER_STATE_CREATING_GROWID = 1 << 7
-};
-
-enum ePlayerSubState
-{
-    PLAYER_SUB_GROWID_CHECK_IDENTIFIERS,
-    PLAYER_SUB_GROWID_CHECK_NAME,
-    PLAYER_SUB_GROWID_SUCCESS
+    PLAYER_STATE_ENTERING_GAME = 1 << 1,
+    PLAYER_STATE_IN_GAME = 1 << 2,
+    PLAYER_STATE_LOGGING_OFF = 1 << 3,
+    PLAYER_STATE_RENDERING_WORLD = 1 << 4,
+    PLAYER_STATE_DELETE = 1 << 5
 };
 
 class TileInfo;
@@ -32,27 +25,23 @@ public:
     ~GamePlayer();
 
 public:
-    void SetState(ePlayerState state) { m_state |= (uint32)state; }
-    void RemoveState(ePlayerState state) { m_state &= ~(uint32)state; }
-    uint32 HasState(ePlayerState state) { return m_state & state; }
-
-    void OnHandleDatabase(QueryTaskResult&& result) override;
-    void OnHandleTCP(VariantVector&& result) override;
+    void SetState(ePlayerState state) { m_state |= state; }
+    void RemoveState(ePlayerState state) { m_state &= ~state; }
+    bool HasState(ePlayerState state) const { return m_state & state; }
 
     void StartLoginRequest(ParsedTextPacket<25>& packet);
-    void CheckingLoginSession(VariantVector&& result);
-    void LoadingAccount(QueryTaskResult&& result);
-    void TransferingPlayerToGame();
+    void HandleCheckSession(VariantVector&& result);
+    static void LoadAccountCB(QueryTaskResult&& result);
+    void TransferToGame();
 
     void HandleRenderWorld(VariantVector&& result);
-    void HandleCreateGrowID(QueryTaskResult&& result);
 
     void SaveToDatabase();
-    void LogOff();
+    void LogOff(bool forceDelete);
 
     void Update();
 
-    void SetJoinWorld(bool joining) { m_joiningWorld = joining; }
+    void SetJoiningWorld(bool joining) { m_joiningWorld = joining; }
     bool IsJoiningWorld() { return m_joiningWorld; }
     
     void SetCurrentWorld(uint32 worldID) { m_currentWorldID = worldID; }
@@ -69,6 +58,10 @@ public:
     Vector2Float GetRespawnPos() const { return m_respawnPos; }
 
     Role* GetRole() const { return m_pRole; };
+    void SetRole(Role* pRole) { m_pRole = pRole; }
+
+    void SetGuestID(uint32 id) { m_guestID = id; }
+
     void ToggleCloth(uint16 itemID);
 
     void ModifyInventoryItem(uint16 itemID, int16 amount);
@@ -84,14 +77,19 @@ public:
     void ResetItemActiveTime() { m_lastItemActivateTime = Time::GetSystemTime(); }
 
     bool HasGrowID() { return !m_loginDetail.tankIDPass.empty(); }
-    void ExecGrowIDIdentifierCheck(bool fromDialog, const VariantVector& extraData = VariantVector{});
+    void CheckLimitsForAccountCreation(bool fromDialog, const VariantVector& extraData = VariantVector{});
+
+    static void CheckAccountCreationLimitCB(QueryTaskResult&& result);
+    static void AccountCreationNameExistsCB(QueryTaskResult&& result);
+    static void CreateAccountFinalCB(QueryTaskResult&& result);
 
     void SendPositionToWorldPlayers();
 
     Timer& GetLastActionTime() { return m_lastActionTime; }
     Timer& GetLastDBSaveTime() { return m_lastDbSaveTime; }
 
-    bool IsLoggingOff() const { return m_loggingOff; }
+    void RandomizeNextDBSaveTime() { m_nextDbSaveTime = RandomRangeInt(10 * 60, 15 * 60) * 1000; };
+    uint64 GetNextDBSaveTime() const { return m_nextDbSaveTime; };
 
 private:
     uint32 m_state;
@@ -103,12 +101,13 @@ private:
 
     uint32 m_guestID;
 
-    bool m_loggingOff;
-
     Vector2Float m_respawnPos;
     Vector2Float m_worldPos;
 
     Timer m_lastDbSaveTime;
+    uint64 m_nextDbSaveTime;
+
+    Timer m_logonStartTime;
 
     Role* m_pRole;
 };

@@ -15,6 +15,7 @@
 #include "../Event/TCP/TCPEventKillServer.h"
 
 MasterBroadway::MasterBroadway()
+: m_pNetClient(nullptr)
 {
 }
 
@@ -58,7 +59,7 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
 
 void MasterBroadway::SendHelloPacket()
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -70,7 +71,7 @@ void MasterBroadway::SendHelloPacket()
 
 void MasterBroadway::SendAuthPacket(const string& authKey)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -89,9 +90,26 @@ void MasterBroadway::SendAuthPacket(const string& authKey)
     m_pNetClient->Send(packet);
 }
 
+void MasterBroadway::OnClientConnect(NetClient* pClient)
+{
+    if(m_pNetClient && pClient) {
+        pClient->status = SOCKET_CLIENT_CLOSE;
+    }
+    else if(!m_pNetClient && pClient) {
+        m_pNetClient = pClient;
+    }
+}
+
+void MasterBroadway::OnClientDisconnect(NetClient* pClient)
+{
+    if(pClient && m_pNetClient && (m_pNetClient == pClient)) {
+        m_pNetClient = nullptr;
+    }
+}
+
 void MasterBroadway::SendCheckSessionPacket(int32 netID, uint32 userID, uint32 token, uint16 serverID)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -107,7 +125,7 @@ void MasterBroadway::SendCheckSessionPacket(int32 netID, uint32 userID, uint32 t
 
 void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldID)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -122,7 +140,7 @@ void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldID)
 
 void MasterBroadway::SendWorldInitResult(bool succeed, uint32 worldID)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -136,7 +154,7 @@ void MasterBroadway::SendWorldInitResult(bool succeed, uint32 worldID)
 
 void MasterBroadway::SendPlayerWorldJoin(int32 playerNetID, const string& worldName)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -151,14 +169,14 @@ void MasterBroadway::SendPlayerWorldJoin(int32 playerNetID, const string& worldN
 
 void MasterBroadway::SendHeartBeat()
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
     VariantVector data(4);
     data[0] = TCP_PACKET_HEARTBEAT;
     data[1] = (uint32)GetContext()->GetID();
-    data[2] = GetGameServer()->GetOnlineCount();
+    data[2] = GetPlayerManager()->GetPlayerCount();
     data[3] = GetWorldManager()->GetWorldCount();
 
     m_pNetClient->Send(data);
@@ -167,7 +185,7 @@ void MasterBroadway::SendHeartBeat()
 
 void MasterBroadway::SendEndPlayerSession(uint32 userID)
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 
@@ -178,9 +196,14 @@ void MasterBroadway::SendEndPlayerSession(uint32 userID)
     m_pNetClient->Send(data);   
 }
 
+bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
+{
+    return ServerBroadwayBase::Connect(host, port, retryCount, &m_pNetClient, shutdownFlag);
+}
+
 void MasterBroadway::SendServerKillPacket()
 {
-    if(!m_connected || !m_pNetClient) {
+    if(!m_pNetClient) {
         return;
     }
 

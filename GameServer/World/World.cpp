@@ -5,11 +5,12 @@
 #include "Item/ItemInfoManager.h"
 #include "Math/Rect.h"
 #include "Math/Math.h"
-
+#include "../Context.h"
+#include "Database/Table/WorldDBTable.h"
 #include "IO/File.h"
 
 World::World()
-: m_worldID(0)
+: m_worldID(0), m_deleteFlag(false)
 {
 }
 
@@ -17,13 +18,59 @@ World::~World()
 {
 }
 
-bool World::PlayerJoinWorld(GamePlayer* pPlayer)
+void World::SaveToDatabase()
+{
+    File file;
+    string worldSavePath = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(GetID()) + ".bin";
+    if(!file.Open(worldSavePath, FILE_MODE_WRITE)) {
+        return;
+    }
+
+    MemoryBuffer memSize;
+    Serialize(memSize, true, true);
+
+    uint32 worldMemSize = memSize.GetOffset();
+    uint8* pWorldData = new uint8[worldMemSize];
+
+    MemoryBuffer memBuffer(pWorldData, worldMemSize);
+    Serialize(memBuffer, true, true);
+
+    if(file.Write(pWorldData, worldMemSize) != worldMemSize) {
+        file.Close();
+        SAFE_DELETE_ARRAY(pWorldData);
+        return;
+    }
+
+    file.Close();
+    SAFE_DELETE_ARRAY(pWorldData);
+
+    QueryRequest req = WorldDB::SaveWorld(GetWorlName(), GetID());
+    DatabaseWorldExec(GetContext()->GetDatabasePool(), req);
+}
+
+void World::Update()
+{
+    if(m_players.size() > 0) {
+        m_worldOfflineTime.Reset();
+    }
+    else {
+        if(m_worldOfflineTime.GetElapsedTime() >= 3600 * 1000) {
+            m_deleteFlag = true;
+        }
+    }
+
+    if(m_worldLastSaveTime.GetElapsedTime() >= 40 * 60 * 1000) {
+        SaveToDatabase();
+    }
+}
+
+bool World::PlayerJoinWorld(GamePlayer *pPlayer)
 {
     if(!pPlayer) {
         return false;
     }
 
-    pPlayer->SetJoinWorld(false);
+    pPlayer->SetJoiningWorld(false);
     pPlayer->SetCurrentWorld(m_worldID);
     m_players.push_back(pPlayer);
 
@@ -37,11 +84,8 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
         pPlayer->SetWorldPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
         pPlayer->SetRespawnPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
     }
-
-    MemoryBuffer memSize;
-    Serialize(memSize, true, false);
     
-    uint32 worldMemSize = memSize.GetOffset();
+    uint32 worldMemSize = GetMemEstimate(false);
     uint8* pWorldData = new uint8[worldMemSize];
 
     MemoryBuffer memBuffer(pWorldData, worldMemSize);

@@ -1,6 +1,6 @@
 #include "Utils/StringUtils.h"
 #include "GiveItem.h"
-#include "../Server/GameServer.h"
+#include "../Player/PlayerManager.h"
 #include "Item/ItemInfoManager.h"
 
 const CommandInfo& GiveItem::GetInfo()
@@ -48,8 +48,8 @@ void GiveItem::Execute(GamePlayer* pPlayer, std::vector<string>& args)
         return;
     }
 
-    GamePlayer* pTarget = GetGameServer()->GetPlayerByUserID(userID);
-    if(!pTarget) { // search on sub-servers
+    GamePlayer* pTarget = GetPlayerManager()->GetPlayerByUserID(userID);
+    if(!pTarget) { // todo search on sub-servers
         pPlayer->SendOnConsoleMessage("`oFailed to find user with given id");
         return;
     }

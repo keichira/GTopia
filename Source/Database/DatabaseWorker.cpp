@@ -46,6 +46,9 @@ void DatabaseWorker::Update(uint64 maxTimeMS)
         uint64 taskStartTime = Time::GetSystemTime();
 
         QueryTaskResult taskRes;
+        taskRes.callback = taskReq.callback;
+        taskRes.queryID = taskReq.queryID;
+
         if(taskReq.query.empty()) {
             MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_FAIL);
             continue;

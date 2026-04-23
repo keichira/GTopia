@@ -3,5 +3,5 @@
 
 void TCPEventWorldInit::Execute(NetClient* pClient, VariantVector& data)
 {
-    GetWorldManager()->OnHandleTCP(std::move(data));
+    GetWorldManager()->HandleWorldInit(std::move(data));
 }

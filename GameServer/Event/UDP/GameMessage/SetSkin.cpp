@@ -8,16 +8,16 @@ void SetSkin::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
     }
 
-    uint32 packetSkinColor = 0;
+    uint32 skinColor = 0;
     /*really need to convert to string?*/
-    if(ToUInt(string(pColor->value, pColor->size), packetSkinColor) != TO_INT_SUCCESS) {
+    if(ToUInt(string(pColor->value, pColor->size), skinColor) != TO_INT_SUCCESS) {
         return;
     }
 
     /**
-     * check colors for special colors like supporter/super supp
-     * and return if no access
+     * check if player can set the skin color
+     * do not allow other colors
+     * or check supporter
      */
-
-    
+    pPlayer->GetCharData().SetSkinColor(skinColor);
 }

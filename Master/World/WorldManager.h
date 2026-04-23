@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Precompiled.h"
-#include "World/WorldManagerBase.h"
+#include "Database/QueryUtils.h"
 
 enum eWorldState
 {
@@ -32,7 +32,7 @@ struct WorldSession
     }
 };
 
-class WorldManager : public WorldManagerBase {
+class WorldManager {
 private:
     enum eWorldDatabaseState
     {
@@ -52,15 +52,12 @@ public:
     }
 
 public:
-    void OnHandleDatabase(QueryTaskResult&& result) override;
-    void OnHandleTCP(VariantVector&& result) override;
-
-public:
     void HandleWorldInit(VariantVector&& result);
-    void HandlePlayerJoinRequest(VariantVector&& result);
 
-    void HandleDBWorldExists(QueryTaskResult&& result);
-    void HandleDBWorldCreate(QueryTaskResult&& result);
+    static void CheckWorldExistCB(QueryTaskResult&& result);
+    static void CreateWorldCB(QueryTaskResult&& result);
+
+    void HandlePlayerJoinRequest(VariantVector&& result);
 
     void CreateWorldSessionAndNotice(uint32 worldID, const string& worldName, int32 playerNetID, uint32 serverID);
 

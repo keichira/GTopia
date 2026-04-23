@@ -1,6 +1,6 @@
 #include "TCPEventRenderWorld.h"
 #include "../../Server/ServerManager.h"
-#include "../../Server/GameServer.h"
+#include "../../Player/PlayerManager.h"
 #include "../../World/WorldManager.h"
 
 void TCPEventRenderWorldData::FromVariant(VariantVector& varVec, bool forResult)
@@ -55,7 +55,7 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
         }
 
         case TCP_RENDER_RESULT: {
-            PlayerSession* pPlayer = GetGameServer()->GetPlayerSessionByUserID(eventData.userID);
+            PlayerSession* pPlayer = GetPlayerManager()->GetSessionByID(eventData.userID);
             if(!pPlayer) {
                 return;
             }

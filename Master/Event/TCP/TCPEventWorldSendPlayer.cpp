@@ -3,5 +3,5 @@
 
 void TCPEventWorldSendPlayer::Execute(NetClient* pClient, VariantVector& data)
 {
-    GetWorldManager()->OnHandleTCP(std::move(data));
+    GetWorldManager()->HandlePlayerJoinRequest(std::move(data));
 }

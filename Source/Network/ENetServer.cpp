@@ -56,7 +56,7 @@ void ENetServer::Update()
     }
 
     ENetEvent event;
-    while(enet_host_service(m_pHost, &event, 1) > 0) {
+    while(enet_host_service(m_pHost, &event, 0) > 0) {
         m_eventQueue.enqueue(std::move(event));
     }
 }

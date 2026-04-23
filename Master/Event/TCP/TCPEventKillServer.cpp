@@ -1,7 +1,7 @@
 #include "TCPEventKillServer.h"
 #include "../../Server/ServerManager.h"
 #include "../../World/WorldManager.h"
-#include "../../Server/GameServer.h"
+#include "../../Player/PlayerManager.h"
 
 void TCPKillServerEventData::FromVariant(VariantVector& varVec)
 {
@@ -20,5 +20,5 @@ void TCPEventKillServer::Execute(NetClient* pClient, VariantVector& data)
     LOGGER_LOG_WARN("Killing server %d", eventData.serverID);
     GetServerManager()->RemoveServer(eventData.serverID);
     GetWorldManager()->RemoveWorldsWithServerID(eventData.serverID);
-    GetGameServer()->EndPlayerSessionsWithServerID(eventData.serverID);
+    GetPlayerManager()->EndSessionsByServer(eventData.serverID);
 }

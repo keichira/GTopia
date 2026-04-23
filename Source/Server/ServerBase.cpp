@@ -11,15 +11,15 @@ ServerBase::~ServerBase()
     Kill();
 }
 
-void ServerBase::OnEventConnect(ENetEvent &event)
+void ServerBase::OnEventConnect(ENetEvent& event)
 {
 }
 
-void ServerBase::OnEventReceive(ENetEvent &event)
+void ServerBase::OnEventReceive(ENetEvent& event)
 {
 }
 
-void ServerBase::OnEventDisconnect(ENetEvent &event)
+void ServerBase::OnEventDisconnect(ENetEvent& event)
 {
 }
 
@@ -27,7 +27,7 @@ void ServerBase::RegisterEvents()
 {
 }
 
-bool ServerBase::Init(const string &host, uint16 port)
+bool ServerBase::Init(const string& host, uint16 port)
 {
     m_pENetServer = new ENetServer();
     if(!m_pENetServer->Init(host, port)) {
@@ -58,7 +58,7 @@ void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
         return;
     }
 
-    uint64 startTime = Time::GetSystemTime();
+    Timer startTime;
     ENetEvent event;
 
     while(m_pENetServer->GetEvents().try_dequeue(event)) {
@@ -83,18 +83,8 @@ void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
                 break;
         }
 
-        if(Time::GetSystemTime() - startTime >= maxTimeMS) {
+        if(startTime.GetElapsedTime() >= maxTimeMS) {
             break;
         }
     }
-}
-
-GamePlayer* ServerBase::GetPlayerByNetID(int32 netID)
-{
-    auto it = m_playerCache.find(netID);
-    if(it != m_playerCache.end()) {
-        return it->second;
-    }
-
-    return nullptr;
 }

@@ -85,11 +85,11 @@ void WorldRenderer::Draw()
         float textWidth = m_renderer.GetTextWidth(pFont, worldName, 32);
         float textHeight = m_renderer.GetTextHeight(pFont, 32);
 
-
         m_renderer.DrawGTText(pFont, BLPoint{m_renderer.GetSurfaceWitdh() - textWidth * 0.9f, m_renderer.GetSurfaceHeight() - textHeight - 16*3}, worldName, 32);
     }
 
     m_renderer.WriteToFile(GetContext()->GetGameConfig()->rendererSavePath + "/" + m_world.GetWorlName() + ".png");
+    m_world.Kill();
 }
 
 void WorldRenderer::ComputeVisibleBG()

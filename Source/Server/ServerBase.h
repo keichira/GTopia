@@ -8,9 +8,6 @@ class GamePlayer;
 
 class ServerBase {
 public:
-    typedef std::unordered_map<int32, GamePlayer*> PlayerCache;
-
-public:
     ServerBase();
     virtual ~ServerBase();
 
@@ -26,9 +23,6 @@ public:
     bool Init(const string& host, uint16 port);
     void Update();
 
-    GamePlayer* GetPlayerByNetID(int32 netID);
-
 protected:
     ENetServer* m_pENetServer;
-    PlayerCache m_playerCache;
 };

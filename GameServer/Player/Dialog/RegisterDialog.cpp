@@ -5,7 +5,7 @@
 
 void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder, const string& passPlaceholder, const string& passVerifPlaceholder, const string& errorMsg)
 {
-    if(!pPlayer || pPlayer->HasGrowID() || pPlayer->HasState(PLAYER_STATE_CREATING_GROWID)) {
+    if(!pPlayer || pPlayer->HasGrowID()) {
         return;
     }
 
@@ -32,7 +32,7 @@ void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder,
 
 void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(!pPlayer || pPlayer->HasGrowID() || pPlayer->HasState(PLAYER_STATE_CREATING_GROWID)) {
+    if(!pPlayer || pPlayer->HasGrowID()) {
         return;
     }
 
@@ -68,7 +68,7 @@ void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     extraData[1] = pass;
     extraData[2] = verifPass;
 
-    pPlayer->ExecGrowIDIdentifierCheck(true, extraData);
+    pPlayer->CheckLimitsForAccountCreation(true, extraData);
 }
 
 void RegisterDialog::Success(GamePlayer* pPlayer, const string& growID, const string& pass)

@@ -4,8 +4,9 @@
 #include "Event/EventDispatcher.h"
 #include "../Player/GamePlayer.h"
 #include "../Command/CommandBase.h"
+#include "../Player/PlayerManager.h"
 
-class GameServer : public ServerBase, NetEntity {
+class GameServer : public ServerBase {
 public:
     GameServer();
     ~GameServer();
@@ -26,12 +27,8 @@ public:
 
 public:
     void ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args);
-    GamePlayer* GetPlayerByUserID(uint32 userID);
 
-    void UpdatePlayers();
-    void ForceSaveAllPlayers();
-
-    uint32 GetOnlineCount() { return m_playerCache.size(); }
+    void ForceSaveEverything();
 
 private:
     template<class T>

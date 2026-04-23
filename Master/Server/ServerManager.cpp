@@ -23,22 +23,23 @@ ServerManager::~ServerManager()
 
 void ServerManager::OnClientConnect(NetClient* pClient)
 {
-    if(!pClient) {
-        return;
-    }
+
 }
 
 void ServerManager::OnClientDisconnect(NetClient* pClient)
 {
+    if(!pClient || !pClient->data) {
+        return;
+    }
 
+    NetServerInfo* pNetInfo = (NetServerInfo*)pClient->data;
+    RemoveServer(pNetInfo->serverID);
 }
 
 void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
 {
-    uint64 startTime = Time::GetSystemTime();
+    Timer startTime;
     TCPPacketEvent event;
-
-    uint32 processed = 0;
 
     while(m_packetQueue.try_dequeue(event)) {
         if(!event.pClient) {
@@ -46,7 +47,6 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
         }
 
         int8 type = event.data[0].GetINT();
-        LOGGER_LOG_DEBUG("GOT TCP PACKET %d", type);
 
         switch(type) {
             case TCP_PACKET_HELLO: 
@@ -66,14 +66,9 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
             }
         }
 
-        processed++;
-        if(Time::GetSystemTime() - startTime >= maxTimeMS) {
+        if(startTime.GetElapsedTime() >= maxTimeMS) {
             break;
         }
-    }
-
-    if(processed > 0) {
-        LOGGER_LOG_DEBUG("Processed %d TCP packets maxMS %d, took %d MS", processed, maxTimeMS, Time::GetSystemTime() - startTime);
     }
 }
 

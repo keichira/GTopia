@@ -3,6 +3,7 @@
 #include "../Server/MasterBroadway.h"
 #include "../Server/GameServer.h"
 #include "Database/Table/WorldDBTable.h"
+#include "../Player/PlayerManager.h"
 #include "IO/File.h"
 
 #include "../Event/UDP/GamePacket/ItemActivateRequest.h"
@@ -19,7 +20,19 @@ WorldManager::~WorldManager()
     Kill();
 }
 
-void WorldManager::OnHandleDatabase(QueryTaskResult&& result)
+void WorldManager::HandleWorldInit(VariantVector&& result)
+{
+    if(result.size() < 2) {
+        return;
+    }
+
+    QueryRequest req = WorldDB::GetWorldData(result[1].GetString());
+    req.callback = &WorldManager::WorldDBInitCB;
+
+    DatabaseWorldExec(GetContext()->GetDatabasePool(), req);   
+}
+
+void WorldManager::WorldDBInitCB(QueryTaskResult&& result)
 {
     if(!result.result) {
         return;
@@ -37,7 +50,6 @@ void WorldManager::OnHandleDatabase(QueryTaskResult&& result)
         File file;
         if(!file.Open(path)) {
             pMasterBroadway->SendWorldInitResult(false, worldID);
-            result.Destroy();
             return;
         }
 
@@ -47,8 +59,6 @@ void WorldManager::OnHandleDatabase(QueryTaskResult&& result)
         if(file.Read(pData, fileSize) != fileSize) {
             pMasterBroadway->SendWorldInitResult(false, worldID);
             file.Close();
-            SAFE_DELETE_ARRAY(pData);
-            result.Destroy();
             return;
         }
 
@@ -86,72 +96,44 @@ void WorldManager::OnHandleDatabase(QueryTaskResult&& result)
         }
     }
 
-    result.Destroy();
-
     pWorld->SetID(worldID);
-    m_worlds.insert_or_assign(worldID, pWorld);
+    GetWorldManager()->AddWorld(pWorld);
 
     pMasterBroadway->SendWorldInitResult(true, worldID);
 }
 
-void WorldManager::OnHandleTCP(VariantVector&& result)
+void WorldManager::HandlePlayerJoin(VariantVector&& result)
 {
-    if(result.empty()) {
+    int32 oprResult = result[1].GetINT();
+    int32 playerNetID = result[2].GetINT();
+
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(playerNetID);
+    if(!pPlayer) {
         return;
     }
 
-    int32 packetType = result[0].GetINT();
+    if(oprResult != TCP_RESULT_OK) {
+        pPlayer->SendOnFailedToEnterWorld();
+        pPlayer->SendOnConsoleMessage("Unable to move you to this world, please try again later");
+        return;
+    }
+    
+    uint32 serverID = result[3].GetUINT();
+    uint32 worldID = result[4].GetUINT();
 
-    switch(packetType) {
-        case TCP_PACKET_WORLD_INIT: {
-            if(result.size() < 2) {
-                return;
-            }
+    World* pWorld = GetWorldByID(worldID);
+    if(!pWorld) {
+        return;
+    }
 
-            QueryRequest req = MakeGetWorldData(result[1].GetString(), GetNetID());
-            DatabaseWorldExec(GetContext()->GetDatabasePool(), DB_WORLD_GET_DATA, req);
-            break;
+    if(serverID == GetContext()->GetID()) {
+        if(!pWorld->PlayerJoinWorld(pPlayer)) {
+            pPlayer->SendOnFailedToEnterWorld();
+            pPlayer->SendOnConsoleMessage("Unable to join world");
         }
-
-        case TCP_PACKET_WORLD_SEND_PLAYER: {
-            if(result.size() < 3) {
-                return;
-            }
-
-            int32 oprResult = result[1].GetINT();
-            int32 playerNetID = result[2].GetINT();
-
-            GamePlayer* pPlayer = GetGameServer()->GetPlayerByNetID(playerNetID);
-            if(!pPlayer) {
-                return;
-            }
-
-            if(oprResult != TCP_RESULT_OK) {
-                pPlayer->SendOnFailedToEnterWorld();
-                pPlayer->SendOnConsoleMessage("Unable to move you to this world, please try again later");
-                return;
-            }
-            
-            uint32 serverID = result[3].GetUINT();
-            uint32 worldID = result[4].GetUINT();
-
-            World* pWorld = GetWorldByID(worldID);
-            if(!pWorld) {
-                return;
-            }
-
-            if(serverID == GetContext()->GetID()) {
-                if(!pWorld->PlayerJoinWorld(pPlayer)) {
-                    pPlayer->SendOnFailedToEnterWorld();
-                    pPlayer->SendOnConsoleMessage("Unable to join world");
-                }
-            }
-            else {
-                // onsendtoserver
-            }
-
-            break;
-        }
+    }
+    else {
+        // onsendtoserver
     }
 }
 
@@ -161,7 +143,7 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
         return;
     }
 
-    pPlayer->SetJoinWorld(true);
+    pPlayer->SetJoiningWorld(true);
     World* pWorld = GetWorldByName(worldName);
 
     if(pWorld) {
@@ -169,7 +151,7 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
             pPlayer->SendOnFailedToEnterWorld();
         }
 
-        pPlayer->SetJoinWorld(false);
+        pPlayer->SetJoiningWorld(false);
         return;
     }
 
@@ -200,6 +182,8 @@ void WorldManager::Kill()
     for(auto& [_, pWorld] : m_worlds) {
         SAFE_DELETE(pWorld);
     }
+
+    m_worlds.clear();
 }
 
 World* WorldManager::GetWorldByID(uint32 worldID)
@@ -212,7 +196,7 @@ World* WorldManager::GetWorldByID(uint32 worldID)
     return nullptr;
 }
 
-World* WorldManager::GetWorldByName(const string &worldName)
+World* WorldManager::GetWorldByName(const string& worldName)
 {
     string searchName = ToLower(worldName);
     for(auto& [_, pWorld] : m_worlds) {
@@ -222,6 +206,15 @@ World* WorldManager::GetWorldByName(const string &worldName)
     }
 
     return nullptr;
+}
+
+void WorldManager::AddWorld(World* pWorld)
+{
+    if(!pWorld) {
+        return;
+    }
+
+    m_worlds.insert_or_assign(pWorld->GetID(), pWorld);
 }
 
 void WorldManager::RegisterEvents()
@@ -265,68 +258,31 @@ void WorldManager::UpdateWorlds()
         return;
     }
 
-    for(auto it = m_worlds.begin(); it != m_worlds.end(); ++it) {
-        World* pWorld = it->second;
-
-        if(!pWorld || pWorld->IsWaitingForClose()) {
+    for(auto& [_, pWorld] : m_worlds) {
+        if(!pWorld) {
             continue;
         }
-        
-        if(pWorld->GetPlayerCount() == 0 && (pWorld->GetOfflineTime().GetElapsedTime() >= 10 * 60 * 1000)) {
-            pWorld->SetWaitingForClose(true);
-            SaveWorldToDatabase(pWorld, true);
 
+        if(!pWorld->HasDeleteFlag()) {
+            pWorld->Update();
         }
-        else if(pWorld->GetLastSaveTime().GetElapsedTime() >= 15 * 60 * 1000) {
-            SaveWorldToDatabase(pWorld, false);
-            pWorld->GetLastSaveTime().Reset();
+
+        if(pWorld->HasDeleteFlag()) {
+            m_pendingDelete.push_back(pWorld);
+            continue;
         }
     }
 
+    for(auto& pWorld : m_pendingDelete) {
+        if(!GetWorldByID(pWorld->GetID())) {
+            continue;
+        }
+
+        m_worlds.erase(pWorld->GetID());
+    }
+
+    m_pendingDelete.clear();
     m_lastWorldUpdateTime.Reset();
-}
-
-/**
- * currently no fallback if failed to save
- * we just dont care if its saved rn lol
- */
-void WorldManager::SaveWorldToDatabase(World* pWorld, bool closeWorld)
-{
-    if(!pWorld) {
-        return;
-    }
-
-    File file;
-    string worldSavePath = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(pWorld->GetID()) + ".bin";
-    if(!file.Open(worldSavePath, FILE_MODE_WRITE)) {
-        return;
-    }
-
-    MemoryBuffer memSize;
-    pWorld->Serialize(memSize, true, true);
-    
-    uint32 worldMemSize = memSize.GetOffset();
-    uint8* pWorldData = new uint8[worldMemSize];
-
-    MemoryBuffer memBuffer(pWorldData, worldMemSize);
-    pWorld->Serialize(memBuffer, true, true);
-
-    if(file.Write(pWorldData, worldMemSize) != worldMemSize) {
-        SAFE_DELETE_ARRAY(pWorldData);
-        return;
-    }
-
-    file.Close();
-    SAFE_DELETE_ARRAY(pWorldData);
-
-    QueryRequest req = MakeSaveWorld(pWorld->GetWorlName(), pWorld->GetID(), NET_ID_WORLD_MANAGER);
-    DatabaseWorldExec(GetContext()->GetDatabasePool(), DB_WORLD_SAVE, req);
-
-    if(closeWorld) {
-        /**
-         * send master to delete session
-         */
-    }
 }
 
 void WorldManager::ForceSaveAllWorlds()
@@ -336,7 +292,7 @@ void WorldManager::ForceSaveAllWorlds()
             continue;
         }
 
-        SaveWorldToDatabase(pWorld, true);
+        pWorld->SaveToDatabase();
     }
 }
 

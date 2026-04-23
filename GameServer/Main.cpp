@@ -24,19 +24,14 @@ void SignalStop(int32 signum)
 
 void ForceSaveEverything()
 {
-    GetMasterBroadway()->SendServerKillPacket();
+    firstCallShutdown = true;
 
-    GetGameServer()->ForceSaveAllPlayers();
-    GetWorldManager()->ForceSaveAllWorlds();
+    GetMasterBroadway()->SendServerKillPacket();
+    GetGameServer()->ForceSaveEverything();
 
     QueryRequest req;
-    req.ownerID = NET_ID_CONTEXT;
-
-    req.extraData.resize(1);
-    req.extraData[0] = (int32)-1;
-
-    DatabaseExec(GetContext()->GetDatabasePool(), "", req, QUERY_FLAG_NONE); //end marker 
-    firstCallShutdown = false;
+    req.callback = [](QueryTaskResult&&) { GetContext()->Stop(); };
+    DatabaseExec(GetContext()->GetDatabasePool(), "", req, QUERY_FLAG_NONE);
 }
 
 bool ReadArgs(int argc, char const* argv[]) 
@@ -92,12 +87,16 @@ void DatabaseThreadFunc() {
 }
 
 void EventThreadFunc() {
-    while(GetContext()->IsRunning()) {
-        if(!GetContext()->IsShutting()) {
-            GetGameServer()->Update();
-        }
-        GetMasterBroadway()->Update(true);
+    Context* pContext = GetContext();
+    GameServer* pGameServer = GetGameServer();
+    MasterBroadway* pMaster = GetMasterBroadway();
 
+    while(GetContext()->IsRunning()) {
+        if(!pContext->IsShutting()) {
+            pGameServer->Update();
+        }
+        
+        pMaster->Update(true);
         SleepMS(1);
     }
 }
@@ -112,58 +111,18 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
     uint64 startTime = Time::GetSystemTime();
 
     QueryTaskResult taskRes;
-    uint32 processed = 0;
 
     while(pDatabasePool->GetResult(taskRes)) {
-        switch(taskRes.ownerID) {
-            case NET_ID_FALLBACK: {
-                if(taskRes.result) {
-                    taskRes.Destroy();
-                }
-
-                break;
-            }
-
-            case NET_ID_WORLD_MANAGER: {
-                GetWorldManager()->OnHandleDatabase(std::move(taskRes));
-                break;
-            }
-
-            /*case NET_ID_GAME_SERVER: {
-                GetGameServer()->OnHandleDatabase(std::move(taskRes));
-                break;
-            }*/
-
-            case NET_ID_CONTEXT: {
-                if(GetContext()->IsShutting()) {
-                    if(!taskRes.extraData.empty() && taskRes.extraData[0].GetINT() == -1) {
-                        GetContext()->Stop();
-                    }
-                }
-
-                break;
-            }
-
-            default: {       
-                Player* pPlayer = GetGameServer()->GetPlayerByNetID(taskRes.ownerID);
-                if(!pPlayer) {
-                    LOGGER_LOG_WARN("Trying to process database result but player %d not exits? might be logged off", taskRes.ownerID);
-                    break;
-                }
-
-                pPlayer->OnHandleDatabase(std::move(taskRes));
-            }
+        if(taskRes.callback) {
+            taskRes.callback(std::move(taskRes));
+            taskRes.Destroy();
         }
 
-        processed++;
         if(Time::GetSystemTime() - startTime >= maxTimeMS) {
             break;
         }
     }
 
-    if(processed > 0) {
-        LOGGER_LOG_DEBUG("Processed %d Database result maxMS %d, took %d MS", processed, maxTimeMS, Time::GetSystemTime() - startTime);
-    }
 }
 
 bool LoadItemData()
@@ -233,7 +192,7 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
-    LOGGER_LOG_INFO("Starting Game Server %d", GetContext()->GetID());
+    LOGGER_LOG_INFO("Starting Game Server %d | %s", GetContext()->GetID(), Time::GetDateTimeStr().c_str());
 
     GetContext()->Init();
     
@@ -326,18 +285,21 @@ int main(int argc, char const* argv[])
     std::thread eventThread(EventThreadFunc);
     
     uint64 nextTick = Time::GetSystemTime();
+    Context* pContext = GetContext();
+    GameServer* pGameServer = GetGameServer();
+    MasterBroadway* pMaster = GetMasterBroadway();
 
     while(GetContext()->IsRunning()) {
         uint64 tickStart = Time::GetSystemTime();
         
-        if(!GetContext()->IsShutting()) {
-            GetGameServer()->UpdateGameLogic(15);
+        if(!pContext->IsShutting()) {
+            pGameServer->UpdateGameLogic(15);
         }
 
-        GetMasterBroadway()->UpdateTCPLogic(15);
+        pMaster->UpdateTCPLogic(15);
         ProcessDatabaseResults(15);
 
-        if(GetContext()->IsShutting() && !firstCallShutdown) {
+        if(pContext->IsShutting() && !firstCallShutdown) {
             ForceSaveEverything();
         }
 

@@ -28,8 +28,11 @@ public:
     virtual ~WorldInfo();
 
 public:
+    void Kill();
+
     bool Serialize(MemoryBuffer& memBuffer, bool write, bool database);
     void GenerateWorld(eWorldGenerationType type);
+    uint32 GetMemEstimate(bool database);
 
     void SetName(const string& worldName) { m_name = worldName; }
     const string& GetWorlName() const { return m_name; } 

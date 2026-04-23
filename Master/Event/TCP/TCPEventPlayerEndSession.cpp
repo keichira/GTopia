@@ -1,5 +1,5 @@
 #include "TCPEventPlayerEndSession.h"
-#include "../../Server/GameServer.h"
+#include "../../Player/PlayerManager.h"
 #include "../../Server/ServerManager.h"
 
 void TCPPlayerEndSessionEventData::FromVariant(VariantVector& varVec)
@@ -16,8 +16,8 @@ void TCPEventPlayerEndSession::Execute(NetClient* pClient, VariantVector& data)
     TCPPlayerEndSessionEventData eventData;
     eventData.FromVariant(data);
 
-    PlayerSession* pPlayer = GetGameServer()->GetPlayerSessionByUserID(eventData.userID);
+    PlayerSession* pPlayer = GetPlayerManager()->GetSessionByID(eventData.userID);
     if(pPlayer) {
-        GetGameServer()->DeletePlayerSession(pPlayer->userID);
+        GetPlayerManager()->EndSessionByID(pPlayer->userID);
     }
 }

@@ -1,5 +1,6 @@
 #include "TCPEventPlayerSession.h"
-#include "../../Server/GameServer.h"
+#include "../../Player/PlayerManager.h"
+#include "../../Player/GamePlayer.h"
 #include "IO/Log.h"
 
 void TCPPlayerSessionEventData::FromVariant(const VariantVector& varVec)
@@ -20,11 +21,11 @@ void TCPEventPlayerSession::Execute(NetClient* pClient, VariantVector& data)
         return;
     }
 
-    GamePlayer* pPlayer = GetGameServer()->GetPlayerByNetID(eventData.playerNetID);
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(eventData.playerNetID);
     if(!pPlayer) {
         LOGGER_LOG_WARN("Received player session packet but player not found?");
         return;
     }
 
-    pPlayer->OnHandleTCP(std::move(data));
+    pPlayer->HandleCheckSession(std::move(data));
 }

@@ -1,7 +1,7 @@
 #include "ZLibUtils.h"
 #include <zlib.h>
 
-uint8* zLibInflateToMemory(uint8 *pCompData, uint32 compSize, uint32 decompSize)
+uint8* zLibInflateToMemory(uint8* pCompData, uint32 compSize, uint32 decompSize)
 {
     z_stream strm;
     strm.zalloc = Z_NULL;

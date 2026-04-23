@@ -65,7 +65,7 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
-    LOGGER_LOG_INFO("Starting renderer server")
+    LOGGER_LOG_INFO("Starting renderer server %d | %s", GetContext()->GetID(), Time::GetDateTimeStr().c_str());
     GetContext()->Init();
 
     SetRandomSeed(Time::GetSystemTime());

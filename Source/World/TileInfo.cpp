@@ -107,6 +107,14 @@ void TileInfo::SetBG(uint16 itemID)
     m_bg = itemID;
 }
 
+void TileInfo::CopyTempData(TempTileData* temp)
+{
+    temp->fg = m_fg;
+    temp->bg = m_bg;
+    temp->parent = m_parent;
+    temp->flags = m_flags;
+}
+
 void TileInfo::PunchTile(uint8 damage)
 {
     uint16 itemToDamage = GetDisplayedItem();

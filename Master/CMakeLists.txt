@@ -47,6 +47,7 @@ set(MASTER_FILES PRIVATE
     ${SOURCE_PLAYER}/Player.cpp
     ${SOURCE_PLAYER}/PlayerLoginDetail.cpp
     ${MASTER_PLAYER}/GamePlayer.cpp
+    ${MASTER_PLAYER}/PlayerManager.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp

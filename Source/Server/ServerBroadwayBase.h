@@ -28,14 +28,13 @@ public:
     virtual void Update(bool asClient);
     virtual void UpdateTCPLogic(uint64 maxTimeMS);
 
+protected:
+    bool Connect(const string& host, uint16 port, uint8 retryCount, NetClient** pClient, const volatile sig_atomic_t* shutdownFlag = nullptr);
+
 public:
-    bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag = nullptr);
-    bool IsConnected() const { return m_connected; }
-    bool SendPacketRaw(VariantVector& data);
+    bool SendPacketRaw(NetClient* pClient, VariantVector& data);
 
 protected:
     NetSocket* m_pNetSocket;
-    bool m_connected;
-    NetClient* m_pNetClient;
     moodycamel::ConcurrentQueue<TCPPacketEvent> m_packetQueue;
 };

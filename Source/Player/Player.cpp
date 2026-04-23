@@ -3,7 +3,7 @@
 #include "Proton/ProtonUtils.h"
 
 Player::Player(ENetPeer* pPeer)
-: m_pPeer(pPeer)
+: NetEntity(ENTITY_TYPE_PLAYER),  m_pPeer(pPeer)
 {
     enet_address_get_host_ip(&pPeer->address, m_address, sizeof(m_address));
 }

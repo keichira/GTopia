@@ -34,6 +34,7 @@ public:
 
 public:
     bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld);
+    uint32 GetMemEstimate(bool database, WorldInfo* pWorld);
 
     void Clear(bool reInit = false);
 
@@ -66,6 +67,7 @@ private:
 private:
     Vector2Int m_size;
     std::vector<TileInfo> m_tiles;
+    std::vector<TempTileData> m_tempTiles;
 
     std::vector<TileInfo*> m_keyTiles;
     std::vector<Vector2Int> m_onFireTiles;
