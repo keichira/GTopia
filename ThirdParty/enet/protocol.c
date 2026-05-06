@@ -1010,7 +1010,7 @@ enet_protocol_handle_verify_connect (ENetHost * host, ENetEvent * event, ENetPee
 }
 
 static int
-enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
+enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event, enet_uint8 useGTProtocol)
 {
     ENetProtocolHeader * header;
     ENetProtocol * command;
@@ -1020,10 +1020,31 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
     enet_uint16 peerID, flags;
     enet_uint8 sessionID;
 
-    if (host -> receivedDataLength < ENET_OFFSETOF(ENetProtocolHeader, sentTime))
-      return 0;
+    if(useGTProtocol == 1) {
+      if (host -> receivedDataLength < ENET_OFFSETOF(ENetGTProtocolHeader, r2))
+        return 0;
+    }
+    else {
+      if (host -> receivedDataLength < ENET_OFFSETOF(ENetProtocolHeader, sentTime))
+        return 0;
+    }
 
-    header = (ENetProtocolHeader *) host -> receivedData;
+    header = (ENetProtocolHeader *) (host -> receivedData);
+
+    if(useGTProtocol == 1) {
+      ENetGTProtocolHeader * gtHeader = (ENetGTProtocolHeader * ) host -> receivedData;
+      enet_uint16 r0 = ENET_NET_TO_HOST_16(gtHeader->r0);
+      enet_uint16 r1 = ENET_NET_TO_HOST_16(gtHeader->r1);
+      enet_uint16 r2 = ENET_NET_TO_HOST_16(gtHeader->r2);
+  
+      if(
+        (r0 > host->address.port || (r1 ^ host->address.port) != r0 || r2 < 0x920D)
+      ) {
+        return 2;
+      }
+
+      header = (ENetProtocolHeader *) (host -> receivedData + sizeof(ENetGTProtocolHeader));
+    }
 
     peerID = ENET_NET_TO_HOST_16 (header -> peerID);
     sessionID = (peerID & ENET_PROTOCOL_HEADER_SESSION_MASK) >> ENET_PROTOCOL_HEADER_SESSION_SHIFT;
@@ -1031,6 +1052,11 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
     peerID &= ~ (ENET_PROTOCOL_HEADER_FLAG_MASK | ENET_PROTOCOL_HEADER_SESSION_MASK);
 
     headerSize = (flags & ENET_PROTOCOL_HEADER_FLAG_SENT_TIME ? sizeof (ENetProtocolHeader) : ENET_OFFSETOF(ENetProtocolHeader, sentTime));
+
+    if(useGTProtocol == 1) {
+      headerSize += sizeof(ENetGTProtocolHeader);
+    }
+    
     if (host -> checksum != NULL)
       headerSize += sizeof (enet_uint32);
 
@@ -1067,7 +1093,7 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
         if (originalSize <= 0 || originalSize > sizeof (host -> packetData [1]) - headerSize)
           return 0;
 
-        memcpy (host -> packetData [1], header, headerSize);
+        memcpy (host -> packetData [1], host -> receivedData, headerSize);
         host -> receivedData = host -> packetData [1];
         host -> receivedDataLength = headerSize + originalSize;
     }
@@ -1280,8 +1306,20 @@ enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event)
              break;
           }
        }
+
+       int status = 0;
+
+       if(host->incomeCommandType == ENET_HOST_INCOME_CMD_BOTH) {
+        status = enet_protocol_handle_incoming_commands(host, event, 1);
+    
+        if (status == 2)
+          status = enet_protocol_handle_incoming_commands(host, event, 0);
+       }
+       else {
+        status = enet_protocol_handle_incoming_commands(host, event, host->incomeCommandType == ENET_HOST_INCOME_CMD_GT_PROTOCOL);
+       }
         
-       switch (enet_protocol_handle_incoming_commands (host, event))
+       switch (status)
        {
        case 1:
           return 1;

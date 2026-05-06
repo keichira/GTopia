@@ -111,6 +111,8 @@ enet_host_create (const ENetAddress * address, size_t peerCount, size_t channelL
 
     host -> intercept = NULL;
 
+    host -> incomeCommandType = ENET_HOST_INCOME_CMD_BOTH; 
+
     enet_list_clear (& host -> dispatchQueue);
 
     for (currentPeer = host -> peers;

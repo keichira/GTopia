@@ -4,8 +4,11 @@
 #include "Database/DatabasePool.h"
 #include "Utils/GameConfig.h"
 
-const int32 TICK_RATE = 20;
-const uint64 TICK_INTERVAL = 1000/TICK_RATE;
+static const uint32 GAME_TICK_MS = 12;
+static const uint32 NETWORK_BUDGET_MS = 8;
+static const uint32 DB_RESULT_BUDGET_MS = 10;
+static const uint32 MAX_CATCHUP_TICKS = 4;
+static const uint32 PERF_SAMPLE_INTERVAL_MS = 1000;
 
 class Context : public ContextBase {
 public:

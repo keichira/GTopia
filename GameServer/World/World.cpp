@@ -6,12 +6,13 @@
 #include "Math/Rect.h"
 #include "Math/Math.h"
 #include "../Context.h"
-#include "Database/Table/WorldDBTable.h"
 #include "IO/File.h"
 #include "../Player/PlayerManager.h"
+#include "WorldManager.h"
+#include "../Server/MasterBroadway.h"
 
 World::World()
-: m_worldID(0), m_deleteFlag(false)
+: m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
 {
 }
 
@@ -19,24 +20,55 @@ World::~World()
 {
 }
 
-void World::SaveToDatabase()
+bool World::LoadFromFile()
 {
+    if(m_databaseID == 0)
+        return false;
+
+    string path = GetContext()->GetGameConfig()->worldSavePath
+        + "/world_" + ToString(m_databaseID) + ".bin";
+
     File file;
-    string worldSavePath = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(GetID()) + ".bin";
-    if(!file.Open(worldSavePath, FILE_MODE_WRITE)) {
-        return;
+    if(!file.Open(path))
+        return false;
+
+    uint32 fileSize = file.GetSize();
+    uint8* pData = new uint8[fileSize];
+
+    if(file.Read(pData, fileSize) != fileSize)
+    {
+        file.Close();
+        return false;
     }
 
-    MemoryBuffer memSize;
-    Serialize(memSize, true, true);
+    file.Close();
 
-    uint32 worldMemSize = memSize.GetOffset();
+    MemoryBuffer memBuffer(pData, fileSize);
+    Serialize(memBuffer, false, true);
+
+    SAFE_DELETE_ARRAY(pData);
+    return true;
+}
+
+void World::SaveToDatabaseCB(QueryTaskResult&& result)
+{
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(result.ownerID);
+    if(!pWorld)
+        return;
+
+    File file;
+    string worldSavePath = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(pWorld->GetDatabaseID()) + ".bin";
+    if(!file.Open(worldSavePath, FILE_MODE_WRITE))
+        return;
+
+    uint32 worldMemSize = pWorld->GetMemEstimate(true);
     uint8* pWorldData = new uint8[worldMemSize];
 
     MemoryBuffer memBuffer(pWorldData, worldMemSize);
-    Serialize(memBuffer, true, true);
+    pWorld->Serialize(memBuffer, true, true);
 
-    if(file.Write(pWorldData, worldMemSize) != worldMemSize) {
+    if(file.Write(pWorldData, worldMemSize) != worldMemSize) 
+    {
         file.Close();
         SAFE_DELETE_ARRAY(pWorldData);
         return;
@@ -44,43 +76,76 @@ void World::SaveToDatabase()
 
     file.Close();
     SAFE_DELETE_ARRAY(pWorldData);
+}
 
-    QueryRequest req = WorldDB::SaveWorld(GetWorlName(), GetID());
+void World::SaveToDatabase()
+{
+    QueryRequest req = WorldDB::Save(GetWorlName(), GetDatabaseID(), GetInstanceID());
+    req.callback = &World::SaveToDatabaseCB;
+
     DatabaseWorldExec(GetContext()->GetDatabasePool(), req);
 }
 
 void World::Update()
 {
-    if(m_players.size() > 0) {
-        m_worldOfflineTime.Reset();
-    }
-    else {
-        if(m_worldOfflineTime.GetElapsedTime() >= 3600 * 1000) {
-            m_deleteFlag = true;
+    if(m_state != WORLD_STATE_READY)
+        return;
+
+    if(!m_pendingPlayers.empty()) {
+        uint32 count = 0;
+
+        uint32 maxPlayerCount = GetContext()->GetGameConfig()->worldMaxPlayerCount;
+        while(count != 8 && !m_pendingPlayers.empty()) 
+        {
+            GamePlayer* pPlayer = m_pendingPlayers.front();
+            m_pendingPlayers.pop();
+
+            if(m_players.size() + 1 >= maxPlayerCount) {
+                pPlayer->SendOnConsoleMessage("Oops, `5" + GetWorlName() + "`` already has `4" + ToString(maxPlayerCount) + "`` people in it. Try again later.");
+                pPlayer->SendOnFailedToEnterWorld();
+                continue;
+            }
+
+            count++;
+            OnPlayerJoin(pPlayer);
         }
     }
 
-    if(m_worldLastSaveTime.GetElapsedTime() >= 40 * 60 * 1000) {
+    if(m_players.size() > 0) 
+    {
+        m_worldOfflineTime.Reset();
+    }
+    else 
+    {
+        if(m_worldOfflineTime.GetElapsedTime() >= 3600 * 1000) 
+        {
+            SetState(WORLD_STATE_DELETE);
+        }
+    }
+
+    if(m_worldLastSaveTime.GetElapsedTime() >= 40 * 60 * 1000) 
+    {
         SaveToDatabase();
     }
 }
 
-bool World::PlayerJoinWorld(GamePlayer* pPlayer)
+bool World::OnPlayerJoin(GamePlayer* pPlayer)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return false;
-    }
 
     pPlayer->SetJoiningWorld(false);
-    pPlayer->SetCurrentWorld(m_worldID);
+    pPlayer->SetCurrentWorld(m_instanceID);
     m_players.push_back(pPlayer);
 
     TileInfo* pMainDoorTile = GetTileManager()->GetKeyTile(KEY_TILE_MAIN_DOOR);
-    if(!pMainDoorTile) {
+    if(!pMainDoorTile) 
+    {
         pPlayer->SetWorldPos(0, 0);
         pPlayer->SetRespawnPos(0, 0);
     }
-    else {
+    else 
+    {
         Vector2Int mainDoorPos = pMainDoorTile->GetPos();
         pPlayer->SetWorldPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
         pPlayer->SetRespawnPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
@@ -95,7 +160,7 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_MAP_DATA;
     packet.netID = -1;
-    packet.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
+    packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.extraDataSize = worldMemSize;
     SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData, pPlayer->GetPeer());
     SAFE_DELETE_ARRAY(pWorldData);
@@ -107,8 +172,10 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     string playerDisplayName = pPlayer->GetDisplayName();
     string joinNotifyOtherMsg = "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
 
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer && pWorldPlayer != pPlayer) {
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(pWorldPlayer && pWorldPlayer != pPlayer) 
+        {
             pPlayer->SendOnSpawn(pWorldPlayer->GetSpawnData(false));
             pPlayer->SendOnSetClothing(pWorldPlayer);
             pPlayer->SendCharacterState(pWorldPlayer);
@@ -124,28 +191,33 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     string worldSituationMsg;
 
     WorldTileManager* pTileMgr = GetTileManager();
-    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_PUNCH_JAMMER); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) {
+    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_PUNCH_JAMMER); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) 
+    {
         if(!worldSituationMsg.empty()) worldSituationMsg += ", ";
         worldSituationMsg += "`2NOPUNCH``";
     }
 
-    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_ZOMBIE_JAMMER); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) {
+    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_ZOMBIE_JAMMER); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) 
+    {
         if(!worldSituationMsg.empty()) worldSituationMsg += ", ";
         worldSituationMsg += "`2IMMUNE``";
     }
 
-    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_SIGNAL_JAMMER); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) {
+    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_SIGNAL_JAMMER); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) 
+    {
         if(!worldSituationMsg.empty()) worldSituationMsg += ", ";
         worldSituationMsg += "`4JAMMED``";
     }
 
-    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_ANTIGRAVITY); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) {
+    if(TileInfo* pTile = pTileMgr->GetKeyTile(KEY_TILE_ANTIGRAVITY); pTile && pTile->HasFlag(TILE_FLAG_IS_ON)) 
+    {
         if(!worldSituationMsg.empty()) worldSituationMsg += ", ";
         worldSituationMsg += "`2ANTIGRAVITY``";
     }
 
     string worldEnterMsg = "World `w" + GetWorlName() + "`o ";
-    if(!worldSituationMsg.empty()) {
+    if(!worldSituationMsg.empty()) 
+    {
         worldEnterMsg += "`0[``" + worldSituationMsg + "`0] ";
     }
     worldEnterMsg += "`oentered, There are `w" + ToString(GetPlayerCount() - 1) + "`o other people here, `w" + ToString(GetPlayerManager()->GetTotalPlayerCount()) + " `oonline.";
@@ -153,9 +225,11 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     pPlayer->SendOnConsoleMessage(worldEnterMsg);
 
     TileInfo* pWorldLock = pTileMgr->GetKeyTile(KEY_TILE_WORLD_LOCK);
-    if(pWorldLock) {
+    if(pWorldLock) 
+    {
         TileExtra_Lock* pExtra = pWorldLock->GetExtra<TileExtra_Lock>();
-        if(pExtra) {
+        if(pExtra) 
+        {
             /**
              * InactivityManager! :)
              */
@@ -165,15 +239,53 @@ bool World::PlayerJoinWorld(GamePlayer* pPlayer)
     return true;
 }
 
-void World::PlayerLeaverWorld(GamePlayer* pPlayer)
+void World::QueuePendingPlayer(GamePlayer* pPlayer)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
+        return;
+
+    m_pendingPlayers.push(pPlayer);
+}
+
+bool World::HasPendingPlayers() const
+{
+    return !m_pendingPlayers.empty();
+}
+
+GamePlayer* World::PopPendingPlayer()
+{
+    if(m_pendingPlayers.empty())
+        return nullptr;
+
+    GamePlayer* pPlayer = m_pendingPlayers.front();
+    m_pendingPlayers.pop();
+    return pPlayer;
+}
+
+void World::AddPlayer(GamePlayer* pPlayer)
+{
+    if(!pPlayer)
+        return;
+
+    if(m_state != WORLD_STATE_READY)
+    {
+        m_pendingPlayers.push(pPlayer);
         return;
     }
 
+    pPlayer->SetJoiningWorld(true);
+    m_pendingPlayers.push(pPlayer);
+}
+
+void World::PlayerLeaverWorld(GamePlayer *pPlayer)
+{
+    if(!pPlayer)
+        return;
+
     int32 playerIdx = -1;
 
-    for(uint16 i = 0; i < m_players.size(); ++i) {
+    for(uint16 i = 0; i < m_players.size(); ++i) 
+    {
         GamePlayer* pWorldPlayer = m_players[i];
 
         pWorldPlayer->SendOnRemove(pPlayer->GetNetID());
@@ -183,27 +295,30 @@ void World::PlayerLeaverWorld(GamePlayer* pPlayer)
         }
     }
 
-    if(playerIdx != -1) {
+    if(playerIdx != -1) 
+    {
         m_players[playerIdx] = m_players.back();
         m_players.pop_back();
 
         pPlayer->SetCurrentWorld(0);
     }
 
-    if(m_players.empty()) {
+    if(m_players.empty()) 
+    {
         m_worldOfflineTime.Reset();
     }
 }
 
 void World::SendSkinColorUpdateToAll(GamePlayer* pPlayer)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
     uint32 skinColor = pPlayer->GetCharData().GetSkinColor(true);
-    for(auto& pWorldPlayer: m_players) {
-        if(pWorldPlayer) {
+    for(auto& pWorldPlayer: m_players) 
+    {
+        if(pWorldPlayer) 
+        {
             pWorldPlayer->SendOnChangeSkin(skinColor, pPlayer);
         }
     }
@@ -304,7 +419,7 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY)
     packet.type = NET_GAME_PACKET_SEND_TILE_UPDATE_DATA;
     packet.tileX = tileX;
     packet.tileY = tileY;
-    packet.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
+    packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
 
     MemoryBuffer memSizeBuf;
     pTile->Serialize(memSizeBuf, true, false, this);
@@ -349,7 +464,7 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_TILE_UPDATE_DATA_MULTIPLE;
-    packet.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
+    packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.extraDataSize = memSize;
     packet.tileX = -1;
     packet.tileY = -1;
@@ -378,7 +493,7 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_LOCK;
-    packet.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
+    packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.tileX = pLockTile->GetPos().x;
     packet.tileY = pLockTile->GetPos().y;
     packet.itemID = lockID;
@@ -411,6 +526,27 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
 
     SendGamePacketToAll(&packet, nullptr, pData);
     SAFE_DELETE_ARRAY(pData);
+}
+
+void World::SendPlayerDataConfigToAll(GamePlayer* pPlayer)
+{
+    if(!pPlayer) {
+        return;
+    }
+
+    Role* pRole = pPlayer->GetRole();
+    if(!pRole) {
+        return;
+    }
+
+    bool hasMState = pRole->HasPerm(ROLE_PERM_MSTATE);
+    bool hasSmState = pRole->HasPerm(ROLE_PERM_SMSTATE);
+
+    for(auto& pWorldPlayer : m_players) {
+        if(pWorldPlayer) {
+            pWorldPlayer->SendOnDataConfig(hasMState, hasSmState, pPlayer);
+        }
+    }
 }
 
 void World::PlaySFXForEveryone(const string& fileName, int32 delay)
@@ -505,7 +641,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
 
             if(pItem->IsBackground()) {
                 if(pTile->HasFlag(TILE_FLAG_HAS_EXTRA_DATA)) {
-                    if(pGamePacket->HasFlag(NET_GAME_PACKET_FLAGS_FACINGLEFT)) {
+                    if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT)) {
                         pTile->SetFlag(TILE_FLAG_FLIPPED_X);
                     }
                     else {
@@ -521,7 +657,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                  */
 
                 if(pItem->HasFlag(ITEM_FLAG_FLIPPABLE)) {
-                    if(pGamePacket->HasFlag(NET_GAME_PACKET_FLAGS_FACINGLEFT)) {
+                    if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT)) {
                         pTile->SetFlag(TILE_FLAG_FLIPPED_X);
                     }
                     else {
@@ -646,7 +782,7 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
 
     if(IsWorldLock(pItem->id)) {
         SendConsoleMessageToAll("`5[```w" + GetWorlName() + "`` has had its `$World Lock`` removed!`5]``");
-        LOGGER_LOG_INFO("Removed world lock in %s (%d) by %d", GetWorlName().c_str(), GetID(), pPlayer->GetUserID());
+        LOGGER_LOG_INFO("Removed world lock in %s (%d) by %d", GetWorlName().c_str(), GetDatabaseID(), pPlayer->GetUserID());
     }
     else {
         std::vector<TileInfo*> unlockedTiles = GetTileManager()->RemoveTileParentsLockedBy(pTile);

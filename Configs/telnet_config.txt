@@ -27,8 +27,8 @@ skip_ip_check|0
 # ur logging with password soooo
 # password should be strong, otherwise... yeah
 
-add_account|keichira|My_SuPerS3cr3t!Pass|4|
-allow_ip|192.168.1.3|192.168.1.8|
+# add_account|keichira|My_SuPerS3cr3t!Pass|4|
+# allow_ip|192.168.1.3|192.168.1.8|
 
-add_account|root|woAh!donth4ckME@|4|
-allow_ip|192.168.1.5|
+# add_account|root|woAh!donth4ckME@|4|
+# allow_ip|192.168.1.5|

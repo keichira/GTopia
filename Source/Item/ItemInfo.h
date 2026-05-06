@@ -11,15 +11,15 @@ struct ItemChairInfo
 {
     uint8 enabled = 0;
     Vector2Int playerOffset;
-    Vector2Int chairArmTexturePos;
-    Vector2Int chairArmOffset;
-    string chairTexture = "";
+    Vector2Int armPos;
+    Vector2Int armOffset;
+    string armTexture = "";
 };
 
 struct ItemRandomSpriteReplaceInfo
 {
     uint8 enabled = 0;
-    int32 offset = 0; // like x * 32?
+    int32 offsetMod = 0;
     float chance = 0.0f;
 };
 
@@ -108,7 +108,9 @@ public:
 
     ItemRandomSpriteReplaceInfo randomSpriteInfo;
 
-    uint8 canMorph = 0; // ummm???
+    uint8 hiddenPartsFlags = 0;
+    uint8 canTransform = 0;
+    uint8 slipperyType = 0;
 
     string description = "No info.";
     uint8 element = ITEM_ELEMENT_NONE;

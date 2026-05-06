@@ -251,6 +251,13 @@ typedef enum _ENetPeerFlag
    ENET_PEER_FLAG_CONTINUE_SENDING = (1 << 1)
 } ENetPeerFlag;
 
+typedef enum _ENetHostIncomeCommandType
+{
+   ENET_HOST_INCOME_CMD_DEFAULT,
+   ENET_HOST_INCOME_CMD_GT_PROTOCOL,
+   ENET_HOST_INCOME_CMD_BOTH,
+} ENetHostIncomeCommandType;
+
 /**
  * An ENet peer which data packets may be sent or received from. 
  *
@@ -394,6 +401,8 @@ typedef struct _ENetHost
    size_t               duplicatePeers;              /**< optional number of allowed peers from duplicate IPs, defaults to ENET_PROTOCOL_MAXIMUM_PEER_ID */
    size_t               maximumPacketSize;           /**< the maximum allowable packet size that may be sent or received on a peer */
    size_t               maximumWaitingData;          /**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered */
+
+   ENetHostIncomeCommandType   incomeCommandType;
 } ENetHost;
 
 /**

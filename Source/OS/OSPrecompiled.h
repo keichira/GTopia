@@ -25,3 +25,4 @@ bool IsFileExists(const string& path);
 bool IsFolderExists(const string& path);
 string GetFileExtension(const string& file);
 uint32 GetSecondsFromMidnight();
+string GetLoadAvgString();

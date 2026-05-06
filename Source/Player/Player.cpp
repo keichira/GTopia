@@ -262,7 +262,7 @@ void Player::SendCallFunctionPacket(VariantVector& data, int32 netID, int32 dela
 
     GameUpdatePacket gamePacket;
     gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
-    gamePacket.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
+    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     gamePacket.netID = netID;
     gamePacket.delay = delay;
 
@@ -283,7 +283,7 @@ void Player::SendInventoryPacket()
 
     GameUpdatePacket gamePacket;
     gamePacket.type = NET_GAME_PACKET_SEND_INVENTORY_STATE;
-    gamePacket.flags |= NET_GAME_PACKET_FLAGS_EXTENDED;
+    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
 
     uint32 memSize = m_inventory.GetMemEstimate(false);
     gamePacket.extraDataSize = memSize;

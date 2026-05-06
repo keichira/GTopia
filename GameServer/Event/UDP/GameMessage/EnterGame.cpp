@@ -6,34 +6,57 @@
 #include "IO/Log.h"
 #include "Item/ItemInfoManager.h"
 #include "../../../World/WorldManager.h"
+#include "Database/Table/WorldDBTable.h"
+
+void CheckAndSendToWorldIfPossible(QueryTaskResult&& result)
+{
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
+    if(!pPlayer)
+        return;
+
+    pPlayer->GetLoginDetail().loginMode = LOGON_MODE_TRANSFER;;
+    if(!result.result) 
+    {
+        //GetWorldManager()->SendWorldSelectMenu(pPlayer);
+        pPlayer->SendOnRequestWorldSelectMenu("");
+        return;
+    }
+
+    string worldName = result.result->GetField("Name", 0).GetString();
+
+    pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
+    pPlayer->SetState(PLAYER_STATE_IN_GAME);
+    
+    GetWorldManager()->PlayerJoinRequest(pPlayer, worldName);
+}
 
 void LoadAccount(QueryTaskResult&& result)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
-    if(!result.result) {
+    if(!result.result) 
+    {
         pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
         return;
     }
 
-    pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
-    pPlayer->SetState(PLAYER_STATE_IN_GAME);
-
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
-    if(!loginDetail.tankIDName.empty()) {
+    if(!loginDetail.tankIDName.empty()) 
+    {
         loginDetail.tankIDName = result.result->GetField("Name", 0).GetString();
     }
 
     uint32 roleID = result.result->GetField("RoleID", 0).GetUINT();
-    if(roleID == 0) {
+    if(roleID == 0) 
+    {
         roleID = GetRoleManager()->GetDefaultRoleID();
     }
 
     Role* pRole = GetRoleManager()->GetRole(roleID);
-    if(!pRole) {
+    if(!pRole) 
+    {
         pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong while setting you up, please re-connect");
         LOGGER_LOG_WARN("Failed to set player role %d for user %d", roleID, pPlayer->GetUserID());
         return;
@@ -41,7 +64,8 @@ void LoadAccount(QueryTaskResult&& result)
     pPlayer->SetRole(pRole);
 
     uint32 skinColor = result.result->GetField("SkinColor", 0).GetUINT();
-    if(skinColor != 0) {
+    if(skinColor != 0) 
+    {
         pPlayer->GetCharData().SetSkinColor(skinColor);
     }
 
@@ -53,7 +77,8 @@ void LoadAccount(QueryTaskResult&& result)
     inventory.SetVersion(pPlayer->GetLoginDetail().protocol);
     string dbInv = result.result->GetField("Inventory", 0).GetString();
 
-    if(!dbInv.empty()) {
+    if(!dbInv.empty()) 
+    {
         uint32 invMemEstimate = dbInv.size() / 2;
         uint8* pInvData = new uint8[invMemEstimate];
 
@@ -65,17 +90,20 @@ void LoadAccount(QueryTaskResult&& result)
         SAFE_DELETE_ARRAY(pInvData);
     }
 
-    if(inventory.GetCountOfItem(ITEM_ID_FIST) == 0) {
+    if(inventory.GetCountOfItem(ITEM_ID_FIST) == 0) 
+    {
         inventory.AddItem(ITEM_ID_FIST, 1);
     }
 
-    if(inventory.GetCountOfItem(ITEM_ID_WRENCH) == 0) {
+    if(inventory.GetCountOfItem(ITEM_ID_WRENCH) == 0) 
+    {
         inventory.AddItem(ITEM_ID_WRENCH, 1);
     }
 
     pPlayer->SetGuestID(result.result->GetField("GuestID", 0).GetUINT());
 
-    for(uint8 i = 0; i < BODY_PART_SIZE; ++i) {
+    for(uint8 i = 0; i < BODY_PART_SIZE; ++i) 
+    {
         uint16 cloth = inventory.GetClothByPart((eBodyPart)i);
 
         ItemInfo* pItem = GetItemInfoManager()->GetItemByID(cloth);
@@ -88,34 +116,42 @@ void LoadAccount(QueryTaskResult&& result)
         }
     }
 
-    if(loginDetail.loginMode == LOGON_MODE_WELCOME) {
+    if(loginDetail.loginMode == LOGON_MODE_WELCOME) 
+    {
         pPlayer->SendOnConsoleMessage("Welcome back, `w" + pPlayer->GetDisplayName() + "`o.");
     }
 
     pPlayer->SendGems(true);
     pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
     pPlayer->SendInventoryPacket();
-    
-    if(loginDetail.loginMode == LOGON_MODE_TRANSFER && !pPlayer->GetLogonJoinWorld().empty()) {
-        GetWorldManager()->PlayerJoinRequest(pPlayer, pPlayer->GetLogonJoinWorld());
-    }
-    else {
-        GetWorldManager()->SendWorldSelectMenu(pPlayer);
-    }
 
-    if(loginDetail.loginMode == LOGON_MODE_WELCOME) {
-        loginDetail.loginMode = LOGON_MODE_TRANSFER;
+    uint32 worldID = result.result->GetField("LastWorld", 0).GetUINT();
+
+    if(worldID != 0 && loginDetail.loginMode == LOGON_MODE_WELCOME) 
+    {
+        QueryRequest req = WorldDB::GetByID(worldID, pPlayer->GetNetID());
+        req.callback = &CheckAndSendToWorldIfPossible;
+        DatabaseWorldExec(GetContext()->GetDatabasePool(), req);
+    }
+    else if(pPlayer->GetCurrentWorld() != 0; World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld())) 
+    {
+        pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
+        pPlayer->SetState(PLAYER_STATE_IN_GAME);
+
+        GetWorldManager()->PlayerJoinRequest(pPlayer, pWorld->GetWorlName());
+    }
+    else 
+    {
+        pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
+        pPlayer->SetState(PLAYER_STATE_IN_GAME);
+        pPlayer->SendOnRequestWorldSelectMenu("");
     }
 }
 
 void EnterGame::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) {
+    if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
         return;
-    }
-
-    pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
-    pPlayer->SetState(PLAYER_STATE_LOADING_ACCOUNT);
 
     QueryRequest req = PlayerDB::GetData(pPlayer->GetUserID(), pPlayer->GetNetID());
     req.callback = &LoadAccount;

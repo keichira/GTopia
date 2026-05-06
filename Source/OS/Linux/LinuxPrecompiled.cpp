@@ -5,6 +5,7 @@
 #include <libgen.h>
 #include <sys/random.h>
 #include <sys/stat.h>
+#include "../../Utils/StringUtils.h"
 
 string GetDateTimeAsStr()
 {
@@ -99,4 +100,14 @@ uint32 GetSecondsFromMidnight()
     localtime_r(&now, &time);
 
     return time.tm_hour * 3600 + time.tm_min * 60 + time.tm_sec;
+}
+
+string GetLoadAvgString()
+{
+    double avg[3] = { 0.0f };
+    if(getloadavg(avg, 3) < 0) {
+        return "";
+    }
+
+    return ToString(avg[0]) + " " + ToString(avg[1]) + " " + ToString(avg[2]);
 }

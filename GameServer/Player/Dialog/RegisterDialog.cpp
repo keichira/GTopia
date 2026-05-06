@@ -14,7 +14,8 @@ void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder,
     ->AddLabelWithIcon("`wGet a GrowID", ITEM_ID_FIST, true)
     ->AddSpacer();
     
-    if(!errorMsg.empty()) {
+    if(!errorMsg.empty()) 
+    {
         db.AddTextBox(errorMsg)
         ->AddSpacer();
     }
@@ -32,17 +33,15 @@ void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder,
 
 void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(!pPlayer || pPlayer->HasGrowID()) {
+    if(!pPlayer || pPlayer->HasGrowID())
         return;
-    }
 
     auto pName = packet.Find(CompileTimeHashString("logon"));
     auto pPass = packet.Find(CompileTimeHashString("password"));
     auto pVerifPass = packet.Find(CompileTimeHashString("verify_password"));
 
-    if(!pName || !pPass || !pVerifPass) {
+    if(!pName || !pPass || !pVerifPass)
         return;
-    }
 
     string name = string(pName->value, pName->size);
     string pass = string(pPass->value, pPass->size);
@@ -55,7 +54,8 @@ void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     else if(pass.size() < 3 || pass.size() > 18) error = "`4Oops!``  Your password must be between `$3`` and `$12`` characters long.";
     else if(name.size() < 3 || name.size() > 12) error = "`4Oops!``  Your `wGrowID`` must be between `$3`` and `$12`` characters long.";
     
-    if(!error.empty()) {
+    if(!error.empty()) 
+    {
         Request(
             pPlayer, name,
             pass, verifPass, error
@@ -84,9 +84,11 @@ void RegisterDialog::Success(GamePlayer* pPlayer, const string& growID, const st
     pPlayer->SendOnDialogRequest(db.Get());
     pPlayer->PlaySFX("piano_nice.wav");
 
-    if(pPlayer->GetCurrentWorld() != 0) {
-        World* pWorld = GetWorldManager()->GetWorldByID(pPlayer->GetCurrentWorld());
-        if(pWorld) {
+    if(pPlayer->GetCurrentWorld() != 0) 
+    {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+        if(pWorld) 
+        {
             pWorld->SendNameChangeToAll(pPlayer);
         }
     }

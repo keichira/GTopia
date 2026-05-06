@@ -21,6 +21,7 @@ enum eQueryFlags
 };
 
 struct QueryTaskResult;
+typedef void (*QueryCallback)(QueryTaskResult&& result);
 
 struct QueryRequest 
 {
@@ -32,7 +33,7 @@ struct QueryRequest
     VariantVector extraData;
     int32 queryID = -1;
 
-    void (*callback)(QueryTaskResult&& result) = nullptr;
+    QueryCallback callback = nullptr;
 
     template<typename... Args>
     QueryRequest& AddData(Args&&... args)
@@ -59,7 +60,7 @@ struct QueryTaskRequest
     uint64 reqTime = 0;
     int32 queryID = -1;
 
-    void (*callback)(QueryTaskResult&& result) = nullptr;
+    QueryCallback callback = nullptr;
 };
 
 struct QueryTaskResult
@@ -71,7 +72,7 @@ struct QueryTaskResult
     DatabaseResult* result = nullptr;
     int32 queryID = -1;
 
-    void (*callback)(QueryTaskResult&& result) = nullptr;
+    QueryCallback callback = nullptr;
 
     Variant* GetExtraData(uint8 index)
     {

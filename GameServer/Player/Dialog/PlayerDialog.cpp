@@ -14,11 +14,13 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
 
-    if(pItem->type == ITEM_TYPE_SIGN) {
+    if(pItem->type == ITEM_TYPE_SIGN) 
+    {
         SignDialog::Request(pPlayer, pTile);
     }
 
-    if(pItem->type == ITEM_TYPE_LOCK) {
+    if(pItem->type == ITEM_TYPE_LOCK) 
+    {
         LockDialog::Request(pPlayer, pTile);
     }
 }

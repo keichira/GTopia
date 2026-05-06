@@ -14,42 +14,42 @@ void TileChangeRequest::HandleConsumable(GamePlayer *pPlayer, World *pWorld, Gam
 
 void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
-    if(!pPlayer || !pWorld || !pPacket) {
+    if(!pPlayer || !pWorld || !pPacket)
         return;
-    }
 
-    /*if(pPacket->itemID != ITEM_ID_FIST) {
-        
-    }*/
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->itemID);
-    if(!pItem) {
+    if(!pItem)
         return;
-    }
 
-    if(pItem->type == ITEM_TYPE_CLOTHES) {
+    if(pItem->type == ITEM_TYPE_CLOTHES) 
+    {
 
         return;
     }
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->tileX, pPacket->tileY);
-    if(!pTile) {
+    if(!pTile) 
+    {
         LOGGER_LOG_DEBUG("Unable to get tile %d %d for tile change request", pPacket->tileX, pPacket->tileY);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_CONSUMABLE) {
+    if(pItem->type == ITEM_TYPE_CONSUMABLE) 
+    {
         return;
     }
 
-    if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile)) {
+    if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile)) 
+    {
         pPlayer->SendFakePingReply();
         return;
     }
 
     Vector2Int tilePos = pTile->GetPos();
 
-    if(pItem->type == ITEM_TYPE_WRENCH) {
+    if(pItem->type == ITEM_TYPE_WRENCH) 
+    {
         PlayerDialog::Handle(pPlayer, pTile);
         return;
     }
@@ -65,7 +65,8 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
     ItemInfo* pTileItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
 
-    if(pPacket->itemID != ITEM_ID_FIST) {
+    if(pPacket->itemID != ITEM_ID_FIST) 
+    {
         if(
             (!pTileItem->IsBackground() && pTile->GetFG() != ITEM_ID_BLANK) ||
             (pTileItem->IsBackground() && pTile->GetBG() != ITEM_ID_BLANK)
@@ -74,18 +75,23 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         }
     }
 
-    if(pTileItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD)) {
+    if(pTileItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD)) 
+    {
         pPlayer->SendFakePingReply();
 
-        if(pPacket->itemID == ITEM_ID_FIST) {
-            if(IsMainDoor(pTileItem->id)) {
+        if(pPacket->itemID == ITEM_ID_FIST) 
+        {
+            if(IsMainDoor(pTileItem->id)) 
+            {
                 pPlayer->SendOnTalkBubble("`w(stand over and punch to use)", true);
             }
-            else {
+            else 
+            {
                 pPlayer->SendOnTalkBubble("`wIt's too strong to break.", true);
             }
         }
-        else if(pItem->IsBackground()) {
+        else if(pItem->IsBackground()) 
+        {
             pPlayer->SendOnTalkBubble("`wCan't put anything behind that!", true);
         }
 
@@ -93,7 +99,8 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         return;
     }
 
-    if(pPacket->itemID != ITEM_ID_FIST) {
+    if(pPacket->itemID != ITEM_ID_FIST) 
+    {
         if(
             pPacket->itemID == ITEM_ID_GUARDIAN_PINEAPPLE && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE) ||
             pPacket->itemID == ITEM_ID_PUNCH_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_PUNCH_JAMMER) ||
@@ -106,7 +113,8 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
-        if(pItem->type == ITEM_TYPE_LOCK) {
+        if(pItem->type == ITEM_TYPE_LOCK) 
+        {
             pWorld->OnAddLock(pPlayer, pTile, pItem->id);
             return;
         }
@@ -114,9 +122,12 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         pPlayer->ModifyInventoryItem(pItem->id, -1);
     }
 
-    if(pPacket->itemID == ITEM_ID_FIST) {
-        if(pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND) == ITEM_ID_FIRE_HOSE) {
-            if(pTile->HasFlag(TILE_FLAG_ON_FIRE)) {
+    if(pPacket->itemID == ITEM_ID_FIST) 
+    {
+        if(pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND) == ITEM_ID_FIRE_HOSE) 
+        {
+            if(pTile->HasFlag(TILE_FLAG_ON_FIRE)) 
+            {
                 pTile->RemoveFlag(TILE_FLAG_ON_FIRE);
                 pWorld->SendParticleEffectToAll(tilePos.x * 32, tilePos.y * 32, 149);
                 pWorld->SendTileUpdate(tilePos.x, tilePos.y);
@@ -126,25 +137,34 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             pPlayer->SendFakePingReply();
             return;
         }
-        else {
+        else 
+        {
             pTile->PunchTile((uint8)pPlayer->GetCharData().GetPunchDamage());
 
             float tileHealth = pTile->GetHealthPercent();
-            if(tileHealth > 0) {
-                if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE && pTileItem->weatherID != 200) {
-                    if(pTile->HasFlag(TILE_FLAG_IS_ON)) {
-                        if(pWorld->GetCurrentWeather() != pTileItem->weatherID) {
+            if(tileHealth > 0) 
+            {
+                if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE && pTileItem->weatherID != 200) 
+                {
+                    if(pTile->HasFlag(TILE_FLAG_IS_ON)) 
+                    {
+                        if(pWorld->GetCurrentWeather() != pTileItem->weatherID) 
+                        {
                             pWorld->SetCurrentWeather(pTileItem->weatherID);
                         }
-                        else {
+                        else 
+                        {
                             pWorld->SetCurrentWeather(pWorld->GetDefaultWeather());
                         }
                     }
-                    else {
-                        if(pWorld->GetCurrentWeather() == pTileItem->weatherID) {
+                    else 
+                    {
+                        if(pWorld->GetCurrentWeather() == pTileItem->weatherID) 
+                        {
                             pWorld->SetCurrentWeather(pWorld->GetDefaultWeather());
                         }
-                        else {
+                        else 
+                        {
                             pWorld->SetCurrentWeather(pTileItem->weatherID);
                         }
                     }
@@ -157,21 +177,25 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
                 return;
             }
 
-            if(pWorld->GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE) && !pPlayer->GetInventory().HaveRoomForItem(pTileItem->id, 1)) {
+            if(pWorld->GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE) && !pPlayer->GetInventory().HaveRoomForItem(pTileItem->id, 1)) 
+            {
                 pPlayer->SendFakePingReply();
                 pPlayer->SendOnTalkBubble("I better not break that, I have no room to pick it up!", true);
                 return;
             }
     
-            if(pTileItem->HasFlag(ITEM_FLAG_AUTOPICKUP)) {
+            if(pTileItem->HasFlag(ITEM_FLAG_AUTOPICKUP)) 
+            {
                 pPlayer->GetInventory().AddItem(pTileItem->id, 1, pPlayer);
             }
     
-            if(pTileItem->type == ITEM_TYPE_LOCK) {
+            if(pTileItem->type == ITEM_TYPE_LOCK) 
+            {
                 pWorld->OnRemoveLock(pPlayer, pTile);
             }
             
-            if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE) {
+            if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE) 
+            {
                 pWorld->SetCurrentWeather(pTileItem->weatherID);
                 pTile->RemoveFlag(TILE_FLAG_IS_ON);
                 pWorld->SendCurrentWeatherToAll();

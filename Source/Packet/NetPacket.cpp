@@ -9,7 +9,7 @@ bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataS
         return false;
     }
 
-    if(messageType == NET_MESSAGE_GAME_PACKET && ((GameUpdatePacket*)pData)->flags & NET_GAME_PACKET_FLAGS_EXTENDED) {
+    if(messageType == NET_MESSAGE_GAME_PACKET && ((GameUpdatePacket*)pData)->flags & GAME_PACKET_FLAG_EXTENDED_DATA) {
         ENetPacket* pPacket = enet_packet_create(nullptr, dataSize + 5 + ((GameUpdatePacket*)pData)->extraDataSize, ENET_PACKET_FLAG_RELIABLE);
         
         memcpy(pPacket->data, &messageType, 4);
@@ -83,7 +83,7 @@ GameUpdatePacket* GetGamePacketFromEnetPacket(ENetPacket* pPacket)
     }
 
     GameUpdatePacket* pGamePacket = (GameUpdatePacket*)(pPacket->data + 4);
-    if(!(pGamePacket->flags & NET_GAME_PACKET_FLAGS_EXTENDED)) {
+    if(!(pGamePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA)) {
         pGamePacket->extraDataSize = 0;
     }
     else if(pPacket->dataLength < pGamePacket->extraDataSize + sizeof(pGamePacket)) {
@@ -95,7 +95,7 @@ GameUpdatePacket* GetGamePacketFromEnetPacket(ENetPacket* pPacket)
 
 uint8* GetExtendedDataFromGamePacket(GameUpdatePacket* pUpdatePacket)
 {
-    if(!(pUpdatePacket->flags & NET_GAME_PACKET_FLAGS_EXTENDED)) {
+    if(!(pUpdatePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA)) {
         return nullptr;
     }
 

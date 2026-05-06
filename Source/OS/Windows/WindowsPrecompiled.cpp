@@ -123,3 +123,8 @@ uint32 GetSecondsFromMidnight()
 
     return time.tm_hour * 3600 + time.tm_min * 60 + time.tm_sec;
 }
+
+string GetLoadAvgString()
+{
+    return "";
+}

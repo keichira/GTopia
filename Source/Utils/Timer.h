@@ -8,6 +8,7 @@ public:
 
 public:
     void Reset();
+    void Reset(uint64 newTime);
     uint64 GetElapsedTime(bool reset = false);
     uint64 GetStartTime() const;
 

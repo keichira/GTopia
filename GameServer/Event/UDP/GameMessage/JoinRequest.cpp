@@ -4,13 +4,14 @@
 
 void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(pPlayer->GetLastJoinRequestTime().GetElapsedTime() <= 800) {
+    if(pPlayer->GetLastJoinRequestTime().GetElapsedTime() <= 800)
         return;
-    }
+        
     pPlayer->GetLastJoinRequestTime().Reset();
 
     auto pName = packet.Find(CompileTimeHashString("name"));
-    if(!pName) {
+    if(!pName) 
+    {
         pPlayer->SendOnFailedToEnterWorld();
         pPlayer->SendOnConsoleMessage("Unable to enter world by unknown reason");
         return;

@@ -3,6 +3,7 @@
 #include "IO/Log.h"
 #include "../Context.h"
 #include "../Player/PlayerManager.h"
+#include "../World/WorldManager.h"
 
 #include "../Event/TCP/TCPEventHello.h"
 #include "../Event/TCP/TCPEventAuth.h"
@@ -57,7 +58,7 @@ void ServerManager::OnClientDisconnect(NetClient* pClient)
         m_pendingClients.erase(pServerInfo->GetNetID());
     }
     else {
-        
+        RemoveServer(pServerInfo->serverID);
     }
 }
 
@@ -140,22 +141,23 @@ ServerInfo* ServerManager::GetServerByID(uint16 serverID)
     return it->second;
 }
 
-void ServerManager::SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID)
+void ServerManager::SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID, const string& message)
 {
     if(!pServer || !pServer->pClient) {
         return;
     }
     
-    VariantVector data(3);
+    VariantVector data(4);
 
     data[0] = TCP_PACKET_WORLD_SEND_PLAYER;
     data[1] = TCP_RESULT_FAIL;
     data[2] = playerUserID;
+    data[3] = message;
 
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 worldID, const string& serverIP, uint16 serverPort)
+void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& serverIP, uint16 serverPort)
 {
     if(!pServer || !pServer->pClient) {
         return;
@@ -167,23 +169,24 @@ void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 pla
     data[1] = TCP_RESULT_OK;   
     data[2] = playerUserID;
     data[3] = serverID;
-    data[4] = worldID;
+    data[4] = instanceID;
     data[5] = serverIP;
     data[6] = (uint32)serverPort;
 
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& worldName)
+void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID, uint32 databaseID)
 {
-    if(!pServer || !pServer->pClient) {
+    if(!pServer || !pServer->pClient)
         return;
-    }
 
-    VariantVector data(2);
+    VariantVector data(4);
 
     data[0] = TCP_PACKET_WORLD_INIT;
     data[1] = worldName;
+    data[2] = instanceID;
+    data[3] = databaseID;
 
     pServer->pClient->Send(data);
 }
@@ -249,7 +252,22 @@ void ServerManager::SendHeartBeat(ServerInfo* pServer, uint32 totalPlayer)
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID, string worldName)
+void ServerManager::SendCommandSetRole(ServerInfo* pServer, uint32 userID, uint32 roleID)
+{
+    if(!pServer || !pServer->pClient) {
+        return;
+    }
+
+    VariantVector data(4);
+    data[0] = TCP_PACKET_ADMIN_COMMAND;
+    data[1] = TCP_COMMAND_SETROLE;
+    data[2] = userID;
+    data[3] = roleID;
+
+    pServer->pClient->Send(data);
+}
+
+void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID, uint32 worldInstanceID)
 {
     if(!pServer || !pServer->pClient) {
         return;
@@ -267,10 +285,7 @@ void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession,
     data[0] = TCP_PACKET_PLAYER_CHECK_SESSION;
     data[1] = playerNetID;
     data[2] = hasSession;
-    
-    if(hasSession) {
-        data[3] = worldName;
-    }
+    data[3] = worldInstanceID;
 
     pServer->pClient->Send(data);
 }
@@ -332,18 +347,22 @@ void ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverT
 void ServerManager::RemoveServer(uint16 serverID)
 {
     auto it = m_servers.find(serverID);
-    if(it == m_servers.end()) {
+    if(it == m_servers.end())
         return;
-    }
 
     ServerInfo* pServer = it->second;
-    if(!pServer) {
+    if(!pServer)
         return;
-    }
+
+    if(!pServer->deleteFlag)
+        pServer->deleteFlag = true;
 
     if(pServer->pClient) {
         pServer->pClient->status = SOCKET_CLIENT_CLOSE;
     }
+
+    GetPlayerManager()->EndSessionsByServer(pServer->serverID);
+    GetWorldManager()->EndSessionsByServerID(pServer->serverID);
     
     SAFE_DELETE(pServer);
     m_servers.erase(it);
@@ -359,7 +378,7 @@ ServerInfo* ServerManager::GetBestGameServer()
             continue;
         }
 
-        float score = pServer->playerCount / (pServer->worldCount + 1);
+        float score = 1.0f * pServer->playerCount / (pServer->worldCount + 1);
         if(score < bestScore) {
             bestScore = score;
             pBestServer = pServer;
@@ -412,28 +431,32 @@ uint32 ServerManager::GetPlayerCount()
 
 void ServerManager::UpdateServers()
 {
-    if(m_lastServerUpdateTime.GetElapsedTime() < TICK_INTERVAL) {
+    if(m_lastServerUpdateTime.GetElapsedTime() < 1000)
         return;
-    }
 
-    if(m_lastHeartBeatTime.GetElapsedTime() >= 5000) {
+    if(m_lastHeartBeatTime.GetElapsedTime() >= 5000)
+    {
         PlayerManager* pPlayerMgr = GetPlayerManager();
 
-        for (auto it = m_servers.begin(); it != m_servers.end();) {
+        for(auto it = m_servers.begin(); it != m_servers.end();)
+        {
             ServerInfo* pServer = it->second;
-        
-            if(!pServer) {
+
+            if(!pServer)
+            {
                 it = m_servers.erase(it);
                 continue;
             }
-        
-            if(!pServer->pClient) {
+
+            if(!pServer->pClient)
+            {
                 SAFE_DELETE(pServer);
                 it = m_servers.erase(it);
                 continue;
             }
-        
-            if(pServer->lastHeartbeatTime.GetElapsedTime() >= 30 * 1000) {
+
+            if(pServer->lastHeartbeatTime.GetElapsedTime() >= 30 * 1000)
+            {
                 pServer->pClient->status = SOCKET_CLIENT_CLOSE;
                 ++it;
                 continue;
@@ -442,30 +465,45 @@ void ServerManager::UpdateServers()
             SendHeartBeat(pServer, pPlayerMgr->GetTotalPlayerCount());
             ++it;
         }
+
+        m_lastHeartBeatTime.Reset();
     }
 
-    if(m_lastPendingUpdateTime.GetElapsedTime() >= 2000) {
-        for (auto it = m_pendingClients.begin(); it != m_pendingClients.end();) {
+    if(m_lastPendingUpdateTime.GetElapsedTime() >= 2000)
+    {
+        for(auto it = m_pendingClients.begin(); it != m_pendingClients.end();)
+        {
             ServerInfo* pServer = it->second;
-        
-            if(!pServer) {
+
+            if(!pServer)
+            {
                 it = m_pendingClients.erase(it);
                 continue;
             }
-        
-            if(!pServer->pClient) {
+
+            if(!pServer->pClient)
+            {
                 SAFE_DELETE(pServer);
                 it = m_pendingClients.erase(it);
                 continue;
             }
-        
-            if(pServer->lastHeartbeatTime.GetElapsedTime() >= 60 * 1000) {
+
+            if(pServer->lastHeartbeatTime.GetElapsedTime() >= 60 * 1000)
+            {
                 pServer->pClient->status = SOCKET_CLIENT_CLOSE;
+                SAFE_DELETE(pServer);
+                it = m_pendingClients.erase(it);
+                continue;
             }
-        
+
             ++it;
         }
+
+        m_lastPendingUpdateTime.Reset();
     }
+
+    m_lastServerUpdateTime.Reset();
 }
+
 
 ServerManager* GetServerManager() { return ServerManager::GetInstance(); }

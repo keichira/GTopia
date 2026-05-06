@@ -10,23 +10,23 @@ DatabaseResult::DatabaseResult()
 
 bool DatabaseResult::Parse(MYSQL* pConnection, MYSQL_STMT* pStmt)
 {
-    if(!pConnection) {
+    if(!pConnection)
         return false;
-    }
 
     MYSQL_RES* pResult = pStmt ? mysql_stmt_result_metadata(pStmt) : mysql_store_result(pConnection);
-    if(!pResult) {
+    if(!pResult) 
         return false;
-    }
 
     MYSQL_ROW row;
     uint32 numFields = mysql_num_fields(pResult);
     MYSQL_FIELD* fields = mysql_fetch_field(pResult);
 
-    if(pStmt) {
+    if(pStmt) 
+    {
         ParseSTMT(pStmt, pResult, row, fields, numFields);
     }
-    else {
+    else 
+    {
         ParseNormal(pResult, row, fields, numFields);
     }
 
@@ -62,11 +62,13 @@ uint32 DatabaseResult::GetSizeOfField(MYSQL_FIELD& field)
 
 void DatabaseResult::ParseNormal(MYSQL_RES* pResult, MYSQL_ROW& row, MYSQL_FIELD* fields, uint32 numFields)
 {
-    while((row = mysql_fetch_row(pResult))) {
+    while((row = mysql_fetch_row(pResult))) 
+    {
         unsigned long* lengths = mysql_fetch_lengths(pResult);
         VariantMap& varMap = m_results.emplace_back();
 
-        for(uint32 i = 0; i < numFields; ++i) {
+        for(uint32 i = 0; i < numFields; ++i) 
+        {
             ParseAndInsertField(fields[i], row[i], lengths[i], row[i] == nullptr, varMap);
         }
     }
@@ -79,10 +81,12 @@ void DatabaseResult::ParseSTMT(MYSQL_STMT* pStmt, MYSQL_RES* pResult, MYSQL_ROW&
 
     mysql_stmt_bind_result(pStmt, prepParam.GetBinds().data());
 
-    while((mysql_stmt_fetch(pStmt) == 0)) {
+    while((mysql_stmt_fetch(pStmt) == 0)) 
+    {
         VariantMap& varMap = m_results.emplace_back();
 
-        for(uint32 i = 0; i < numFields; ++i) {
+        for(uint32 i = 0; i < numFields; ++i) 
+        {
             ParseAndInsertField(fields[i], prepParam.GetBuffers()[i].data(), prepParam.GetLengths()[i], prepParam.GetNulls()[i], varMap);
         }
     }
@@ -92,11 +96,13 @@ void DatabaseResult::ParseAndInsertField(MYSQL_FIELD& field, void* data, unsigne
 {
     Variant var;
 
-    switch(field.type) {
+    switch(field.type) 
+    {
         case MYSQL_TYPE_TINY:
         case MYSQL_TYPE_SHORT:
         case MYSQL_TYPE_LONG:
-        case MYSQL_TYPE_LONGLONG: {
+        case MYSQL_TYPE_LONGLONG: 
+        {
             var = (isNull ? (uint32)0 : 
             (field.flags & UNSIGNED_FLAG ?
                       ToUInt((const char*)data) :
@@ -107,19 +113,22 @@ void DatabaseResult::ParseAndInsertField(MYSQL_FIELD& field, void* data, unsigne
         case MYSQL_TYPE_FLOAT:
         case MYSQL_TYPE_DOUBLE: 
         case MYSQL_TYPE_DECIMAL:
-        case MYSQL_TYPE_NEWDECIMAL:{
+        case MYSQL_TYPE_NEWDECIMAL:
+        {
             var = (isNull ? (float)0 : ToFloat((const char*)data));
             break;
         }
 
         case MYSQL_TYPE_BLOB:
         case MYSQL_TYPE_STRING:
-        case MYSQL_TYPE_VAR_STRING: {
+        case MYSQL_TYPE_VAR_STRING: 
+        {
             var = (isNull ? "" : string((char*)data, length));
             break;
         }
 
-        default: {
+        default: 
+        {
             LOGGER_LOG_WARN("We dont know how to parse %s type %d", field.name, field.type);
         }
     }

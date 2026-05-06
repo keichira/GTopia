@@ -27,3 +27,24 @@ max_accounts_per_mac|5
 
 # max player count in a world
 world_max_player_count|70
+
+# 0 for only accept default enet command
+# 1 for only accept growtopia's enet command
+# 3 for accept both
+# used for growtopia's new enet protocol 
+# type2 not working for newer clients
+enet_income_cmd_type|3
+
+# make 0 to disable, if disabled it gonna choose item data version range from X_min_version to X_max_version
+# WARNING! auto choose from range is very experimental!
+
+force_item_data_version|5
+
+# SUPPORTING MINIMUM VERSION 3.02 BECAUSE OF ZLIB COMPRESS!!!!!
+# need to find a solution for it to support older than 3.02
+# there is a way but it gonna cause high memory usage
+
+android_supported_versions|3.02|5.45
+windows_supported_versions|3.02|5.45
+ios_supported_versions|3.02|5.45
+macos_supported_versions|3.02|5.45

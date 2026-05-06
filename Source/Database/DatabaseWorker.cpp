@@ -33,7 +33,7 @@ void DatabaseWorker::Kill()
     SAFE_DELETE(m_pPrepParam);
 }
 
-void DatabaseWorker::Update(uint64 maxTimeMS)
+void DatabaseWorker::Update()
 {
     if(!m_pDatabaseMgr) {
         return;
@@ -100,10 +100,6 @@ void DatabaseWorker::Update(uint64 maxTimeMS)
         taskRes.extraData = std::move(taskReq.extraData);
         taskRes.status = succeed ? QUERY_STATUS_OK : QUERY_STATUS_FAIL;
         m_pDbPool->AddResult(std::move(taskRes));
-
-        if(Time::GetSystemTime() - updateStartTime >= maxTimeMS) {
-            break;
-        }
     }
 }
 

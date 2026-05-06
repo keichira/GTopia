@@ -56,7 +56,7 @@ void NetHTTP::Kill()
 
 void NetHTTP::OnConnect(NetClient* pClient)
 {    
-    if(!pClient) {
+    if(!pClient || m_pNetClient) {
         Error(HTTP_ERROR_SOCKET);
         return;
     }
@@ -67,9 +67,9 @@ void NetHTTP::OnConnect(NetClient* pClient)
 void NetHTTP::OnDisconnect(NetClient* pClient)
 {
     if(m_pNetClient == pClient) {
-        if(m_state != HTTP_STATE_IDLE) {
-            //Error(HTTP_ERROR_SOCKET);
-        }
+        /*if(m_state != HTTP_STATE_COMPLETE && m_error == HTTP_ERROR_NONE) {
+            Error(HTTP_ERROR_SOCKET);
+        }*/
 
         m_pNetClient = nullptr;
     }
@@ -95,13 +95,16 @@ void NetHTTP::OnDataReceive(NetClient* pClient)
                 m_header.append(data.data(), headerEndPos);
 
                 pClient->recvQueue.Skip(headerEndPos);
+                data.resize(size);
+                pClient->recvQueue.Peek(data.data(), size);
         
                 ParseHeader(m_header);
                 m_state = HTTP_STATE_READ_BODY;
             }
         }
     }
-    else if(m_state == HTTP_STATE_READ_BODY) {
+
+    if(m_state == HTTP_STATE_READ_BODY) {
         if(m_chunked) {
             int32 bodyLineEnd = data.find("\r\n");
 
@@ -216,11 +219,6 @@ void NetHTTP::Update(const string& headerToSend)
             m_postData.clear();
             sentPacket = true;
         }
-    
-        /*if(sentPacket && !m_pNetClient) {
-            Error(HTTP_ERROR_SOCKET);
-            break;
-        }*/
     
         if(startTimer.GetElapsedTime() >= HTTP_TIMEOUT_MS) {
             Error(HTTP_ERROR_TIME_EXCEED);

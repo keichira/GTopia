@@ -3,6 +3,23 @@
 #include "../Precompiled.h"
 #include "../Memory/MemoryBuffer.h"
 
+class TileExtra;
+
+#define TILE_EXTRA(CLASS, TYPEID)        \
+class CLASS : public TileExtra {         \
+public:                                  \
+    static constexpr uint8 TYPE = TYPEID;\
+    CLASS() : TileExtra(TYPE) {}         \
+protected:                               \
+    void Serialize(                      \
+        MemoryBuffer& memBuffer,         \
+        bool write,                      \
+        bool database,                   \
+        TileInfo* pTile,                 \
+        uint16 worldVersion              \
+    ) override;                          \
+public:
+
 enum eTileExtraTypes 
 {
     TILE_EXTRA_TYPE_NONE = 0,
@@ -67,7 +84,28 @@ enum eTileExtraTypes
     TILE_EXTRA_TYPE_SIZE
 };
 
+enum eTileExtraFlags
+{
+    TILE_EXTRA_LOCK_IGNORE_EMPTY = 1 << 0,
+    TILE_EXTRA_LOCK_DISABLE_MUSIC = 1 << 4,
+    TILE_EXTRA_LOCK_DISABLE_RENDER_MUSIC = 1 << 5,
+    TILE_EXTRA_LOCK_SILENCE = 1 << 6,
+    TILE_EXTRA_LOCK_BUILD_ONLY = 1 << 6,
+    TILE_EXTRA_LOCK_RAINBOW_TRAIL = 1 << 7,
+    TILE_EXTRA_LOCK_LIMIT_ADMINS = 1 << 7,
+
+    TILE_EXTRA_CAMERA_SHOW_LEAVES = 1 << 0,
+    TILE_EXTRA_CAMERA_SHOW_DROPS = 1 << 1,
+    TILE_EXTRA_CAMERA_SHOW_VENDINGS = 1 << 2,
+    TILE_EXTRA_CAMERA_SHOW_JOINS = 1 << 3,
+    TILE_EXTRA_CAMERA_SHOW_COLLECTS = 1 << 4,
+    TILE_EXTRA_CAMERA_DONT_SHOW_OTHERS = 1 << 5,
+    TILE_EXTRA_CAMERA_DONT_SHOW_OWNER = 1 << 6,
+    TILE_EXTRA_CAMERA_DONT_SHOW_ADMINS = 1 << 7
+};
+
 uint8 GetTileExtraType(uint8 itemType);
+TileExtra* CreateTileExtra(uint8 extraType);
 
 class TileInfo;
 
@@ -77,7 +115,6 @@ public:
     virtual ~TileExtra() {};
 
     virtual void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) = 0;
-    static TileExtra* Create(uint8 tileExtraType);
 
 protected:
     virtual void Serialize(MemoryBuffer& memBuffer, bool write);
@@ -86,43 +123,17 @@ public:
     uint8 type = TILE_EXTRA_TYPE_NONE;
 };
 
-class TileExtra_Door : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_DOOR;
-
-    TileExtra_Door() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Door, TILE_EXTRA_TYPE_DOOR)
     string name;
     string text;
     string id;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-class TileExtra_Sign : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_SIGN;
-
-    TileExtra_Sign() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Sign, TILE_EXTRA_TYPE_SIGN)
     string text;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-enum eTileExtraLockFlag
-{
-    TILE_EXTRA_LOCK_FLAG_IGNORE_AIR = 1 << 0
-};
-
-class TileExtra_Lock : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_LOCK;
-
-    TileExtra_Lock() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Lock, TILE_EXTRA_TYPE_LOCK)
     uint8 flags = 0;
     int32 ownerID = -1;
     std::vector<int32> accessList; // includes tempo
@@ -181,78 +192,28 @@ public:
 
         return false;
     }
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-class TileExtra_Seed : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_SEED;
-
-    TileExtra_Seed() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Seed, TILE_EXTRA_TYPE_SEED)
     uint32 growTime = 0;
     uint8 fruitCount = 3;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-/**
- * 
- * 
- * 
- * 
- */
-
-class TileExtra_Component : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_COMPONENT;
-
-    TileExtra_Component() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Component, TILE_EXTRA_TYPE_COMPONENT)
     uint8 randValue = 0;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-class TileExtra_Provider : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_PROVIDER;
-
-    TileExtra_Provider() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Provider, TILE_EXTRA_TYPE_PROVIDER)
     uint32 readyTime = 0;
     int32 itemID = 0;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-class TileExtra_Lab : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_LAB;
-
-    TileExtra_Lab() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_Lab, TILE_EXTRA_TYPE_LAB)
     int32 userID = -1;
     uint8 achievementID = 0;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };
 
-class TileExtra_HeartMonitor : public TileExtra {
-public:
-    static constexpr uint8 TYPE = TILE_EXTRA_TYPE_HEART_MONITOR;
-
-    TileExtra_HeartMonitor() : TileExtra(TYPE) {}
-
+TILE_EXTRA(TileExtra_HeartMonitor, TILE_EXTRA_TYPE_HEART_MONITOR)
     int32 userID = -1;
     string playerDisplayName;
-
-protected:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override;
 };

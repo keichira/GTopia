@@ -22,6 +22,7 @@ public:
 public:
     bool Init(const string& host, uint16 port);
     void Update();
+    void SetENetIncomeCmdType(uint8 type);
 
 protected:
     ENetServer* m_pENetServer;

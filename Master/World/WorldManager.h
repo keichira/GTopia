@@ -5,43 +5,34 @@
 
 class ServerInfo;
 
-enum eWorldState
+enum WorldState
 {
-    WORLD_STATE_IDLE,
-    WORLD_STATE_LOADING,
-    WORLD_STATE_ON
+    WORLD_STATE_LOADING = 0,
+    WORLD_STATE_READY   = 1,
+    WORLD_STATE_DELETE  = 2
 };
 
-struct WorldPendingPlayer
+struct PendingTransfer
 {
-    uint32 serverID = 0;
-    uint32 playerUserID = 0;
+    uint32 userID = 0;
+    uint32 sourceServerID = 0;
+    uint32 targetServerID = 0;
+    uint32 worldDatabaseID = 0;
+    uint32 worldInstanceID = 0;
+    string worldName;
 };
 
 struct WorldSession
 {
-    eWorldState state = WORLD_STATE_IDLE;
-    
-    string worldName = "";
-    uint32 worldID = 0;
+    uint32 instanceID = 0;
+    uint32 databaseID = 0;
     uint32 serverID = 0;
-
-    std::vector<WorldPendingPlayer> pendingPlayers;
-
-    void AddPending(uint32 serverID, uint32 userID)
-    {
-        pendingPlayers.emplace_back(WorldPendingPlayer{serverID, userID});
-    }
+    WorldState state = WORLD_STATE_LOADING;
+    string worldName;
+    std::vector<PendingTransfer> waitingPlayers;
 };
 
 class WorldManager {
-private:
-    enum eWorldDatabaseState
-    {
-        WORLD_DB_STATE_CHECK_EXISTS,
-        WORLD_DB_STATE_CREATE
-    };
-
 public:
     WorldManager();
     ~WorldManager();
@@ -54,22 +45,25 @@ public:
     }
 
 public:
+    void HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& result);
     void HandleWorldInit(VariantVector&& result);
-
     static void CheckWorldExistCB(QueryTaskResult&& result);
     static void CreateWorldCB(QueryTaskResult&& result);
 
-    void HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& result);
-
-    void CreateWorldSessionAndNotice(uint32 worldID, const string& worldName, uint32 playerUserID, uint32 serverID);
-
     WorldSession* GetWorldByName(const string& worldName);
-    WorldSession* GetWorldByID(uint32 worldID);
+    WorldSession* GetWorldByInstanceID(uint32 instanceID);
 
-    void RemoveWorldsWithServerID(uint32 serverID);
+    void EndSessionsByServerID(uint32 serverID);
 
 private:
-    std::unordered_map<uint32, WorldSession> m_worldSessions;
+    void RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, WorldSession& world);
+    void CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName, uint32 playerUserID, uint32 sourceServerID);
+    void AttachPending(WorldSession* pWorld, uint32 sourceServerID, uint32 userID);
+    void FailPlayerJoin(ServerInfo* pServer, uint32 userID, const string& message);
+
+private:
+    std::unordered_map<uint32, WorldSession> m_worldSessionsByInstance;
+    std::unordered_map<string, uint32> m_worldInstanceByName;
 };
 
 WorldManager* GetWorldManager();

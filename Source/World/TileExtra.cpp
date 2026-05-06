@@ -15,14 +15,18 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_LOCK:
             return TILE_EXTRA_TYPE_LOCK;
 
+        case ITEM_TYPE_SEED:
+            return TILE_EXTRA_TYPE_SEED;
+
         default:
             return TILE_EXTRA_TYPE_NONE;
     }
 }
 
-TileExtra* TileExtra::Create(uint8 tileExtraType)
+TileExtra* CreateTileExtra(uint8 type)
 {
-    switch(tileExtraType) {
+    switch(type)
+    {
         case TILE_EXTRA_TYPE_DOOR:
             return new TileExtra_Door();
 
@@ -30,7 +34,22 @@ TileExtra* TileExtra::Create(uint8 tileExtraType)
             return new TileExtra_Sign();
 
         case TILE_EXTRA_TYPE_LOCK:
-            return new TileExtra_Lock(); 
+            return new TileExtra_Lock();
+
+        case TILE_EXTRA_TYPE_SEED:
+            return new TileExtra_Seed();
+
+        case TILE_EXTRA_TYPE_COMPONENT:
+            return new TileExtra_Component();
+
+        case TILE_EXTRA_TYPE_PROVIDER:
+            return new TileExtra_Provider();
+
+        case TILE_EXTRA_TYPE_LAB:
+            return new TileExtra_Lab();
+
+        case TILE_EXTRA_TYPE_HEART_MONITOR:
+            return new TileExtra_HeartMonitor();
 
         default:
             return nullptr;
@@ -98,20 +117,20 @@ void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
     }
 }
 
-void TileExtra_Seed::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Seed::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(growTime, write);
     memBuffer.ReadWrite(fruitCount, write);
 }
 
-void TileExtra_Component::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Component::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(randValue, write);
 }
 
-void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(readyTime, write);

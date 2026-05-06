@@ -18,21 +18,30 @@ QueryRequest WorldDB::Create(const string& worldName, uint32 ownerID)
     return req;
 }
 
-QueryRequest WorldDB::GetWorldData(const string& worldName, uint32 ownerID)
+QueryRequest WorldDB::GetByName(const string& worldName, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(worldName);
 
-    req.queryID = DB_WORLD_GET_DATA;
+    req.queryID = DB_WORLD_GET_BY_NAME;
     return req;
 }
 
-QueryRequest WorldDB::SaveWorld(const string& worldName, uint32 worldID, uint32 ownerID)
+QueryRequest WorldDB::Save(const string& worldName, uint32 worldID, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(worldName, worldID);
 
     req.queryID = DB_WORLD_SAVE;
+    return req;
+}
+
+QueryRequest WorldDB::GetByID(uint32 worldID, uint32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(worldID);
+
+    req.queryID = DB_WORLD_GET_BY_ID;
     return req;
 }
 
@@ -43,7 +52,7 @@ void DatabaseWorldExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
         return;
     }
 
-    TableQuery& query = sQueryTable[req.queryID];
+    TableQuery& query = sWorldQueryTable[req.queryID];
 
     if(preapred) {
         query.flags |= QUERY_FLAG_PREPARED;

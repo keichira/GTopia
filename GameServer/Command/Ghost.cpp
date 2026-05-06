@@ -18,14 +18,15 @@ const CommandInfo& Ghost::GetInfo()
 
 void Ghost::Execute(GamePlayer* pPlayer, std::vector<string>& args)
 {
-    if(!pPlayer || args.empty() || !CheckPerm(pPlayer)) {
+    if(!pPlayer || args.empty() || !CheckPerm(pPlayer))
         return;
-    }
 
-    if(pPlayer->GetCharData().HasPlayMod(PLAYMOD_TYPE_GHOST)) {
+    if(pPlayer->GetCharData().HasPlayMod(PLAYMOD_TYPE_GHOST)) 
+    {
         pPlayer->RemovePlayMod(PLAYMOD_TYPE_GHOST);
     }
-    else {
+    else 
+    {
         pPlayer->AddPlayMod(PLAYMOD_TYPE_GHOST);
     }
 }

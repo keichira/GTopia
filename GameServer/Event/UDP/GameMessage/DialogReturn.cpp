@@ -9,84 +9,85 @@
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
     auto pDialogName = packet.Find(CompileTimeHashString("dialog_name"));
-    if(!pDialogName || pDialogName->size > 50) {
+    if(!pDialogName || pDialogName->size > 50)
         return;
-    }
 
     uint32 hashedDialogName = HashString(pDialogName->value, pDialogName->size);
 
-    switch(hashedDialogName) {
-        case CompileTimeHashString("sign_edit"): {
+    switch(hashedDialogName) 
+    {
+        case CompileTimeHashString("sign_edit"): 
+        {
             auto pTileX = packet.Find(CompileTimeHashString("tilex"));
             auto pTileY = packet.Find(CompileTimeHashString("tiley"));
             auto pSignText = packet.Find(CompileTimeHashString("sign_text"));
 
-            if(!pTileX || !pTileY || !pSignText) {
+            if(!pTileX || !pTileY || !pSignText)
                 return;
-            }
 
-            // we need to int converter that supports non null term
+            // we need int converter that supports non null term
             // idk if its good ways to convert it to a str
             // really we need it??
 
             int32 tileX = 0;
-            if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS) {
+            if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS)
                 return;
-            }
 
             int32 tileY = 0;
-            if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS) {
+            if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS)
                 return;
-            }
 
             SignDialog::Handle(pPlayer, string(pSignText->value, pSignText->size), tileX, tileY);
             break;
         }
 
         case CompileTimeHashString("trash_item"):
-        case CompileTimeHashString("trash_item2"): {
+        case CompileTimeHashString("trash_item2"): 
+        {
             auto pItemID = packet.Find(CompileTimeHashString("itemID"));
             auto pCount = packet.Find(CompileTimeHashString("count"));
 
-            if(!pItemID || !pCount) {
+            if(!pItemID || !pCount)
                 return;
-            }
 
             uint32 itemID = 0;
-            if(ToUInt(string(pItemID->value, pItemID->size), itemID) != TO_INT_SUCCESS) {
+            if(ToUInt(string(pItemID->value, pItemID->size), itemID) != TO_INT_SUCCESS)
                 return;
-            }
 
             int32 count = 0;
-            if(ToInt(string(pCount->value, pCount->size), count) != TO_INT_SUCCESS) {
+            if(ToInt(string(pCount->value, pCount->size), count) != TO_INT_SUCCESS)
                 return;
-            }
 
-            if(hashedDialogName == CompileTimeHashString("trash_item2")) {
+            if(hashedDialogName == CompileTimeHashString("trash_item2")) 
+            {
                 TrashDialog::HandleUntradeable(pPlayer, itemID, count);
             }
-            else {
+            else 
+            {
                 TrashDialog::Handle(pPlayer, itemID, count);
             }
+
             break;
         }
 
-        case CompileTimeHashString("lock_edit"): {
+        case CompileTimeHashString("lock_edit"): 
+        {
             LockDialog::Handle(pPlayer, packet);
             break;
         }
 
-        case CompileTimeHashString("render_reply"): {
+        case CompileTimeHashString("render_reply"): 
+        {
             RenderWorldDialog::Handle(pPlayer);
             break;
         }
 
-        case CompileTimeHashString("growid_apply"): {
+        case CompileTimeHashString("growid_apply"): 
+        {
             RegisterDialog::Handle(pPlayer, packet);
             break;
         }

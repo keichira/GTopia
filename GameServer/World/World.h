@@ -3,6 +3,15 @@
 #include "Precompiled.h"
 #include "World/WorldInfo.h"
 #include "Packet/GamePacket.h"
+#include "Database/Table/WorldDBTable.h"
+#include <queue>
+
+enum eWorldState
+{
+    WORLD_STATE_LOADING,
+    WORLD_STATE_READY,
+    WORLD_STATE_DELETE
+};
 
 class GamePlayer;
 
@@ -12,13 +21,26 @@ public:
     ~World();
 
 public:
-    void SetID(uint32 id) { m_worldID = id; }
-    uint32 GetID() const { return m_worldID; }
+    void SetDatabaseID(uint32 id) { m_databaseID = id; }
+    uint32 GetDatabaseID() const { return m_databaseID; }
 
+    void SetState(eWorldState state) { m_state = state; }
+    eWorldState GetState() const { return m_state; }
+
+    void SetInstanceID(uint32 id) { m_instanceID = id; }
+    uint32 GetInstanceID() const { return m_instanceID; }
+
+    bool LoadFromFile();
+
+    static void SaveToDatabaseCB(QueryTaskResult&& result);
     void SaveToDatabase();
     void Update();
 
-    bool PlayerJoinWorld(GamePlayer* pPlayer);
+    void QueuePendingPlayer(GamePlayer* pPlayer);
+    bool HasPendingPlayers() const;
+    GamePlayer* PopPendingPlayer();
+
+    void AddPlayer(GamePlayer* pPlayer);
     void PlayerLeaverWorld(GamePlayer* pPlayer);
 
     void SendSkinColorUpdateToAll(GamePlayer* pPlayer);
@@ -33,6 +55,7 @@ public:
     void SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles);
     void SendTileApplyDamage(uint16 tileX, uint16 tileY, int32 damage, int32 netID);
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
+    void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
@@ -57,15 +80,18 @@ public:
     Timer& GetLastSaveTime() { return m_worldLastSaveTime; }
     Timer& GetOfflineTime() { return m_worldOfflineTime; }
 
-    void SetDeleteFlag(bool bDelete) { m_deleteFlag = bDelete; }
-    bool HasDeleteFlag() const { return m_deleteFlag; }
+private:
+    bool OnPlayerJoin(GamePlayer* pPlayer);
 
 private:
-    uint32 m_worldID;
+    uint32 m_databaseID;
+    uint32 m_instanceID;
+
+    eWorldState m_state;
+
+    std::queue<GamePlayer*> m_pendingPlayers;
     std::vector<GamePlayer*> m_players;
 
     Timer m_worldOfflineTime;
     Timer m_worldLastSaveTime;
-
-    bool m_deleteFlag;
 };

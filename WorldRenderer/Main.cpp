@@ -113,11 +113,7 @@ int main(int argc, char const* argv[])
             break;
         }
         else {
-            LOGGER_LOG_ERROR("Failed to connect to master... killing");
-            GetMasterBroadway()->Kill();
-            GetContext()->Kill();
-            GetLog()->Flush();
-            GetLog()->Kill();
+            LOGGER_LOG_ERROR("Failed to connect to master...");
             return 0;
         }
     }

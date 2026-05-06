@@ -57,4 +57,11 @@ public:
     uint16 maxAccountsPerSid = 3;
     uint16 maxAccountsPerMac = 3;
     uint32 worldMaxPlayerCount = 50;
+    uint8 enetIncomeCmdType = 3;
+
+    uint16 forceItemDataVersion = 0;
+    float androidSupportedVersions[2];
+    float windowsSupportedVersions[2];
+    float iosSupportedVersions[2];
+    float macosSupportedVersions[2];
 };

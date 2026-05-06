@@ -4,15 +4,13 @@
 void SetSkin::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
     auto pColor = packet.Find(CompileTimeHashString("color"));
-    if(!pColor) {
+    if(!pColor)
         return;
-    }
 
     uint32 skinColor = 0;
     /*really need to convert to string?*/
-    if(ToUInt(string(pColor->value, pColor->size), skinColor) != TO_INT_SUCCESS) {
+    if(ToUInt(string(pColor->value, pColor->size), skinColor) != TO_INT_SUCCESS)
         return;
-    }
 
     pPlayer->SetSkinColor(skinColor);
 }

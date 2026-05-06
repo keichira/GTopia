@@ -58,15 +58,15 @@ public:
 
     ServerInfo* GetServerByID(uint16 serverID);
 
-    void SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID);
-    void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 worldID, const string& serverIP, uint16 serverPort);
-    void SendWorldInitPacket(ServerInfo* pServer, const string& worldName);
+    void SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID, const string& message);
+    void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& serverIP, uint16 serverPort);
+    void SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID, uint32 databaseID);
     void SendAuthPacket(ServerInfo* pServer, bool succeed);
     void SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, const string& worldName);
     void SendRenderRequest(ServerInfo* pServer, uint32 playerUserID, uint32 worldID);
     void SendHeartBeat(ServerInfo* pServer, uint32 totalPlayer);
-
-    void SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID, string worldName);
+    void SendCommandSetRole(ServerInfo* pServer, uint32 userID, uint32 roleID);
+    void SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID, uint32 worldInstanceID);
     void SendHelloPacket(ServerInfo* pServer, const string& authKey);
 
 private:

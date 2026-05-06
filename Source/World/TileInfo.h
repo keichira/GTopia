@@ -48,21 +48,21 @@ public:
     void SetFG(uint16 itemID, WorldTileManager* pTileMgr);
     void SetBG(uint16 itemID);
 
-    void CopyTempData(TempTileData* temp);
+    void BindTileData(TempTileData* pTileData);
 
-    uint16 GetFG() const { return m_fg; }
-    uint16 GetBG() const { return m_bg; }
+    uint16 GetFG() const { return m_tileData->fg; }
+    uint16 GetBG() const { return m_tileData->bg; }
 
-    void SetParent(uint16 index) { m_parent = index; }
-    uint16 GetParent() const { return m_parent; }
+    void SetParent(uint16 index) { m_tileData->parent = index; }
+    uint16 GetParent() const { return m_tileData->parent; }
 
     void SetPos(uint16 x, uint16 y) { m_pos.x = x; m_pos.y = y; }
     Vector2Int GetPos() const { return m_pos; }
 
-    void SetFlag(uint16 flag) { m_flags |= flag; }
-    void RemoveFlag(uint16 flag) { m_flags &= ~flag; }
-    bool HasFlag(uint16 flag) { return m_flags & flag; };
-    void ToggleFlag(uint16 flag) { m_flags ^= flag; }
+    void SetFlag(uint16 flag) { m_tileData->flags |= flag; }
+    void RemoveFlag(uint16 flag) { m_tileData->flags &= ~flag; }
+    bool HasFlag(uint16 flag) { return m_tileData->flags & flag; };
+    void ToggleFlag(uint16 flag) { m_tileData->flags ^= flag; }
 
     void PunchTile(uint8 damage);
     float GetHealthPercent();
@@ -79,10 +79,7 @@ public:
     }
 
 private:
-    uint16 m_fg;
-    uint16 m_bg;
-    uint16 m_parent;
-    uint16 m_flags;
+    TempTileData* m_tileData;
     Vector2Int m_pos;
 
     uint8 m_damage;

@@ -3,6 +3,7 @@
 #include "../../Context.h"
 #include "Database/Table/PlayerDBTable.h"
 #include "../../Player/PlayerManager.h"
+#include "../../Server/ServerManager.h"
 
 const TelnetCommandInfo& SetRole::GetInfo()
 {
@@ -37,8 +38,8 @@ void SetRoleUpdateRoleCB(QueryTaskResult&& result)
 
         if(pRoleID && pUserID) {
             PlayerSession* pPlayerSession = GetPlayerManager()->GetSessionByID(pUserID->GetUINT());
-            if(pPlayerSession) {
-                
+            if(pPlayerSession; ServerInfo* pServer = GetServerManager()->GetServerByID(pPlayerSession->serverID)) {
+                GetServerManager()->SendCommandSetRole(pServer, pPlayerSession->userID, pRoleID->GetUINT());
             }
         }
     }
@@ -69,12 +70,11 @@ void SetRoleCheckPlayerCB(QueryTaskResult&& result)
             return;
         }
 
-        QueryRequest req(pNetClient->GetNetID());
-        req.AddData(pRoleID->GetUINT(), pUserID->GetUINT());
+        QueryRequest req = PlayerDB::SetRoleByID(pRoleID->GetUINT(), pUserID->GetUINT(), pNetClient->GetNetID());
         req.AddExtraData(pRoleID->GetUINT(), pUserID->GetUINT());
         req.callback = &SetRoleUpdateRoleCB;
 
-        DatabaseExec(GetContext()->GetDatabasePool(), "UPDATE Players SET RoleID = ? WHERE ID = ?;", req, QUERY_FLAG_NONE);
+        DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
     }
     else {
         pNetClient->SendMessage("User not found.", true);

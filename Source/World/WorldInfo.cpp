@@ -18,7 +18,7 @@ bool IsValidWorldName(const string& worldName)
 }
 
 WorldInfo::WorldInfo()
-: m_version(10), m_flags(0)
+: m_version(10), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
 {
     m_pTileMgr = new WorldTileManager();
     m_pObjMgr = new WorldObjectManager();

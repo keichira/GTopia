@@ -5,7 +5,7 @@
 #include "WorldInfo.h"
 
 TileInfo::TileInfo()
-: m_pExtraData(nullptr), m_fg(0), m_bg(0), m_parent(0), m_flags(0), m_damage(0)
+: m_pExtraData(nullptr), m_tileData(nullptr), m_damage(0)
 {
 }
 
@@ -16,33 +16,35 @@ TileInfo::~TileInfo()
 
 void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld)
 {
-    memBuffer.ReadWrite(m_fg, write);
-    memBuffer.ReadWrite(m_bg, write);
-    memBuffer.ReadWrite(m_parent, write);
-    memBuffer.ReadWrite(m_flags, write);
+    if(!database) {
+        memBuffer.ReadWrite(m_tileData->fg, write);
+        memBuffer.ReadWrite(m_tileData->bg, write);
+        memBuffer.ReadWrite(m_tileData->parent, write);
+        memBuffer.ReadWrite(m_tileData->flags, write);
+    }
 
     if(HasFlag(TILE_FLAG_HAS_PARENT)) {
-        memBuffer.ReadWrite(m_parent, write); // ye its like that
+        memBuffer.ReadWrite(m_tileData->parent, write); // ye its like that
     }
 
     if(HasFlag(TILE_FLAG_HAS_EXTRA_DATA)) {
         if(write) {
             if(!m_pExtraData) {
-                LOGGER_LOG_ERROR("Tile flagged with extra data but extra data is NULL? fg:%d", m_fg);
+                LOGGER_LOG_ERROR("Tile flagged with extra data but extra data is NULL? fg:%d", m_tileData->fg);
                 return;
             }
             
             m_pExtraData->Serialize(memBuffer, true, database, this, pWorld->GetWorldVersion());
         }
         else {
-            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(m_fg);
+            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(m_tileData->fg);
             if(!pItem) {
                 return;
             }
 
             uint8 tileExtraType = GetTileExtraType(pItem->type);
-            if(tileExtraType != TILE_EXTRA_TYPE_NONE) {                
-                m_pExtraData = TileExtra::Create(tileExtraType);
+            if(tileExtraType != TILE_EXTRA_TYPE_NONE) {           
+                m_pExtraData = CreateTileExtra(tileExtraType);     
 
                 if(m_pExtraData) {
                     m_pExtraData->Serialize(memBuffer, false, database, this, pWorld->GetWorldVersion());
@@ -73,7 +75,7 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
         m_damage = 0;
 
         pTileMgr->ModifyKeyTile(this, true);
-        m_fg = itemID;
+        m_tileData->fg = itemID;
         return;
     }
 
@@ -81,10 +83,10 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
     if(tileExtraType != TILE_EXTRA_TYPE_NONE) {
         SetFlag(TILE_FLAG_HAS_EXTRA_DATA);
         
-        m_pExtraData = TileExtra::Create(tileExtraType);
+        m_pExtraData = CreateTileExtra(tileExtraType);
     }
 
-    m_fg = itemID;
+    m_tileData->fg = itemID;
     pTileMgr->ModifyKeyTile(this, false);
 }
 
@@ -104,15 +106,12 @@ void TileInfo::SetBG(uint16 itemID)
         m_damage = 0;
     }
 
-    m_bg = itemID;
+    m_tileData->bg = itemID;
 }
 
-void TileInfo::CopyTempData(TempTileData* temp)
+void TileInfo::BindTileData(TempTileData* pTileData)
 {
-    temp->fg = m_fg;
-    temp->bg = m_bg;
-    temp->parent = m_parent;
-    temp->flags = m_flags;
+    m_tileData = pTileData;
 }
 
 void TileInfo::PunchTile(uint8 damage)
@@ -177,5 +176,5 @@ float TileInfo::GetHealthPercent()
 
 uint16 TileInfo::GetDisplayedItem()
 {
-    return m_fg != ITEM_ID_BLANK ? m_fg : m_bg;
+    return m_tileData->fg != ITEM_ID_BLANK ? m_tileData->fg : m_tileData->bg;
 }

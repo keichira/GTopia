@@ -60,7 +60,7 @@ NetSocket::~NetSocket()
     Kill();
 }
 
-bool NetSocket::Init(const std::string& host, uint16 port, int32 backLog)
+bool NetSocket::Init(const string& host, uint16 port, int32 backLog)
 {
 #ifdef _WIN32
     WSADATA wsaData;

@@ -27,10 +27,10 @@ QueryRequest PlayerDB::GetData(uint32 userID, uint32 ownerID)
     return req;
 }
 
-QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 gems, uint32 ownerID)
+QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 gems, uint32 lastWorld, uint32 ownerID)
 {
     QueryRequest req(ownerID);
-    req.AddData(roleID, inventoryData, skinColor, flags, gems, userID);
+    req.AddData(roleID, inventoryData, skinColor, flags, gems, lastWorld, userID);
 
     req.queryID = DB_PLAYER_SAVE;
     return req;
@@ -144,6 +144,15 @@ QueryRequest PlayerDB::ExistByID(uint32 userID, int32 ownerID)
     return req;
 }
 
+QueryRequest PlayerDB::SetRoleByID(uint32 roleID, uint32 userID, int32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(roleID, userID);
+
+    req.queryID = DB_PLAYER_SET_ROLE_BY_ID;
+    return req;
+}
+
 void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
 {
     if(req.queryID < 0) {
@@ -151,7 +160,7 @@ void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
         return;
     }
 
-    TableQuery& query = sQueryTable[req.queryID];
+    TableQuery& query = sPlayerQueryTable[req.queryID];
 
     if(preapred) {
         query.flags |= QUERY_FLAG_PREPARED;

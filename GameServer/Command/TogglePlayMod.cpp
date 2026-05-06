@@ -19,25 +19,28 @@ const CommandInfo& TogglePlayMod::GetInfo()
 
 void TogglePlayMod::Execute(GamePlayer* pPlayer, std::vector<string>& args)
 {
-    if(!pPlayer || args.empty() || !CheckPerm(pPlayer)) {
+    if(!pPlayer || args.empty() || !CheckPerm(pPlayer))
         return;
-    }
 
-    if(args.size() < 2) {
+    if(args.size() < 2) 
+    {
         pPlayer->SendOnConsoleMessage("`oUsage: " + GetInfo().usage);
         return;
     }
 
     uint32 playModID = 0;
-    if(ToUInt(args[1], playModID) != TO_INT_SUCCESS) {
+    if(ToUInt(args[1], playModID) != TO_INT_SUCCESS) 
+    {
         pPlayer->SendOnConsoleMessage("`PlayModID must be number!");
         return;
     }
 
-    if(pPlayer->GetCharData().HasPlayMod((ePlayModType)playModID)) {
+    if(pPlayer->GetCharData().HasPlayMod((ePlayModType)playModID)) 
+    {
         pPlayer->RemovePlayMod((ePlayModType)playModID);
     }
-    else {
+    else 
+    {
         pPlayer->AddPlayMod((ePlayModType)playModID);
     }
 }

@@ -12,11 +12,17 @@ void Timer::Reset()
     m_startTime = GetTick();
 }
 
+void Timer::Reset(uint64 newTime)
+{
+    m_startTime = newTime;
+}
+
 uint64 Timer::GetElapsedTime(bool reset)
 {
     uint64 elapsedTime = GetTick() - m_startTime;
 
-    if(reset) {
+    if(reset)
+    {
         Reset();
     }
 

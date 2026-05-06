@@ -8,6 +8,7 @@
 #include "World/WorldManager.h"
 #include "Server/TelnetServer.h"
 #include "Player/RoleManager.h"
+#include "Math/Math.h"
 
 #include <signal.h>
 void SignalStop(int32 signum) 
@@ -23,25 +24,15 @@ void DatabaseThreadFunc()
 
     while(GetContext()->IsRunning()) {
         DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
-        pWorker->Update(30);
+        pWorker->Update();
 
         uint64 logWriteStart = Time::GetSystemTime();
-        if(logWriteStart - lastLogWriteTime >= 2000) {
+        if(logWriteStart - lastLogWriteTime >= 5000) {
             GetLog()->Write();
             lastLogWriteTime = Time::GetSystemTime();
         }
 
-        nextTick += TICK_INTERVAL;
-        uint64 checkTime = Time::GetSystemTime();
-        if(checkTime > nextTick) {
-            // lag
-            nextTick = checkTime;
-        }
-
-        uint64 sleepTime = nextTick - Time::GetSystemTime();
-        if(sleepTime > 0) {
-            SleepMS(sleepTime);
-        }
+        SleepMS(1);
     }
 }
 
@@ -78,6 +69,82 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
 
         if(startTime.GetElapsedTime() >= maxTimeMS) {
             break;
+        }
+    }
+}
+
+void RunGameLoop()
+{
+    Context* pContext = GetContext();
+    GameServer* pGameServer = GetGameServer();
+    ServerManager* pServerMgr = GetServerManager();
+
+    uint64 now = Time::GetSystemTime();
+    uint64 nextTick = now + GAME_TICK_MS;
+
+    uint64 lastPerfUpdateTime = now;
+
+    uint64 tickDurSum = 0;
+    uint32 tickCount = 0;
+
+    while(pContext->IsRunning())
+    {
+        now = Time::GetSystemTime();
+        uint32 loops = 0;
+
+        pServerMgr->UpdateTCPLogic(NETWORK_BUDGET_MS);
+        ProcessDatabaseResults(DB_RESULT_BUDGET_MS);
+
+        while(now >= nextTick && loops < MAX_CATCHUP_TICKS)
+        {
+            uint64 tickStart = Time::GetSystemTime();
+
+            if(!pContext->IsShutting())
+            {
+                pGameServer->UpdateGameLogic(GAME_TICK_MS);
+            }
+            pServerMgr->UpdateServers();
+
+            uint64 tickEnd = Time::GetSystemTime();
+            uint64 tickDur = tickEnd - tickStart;
+
+            tickDurSum += tickDur;
+            ++tickCount;
+
+            ContextPerfStats& perf = pContext->GetPerfStats();
+            perf.maxTickMs = Max(perf.maxTickMs, tickDur);
+            perf.lagSpikeMs = (tickDur > GAME_TICK_MS) ? (tickDur - GAME_TICK_MS) : 0;
+
+            nextTick += GAME_TICK_MS;
+            ++loops;
+            now = Time::GetSystemTime();
+        }
+
+        if(now >= nextTick)
+        {
+            nextTick = now + GAME_TICK_MS;
+        }
+
+        if(now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
+        {
+            ContextPerfStats& perf = pContext->GetPerfStats();
+
+            if(tickCount > 0)
+            {
+                perf.avgTickMs = (uint32)(tickDurSum / tickCount);
+            }
+
+            perf.cpuPermille = (perf.avgTickMs * 1000) / GAME_TICK_MS;
+            perf.lastUpdateTime.Reset(now);
+
+            tickDurSum = 0;
+            tickCount = 0;
+            lastPerfUpdateTime = now;
+        }
+
+        if(nextTick - now > 0)
+        {
+            SleepMS(nextTick - now);
         }
     }
 }
@@ -142,6 +209,7 @@ int main(int argc, char const* argv[])
         LOGGER_LOG_ERROR("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
         return 0;
     }
+    GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
     LOGGER_LOG_INFO("Started game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
 
     TelnetServer* pTelnetServer = GetTelnetServer();
@@ -161,34 +229,7 @@ int main(int argc, char const* argv[])
     std::thread dbThread(DatabaseThreadFunc);
     std::thread eventThread(EventThreadFunc);
     
-    uint64 nextTick = Time::GetSystemTime();
-    GameServer* pGameServer = GetGameServer();
-    ServerManager* pServerMgr = GetServerManager();
-
-
-    while(GetContext()->IsRunning()) {
-        uint64 tickStart = Time::GetSystemTime();
-        
-        pGameServer->UpdateGameLogic(15);
-
-        pServerMgr->UpdateServers();
-        pServerMgr->UpdateTCPLogic(15);
-        
-        ProcessDatabaseResults(15);
-
-        nextTick += TICK_INTERVAL;
-
-        uint64 checkTime = Time::GetSystemTime();
-        if(checkTime > nextTick) {
-            // lag
-            nextTick = checkTime;
-        }
-
-        uint64 sleepTime = nextTick - Time::GetSystemTime();
-        if(sleepTime > 0) {
-            SleepMS(sleepTime);
-        }
-    }
+    RunGameLoop();
 
     LOGGER_LOG_INFO("Killing Master server");
 

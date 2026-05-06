@@ -7,7 +7,7 @@ uint32 HashString(const string& str)
 
 uint32 HashString(const char* str, uint32 size)
 {
-    uint32_t h = 0x12668559; 
+    uint32 h = 0x12668559; 
     for (uint32 i = 0; i < size; ++i) {
         h ^= (uint8)str[i];
         h *= 0x5bd1e995;
@@ -18,7 +18,7 @@ uint32 HashString(const char* str, uint32 size)
 
 uint32 HashString(const char* str)
 {
-    uint32_t h = 0x12668559; 
+    uint32 h = 0x12668559; 
     for (; *str; ++str) {
         h ^= (uint8)(*str);
         h *= 0x5bd1e995;

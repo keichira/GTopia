@@ -34,13 +34,13 @@ void GamePlayer::SendGems(bool skipAnim)
 
 void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
 {
-    if(!HasState(PLAYER_STATE_LOGIN_REQUEST)) {
+    if(!HasState(PLAYER_STATE_LOGIN_REQUEST))
         return;
-    }
 
     m_logonStartTime.Reset();
 
-    if(!m_loginDetail.Serialize(packet, this, true)) {
+    if(!m_loginDetail.Serialize(packet, this, true)) 
+    {
         SendLogonFailWithLog("`4HUH?! ``Are you sure everything is alright?");
         return;
     }
@@ -51,21 +51,25 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
 
 void GamePlayer::HandleCheckSession(VariantVector&& result)
 {
-    bool sessionAgreed = result[2].GetBool();
-    /*if(!sessionAgreed) {
+    bool foundSession = result[2].GetBool();
+    if(!foundSession) 
+    {
         SendLogonFailWithLog("`4OOPS! ``Please re-connect server says you're not belong to this server");
         return;
-    }*/
-
-    GamePlayer* pTarget = GetPlayerManager()->IsPlayerAlreadyOn(this);
-    if(GetPlayerManager()->IsPlayerAlreadyOn(this)) {
-        SendOnConsoleMessage("`4ALREADY ON?!`` : This account was already online, kicking it off so you can log on. (if you were just playing before, this is nothing to worry about)");
-        pTarget->SendOnConsoleMessage("`4This account is being activated from another device, kicking you off so they can get on");
-        pTarget->LogOff(true);
     }
 
-    if(m_loginDetail.loginMode == LOGON_MODE_TRANSFER) {
-        m_logonJoinWorld = result[3].GetString();
+    GamePlayer* pTarget = GetPlayerManager()->IsPlayerAlreadyOn(this);
+    if(GetPlayerManager()->IsPlayerAlreadyOn(this)) 
+    {
+        SendOnConsoleMessage("`4ALREADY ON?!`` : This account was already online, kicking it off so you can log on. (if you were just playing before, this is nothing to worry about)");
+        pTarget->SendOnConsoleMessage("`4This account is being activated from another device, kicking you off so they can get on");
+        pTarget->LogOff(true, true, false);
+    }
+
+    if(m_loginDetail.loginMode == LOGON_MODE_TRANSFER) 
+    {
+        m_currentWorldID = result[3].GetUINT();
+        LOGGER_LOG_ERROR("CHECK SESSION %d", m_currentWorldID);
     }
 
     TransferToGame();
@@ -80,31 +84,33 @@ void GamePlayer::TransferToGame()
     settings += "|usingStoreNavigation=1";
     settings += "|enableInventoryTab=1";
 
-    auto itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType);
-    auto pGameConfig = GetContext()->GetGameConfig();
-
+    auto itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType, m_loginDetail.gameVersion);
     auto tributeData = GetPlayerTributeManager()->GetClientData();
+    GameConfig* pGameConfig = GetContext()->GetGameConfig();
 
     RemoveState(PLAYER_STATE_LOGIN_REQUEST);
     SetState(PLAYER_STATE_ENTERING_GAME);
-    SendWelcomePacket(itemData.hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, tributeData.hash);
+    SendWelcomePacket(itemData->hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, tributeData.hash);
 }
 
 void GamePlayer::HandleRenderWorld(VariantVector&& result)
 {
-    if(!HasState(PLAYER_STATE_RENDERING_WORLD)) {
+    if(!HasState(PLAYER_STATE_RENDERING_WORLD)) 
+    {
         return;
     }
 
     int32 renderResult = result[2].GetINT();
 
-    if(renderResult == TCP_RESULT_OK) {
+    if(renderResult == TCP_RESULT_OK) 
+    {
         string worldName = result[4].GetString();
         SendOnConsoleMessage("`oYour world \"`#" + worldName + "`o\" has been rendered!");
 
         RenderWorldDialog::OnRendered(this, worldName);
     }
-    else {
+    else 
+    {
         SendOnConsoleMessage("`4OOPS! ``Unable to render your world right now.");
     }
 
@@ -119,6 +125,16 @@ void GamePlayer::SaveToDatabase()
     MemoryBuffer invMemBuffer(pInvData, invMemSize);
     m_inventory.Serialize(invMemBuffer, true, true);
 
+    uint32 worldID = 0;
+    if(m_currentWorldID != 0) 
+    {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+        if(pWorld) 
+        {
+            worldID = pWorld->GetDatabaseID();
+        }
+    }
+
     QueryRequest req = PlayerDB::Save(
         m_userID,
         m_pRole->GetID(),
@@ -126,6 +142,7 @@ void GamePlayer::SaveToDatabase()
         0, //m_characterData.GetSkinColor(),
         m_flags,
         m_gems,
+        worldID,
         GetNetID()
     );
     
@@ -133,33 +150,42 @@ void GamePlayer::SaveToDatabase()
     SAFE_DELETE_ARRAY(pInvData);
 }
 
-void GamePlayer::LogOff(bool forceDelete)
+void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
 {
-    if(forceDelete) {
+    if(forceDelete) 
+    {
         SetState(PLAYER_STATE_DELETE);
     }
 
-    if(!HasState(PLAYER_STATE_LOGGING_OFF)) {
+    if(!HasState(PLAYER_STATE_LOGGING_OFF)) 
+    {
         SetState(PLAYER_STATE_LOGGING_OFF);
 
-        if(HasState(PLAYER_STATE_IN_GAME)) {
+        if(HasState(PLAYER_STATE_IN_GAME) && saveToDb) 
+        {
             SaveToDatabase();
         }
 
-        if(forceDelete && m_pPeer->state != ENET_PEER_STATE_DISCONNECTED) {
-            SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logoff\n", m_pPeer);
-            enet_peer_disconnect(m_pPeer, 0);
-        }
-
-        if(m_currentWorldID != 0) {
-            World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
+        if(forceDelete && m_currentWorldID != 0) 
+        {
+            World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
             if(pWorld) {
                 pWorld->PlayerLeaverWorld(this);
             }
         }
 
+        if(forceDelete && m_pPeer->state != ENET_PEER_STATE_DISCONNECTED) 
+        {
+            SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logoff\n", m_pPeer);
+            enet_peer_disconnect(m_pPeer, 0);
+        }
+
         SetState(PLAYER_STATE_DELETE);
-        GetMasterBroadway()->SendEndPlayerSession(m_userID);
+        
+        if(endSession) 
+        {
+            GetMasterBroadway()->SendEndPlayerSession(m_userID);
+        }
     }
 }
 
@@ -167,27 +193,33 @@ void GamePlayer::Update()
 {
     UpdatePlayMods();
 
-    if(m_currentWorldID != 0) {
-        World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
-        if(pWorld) {
-            if(m_characterData.NeededCharStateUpdate()) {
+    if(m_currentWorldID != 0) 
+    {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+        if(pWorld) 
+        {
+            if(m_characterData.NeededCharStateUpdate()) 
+            {
                 pWorld->SendSetCharPacketToAll(this);
                 m_characterData.SetNeedCharStateUpdate(false);
             }
 
-            if(m_characterData.NeededSkinUpdate()) {
+            if(m_characterData.NeededSkinUpdate()) 
+            {
                 pWorld->SendSkinColorUpdateToAll(this);
                 m_characterData.SetNeedSkinUpdate(false);
             }
         }
     }
 
-    if(m_logonStartTime.GetElapsedTime() >= 8000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) {
-        LogOff(true);
+    if(m_logonStartTime.GetElapsedTime() >= 8000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) 
+    {
+        LogOff(true, false, true);
         return;
     }
 
-    if(HasState(PLAYER_STATE_IN_GAME)) {
+    if(HasState(PLAYER_STATE_IN_GAME)) 
+    {
         /**
          * todo ping request
          */
@@ -198,32 +230,28 @@ string GamePlayer::GetDisplayName()
 {
     string displayName;
 
-    if(m_currentWorldID != 0) {
-        World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
+    if(m_currentWorldID != 0) 
+    {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
         if(pWorld) {
-            if(pWorld->IsPlayerWorldOwner(this)) {
+            if(pWorld->IsPlayerWorldOwner(this)) 
+            {
                 displayName += "`2";
             }
-            else if(pWorld->IsPlayerWorldAdmin(this)) {
+            else if(pWorld->IsPlayerWorldAdmin(this)) 
+            {
                 displayName += "`^";
             }
         }
     }
 
-    if(m_pRole->GetNameColor() != 0) {
+    if(m_pRole->GetNameColor() != 0) 
+    {
         displayName += "`"; 
         displayName += m_pRole->GetNameColor();
     }
-    displayName += m_pRole->GetPrefix();
-
-    if(!m_loginDetail.tankIDName.empty()) {
-        displayName += m_loginDetail.tankIDName;
-    }
-    else {
-        displayName += m_loginDetail.requestedName + "_" + ToString(m_guestID);
-    }
-
-    displayName += m_pRole->GetSuffix();
+    
+    displayName += m_pRole->GetPrefix() + GetRawName() + m_pRole->GetSuffix();
     return displayName;
 }
 
@@ -251,7 +279,8 @@ string GamePlayer::GetSpawnData(bool local)
     spawnData += m_pRole->HasPerm(ROLE_PERM_SMSTATE) ? "1\n" : "0\n";
     spawnData += "onlineID|\n";
 
-    if(local) {
+    if(local) 
+    {
         spawnData += "type|local\n";
     }
 
@@ -261,44 +290,47 @@ string GamePlayer::GetSpawnData(bool local)
 void GamePlayer::ToggleCloth(uint16 itemID)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItem || pItem->bodyPart > BODY_PART_SIZE) {
+    if(!pItem || pItem->bodyPart > BODY_PART_SIZE)
         return;
-    }
 
-    if((pItem->type != ITEM_TYPE_CLOTHES && pItem->type != ITEM_TYPE_ARTIFACT) && !m_pRole->HasPerm(ROLE_PERM_CAN_WEAR_ANY)) {
+    if((pItem->type != ITEM_TYPE_CLOTHES && pItem->type != ITEM_TYPE_ARTIFACT) && !m_pRole->HasPerm(ROLE_PERM_CAN_WEAR_ANY))
         return;
-    }
 
-    if(pItem->type == ITEM_TYPE_ARTIFACT) {
+    if(pItem->type == ITEM_TYPE_ARTIFACT)
         /**
          * 
          */
         return;
-    }
 
     uint16 wornItem = m_inventory.GetClothes()[pItem->bodyPart];
-    if(wornItem == pItem->id) {
+    if(wornItem == pItem->id) 
+    {
         m_inventory.SetClothByPart(ITEM_ID_BLANK, pItem->bodyPart);
 
-        if(pItem->playModType != PLAYMOD_TYPE_NONE) {
+        if(pItem->playModType != PLAYMOD_TYPE_NONE) 
+        {
             RemovePlayMod(pItem->playModType);
         }
 
         PlayerInventory& playerInv = GetInventory();
 
         uint8 itemCount = playerInv.GetCountOfItem(pItem->id);
-        switch(pItem->id) {
-            case ITEM_ID_DIAMOND_HORN: {
+        switch(pItem->id) 
+        {
+            case ITEM_ID_DIAMOND_HORN: 
+            {
                 ModifyInventoryItem(ITEM_ID_DIAMOND_HORN, -itemCount);
                 ModifyInventoryItem(ITEM_ID_DIAMOND_HORNS, itemCount);
                 break;
             }
-            case ITEM_ID_DIAMOND_HORNS: {
+            case ITEM_ID_DIAMOND_HORNS: 
+            {
                 ModifyInventoryItem(ITEM_ID_DIAMOND_HORNS, -itemCount);
                 ModifyInventoryItem(ITEM_ID_DIAMOND_DEVIL_HORNS, itemCount);
                 break;
             }
-            case ITEM_ID_DIAMOND_DEVIL_HORNS: {
+            case ITEM_ID_DIAMOND_DEVIL_HORNS: 
+            {
                 ModifyInventoryItem(ITEM_ID_DIAMOND_DEVIL_HORNS, -itemCount);
                 ModifyInventoryItem(ITEM_ID_DIAMOND_HORN, itemCount);
                 break;
@@ -309,17 +341,20 @@ void GamePlayer::ToggleCloth(uint16 itemID)
         m_inventory.SetClothByPart(pItem->id, pItem->bodyPart);
 
         ItemInfo* pWornItem = GetItemInfoManager()->GetItemByID(wornItem);
-        if(pWornItem) {
+        if(pWornItem) 
+        {
             RemovePlayMod(pWornItem->playModType);
         }
 
-        if(pItem->playModType != PLAYMOD_TYPE_NONE) {
+        if(pItem->playModType != PLAYMOD_TYPE_NONE) 
+        {
             AddPlayMod(pItem->playModType);
         }
     }
 
-    if(m_currentWorldID != 0) {
-        World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
+    if(m_currentWorldID != 0) 
+    {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
         pWorld->SendClothUpdateToAll(this);
     }
 }
@@ -327,26 +362,26 @@ void GamePlayer::ToggleCloth(uint16 itemID)
 void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItem || amount == 0) {
+    if(!pItem || amount == 0)
         return;
-    }
 
-    if(amount > 0 && IsIllegalItem(itemID) && !m_pRole->HasPerm(ROLE_PERM_BYPASS_ILLEGAl_ITEM)) {
+    if(amount > 0 && IsIllegalItem(itemID) && !m_pRole->HasPerm(ROLE_PERM_BYPASS_ILLEGAl_ITEM))
         return;
-    }
 
-    if(amount > 0 && pItem->HasFlag(ITEM_FLAG_MOD) && !m_pRole->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD)) {
+    if(amount > 0 && pItem->HasFlag(ITEM_FLAG_MOD) && !m_pRole->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD))
         return;
-    }
 
-    if(amount < 0) {
+    if(amount < 0) 
+    {
         m_inventory.RemoveItem(itemID, -amount, this);
 
-        if(m_inventory.GetCountOfItem(itemID) == 0 && m_inventory.IsWearingItem(itemID)) {
+        if(m_inventory.GetCountOfItem(itemID) == 0 && m_inventory.IsWearingItem(itemID))
+        {
             ToggleCloth(itemID);
         }
     }
-    else {
+    else 
+    {
         m_inventory.AddItem(itemID, amount, this);
     }
 }
@@ -354,16 +389,17 @@ void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)
 void GamePlayer::TrashItem(uint16 itemID, uint8 amount)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItem) {
+    if(!pItem) 
+    {
         LOGGER_LOG_WARN("Player %d tried to trash non exist item %d ?!", m_userID, itemID)
         return;
     }
 
-    if(amount > pItem->maxCanHold) {
+    if(amount > pItem->maxCanHold)
         return;
-    }
 
-    if(amount > m_inventory.GetCountOfItem(itemID)) {
+    if(amount > m_inventory.GetCountOfItem(itemID)) 
+    {
         PlaySFX("cant_place_tile.wav");
         return;
     }
@@ -376,20 +412,22 @@ void GamePlayer::TrashItem(uint16 itemID, uint8 amount)
 
 void GamePlayer::AddPlayMod(ePlayModType modType, bool silent)
 {
-    if(modType == PLAYMOD_TYPE_NONE) {
+    if(modType == PLAYMOD_TYPE_NONE)
         return;
-    }
 
     PlayMod* pPlayMod = m_characterData.AddPlayMod(modType);
-    if(!pPlayMod) {
+    if(!pPlayMod)
         return;
-    }
 
     if(!silent) {
-        if(pPlayMod->GetTime() != 0) {
-            SendOnConsoleMessage("`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetAddMessage() + " `omod added, `$" + Time::ConvertTimeToStr(pPlayMod->GetTime() * 1000) + "`oleft)");
+        if(pPlayMod->GetTime() != 0) 
+        {
+            SendOnConsoleMessage(
+                "`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetAddMessage() + " `omod added, `$" + Time::ConvertTimeToStr(pPlayMod->GetTime() * 1000) + "`oleft)"
+            );
         }
-        else {
+        else 
+        {
             SendOnConsoleMessage("`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetAddMessage() + " `omod added)");
         }
     }
@@ -399,18 +437,18 @@ void GamePlayer::AddPlayMod(ePlayModType modType, bool silent)
 
 void GamePlayer::RemovePlayMod(ePlayModType modType, bool silent)
 {
-    if(modType == PLAYMOD_TYPE_NONE) {
+    if(modType == PLAYMOD_TYPE_NONE)
         return;
-    }
 
     PlayMod* pPlayMod = m_characterData.RemovePlayMod(modType);
-    if(!pPlayMod) {
+    if(!pPlayMod)
         return;
-    }
 
-    if(!silent) {
+    if(!silent) 
+    {
         SendOnConsoleMessage("`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetRemoveMessage() + " `omod removed)");
     }
+
     UpdateNeededPlayModThings();
 }
 
@@ -419,12 +457,12 @@ void GamePlayer::UpdateNeededPlayModThings()
     if(
         m_characterData.NeededSkinUpdate() && m_currentWorldID != 0
     ) {
-        World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
-        if(!pWorld) {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+        if(!pWorld)
             return;
-        }
 
-        if(m_characterData.NeededSkinUpdate()) {
+        if(m_characterData.NeededSkinUpdate()) 
+        {
             pWorld->SendSkinColorUpdateToAll(this);
             m_characterData.SetNeedSkinUpdate(false);
         }
@@ -435,22 +473,25 @@ void GamePlayer::UpdatePlayMods()
 {
     auto& reqUpdtMods = m_characterData.GetReqUpdatePlayMods();
 
-    for(int32 i = reqUpdtMods.size() - 1; i >= 0; --i) {
+    for(int32 i = reqUpdtMods.size() - 1; i >= 0; --i) 
+    {
         PlayerPlayModInfo& playMod = reqUpdtMods[i];
         
-        if(playMod.modType == PLAYMOD_TYPE_CARRYING_A_TORCH) {
-            if(m_currentWorldID == 0) {
+        if(playMod.modType == PLAYMOD_TYPE_CARRYING_A_TORCH) 
+        {
+            if(m_currentWorldID == 0)
                 continue;
-            }
 
-            if(GetInventory().GetClothByPart(BODY_PART_HAND) != ITEM_ID_HAND_TORCH) {
+            if(GetInventory().GetClothByPart(BODY_PART_HAND) != ITEM_ID_HAND_TORCH) 
+            {
                 RemovePlayMod(PLAYMOD_TYPE_CARRYING_A_TORCH);
                 continue;
             }
 
             UpdateTorchPlayMod();
         }
-        else if(reqUpdtMods[i].timer.GetElapsedTime() >= playMod.durationMS) {
+        else if(reqUpdtMods[i].timer.GetElapsedTime() >= playMod.durationMS) 
+        {
             RemovePlayMod(playMod.modType);
         }
     }
@@ -465,7 +506,8 @@ void GamePlayer::UpdateTorchPlayMod()
     ModifyInventoryItem(ITEM_ID_HAND_TORCH, -1);
 
     uint8 leftTorchCount = GetInventory().GetCountOfItem(ITEM_ID_HAND_TORCH);
-    if(leftTorchCount == 0) {
+    if(leftTorchCount == 0) 
+    {
         SendOnTalkBubble("`2My torch went out!", true);
         return;
     }
@@ -477,7 +519,8 @@ void GamePlayer::SetSkinColor(uint32 skinColor)
 {
     m_characterData.SetSkinColor(skinColor);
 
-    if(m_currentWorldID != 0) {
+    if(m_currentWorldID != 0) 
+    {
         m_characterData.SetNeedSkinUpdate(true);
     }
 }
@@ -486,21 +529,26 @@ void GamePlayer::CheckLimitsForAccountCreation(bool fromDialog, const VariantVec
 {
     QueryRequest req;
 
-    if (m_loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !m_loginDetail.sid.empty()) {
+    if(m_loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !m_loginDetail.sid.empty()) 
+    {
         req = PlayerDB::CountBySidMacIP(m_loginDetail.sid, m_loginDetail.mac, GetAddress(), GetNetID());
     }
-    else if (m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !m_loginDetail.gid.empty()) {
+    else if(m_loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !m_loginDetail.gid.empty()) 
+    {
         req = PlayerDB::CountByGidMacIP(m_loginDetail.gid, m_loginDetail.mac, GetAddress(), GetNetID());
     }
-    else if (m_loginDetail.platformType == Proton::PLATFORM_ID_IOS && !m_loginDetail.vid.empty()) {
+    else if(m_loginDetail.platformType == Proton::PLATFORM_ID_IOS && !m_loginDetail.vid.empty()) 
+    {
         req = PlayerDB::CountByVidMacIP(m_loginDetail.vid, m_loginDetail.mac, GetAddress(), GetNetID());
     }
-    else {
+    else 
+    {
         req = PlayerDB::CountByMacIP(m_loginDetail.mac, GetAddress(), GetNetID());
     }
 
     req.AddExtraData(fromDialog);
-    if (!extraData.empty()) {
+    if (!extraData.empty()) 
+    {
         // name, pass, verify pass
         req.AddExtraData(extraData[0], extraData[1], extraData[2]);
     }
@@ -512,9 +560,8 @@ void GamePlayer::CheckLimitsForAccountCreation(bool fromDialog, const VariantVec
 void GamePlayer::CheckAccountCreationLimitCB(QueryTaskResult&& result)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
-    if(!pPlayer || !result.result) {
+    if(!pPlayer || !result.result)
         return;
-    }
 
     Variant* pMac = result.result->GetFieldSafe("mac_count", 0);
     Variant* pIP = result.result->GetFieldSafe("ip_count", 0);
@@ -523,20 +570,25 @@ void GamePlayer::CheckAccountCreationLimitCB(QueryTaskResult&& result)
 
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
 
-    if(loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !loginDetail.sid.empty()) {
+    if(loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS && !loginDetail.sid.empty()) 
+    {
         pOther = result.result->GetFieldSafe("sid_count", 0);
     }
-    else if(loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !loginDetail.gid.empty()) {
+    else if(loginDetail.platformType == Proton::PLATFORM_ID_ANDROID && !loginDetail.gid.empty()) 
+    {
         pOther = result.result->GetFieldSafe("gid_count", 0);
     }
-    else if(loginDetail.platformType == Proton::PLATFORM_ID_IOS && !loginDetail.vid.empty()) {
+    else if(loginDetail.platformType == Proton::PLATFORM_ID_IOS && !loginDetail.vid.empty()) 
+    {
         pOther = result.result->GetFieldSafe("vid_count", 0);
     }
-    else {
+    else 
+    {
         shouldSetOther = false;
     }
 
-    if(!pMac && !pIP && (!shouldSetOther || !pOther)) {
+    if(!pMac && !pIP && (!shouldSetOther || !pOther)) 
+    {
         pPlayer->SendOnTalkBubble("`4Oops! ``Something went wrong while checking for account creating.", true);
         return;
     }
@@ -559,14 +611,16 @@ void GamePlayer::CheckAccountCreationLimitCB(QueryTaskResult&& result)
     }
 
     bool fromDialog = result.extraData[0].GetBool();
-    if(fromDialog) {
+    if(fromDialog) 
+    {
         QueryRequest req = PlayerDB::GrowIDExists(result.extraData[1].GetString(), pPlayer->GetNetID());
         req.extraData = result.extraData;
 
         req.callback = &GamePlayer::AccountCreationNameExistsCB;
         DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
     }
-    else {
+    else 
+    {
         RegisterDialog::Request(pPlayer);
     }
 }
@@ -574,18 +628,19 @@ void GamePlayer::CheckAccountCreationLimitCB(QueryTaskResult&& result)
 void GamePlayer::AccountCreationNameExistsCB(QueryTaskResult&& result)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
-    if(!pPlayer || !result.result) {
+    if(!pPlayer || !result.result)
         return;
-    }
     
-    if(result.result->GetRowCount() > 0) {
+    if(result.result->GetRowCount() > 0) 
+    {
         RegisterDialog::Request(
             pPlayer, result.extraData[1].GetString(),
             result.extraData[2].GetString(), result.extraData[3].GetString(),
             "`4Oops!`` The name `w" + result.extraData[1].GetString() + "`` is so cool someone else has already taken it. Please choose a different name."
         );
     }
-    else {
+    else 
+    {
         QueryRequest req = PlayerDB::GrowIDCreate(pPlayer->GetUserID(), result.extraData[1].GetString(), result.extraData[2].GetString(), pPlayer->GetNetID());
         req.AddExtraData(result.extraData[1].GetString(), result.extraData[2].GetString());
 
@@ -597,9 +652,8 @@ void GamePlayer::AccountCreationNameExistsCB(QueryTaskResult&& result)
 void GamePlayer::CreateAccountFinalCB(QueryTaskResult&& result)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(result.ownerID);
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
     pPlayer->GetLoginDetail().tankIDName = result.extraData[0].GetString();
     pPlayer->GetLoginDetail().tankIDPass = result.extraData[1].GetString();
@@ -609,14 +663,12 @@ void GamePlayer::CreateAccountFinalCB(QueryTaskResult&& result)
 
 void GamePlayer::SendPositionToWorldPlayers()
 {
-    if(m_currentWorldID == 0) {
+    if(m_currentWorldID == 0)
         return;
-    }
 
-    World* pWorld = GetWorldManager()->GetWorldByID(m_currentWorldID);
-    if(!pWorld) {
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
         return;
-    }
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_STATE;
@@ -624,8 +676,9 @@ void GamePlayer::SendPositionToWorldPlayers()
     packet.posY = m_worldPos.y;
     packet.netID = GetNetID();
 
-    if(m_characterData.HasCharFlag(CHARACTER_FLAG_FACING_LEFT)) {
-        packet.SetFlag(NET_GAME_PACKET_FLAGS_FACINGLEFT);
+    if(m_characterData.HasCharFlag(CHARACTER_FLAG_FACING_LEFT)) 
+    {
+        packet.SetFlag(GAME_PACKET_FLAG_FACING_LEFT);
     }
 
     pWorld->SendGamePacketToAll(&packet, this);

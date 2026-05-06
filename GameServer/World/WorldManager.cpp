@@ -20,259 +20,350 @@ WorldManager::~WorldManager()
     Kill();
 }
 
+void WorldManager::Kill()
+{
+    for(auto& [_, pWorld] : m_worlds)
+    {
+        SAFE_DELETE(pWorld);
+    }
+
+    m_worlds.clear();
+    m_worldNameCache.clear();
+}
+
 void WorldManager::HandleWorldInit(VariantVector&& result)
 {
-    if(result.size() < 2) {
+    if(result.size() < 3)
         return;
-    }
 
-    QueryRequest req = WorldDB::GetWorldData(result[1].GetString());
-    req.callback = &WorldManager::WorldDBInitCB;
+    string worldName = result[1].GetString();
+    uint32 instanceID = result[2].GetUINT();
+    uint32 databaseID = result[3].GetUINT();
 
-    DatabaseWorldExec(GetContext()->GetDatabasePool(), req);   
+    World* pWorld = new World();
+    pWorld->SetInstanceID(instanceID);
+    pWorld->SetDatabaseID(databaseID);
+    pWorld->SetName(worldName);
+    pWorld->SetState(WORLD_STATE_LOADING);
+
+    AddWorld(pWorld);
+    m_worldNameCache[ToLower(worldName)] = instanceID;
+    StartWorldLoad(pWorld);
 }
 
-void WorldManager::WorldDBInitCB(QueryTaskResult&& result)
+void WorldManager::StartWorldLoad(World* pWorld)
 {
-    if(!result.result) {
+    if(!pWorld)
         return;
-    }
 
-    MasterBroadway* pMasterBroadway = GetMasterBroadway();
-    uint32 worldID = result.result->GetField("ID", 0).GetUINT();
-
-    string path = GetContext()->GetGameConfig()->worldSavePath
-    + "/world_" + ToString(worldID) + ".bin";
-
-    World* pWorld = nullptr;
-
-    if(IsFileExists(path)) {
-        File file;
-        if(!file.Open(path)) {
-            pMasterBroadway->SendWorldInitResult(false, worldID);
-            return;
-        }
-
-        uint32 fileSize = file.GetSize();
-        uint8* pData = new uint8[fileSize];
-
-        if(file.Read(pData, fileSize) != fileSize) {
-            pMasterBroadway->SendWorldInitResult(false, worldID);
-            file.Close();
-            return;
-        }
-
-        MemoryBuffer memBuffer(pData, fileSize);
-
-        pWorld = new World();
-        pWorld->Serialize(memBuffer, false, true);
-        file.Close();
-        SAFE_DELETE_ARRAY(pData);
-    }
-    else {
-        pWorld = new World();
+    if(!pWorld->LoadFromFile())
+    {
         pWorld->GenerateWorld(WORLD_GENERATION_DEFAULT);
-        pWorld->SetName(result.result->GetField("Name", 0).GetString());
-
-        LOGGER_LOG_DEBUG("Saving new world %d, %s", worldID, path.c_str());
-
-        File file;
-        if(!file.Open(path, FILE_MODE_WRITE)) {
-            LOGGER_LOG_WARN("Failed to save new world, hope to save in auto save");
-        }
-        else {
-            MemoryBuffer memSize;
-            pWorld->Serialize(memSize, true, true);
-            
-            uint32 worldMemSize = memSize.GetOffset();
-            uint8* pWorldData = new uint8[worldMemSize];
-        
-            MemoryBuffer memBuffer(pWorldData, worldMemSize);
-            pWorld->Serialize(memBuffer, true, true);
-
-            file.Write(pWorldData, worldMemSize);
-            file.Close();
-            SAFE_DELETE_ARRAY(pWorldData);
-        }
+        pWorld->SetState(WORLD_STATE_READY);
+        pWorld->SaveToDatabase();
+    }
+    else
+    {
+        pWorld->SetState(WORLD_STATE_READY);
     }
 
-    pWorld->SetID(worldID);
-    GetWorldManager()->AddWorld(pWorld);
-
-    pMasterBroadway->SendWorldInitResult(true, worldID);
+    OnWorldReady(pWorld);
+    GetMasterBroadway()->SendWorldInitResult(true, pWorld->GetInstanceID());
 }
 
-void WorldManager::HandlePlayerJoin(VariantVector&& result)
+void WorldManager::HandlePlayerJoin(VariantVector &&result)
 {
+    if(result.size() < 7)
+        return;
+
     int32 oprResult = result[1].GetINT();
     uint32 playerUserID = result[2].GetUINT();
 
-    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(playerUserID);
-    if(!pPlayer) {
+    if(oprResult != TCP_RESULT_OK)
+    {
+        GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(playerUserID);
+        if(pPlayer)
+        {
+            pPlayer->SendOnFailedToEnterWorld();
+            pPlayer->SendOnConsoleMessage("Unable to join to this world, please try again later.");
+        }
         return;
     }
 
-    if(oprResult != TCP_RESULT_OK) {
-        pPlayer->SendOnFailedToEnterWorld();
-        pPlayer->SendOnConsoleMessage("Unable to join to this world, please try again later.");
-        return;
-    }
-    
     uint32 serverID = result[3].GetUINT();
     uint32 worldID = result[4].GetUINT();
 
-    World* pWorld = GetWorldByID(worldID);
-    if(!pWorld || serverID != GetContext()->GetID()) {
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(playerUserID);
+    if(!pPlayer)
+        return;
+
+    if(serverID != GetContext()->GetID())
+    {
         string serverIP = result[5].GetString();
-        uint16 serverPort = result[6].GetUINT();
+        uint16 serverPort  = (uint16)result[6].GetUINT();
 
         PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
-        pPlayer->SendOnSendToServer(serverPort, loginDetail.token, loginDetail.user, serverIP, loginDetail.loginMode);
+        loginDetail.loginMode = LOGON_MODE_TRANSFER;
+
+        pPlayer->SendOnSendToServer(
+            serverPort,
+            loginDetail.token,
+            pPlayer->GetUserID(),
+            serverIP,
+            loginDetail.loginMode
+        );
+
+        pPlayer->LogOff(false, false, false);
         return;
     }
 
-    if(serverID == GetContext()->GetID()) {
-        if(!pWorld->PlayerJoinWorld(pPlayer)) {
-            pPlayer->SendOnFailedToEnterWorld();
-            pPlayer->SendOnConsoleMessage("Failed to join world?! please try again later.");
-        }
-    }
-}
-
-void WorldManager::SendWorldSelectMenu(GamePlayer* pPlayer)
-{
-    if(!pPlayer) {
+    World* pWorld = GetWorldByInstanceID(worldID);
+    if(!pWorld)
+    {
+        pPlayer->SendOnFailedToEnterWorld();
+        pPlayer->SendOnConsoleMessage("Umm somehow you got lost between servers, try again.");
         return;
     }
 
-    pPlayer->SendOnRequestWorldSelectMenu("");
+    if(pWorld->GetState() == WORLD_STATE_DELETE)
+    {
+        pPlayer->SendOnFailedToEnterWorld();
+        pPlayer->SendOnConsoleMessage("Unable to move you to this world, please try again in a few seconds.");
+        return;
+    }
+
+    if(pWorld->GetState() == WORLD_STATE_LOADING)
+    {
+        pWorld->QueuePendingPlayer(pPlayer);
+        pPlayer->SetJoiningWorld(true);
+        return;
+    }
+
+    pWorld->AddPlayer(pPlayer);
 }
 
 void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldName)
 {
-    if(!pPlayer || pPlayer->IsJoiningWorld()) {
+    if(!pPlayer || pPlayer->IsJoiningWorld())
         return;
-    }
 
     string targetWorldName = ToUpper(worldName);
     RemoveGTColorCodes(targetWorldName);
 
-    if(targetWorldName.empty() || targetWorldName.size() > 24) {
-        pPlayer->SendOnConsoleMessage("Sorry, world name length must between 1 and 24.");
+    if(targetWorldName.empty() || targetWorldName.size() > 18)
+    {
+        pPlayer->SendOnConsoleMessage("Sorry, world name length must be between 1 and 18.");
         pPlayer->SendOnFailedToEnterWorld();
         return;
     }
 
-    if(!IsValidWorldName(targetWorldName)) {
+    if(!IsValidWorldName(targetWorldName))
+    {
         pPlayer->SendOnConsoleMessage("Sorry, spaces and special characters are not allowed in world or door names. Try again.");
         pPlayer->SendOnFailedToEnterWorld();
         return;
     }
 
-    if(targetWorldName == "EXIT") {
+    if(targetWorldName == "EXIT")
+    {
         pPlayer->SendOnConsoleMessage("Exit from what? Click back if you're done playing.");
         pPlayer->SendOnFailedToEnterWorld();
         return;
     }
 
-    pPlayer->SetJoiningWorld(true);
-    World* pWorld = GetWorldByName(worldName);
-    if(pWorld) {
-        if(pWorld->HasDeleteFlag()) {
-            pPlayer->SendOnFailedToEnterWorld();
-            pPlayer->SendOnConsoleMessage("Unable to move you to this world, please try again in a few seconds.");
-            return;
-        }
-
-        /**
-         * we shouldnt handle max player count in here
-         * we should ask master for target world player count first
-         * otherwise if we do it like that players will flood in
-         * but yea, just leave it for now
-         */
-        uint32 worldMaxPlayerCount = GetContext()->GetGameConfig()->worldMaxPlayerCount;
-        if(pWorld->GetPlayerCount() >= worldMaxPlayerCount) {
-            pPlayer->SendOnConsoleMessage("Oops, `5" + targetWorldName + "`` already has `4" + ToString(worldMaxPlayerCount) + "`` people in it. Try again later.");
-            pPlayer->SendOnFailedToEnterWorld();
-            return;
-        }
-
-        if(!pWorld->PlayerJoinWorld(pPlayer)) {
-            pPlayer->SendOnConsoleMessage("Failed to join world?! please try again later.");
-            pPlayer->SendOnFailedToEnterWorld();
-        }
-
-        pPlayer->SetJoiningWorld(false);
-    }
-    else {
-        GetMasterBroadway()->SendPlayerWorldJoin(pPlayer->GetUserID(), worldName);
-    }
-}
-
-void WorldManager::PlayerLeaveWorld(GamePlayer* pPlayer)
-{
-    if(!pPlayer) {
+    World* pWorld = GetWorldByName(targetWorldName);
+    if(!pWorld)
+    {
+        GetMasterBroadway()->SendPlayerWorldJoin(pPlayer->GetUserID(), targetWorldName);
         return;
     }
 
-    uint32 worldID = pPlayer->GetCurrentWorld();
-    if(worldID == 0) {
+    if(pWorld->GetState() == WORLD_STATE_DELETE)
+    {
+        pPlayer->SendOnFailedToEnterWorld();
+        pPlayer->SendOnConsoleMessage("Unable to move you to this world, please try again in a few seconds.");
         return;
     }
 
-    World* pWorld = GetWorldByID(worldID);
-    if(!pWorld) {
+    if(pWorld->GetState() == WORLD_STATE_LOADING)
+    {
+        QueuePlayerToWorld(pPlayer, pWorld);
         return;
     }
 
-    pWorld->PlayerLeaverWorld(pPlayer);
-}
-
-void WorldManager::Kill()
-{
-    for(auto& [_, pWorld] : m_worlds) {
-        SAFE_DELETE(pWorld);
+    if(pWorld->GetPlayerCount() >= GetContext()->GetGameConfig()->worldMaxPlayerCount)
+    {
+        pPlayer->SendOnConsoleMessage(
+            "Oops, `5" + targetWorldName + "`` already has `4" + ToString(GetContext()->GetGameConfig()->worldMaxPlayerCount) + "`` people in it. Try again later."
+        );
+        pPlayer->SendOnFailedToEnterWorld();
+        return;
     }
 
-    m_worlds.clear();
+    OnPlayerJoinRequest(pPlayer, pWorld);
 }
 
-World* WorldManager::GetWorldByID(uint32 worldID)
+void WorldManager::UpdateWorlds()
 {
-    auto it = m_worlds.find(worldID);
-    if(it != m_worlds.end()) {
-        return it->second;
+    if (m_lastWorldUpdateTime.GetElapsedTime() < GAME_TICK_MS)
+        return;
+
+    std::vector<uint32> deleteList;
+    deleteList.reserve(m_worlds.size());
+
+    for (auto& [worldID, pWorld] : m_worlds)
+    {
+        if(!pWorld)
+            continue;
+
+        if(pWorld->GetState() != WORLD_STATE_DELETE)
+        {
+            pWorld->Update();
+        }
+
+        if(pWorld->GetState() == WORLD_STATE_DELETE)
+        {
+            deleteList.push_back(worldID);
+            continue;
+        }
+
+        if(pWorld->GetState() == WORLD_STATE_READY && pWorld->HasPendingPlayers())
+        {
+            FlushWorldJoinQueue(pWorld);
+        }
     }
 
-    return nullptr;
+    for (uint32 worldID : deleteList)
+    {
+        auto it = m_worlds.find(worldID);
+        if (it == m_worlds.end())
+            continue;
+
+        if (it->second)
+            SAFE_DELETE(it->second);
+
+        m_worldNameCache.erase(ToLower(it->second->GetWorlName()));
+        m_worlds.erase(it);
+    }
+
+    UpdatePendingLoadWorlds();
+    m_lastWorldUpdateTime.Reset();
+}
+
+void WorldManager::UpdatePendingLoadWorlds()
+{
+    if (m_pendingLoad.empty())
+        return;
+
+    bool loadedOne = false;
+
+    while (!loadedOne && !m_pendingLoad.empty())
+    {
+        World* pWorld = m_pendingLoad.front();
+        m_pendingLoad.pop();
+
+        if(!pWorld)
+            continue;
+
+        loadedOne = true;
+
+        if(!pWorld->LoadFromFile())
+        {
+            pWorld->GenerateWorld(WORLD_GENERATION_DEFAULT);
+            pWorld->SaveToDatabase();
+        }
+
+        OnWorldReady(pWorld);
+    }
 }
 
 World* WorldManager::GetWorldByName(const string& worldName)
 {
-    string searchName = ToLower(worldName);
-    for(auto& [_, pWorld] : m_worlds) {
-        if(ToLower(pWorld->GetWorlName()) == searchName) {
-            return pWorld;
-        }
-    }
+    auto it = m_worldNameCache.find(worldName);
+    if(it == m_worldNameCache.end())
+        return nullptr;
+
+    return GetWorldByInstanceID(it->second);
+}
+
+World* WorldManager::GetWorldByInstanceID(uint32 instanceID)
+{
+    auto it = m_worlds.find(instanceID);
+    if(it != m_worlds.end()) 
+        return it->second;
 
     return nullptr;
 }
 
 void WorldManager::AddWorld(World* pWorld)
 {
-    if(!pWorld) {
+    if(!pWorld)
+        return;
+
+    uint32 instanceID = pWorld->GetInstanceID();
+
+    auto it = m_worlds.find(instanceID);
+    if(it != m_worlds.end())
+    {
+        if(it->second && it->second != pWorld)
+            SAFE_DELETE(it->second);
+
+        m_worlds.erase(it);
+    }
+
+    m_worlds.insert_or_assign(instanceID, pWorld);
+    m_worldNameCache[ToUpper(pWorld->GetWorlName())] = instanceID;
+}
+
+void WorldManager::OnPlayerJoinRequest(GamePlayer* pPlayer, World* pWorld)
+{
+    if(!pPlayer || !pWorld)
+        return;
+
+    if(pWorld->GetState() != WORLD_STATE_READY)
+    {
+        QueuePlayerToWorld(pPlayer, pWorld);
         return;
     }
 
-    m_worlds.insert_or_assign(pWorld->GetID(), pWorld);
+    pWorld->AddPlayer(pPlayer);
 }
 
-void WorldManager::RegisterEvents()
+void WorldManager::QueuePlayerToWorld(GamePlayer* pPlayer, World* pWorld)
 {
-    RegisterPacketEvent<ItemActivateRequest>(NET_GAME_PACKET_ITEM_ACTIVATE_REQUEST);
-    RegisterPacketEvent<TileChangeRequest>(NET_GAME_PACKET_TILE_CHANGE_REQUEST);
-    RegisterPacketEvent<State>(NET_GAME_PACKET_STATE);
+    if(!pPlayer || !pWorld)
+        return;
+
+    pPlayer->SetJoiningWorld(true);
+    pWorld->AddPlayer(pPlayer);
+}
+
+void WorldManager::OnWorldReady(World* pWorld)
+{
+    if(!pWorld)
+        return;
+
+    if(pWorld->GetState() == WORLD_STATE_DELETE)
+        return;
+
+    pWorld->SetState(WORLD_STATE_READY);
+    FlushWorldJoinQueue(pWorld);
+}
+
+void WorldManager::FlushWorldJoinQueue(World* pWorld)
+{
+    if(!pWorld || pWorld->GetState() != WORLD_STATE_READY)
+        return;
+
+    while(pWorld->HasPendingPlayers())
+    {
+        GamePlayer* pPlayer = pWorld->PopPendingPlayer();
+        if(!pPlayer)
+            continue;
+
+        pPlayer->SetJoiningWorld(false);
+        pWorld->AddPlayer(pPlayer);
+    }
 }
 
 void WorldManager::OnHandleGamePacket(ENetEvent& event)
@@ -291,60 +382,35 @@ void WorldManager::OnHandleGamePacket(ENetEvent& event)
         return;
     }
 
-    World* pWorld = GetWorldByID(pPlayer->GetCurrentWorld());
-    if(!pWorld) {
+    World* pWorld = GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if(!pWorld)
         return;
-    }
 
-    if(pGamePacket->type != NET_GAME_PACKET_NPC) {
+    if(pGamePacket->type != NET_GAME_PACKET_NPC) 
+    {
         pPlayer->GetLastActionTime().Reset();
     }
 
     m_packetEvents.Dispatch((eGamePacketType)pGamePacket->type, pPlayer, pWorld, pGamePacket);
 }
 
-void WorldManager::UpdateWorlds()
+void WorldManager::SaveAllToDatabase()
 {
-    if(m_lastWorldUpdateTime.GetElapsedTime() < TICK_INTERVAL) {
-        return;
-    }
-
-    for(auto& [_, pWorld] : m_worlds) {
-        if(!pWorld) {
+    for(auto& [_, pWorld] : m_worlds)
+    {
+        if(!pWorld)
             continue;
-        }
-
-        if(!pWorld->HasDeleteFlag()) {
-            pWorld->Update();
-        }
-
-        if(pWorld->HasDeleteFlag()) {
-            m_pendingDelete.push_back(pWorld);
-            continue;
-        }
-    }
-
-    for(auto& pWorld : m_pendingDelete) {
-        if(!GetWorldByID(pWorld->GetID())) {
-            continue;
-        }
-
-        m_worlds.erase(pWorld->GetID());
-    }
-
-    m_pendingDelete.clear();
-    m_lastWorldUpdateTime.Reset();
-}
-
-void WorldManager::ForceSaveAllWorlds()
-{
-    for(auto& [_, pWorld] : m_worlds) {
-        if(!pWorld) {
-            continue;
-        }
 
         pWorld->SaveToDatabase();
     }
 }
 
+void WorldManager::RegisterEvents()
+{
+    RegisterPacketEvent<ItemActivateRequest>(NET_GAME_PACKET_ITEM_ACTIVATE_REQUEST);
+    RegisterPacketEvent<TileChangeRequest>(NET_GAME_PACKET_TILE_CHANGE_REQUEST);
+    RegisterPacketEvent<State>(NET_GAME_PACKET_STATE);
+}
+
 WorldManager* GetWorldManager() { return WorldManager::GetInstance(); }
+

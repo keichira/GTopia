@@ -10,7 +10,7 @@ struct PlayerSession
     uint16 serverID;
     string ip;
     uint64 loginTime;
-    string worldName;
+    uint32 worldInstanceID;
 };
 
 class GamePlayer;

@@ -8,7 +8,7 @@ constexpr uint32 CompileTimeHashString(const char* str, uint32 h = 0x12668559)
     return (str[0] == '\0') ? h
         : CompileTimeHashString(
             str + 1, 
-            ( (h ^ static_cast<uint8_t>(str[0])) * 0x5bd1e995 ) ^ ( ((h ^ static_cast<uint8_t>(str[0])) * 0x5bd1e995) >> 15 )
+            ( (h ^ static_cast<uint8>(str[0])) * 0x5bd1e995 ) ^ ( ((h ^ static_cast<uint8>(str[0])) * 0x5bd1e995) >> 15 )
         );
 }
 

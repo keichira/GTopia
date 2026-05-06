@@ -38,6 +38,10 @@ void TCPEventPlayerSession::Execute(NetClient* pClient, VariantVector& data)
         hasSession = false;
     }
 
-    string worldName = pPlayer ? pPlayer->worldName : "";
-    GetServerManager()->SendPlayerSessionCheck(pServer, hasSession, eventData.netID, worldName);
+    uint32 worldInstance = 0;
+    if(hasSession) {
+        worldInstance = pPlayer->worldInstanceID;
+    }
+
+    GetServerManager()->SendPlayerSessionCheck(pServer, hasSession, eventData.netID, worldInstance);
 }

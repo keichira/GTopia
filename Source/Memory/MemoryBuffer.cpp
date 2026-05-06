@@ -71,9 +71,7 @@ uint32 MemoryBuffer::WriteRaw(const void* pData, uint32 size)
 uint32 MemoryBuffer::ReadStringRaw(string& pDest)
 {
     uint16 strLen = 0;
-    if(ReadRaw(&strLen, 2) != 2) {
-        return 0;
-    }
+    Read(strLen);
 
     if(m_countOnly) {
         m_pos += strLen;
@@ -107,6 +105,10 @@ uint32 MemoryBuffer::WriteStringRaw(const string& pData)
 
 uint32 MemoryBuffer::Seek(uint32 position)
 {
+    if(m_countOnly) {
+        return m_pos;
+    }
+
     if(position > m_bufferSize) {
         position = m_bufferSize;
     }

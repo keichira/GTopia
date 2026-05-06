@@ -33,40 +33,95 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     }
 
     if(write) {
-        uint32 batchStartIdx = 0;
+        if(database) {
+            memBuffer.WriteRaw(m_tempTiles.data(), sizeof(TempTileData) * m_tempTiles.size());
+            
+            uint32 extraCount = 0;
+            uint32 checkpoint = memBuffer.GetOffset();
+            memBuffer.Write(extraCount);
 
-        for(uint32 i = 0; i < m_tiles.size(); ++i) {
-            TileInfo* pTile = &m_tiles[i];
+            for(uint16 i = 0; i < m_tiles.size(); ++i) {
+                TileInfo* pTile = &m_tiles[i];
 
-            if(pTile->HasFlag(TILE_FLAG_HAS_EXTRA_DATA) || pTile->HasFlag(TILE_FLAG_HAS_PARENT)) {
+                if(!pTile->HasFlag(TILE_FLAG_HAS_EXTRA_DATA) && !pTile->HasFlag(TILE_FLAG_HAS_PARENT)) {
+                    continue;
+                }
+
+                extraCount++;
+                memBuffer.Write(i);
+                pTile->Serialize(memBuffer, true, true, pWorld);
+            }
+
+            uint32 end = memBuffer.GetOffset();
+
+            memBuffer.Seek(checkpoint);
+            memBuffer.Write(extraCount);
+            
+            memBuffer.Seek(end);
+        }
+        else {
+            uint32 batchStartIdx = 0;
+
+            for(uint32 i = 0; i < m_tiles.size(); ++i) {
+                TileInfo* pTile = &m_tiles[i];
+
+                if(!pTile->HasFlag(TILE_FLAG_HAS_EXTRA_DATA) && !pTile->HasFlag(TILE_FLAG_HAS_PARENT)) {
+                    continue;
+                }
+    
                 uint32 batchCount = i - batchStartIdx;
 
                 if(batchCount > 0) {
                     memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * batchCount);
                 }
 
-                pTile->Serialize(memBuffer, write, database, pWorld);
+                pTile->Serialize(memBuffer, true, false, pWorld);
                 batchStartIdx = i + 1;
             }
-            else {
-                pTile->CopyTempData(&m_tempTiles[i]);
+    
+            uint32 remaining = m_tempTiles.size() - batchStartIdx;
+            if(remaining > 0) {
+                memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * remaining);
             }
         }
-
-        uint32 remaining = m_tempTiles.size() - batchStartIdx;
-        if(remaining > 0) {
-            memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * remaining);
-        }
-
-        return true;
     }
+    else {
+        if(database) {
+            memBuffer.ReadRaw(m_tempTiles.data(), m_tempTiles.size() * sizeof(TempTileData));
 
-    for(auto i = 0; i < m_tiles.size(); ++i) {
-        m_tiles[i].Serialize(memBuffer, write, database, pWorld);
-        ModifyKeyTile(&m_tiles[i], false);
+            for(uint32 i = 0; i < m_tiles.size(); ++i) {
+                TileInfo* pTile = &m_tiles[i];
 
-        if(!write) {
-            m_tiles[i].SetPos(i % m_size.x, i / m_size.x);
+                pTile->BindTileData(&m_tempTiles[i]);
+                ModifyKeyTile(pTile, false);
+                pTile->SetPos(i % m_size.x, i / m_size.x);
+            }
+
+            uint32 extraCount = 0;
+            memBuffer.Read(extraCount);
+
+            for(uint32 i = 0; i < extraCount; ++i) {
+                uint16 tileIdx = 55555;
+                memBuffer.Read(tileIdx);
+
+                if(tileIdx >= m_tiles.size()) {
+                    LOGGER_LOG_ERROR("Tile extra corrupted while reading %s idx:%d tilesize:%d", pWorld->GetWorlName().c_str(), tileIdx, m_tiles.size());
+                    return false;
+                }
+
+                TileInfo* pTile = &m_tiles[tileIdx];
+                pTile->Serialize(memBuffer, false, true, pWorld);
+            }
+        }
+        else {
+            /*for(uint32 i = 0; i < m_tiles.size(); ++i) { // unused but yeah...
+                TileInfo* pTile = &m_tiles[i];
+
+                pTile->Serialize(memBuffer, false, false, pWorld);
+                ModifyKeyTile(&m_tiles[i], false);
+        
+                pTile->SetPos(i % m_size.x, i / m_size.x);
+            }*/
         }
     }
 
@@ -77,20 +132,7 @@ uint32 WorldTileManager::GetMemEstimate(bool database, WorldInfo* pWorld)
 {
     MemoryBuffer memSize;
 
-    uint32 headerSize = sizeof(m_size) + 4;
-    memSize.WriteRaw(nullptr, headerSize);
-
-    for(auto& tile : m_tiles) {
-        if(tile.HasFlag(TILE_FLAG_HAS_EXTRA_DATA)) {
-            tile.Serialize(memSize, true, database, pWorld);
-        }
-        else {
-            uint32 size = 8;
-            if(tile.HasFlag(TILE_FLAG_HAS_PARENT)) size += 2;
-            memSize.WriteRaw(nullptr, size);
-        }
-    }
-
+    Serialize(memSize, true, database, pWorld);
     return memSize.GetOffset();
 }
 
@@ -105,7 +147,11 @@ void WorldTileManager::Clear(bool reInit)
         m_tiles.resize(m_size.x * m_size.y);
         m_tempTiles.resize(m_size.x * m_size.y);
         m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
-        for(uint32 i = 0; i < m_tiles.size(); ++i) { m_tiles[i].SetPos(i % m_size.x, i / m_size.x); }
+
+        for(uint32 i = 0; i < m_tiles.size(); ++i) { 
+            m_tiles[i].BindTileData(&m_tempTiles[i]);
+            m_tiles[i].SetPos(i % m_size.x, i / m_size.x); 
+        }
     }
 }
 

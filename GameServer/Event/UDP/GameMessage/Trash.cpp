@@ -4,9 +4,8 @@
 void Trash::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
     auto pItemID = packet.Find(CompileTimeHashString("itemID"));
-    if(!pItemID) {
+    if(!pItemID)
         return;
-    }
 
     string itemID(pItemID->value, pItemID->size);
     TrashDialog::Request(pPlayer, ToUInt(itemID));

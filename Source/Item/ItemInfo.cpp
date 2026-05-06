@@ -11,7 +11,7 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     memBuffer.ReadWrite(flags, write);
     memBuffer.ReadWrite(type, write);
     memBuffer.ReadWrite(material, write);
-    
+
     if(version < 3) {
         memBuffer.ReadWriteString(name, write);
     }
@@ -99,8 +99,6 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     }
 
     if(version > 12) {
-        // actually not sure it was changing for helm soundwave and a wing
-        // and it was changing the light source but it was looking weird
         memBuffer.ReadWrite(lightSourceRange, write);
     }
 
@@ -111,9 +109,9 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     if(version > 14) {
         memBuffer.ReadWrite(chairInfo.enabled, write);
         memBuffer.ReadWrite(chairInfo.playerOffset, write);
-        memBuffer.ReadWrite(chairInfo.chairArmTexturePos, write);
-        memBuffer.ReadWrite(chairInfo.chairArmOffset, write);
-        memBuffer.ReadWriteString(chairInfo.chairTexture, write);
+        memBuffer.ReadWrite(chairInfo.armPos, write);
+        memBuffer.ReadWrite(chairInfo.armOffset, write);
+        memBuffer.ReadWriteString(chairInfo.armTexture, write);
     }
 
     if(version > 15) {
@@ -130,17 +128,17 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
 
     if(version > 18) {
         memBuffer.ReadWrite(randomSpriteInfo.enabled, write);
-        memBuffer.ReadWrite(randomSpriteInfo.offset, write);
+        memBuffer.ReadWrite(randomSpriteInfo.offsetMod, write);
         memBuffer.ReadWrite(randomSpriteInfo.chance, write);
     }
 
-    if(version > 19) { // no idea
-        uint8 unk = 0;
-        memBuffer.ReadWrite(unk, write);
+    if(version > 19) {
+        // HEAD, FACE, BODY, FRONT_ARM, BACK_ARM, LEGS
+        memBuffer.ReadWrite(hiddenPartsFlags, write);
     }
 
     if(version > 20) {
-        memBuffer.ReadWrite(canMorph, write);
+        memBuffer.ReadWrite(canTransform, write);
     }
 
     if(version > 21) {
@@ -153,8 +151,8 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     }
 
     if(version > 23) {
-        uint8 unk = 0;
-        memBuffer.ReadWrite(unk, write);
+        // NONE, SLIP, NO_SLIP
+        memBuffer.ReadWrite(slipperyType, write);
     }
 }
 

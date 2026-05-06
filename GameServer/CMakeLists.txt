@@ -48,6 +48,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/TCP/TCPEventWorldSendPlayer.cpp
     ${GAME_EVENT}/TCP/TCPEventKillServer.cpp
     ${GAME_EVENT}/TCP/TCPEventHeartBeat.cpp
+    ${GAME_EVENT}/TCP/TCPEventCommand.cpp
 
     ${GAME_EVENT}/UDP/GameMessage/RefreshItemData.cpp
     ${GAME_EVENT}/UDP/GameMessage/EnterGame.cpp
@@ -111,6 +112,7 @@ add_executable(GameServer)
 add_default_sources(GameServer)
 add_database_sources(GameServer)
 add_network_sources(GameServer)
+add_zlib_sources(GameServer)
 target_sources(GameServer PRIVATE ${GAME_FILES})
 
 set_target_properties(GameServer PROPERTIES

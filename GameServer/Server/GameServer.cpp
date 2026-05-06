@@ -37,9 +37,8 @@ GameServer::~GameServer()
 
 void GameServer::OnEventConnect(ENetEvent& event)
 {
-    if(!event.peer) {
+    if(!event.peer)
         return;
-    }
 
     GamePlayer* pPlayer = new GamePlayer(event.peer);
     event.peer->data = pPlayer;
@@ -52,35 +51,38 @@ void GameServer::OnEventConnect(ENetEvent& event)
 
 void GameServer::OnEventReceive(ENetEvent& event)
 {
-    if(!event.peer) {
+    if(!event.peer)
         return;
-    }
 
     GamePlayer* pPlayer = (GamePlayer*)event.peer->data;
-    if(!pPlayer || event.peer != pPlayer->GetPeer()) {
+    if(!pPlayer || event.peer != pPlayer->GetPeer())
         return;
-    }
 
     uint32 msgType = GetMessageTypeFromEnetPacket(event.packet);
 
-    switch(msgType) {
+    switch(msgType) 
+    {
         case NET_MESSAGE_GENERIC_TEXT:
-        case NET_MESSAGE_GAME_MESSAGE: {
+        case NET_MESSAGE_GAME_MESSAGE: 
+        {
             LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(event.packet));
 
-            if(pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST)) {
+            if(pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST)) 
+            {
                 ParsedTextPacket<25> packet;
                 ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
 
                 pPlayer->StartLoginRequest(packet);
                 return;
             }
-            else if(pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) {
+            else if(pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) 
+            {
                 ParsedTextPacket<8> packet;
                 ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
             
                 auto pAction = packet.Find(CompileTimeHashString("action"));
-                if(pAction) {
+                if(pAction) 
+                {
                     uint32 packetType = HashString(pAction->value, pAction->size);
 
                     if(
@@ -94,12 +96,14 @@ void GameServer::OnEventReceive(ENetEvent& event)
                 }
                 return;
             }
-            else if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) {
+            else if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) 
+            {
                 ParsedTextPacket<8> packet; // increase it for dialog_return?
                 ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
             
                 auto pAction = packet.Find(CompileTimeHashString("action"));
-                if(pAction) {
+                if(pAction) 
+                {
                     uint32 packetType = HashString(pAction->value, pAction->size);
                     m_messagePacket.Dispatch(packetType, pPlayer, packet);
                 }
@@ -108,8 +112,10 @@ void GameServer::OnEventReceive(ENetEvent& event)
             break;
         }
 
-        case NET_MESSAGE_GAME_PACKET: {
-            if(pPlayer->GetCurrentWorld() == 0) {
+        case NET_MESSAGE_GAME_PACKET: 
+        {
+            if(pPlayer->GetCurrentWorld() == 0) 
+            {
                 /**
                  * response
                  */
@@ -124,16 +130,14 @@ void GameServer::OnEventReceive(ENetEvent& event)
 
 void GameServer::OnEventDisconnect(ENetEvent& event)
 {
-    if(!event.peer) {
+    if(!event.peer)
         return;
-    }
 
     GamePlayer* pPlayer = (GamePlayer*)event.peer->data;
-    if(event.peer != pPlayer->GetPeer()) {
+    if(event.peer != pPlayer->GetPeer())
         return;
-    }
 
-    pPlayer->LogOff(true);
+    pPlayer->LogOff(true, true, true);
     GetPlayerManager()->RemovePlayer(pPlayer->GetNetID());
 }
 
@@ -167,12 +171,12 @@ void GameServer::UpdateGameLogic(uint64 maxTimeMS)
 
 void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)
 {
-    if(!pPlayer || args.empty()) {
+    if(!pPlayer || args.empty())
         return;
-    }
 
     uint32 hashCmd = HashString(args[0].substr(1));
-    if(!m_commands.HasHandler(hashCmd)) {
+    if(!m_commands.HasHandler(hashCmd)) 
+    {
         pPlayer->SendOnConsoleMessage("`4Unknown command. ``Enter `$/help`` for a list of valid commands.");
         return;
     }
@@ -186,7 +190,7 @@ void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)
 void GameServer::ForceSaveEverything()
 {
     GetPlayerManager()->SaveAllToDatabase();
-    GetWorldManager()->ForceSaveAllWorlds();
+    GetWorldManager()->SaveAllToDatabase();
 }
 
 void GameServer::Kill()

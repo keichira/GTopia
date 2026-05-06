@@ -5,9 +5,18 @@
 
 bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer, bool asGameServer)
 {   
+    // platformID,is64bit,hardcoded?
     auto pPlatform = packet.Find(CompileTimeHashString("platformID"));
-    if(!pPlatform || ToUInt(string(pPlatform->value, pPlatform->size), platformType) != TO_INT_SUCCESS) {
-        return false;
+    string platformStr(pPlatform->value, pPlatform->size);
+    if(!pPlatform || ToUInt(platformStr, platformType) != TO_INT_SUCCESS) {
+        if(platformStr.find_first_of(",") != string::npos) {
+            if(ToUInt(Split(platformStr, ',')[0], platformType) != TO_INT_SUCCESS) {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
     }
 
     if(platformType > Proton::PLATFORM_ID_COUNT) {
@@ -99,6 +108,8 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     }
     mac = string(pMac->value, pMac->size);
 #endif
+
+mac = "f4:fb:8f:a9:7a:bd";
 
     if(platformType == Proton::PLATFORM_ID_WINDOWS && (mac.empty() || mac.size() != 17)) {
         LOGGER_LOG_WARN("Got weird mac address (%s) size %d IP: %s", mac.c_str(), mac.size(), pPlayer->GetAddress().c_str());

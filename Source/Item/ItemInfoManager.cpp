@@ -3,9 +3,34 @@
 #include "../Utils/StringUtils.h"
 #include "../IO/Log.h"
 #include "../Proton/ProtonUtils.h"
+#include "../Math/Math.h"
+#include "../Utils/ZLibUtils.h"
+
+uint16 GetSupportedItemDataVersion(float gameVersion)
+{
+    for(auto& version : sItemDataVersionMap)
+    {
+        if(gameVersion >= version.first)
+            return version.second;
+    }
+
+    return 11;
+}
+
+uint16 GetMinRequiredItemDataVersion(float a, float b, float c, float d)
+{
+    float minV = Min(Min(a, b), Min(c, d));
+    return GetSupportedItemDataVersion(minV);
+}
+
+uint16 GetMaxRequiredItemDataVersion(float a, float b, float c, float d)
+{
+    float maxV = Max(Max(a, b), Max(c, d));
+    return GetSupportedItemDataVersion(maxV);
+}
 
 ItemInfoManager::ItemInfoManager()
-: m_version(ITEM_DATA_VERSION)
+: m_version(0)
 {
 }
 
@@ -295,7 +320,8 @@ bool ItemInfoManager::LoadByItemsDat(const string& filePath)
 
     m_items.resize(m_itemCount);
 
-    for(uint32 i = 0; i < m_itemCount; ++i) {
+    for(uint32 i = 0; i < m_itemCount; ++i) 
+    {
         m_items[i].Serialize(memBuffer, false, m_version);
     }
 
@@ -366,8 +392,11 @@ bool ItemInfoManager::LoadWikiData(const string& filePath)
 
 void ItemInfoManager::Kill()
 {
-    SAFE_DELETE_ARRAY(m_itemDataMp3.pItemData);
-    SAFE_DELETE_ARRAY(m_itemDataOgg.pItemData);
+    for(uint32 i = 0; i < MAX_SUPPORTED_ITEM_DATA_VERSION; ++i)
+    {
+        SAFE_DELETE_ARRAY(m_itemDataMp3[i].pItemData);
+        SAFE_DELETE_ARRAY(m_itemDataOgg[i].pItemData);
+    }
 
     m_items.clear();
 }
@@ -406,35 +435,55 @@ void ItemInfoManager::LoadFileHashes(const std::unordered_map<string, uint32>& h
     }
 }
 
-void ItemInfoManager::SaveToClientData(bool forOgg)
+void ItemInfoManager::SaveToClientData(bool forOgg, uint16 minVersion, uint16 maxVersion)
 {
-    MemoryBuffer memSizeBuffer;
-    memSizeBuffer.Seek(sizeof(m_version) + sizeof(m_itemCount));
-
-    for(auto& item : m_items) {
-        item.Serialize(memSizeBuffer, true, m_version);
+    if(m_version != 0)
+    {
+        minVersion = m_version;
+        maxVersion = m_version + 1;
     }
 
-    uint32 memSize = memSizeBuffer.GetOffset();
-    uint8* pData = new uint8[memSize];
+    for(uint16 i = minVersion; i < maxVersion; ++i)
+    {
+        MemoryBuffer memSizeBuffer;
+        memSizeBuffer.Seek(sizeof(i) + sizeof(m_itemCount));
+    
+        for(auto& item : m_items) 
+        {
+            item.Serialize(memSizeBuffer, true, i);
+        }
 
-    MemoryBuffer memBuffer(pData, memSize);
-    memBuffer.Write(m_version);
-    memBuffer.Write(m_itemCount);
+        uint32 memSize = memSizeBuffer.GetOffset();
+        uint8* pData = new uint8[memSize];
+    
+        MemoryBuffer memBuffer(pData, memSize);
+        memBuffer.Write(i);
+        memBuffer.Write(m_itemCount);
+    
+        for(auto& item : m_items) 
+        {
+            item.Serialize(memBuffer, true, i);
+        }
 
-    for(auto& item : m_items) {
-        item.Serialize(memBuffer, true, m_version);
-    }
+        uint32 compressSize = 0;
+        uint8* pCompress = zLibDefalteToMemory(pData, memSize, compressSize);
 
-    if(forOgg) {
-        m_itemDataOgg.pItemData = pData;
-        m_itemDataOgg.size = memSize;
-        m_itemDataOgg.hash = Proton::HashString((const char*)pData, memSize);
-    }
-    else {
-        m_itemDataMp3.pItemData = pData;
-        m_itemDataMp3.size = memSize;
-        m_itemDataMp3.hash = Proton::HashString((const char*)pData, memSize);
+        if(forOgg)
+        {
+            m_itemDataOgg[i].pItemData = pCompress;
+            m_itemDataOgg[i].size = memSize;
+            m_itemDataOgg[i].compressSize = compressSize;
+            m_itemDataOgg[i].hash = Proton::HashString((const char*)pData, memSize);
+        }
+        else 
+        {
+            m_itemDataMp3[i].pItemData = pCompress;
+            m_itemDataMp3[i].size = memSize;
+            m_itemDataMp3[i].compressSize = compressSize;
+            m_itemDataMp3[i].hash = Proton::HashString((const char*)pData, memSize);
+        }
+
+        SAFE_DELETE_ARRAY(pData);
     }
 }
 
@@ -503,12 +552,16 @@ ItemInfo* ItemInfoManager::GetItemByName(const string& name)
     return nullptr;
 }
 
-ItemsClientData& ItemInfoManager::GetClientData(uint8 platformType)
+ItemsClientData* ItemInfoManager::GetClientData(uint8 platformType, float gameVersion)
 {
-    if(platformType == Proton::PLATFORM_ID_ANDROID) {
-        return m_itemDataMp3;
+    uint16 supportedVersion = m_version != 0 ? m_version : GetSupportedItemDataVersion(gameVersion);
+
+    if(platformType == Proton::PLATFORM_ID_ANDROID) 
+    {
+        return &m_itemDataMp3[supportedVersion];
     }
-    return m_itemDataOgg;
+
+    return &m_itemDataOgg[supportedVersion];
 }
 
 uint32 ItemInfoManager::GetItemRarity(uint32 itemID)
@@ -607,4 +660,4 @@ void ItemInfoManager::CreateDefaultSeedForItem(ItemInfo* pItem)
     m_items.push_back(seed);
 }
 
-ItemInfoManager* GetItemInfoManager() { return ItemInfoManager::GetInstance(); }
+ItemInfoManager *GetItemInfoManager() { return ItemInfoManager::GetInstance(); }

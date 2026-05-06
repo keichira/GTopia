@@ -73,7 +73,7 @@ void Renderer2D::DrawImage(BLImage* pImage, const BLRect& drawRect, const BLRgba
     if(rotateAngle != 0.0f) {
         m_context.save();
 
-        float cX = drawRect.x + drawRect.h * 0.5;
+        float cX = drawRect.x + drawRect.w * 0.5;
         float cY = drawRect.y + drawRect.h * 0.5;
         
         m_context.translate(cX, cY);
@@ -84,10 +84,7 @@ void Renderer2D::DrawImage(BLImage* pImage, const BLRect& drawRect, const BLRgba
     m_context.blit_image(drawRect, *pImage);
 
     if(color != BLRgba32(255,255,255,255)) {
-        BLImage tintImage = TintImage(pImage, color);
-
-        m_context.set_comp_op(BL_COMP_OP_SRC_OVER);
-        m_context.blit_image(drawRect, tintImage);
+        
     }
 
     if(rotateAngle != 0.0f) {
@@ -105,7 +102,7 @@ void Renderer2D::DrawSprite(BLImage* pImage, const BLRect& drawRect, const BLRec
         return;
     }
 
-    m_context.set_comp_op(BL_COMP_OP_SRC_OVER);
+    //m_context.set_comp_op(BL_COMP_OP_SRC_OVER);
 
     bool restore = false;
     if(rotateAngle != 0.0f) {
@@ -120,13 +117,14 @@ void Renderer2D::DrawSprite(BLImage* pImage, const BLRect& drawRect, const BLRec
         m_context.translate(-cX, -cY);
     }
     
-    m_context.blit_image(drawRect, *pImage, spriteRect);
-
-    if(color != BLRgba32(255,255,255,255)) {
-        BLImage tintImage = TintImage(pImage, color);
-
-        m_context.set_comp_op(BL_COMP_OP_SRC_OVER);
-        m_context.blit_image(drawRect, tintImage);
+    if (color != BLRgba32(255,255,255,255))
+    {
+        BLImage tinted = TintSprite(pImage, spriteRect, color);
+        m_context.blit_image(drawRect, tinted);
+    }
+    else
+    {
+        m_context.blit_image(drawRect, *pImage, spriteRect);
     }
 
     if(restore) {
@@ -246,31 +244,48 @@ float Renderer2D::GetTextHeight(BLFont* pFont, float size)
     return textHeight;
 }
 
-BLImage Renderer2D::TintImage(BLImage* pImage, const BLRgba32& color)
+BLImage Renderer2D::TintSprite(BLImage* src, const BLRectI& rect, const BLRgba32& color)
 {
-    BLImage tintImage;
-    tintImage.assign_deep(*pImage);
+    BLImage out(rect.w, rect.h, BL_FORMAT_PRGB32);
 
-    BLImageData imgData;
-    tintImage.get_data(&imgData);
+    BLImageData srcData;
+    src->get_data(&srcData);
 
-    for (int32 y = 0; y < imgData.size.h; ++y) {
-        uint8* row = (uint8*)imgData.pixel_data + y * imgData.stride;
+    BLImageData dstData;
+    out.get_data(&dstData);
 
-        for (int32 x = 0; x < imgData.size.w; ++x) {
-            uint8_t* pColor = row + x * 4;
+    float rT = color.r() / 255.0f;
+    float gT = color.g() / 255.0f;
+    float bT = color.b() / 255.0f;
+    float aT = color.a() / 255.0f;
 
-            uint8 a = pColor[3];
-            if (a == 0) {
-                continue;
-            }
+    for(int32 y = 0; y < rect.h; ++y)
+    {
+        uint8* srcRow = (uint8*)srcData.pixel_data + (y + rect.y) * srcData.stride;
+        uint8* dstRow = (uint8*)dstData.pixel_data + y * dstData.stride;
 
-            pColor[0] = uint8((pColor[0] * color.b()) / 255); // B
-            pColor[1] = uint8((pColor[1] * color.g()) / 255); // G
-            pColor[2] = uint8((pColor[2] * color.r()) / 255); // R
-            pColor[3] = uint8((pColor[3] * color.a()) / 255); // A
+        for(int32 x = 0; x < rect.w; ++x)
+        {
+            uint8* spx = srcRow + (x + rect.x) * 4;
+            uint8* dpx = dstRow + x * 4;
+
+            float r = spx[2] / 255.0f;
+            float g = spx[1] / 255.0f;
+            float b = spx[0] / 255.0f;
+            
+            float srcA = spx[3] / 255.0f;
+            
+            r *= rT;
+            g *= gT;
+            b *= bT;
+            srcA *= aT;
+            
+            dpx[0] = uint8(b * srcA * 255.0f);
+            dpx[1] = uint8(g * srcA * 255.0f);
+            dpx[2] = uint8(r * srcA * 255.0f);
+            dpx[3] = uint8(srcA * 255.0f);
         }
     }
 
-    return tintImage;
+    return out;
 }

@@ -29,7 +29,7 @@ public:
     int32 GetSurfaceHeight() const { return m_surface.height(); }
 
 private:
-    BLImage TintImage(BLImage* pImage, const BLRgba32& color);
+    BLImage TintSprite(BLImage* src, const BLRectI& rect, const BLRgba32& color);
 
 private:
     BLImage m_surface;

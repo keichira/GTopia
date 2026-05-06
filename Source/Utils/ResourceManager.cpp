@@ -198,32 +198,24 @@ void ResourceManager::FlipVerticalWithPremultiply(uint8* pPixelData, int32 width
 {
     uint32 rowBytes = width * 4; // uhh
 
-    for(int32 y = 0; y < height / 2; ++y)
-    {
-        uint8* topRow = pPixelData + y * rowBytes;
-        uint8* bottomRow = pPixelData + (height - 1 - y) * rowBytes;
-
-        for(int32 x = 0; x < width; ++x)
-        {
-            uint8* pTop = topRow + x * 4;
-            uint8* pBottom = bottomRow + x * 4;
-
-            uint8 rTop = premultiply ? (pTop[0] * pTop[3]) / 255 : pTop[0];
-            uint8 gTop = premultiply ? (pTop[1] * pTop[3]) / 255 : pTop[1];
-            uint8 bTop = premultiply ? (pTop[2] * pTop[3]) / 255 : pTop[2];
-            uint8 aTop = pTop[3];
-
-            uint8 rBottom = premultiply ? (pBottom[0] * pBottom[3]) / 255 : pBottom[0];
-            uint8 gBottom = premultiply ? (pBottom[1] * pBottom[3]) / 255 : pBottom[1];
-            uint8 bBottom = premultiply ? (pBottom[2] * pBottom[3]) / 255 : pBottom[2];
-            uint8 aBottom = pBottom[3];
-
-            pTop[0] = bBottom; pBottom[0] = bTop;
-            pTop[1] = gBottom; pBottom[1] = gTop;
-            pTop[2] = rBottom; pBottom[2] = rTop;
-            pTop[3] = aBottom; pBottom[3] = aTop;
-        }
-    }
+   for (int32 y = 0; y < height / 2; ++y)
+   {
+       uint8* top = pPixelData + y * rowBytes;
+       uint8* bottom = pPixelData + (height - 1 - y) * rowBytes;
+   
+       for (int32 x = 0; x < width; ++x)
+       {
+           uint8* t = top + x * 4;
+           uint8* b = bottom + x * 4;
+   
+           for (int i = 0; i < 4; ++i) {
+            std::swap(t[i], b[i]);
+           }
+   
+           std::swap(t[0], t[2]);
+           std::swap(b[0], b[2]);
+       }
+   }
 }
 
 ResourceManager* GetResourceManager() { return ResourceManager::GetInstance(); }

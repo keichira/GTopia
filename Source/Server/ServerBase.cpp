@@ -52,6 +52,13 @@ void ServerBase::Update()
     m_pENetServer->Update();
 }
 
+void ServerBase::SetENetIncomeCmdType(uint8 type)
+{
+    if(type == 1) m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_DEFAULT);
+    if(type == 2) m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_GT_PROTOCOL);
+    else m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_BOTH);
+}
+
 void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
 {
     if(!m_pENetServer) {

@@ -1,7 +1,17 @@
 #pragma once
 
 #include "Precompiled.h"
+#include "Utils/Timer.h"
 #include <csignal>
+
+struct ContextPerfStats
+{
+    uint32 avgTickMs = 0;
+    uint32 maxTickMs = 0;
+    uint32 cpuPermille = 0;
+    uint32 lagSpikeMs = 0;
+    Timer lastUpdateTime;
+};
 
 class ContextBase {
 public:
@@ -25,8 +35,11 @@ public:
     volatile sig_atomic_t* GetStopFlag() { return &m_stopFlag; }
     volatile sig_atomic_t* GetShutdownFlag() { return &m_shutdownFlag; }
 
+    ContextPerfStats& GetPerfStats() { return m_perfStats; }
+
 protected:
     uint16 m_id;
     volatile sig_atomic_t m_stopFlag;
     volatile sig_atomic_t m_shutdownFlag;
+    ContextPerfStats m_perfStats;
 };

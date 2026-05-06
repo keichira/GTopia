@@ -84,6 +84,7 @@ set(SOURCE_ZLIB_FILES
     ${THIRD_PARTY_ZLIB}/trees.c
     ${THIRD_PARTY_ZLIB}/uncompr.c
     ${THIRD_PARTY_ZLIB}/zutil.c
+    ${SOURCE_UTILS}/ZLibUtils.cpp
 )
 
 if(WIN32)

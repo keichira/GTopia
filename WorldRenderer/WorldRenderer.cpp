@@ -254,7 +254,7 @@ Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
             break;
         }
 
-        case STORAGE_SMART_CLING2: {
+        case STORAGE_SMART_EDGE_OUTER: {
             bool top = 
                 (tilePos.y > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y - 1, isBackground) : false;
 
@@ -285,11 +285,6 @@ Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
             else {
                 coordX += bottom ? 0 : 3;
             }
-            break;
-        }
-
-        case STORAGE_RANDOM: {
-            coordX += (RandomRangeInt(0, 3));
             break;
         }
     }

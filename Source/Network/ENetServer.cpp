@@ -60,3 +60,12 @@ void ENetServer::Update()
         m_eventQueue.enqueue(std::move(event));
     }
 }
+
+void ENetServer::SetENetIncomeCmdType(ENetHostIncomeCommandType type)
+{
+    if(!m_pHost) {
+        return;
+    }
+
+    m_pHost->incomeCommandType = type;
+}

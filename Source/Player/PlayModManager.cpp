@@ -11,7 +11,7 @@ uint32 StrToCharacterStateFlag(const string& flag)
     {
         {"CHAR_NO_CLIP", CHAR_STATE_NO_CLIP},
         {"CHAR_DOUBLE_JUMP", CHAR_STATE_DOUBLE_JUMP},
-        {"CHAR_INVISIBLE", CHAR_STATE_INVISIBLE}
+        {"CHAR_RENDER_EYES_ONLY", CHAR_STATE_RENDER_EYES_ONLY}
     };
 
     auto it = charFlagStrMap.find(flag);

@@ -11,11 +11,10 @@ enum ePlayerState
 {
     PLAYER_STATE_LOGIN_REQUEST = 1 << 0,
     PLAYER_STATE_ENTERING_GAME = 1 << 1,
-    PLAYER_STATE_LOADING_ACCOUNT = 1 << 2,
-    PLAYER_STATE_IN_GAME = 1 << 3,
-    PLAYER_STATE_LOGGING_OFF = 1 << 4,
-    PLAYER_STATE_RENDERING_WORLD = 1 << 5,
-    PLAYER_STATE_DELETE = 1 << 6
+    PLAYER_STATE_IN_GAME = 1 << 2,
+    PLAYER_STATE_LOGGING_OFF = 1 << 3,
+    PLAYER_STATE_RENDERING_WORLD = 1 << 4,
+    PLAYER_STATE_DELETE = 1 << 5
 };
 
 enum ePlayerFlags
@@ -50,7 +49,7 @@ public:
     void HandleRenderWorld(VariantVector&& result);
 
     void SaveToDatabase();
-    void LogOff(bool forceDelete);
+    void LogOff(bool forceDelete, bool saveToDb, bool endSession);
 
     void Update();
 
@@ -132,6 +131,5 @@ private:
     uint64 m_nextDbSaveTime;
 
     Timer m_logonStartTime;
-
     Role* m_pRole;
 };

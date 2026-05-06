@@ -16,6 +16,4 @@ void TCPEventKillServer::Execute(NetClient* pClient, VariantVector& data)
 
     LOGGER_LOG_WARN("Killing server %d", pServer->serverID);
     GetServerManager()->RemoveServer(pServer->serverID);
-    GetWorldManager()->RemoveWorldsWithServerID(pServer->serverID);
-    GetPlayerManager()->EndSessionsByServer(pServer->serverID);
 }

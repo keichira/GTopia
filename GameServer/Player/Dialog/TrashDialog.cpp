@@ -7,33 +7,35 @@
 
 void TrashDialog::Request(GamePlayer* pPlayer, uint16 itemID)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
-    if(itemID == ITEM_ID_FIST || itemID == ITEM_ID_WRENCH) {
+    if(itemID == ITEM_ID_FIST || itemID == ITEM_ID_WRENCH) 
+    {
         pPlayer->PlaySFX("cant_place_tile.wav");
         pPlayer->SendOnTextOverlay("You'd be sorry to lose that");
         return;
     }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItem) {
+    if(!pItem) 
+    {
         LOGGER_LOG_ERROR("Player %d tried to trash non exist item?", pPlayer->GetUserID());
         return;
     }
 
     uint8 invItemCount = pPlayer->GetInventory().GetCountOfItem(itemID);
-    if(invItemCount == 0) {
+    if(invItemCount == 0)
         return;
-    }
 
     DialogBuilder db;
     db.SetDefaultColor('o');
-    if(pPlayer->HasFlag(PLAYER_FLAG_SUPPORTER) || pPlayer->HasFlag(PLAYER_FLAG_SUPER_SUPPORTER)) {
+    if(pPlayer->HasFlag(PLAYER_FLAG_SUPPORTER) || pPlayer->HasFlag(PLAYER_FLAG_SUPER_SUPPORTER)) 
+    {
         db.AddLabelWithIcon("`4Recycle`` " + pItem->name, pItem->id, true);
     }
-    else {
+    else 
+    {
         db.AddLabelWithIcon("`4Trash`` " + pItem->name, pItem->id, true);
     }
 
@@ -47,23 +49,20 @@ void TrashDialog::Request(GamePlayer* pPlayer, uint16 itemID)
 
 void TrashDialog::Handle(GamePlayer* pPlayer, uint16 itemID, int16 itemCount)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItem) {
+    if(!pItem)
         return;
-    }
 
-    if(itemCount <= 0) {
+    if(itemCount <= 0)
         return;
-    }
 
-    if(pItem->HasFlag(ITEM_FLAG_UNTRADEABLE)) {
-        if(itemCount > pPlayer->GetInventory().GetCountOfItem(itemID)) {
+    if(pItem->HasFlag(ITEM_FLAG_UNTRADEABLE)) 
+    {
+        if(itemCount > pPlayer->GetInventory().GetCountOfItem(itemID))
             return;
-        }
 
         DialogBuilder db;
         db.SetDefaultColor('o')

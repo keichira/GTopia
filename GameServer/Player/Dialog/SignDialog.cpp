@@ -6,19 +6,16 @@
 
 void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
     TileExtra_Sign* pTileExtra = pTile->GetExtra<TileExtra_Sign>();
-    if(!pTileExtra) {
+    if(!pTileExtra)
         return;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-    if(pItem->type != ITEM_TYPE_SIGN) {
+    if(pItem->type != ITEM_TYPE_SIGN)
         return;
-    }
 
     DialogBuilder db;
     db.SetDefaultColor('o')
@@ -35,31 +32,32 @@ void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
 
 void SignDialog::Handle(GamePlayer* pPlayer, const string& text, int32 tileX, int32 tileY)
 {
-    if(!pPlayer || pPlayer->GetCurrentWorld() == 0) {
+    if(!pPlayer || pPlayer->GetCurrentWorld() == 0)
         return;
-    }
 
     string written = text;
     RemoveExtraWhiteSpaces(written);
 
-    if(written.size() > 128) {
+    if(written.size() > 128) 
+    {
         pPlayer->SendOnTalkBubble("That text is too long!", false);
         return;
     }
 
-    World* pWorld = GetWorldManager()->GetWorldByID(pPlayer->GetCurrentWorld());
-    if(!pWorld) {
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if(!pWorld)
         return;
-    }
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
-    if(!pTile) {
+    if(!pTile) 
+    {
         pPlayer->SendOnTalkBubble("Huh? The sign is gone!", false);
         return;
     }
 
     TileExtra_Sign* pTileExtra = pTile->GetExtra<TileExtra_Sign>();
-    if(!pTileExtra) {
+    if(!pTileExtra) 
+    {
         pPlayer->SendOnTalkBubble("Huh? The sign is gone!", false);
         return;
     }

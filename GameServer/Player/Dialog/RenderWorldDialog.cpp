@@ -16,9 +16,8 @@ void RenderWorldDialog::Request(GamePlayer* pPlayer)
 
 void RenderWorldDialog::Handle(GamePlayer* pPlayer)
 {
-    if(pPlayer->GetCurrentWorld() == 0) {
+    if(pPlayer->GetCurrentWorld() == 0)
         return;
-    }
 
     pPlayer->SendOnConsoleMessage("Rendering world into a picture.  It might take a few seconds, keep playing and we'll let you know when it's ready.");
     GetMasterBroadway()->SendRenderWorldRequest(pPlayer->GetUserID(), pPlayer->GetCurrentWorld());

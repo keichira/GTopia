@@ -134,7 +134,7 @@ void FetchWikiAndWrite(uint32 startFromID, uint32 serializeUntil = 0)
 
     LOGGER_LOG_INFO("Started getting item names for batch");
     std::vector<std::string> batchItemNames;
-    std::string currentBatchNames;
+    string currentBatchNames;
     int32 currItemBatchSize = 0;
     
     for(int32 i = startFromID; i < serializeUntil + startFromID; ++i) {
@@ -439,7 +439,7 @@ void GenerateItemTxtFromDat(uint32 serializeUntil = 0)
         }
 
         /**
-         * we have function to setup rarities but some item's rarities are hardcoded
+         * we have function to setup rarities but some item rarities are hardcoded
          * so lets just do it like that to be more safe
          */
         if(pItem->rarity != 0) {
@@ -460,7 +460,9 @@ void GenerateItemTxtFromDat(uint32 serializeUntil = 0)
 #include <iostream>
 int main(int argc, char const* argv[])
 {
+    LOGGER_LOG_INFO("ItemManager");
     LOGGER_LOG_INFO("Choose the operation\n1) Fetch wiki\n2) Generate items.txt");
+
     string operation;
     std::cin >> operation;
 

@@ -5,6 +5,20 @@
 #include "World.h"
 #include "Packet/NetPacket.h"
 #include "Event/EventDispatcher.h"
+#include <queue>
+
+struct PendingWorldData
+{
+    World* world;
+    uint64 requestTime;
+};
+
+struct PendingJoinData
+{
+    GamePlayer* player;
+    uint32 worldInstanceID = 0;
+    uint64 requestTime;
+};
 
 class WorldManager {
 public:
@@ -19,25 +33,21 @@ public:
     }
 
 public:
-    void SendWorldSelectMenu(GamePlayer* pPlayer);
-    void PlayerJoinRequest(GamePlayer* pPlayer, const string& worldName);
-    void PlayerLeaveWorld(GamePlayer* pPlayer);
-
     void Kill();
 
     void HandleWorldInit(VariantVector&& result);
-    static void WorldDBInitCB(QueryTaskResult&& result);
     void HandlePlayerJoin(VariantVector&& result);
+    void PlayerJoinRequest(GamePlayer* pPlayer, const string& worldName);
 
-    World* GetWorldByID(uint32 worldID);
+    void UpdateWorlds();
+    void UpdatePendingLoadWorlds();
+
+    World* GetWorldByInstanceID(uint32 worldID);
     World* GetWorldByName(const string& worldName);
     void AddWorld(World* pWorld);
 
-    void RegisterEvents();
     void OnHandleGamePacket(ENetEvent& event);
-
-    void UpdateWorlds();
-    void ForceSaveAllWorlds();
+    void SaveAllToDatabase();
 
     uint32 GetWorldCount() { return m_worlds.size(); }
 
@@ -51,11 +61,18 @@ private:
         );
     }
 
+    void RegisterEvents();
+    void StartWorldLoad(World* pWorld);
+    void OnPlayerJoinRequest(GamePlayer* pPlayer, World* pWorld);
+    void QueuePlayerToWorld(GamePlayer* pPlayer, World* pWorld);
+    void OnWorldReady(World* pWorld);
+    void FlushWorldJoinQueue(World* pWorld);
+
 private:
     Timer m_lastWorldUpdateTime;
-
     std::unordered_map<uint32, World*> m_worlds;
-    std::vector<World*> m_pendingDelete;
+    std::unordered_map<string, uint32> m_worldNameCache;
+    std::queue<World*> m_pendingLoad;
     EventDispatcher<eGamePacketType, GamePlayer*, World*, GameUpdatePacket*> m_packetEvents;
 };
 

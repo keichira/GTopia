@@ -12,6 +12,7 @@
 #include "World/WorldManager.h"
 #include "Player/RoleManager.h"
 #include "Player/PlayModManager.h"
+#include "Math/Math.h"
 
 bool firstCallShutdown = false;
 
@@ -59,30 +60,25 @@ bool ReadArgs(int argc, char const* argv[])
     return true;
 }
 
-void DatabaseThreadFunc() {
-    Timer lastLogWriteTime;
-    uint64 nextTick = Time::GetSystemTime();
+void DatabaseThreadFunc()
+{
+    Timer logTimer;
+
+    uint64 now = Time::GetSystemTime();
+    DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
 
     while(GetContext()->IsRunning()) {
-        DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
-        pWorker->Update(30);
+        now = Time::GetSystemTime();
 
-        if(lastLogWriteTime.GetElapsedTime() >= 1500) {
+        pWorker->Update();
+
+        if(logTimer.GetElapsedTime() >= 5000) 
+        {
             GetLog()->Write();
-            lastLogWriteTime.Reset();
+            logTimer.Reset();
         }
 
-        nextTick += TICK_INTERVAL;
-        uint64 checkTime = Time::GetSystemTime();
-        if(checkTime > nextTick) {
-            // lag
-            nextTick = checkTime;
-        }
-
-        uint64 sleepTime = nextTick - Time::GetSystemTime();
-        if(sleepTime > 0) {
-            SleepMS(sleepTime);
-        }
+        SleepMS(1);
     }
 }
 
@@ -91,8 +87,9 @@ void EventThreadFunc() {
     GameServer* pGameServer = GetGameServer();
     MasterBroadway* pMaster = GetMasterBroadway();
 
-    while(GetContext()->IsRunning()) {
-        if(!pContext->IsShutting()) {
+    while(pContext->IsRunning()) {
+        if(!pContext->IsShutting()) 
+        {
             pGameServer->Update();
         }
         
@@ -123,12 +120,16 @@ void ProcessDatabaseResults(uint64 maxTimeMS)
             break;
         }
     }
-
 }
 
 bool LoadItemData()
 {
     ItemInfoManager* pItemMgr = GetItemInfoManager();
+    GameConfig* pGameConfig = GetContext()->GetGameConfig();
+
+    if(pGameConfig->forceItemDataVersion != 0) {
+        pItemMgr->ForceItemDataVersion(pGameConfig->forceItemDataVersion);
+    }
 
     if(!pItemMgr->Load(GetProgramPath() + "/items.txt")) {
         LOGGER_LOG_ERROR("Failed to load items.txt");
@@ -165,11 +166,21 @@ bool LoadItemData()
         hashData.insert_or_assign(args[0], ToUInt(args[1]));
     }
 
+    uint minVersion = GetMinRequiredItemDataVersion(
+        pGameConfig->androidSupportedVersions[0], pGameConfig->windowsSupportedVersions[0],
+        pGameConfig->iosSupportedVersions[0], pGameConfig->macosSupportedVersions[0]
+    );
+
+    uint maxVersion = GetMinRequiredItemDataVersion(
+        pGameConfig->androidSupportedVersions[1], pGameConfig->windowsSupportedVersions[1],
+        pGameConfig->iosSupportedVersions[1], pGameConfig->macosSupportedVersions[1]
+    );
+
     pItemMgr->LoadFileHashes(hashData, false);
-    pItemMgr->SaveToClientData(false);
+    pItemMgr->SaveToClientData(false, minVersion, maxVersion);
 
     pItemMgr->LoadFileHashes(hashData, true);
-    pItemMgr->SaveToClientData(true);
+    pItemMgr->SaveToClientData(true, minVersion, maxVersion);
 
     /*PlayerTribute* pPlayerTrib = GetPlayerTributeManager();
     if(!pPlayerTrib->Load(GetProgramPath() + "/player_tribute.txt")) {
@@ -182,6 +193,86 @@ bool LoadItemData()
     return true;
 }
 
+void RunGameLoop()
+{
+    Context* pContext = GetContext();
+    GameServer* pGameServer = GetGameServer();
+    MasterBroadway* pMaster = GetMasterBroadway();
+
+    uint64 now = Time::GetSystemTime();
+    uint64 nextTick = now + GAME_TICK_MS;
+
+    uint64 lastPerfUpdateTime = now;
+
+    uint64 tickDurSum = 0;
+    uint32 tickCount = 0;
+
+    while(pContext->IsRunning())
+    {
+        now = Time::GetSystemTime();
+        uint32 loops = 0;
+
+        pMaster->UpdateTCPLogic(NETWORK_BUDGET_MS);
+        ProcessDatabaseResults(DB_RESULT_BUDGET_MS);
+
+        while(now >= nextTick && loops < MAX_CATCHUP_TICKS)
+        {
+            uint64 tickStart = Time::GetSystemTime();
+
+            if(!pContext->IsShutting())
+            {
+                pGameServer->UpdateGameLogic(GAME_TICK_MS);
+            }
+
+            uint64 tickEnd = Time::GetSystemTime();
+            uint64 tickDur = tickEnd - tickStart;
+
+            tickDurSum += tickDur;
+            ++tickCount;
+
+            ContextPerfStats& perf = pContext->GetPerfStats();
+            perf.maxTickMs = Max(perf.maxTickMs, tickDur);
+            perf.lagSpikeMs = (tickDur > GAME_TICK_MS) ? (tickDur - GAME_TICK_MS) : 0;
+
+            nextTick += GAME_TICK_MS;
+            ++loops;
+            now = Time::GetSystemTime();
+
+            if(pContext->IsShutting() && !firstCallShutdown)
+            {
+                ForceSaveEverything();
+            }
+        }
+
+        if(now >= nextTick)
+        {
+            nextTick = now + GAME_TICK_MS;
+        }
+
+        if(now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
+        {
+            ContextPerfStats& perf = pContext->GetPerfStats();
+
+            if(tickCount > 0)
+            {
+                perf.avgTickMs = (uint32)(tickDurSum / tickCount);
+            }
+
+            perf.cpuPermille = (perf.avgTickMs * 1000) / GAME_TICK_MS;
+            perf.lastUpdateTime.Reset(now);
+
+            tickDurSum = 0;
+            tickCount = 0;
+            lastPerfUpdateTime = now;
+        }
+
+        if(nextTick - now > 0)
+        {
+            SleepMS(nextTick - now);
+        }
+    }
+}
+
 int main(int argc, char const* argv[])
 {
     signal(SIGTERM, SignalStop);
@@ -189,9 +280,8 @@ int main(int argc, char const* argv[])
     signal(SIGSEGV, SignalStop);
     signal(SIGABRT, SignalStop);
 
-    if(!ReadArgs(argc, argv)) {
+    if(!ReadArgs(argc, argv))
         return 0;
-    }
 
     LOGGER_LOG_INFO("Starting Game Server %d | %s", GetContext()->GetID(), Time::GetDateTimeStr().c_str());
     LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia")
@@ -201,29 +291,34 @@ int main(int argc, char const* argv[])
     SetRandomSeed(Time::GetSystemTime());
     RandomizeRandomSeed();
 
-    if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_SERVER_" + ToString(GetContext()->GetID()) + ".txt")) {
+    if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_SERVER_" + ToString(GetContext()->GetID()) + ".txt")) 
+    {
         LOGGER_LOG_ERROR("Failed to init log file");
         return 0;
     }
 
     auto pGameConfig = GetContext()->GetGameConfig();
-    if(pGameConfig->LoadServersClient(GetProgramPath() + "/servers.txt", GetContext()->GetID()) != 2) {
+    if(pGameConfig->LoadServersClient(GetProgramPath() + "/servers.txt", GetContext()->GetID()) != 2) 
+    {
         LOGGER_LOG_ERROR("Failed to load servers.txt");
         return 0;
     }
 
-    if(pGameConfig->servers[1].serverType != CONFIG_SERVER_GAME) {
+    if(pGameConfig->servers[1].serverType != CONFIG_SERVER_GAME) 
+    {
         LOGGER_LOG_ERROR("Woops trying to run server with wrong type %d it should be game", pGameConfig->servers[1].serverType);
         return 0;
     }
 
-    if(!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt")) {
+    if(!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt")) 
+    {
         LOGGER_LOG_ERROR("Failed to load config.txt");
         return 0;
     }
 
     auto gameServerInfo = pGameConfig->servers[1];
-    if(!GetMasterBroadway()->Init(gameServerInfo.lanIP, gameServerInfo.tcpPort, 0)) {
+    if(!GetMasterBroadway()->Init(gameServerInfo.lanIP, gameServerInfo.tcpPort, 0)) 
+    {
         LOGGER_LOG_ERROR("Failed to initialize netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
         return 0;
     }
@@ -232,32 +327,34 @@ int main(int argc, char const* argv[])
     LOGGER_LOG_INFO("Connecting to master server");
     auto masterServerInfo = pGameConfig->servers[0];
 
-    while(!GetContext()->IsShutting()) {
-        if(GetMasterBroadway()->Connect(masterServerInfo.lanIP, masterServerInfo.tcpPort, 5, GetContext()->GetShutdownFlag())) {
+    while(!GetContext()->IsShutting()) 
+    {
+        if(GetMasterBroadway()->Connect(masterServerInfo.lanIP, masterServerInfo.tcpPort, 5, GetContext()->GetShutdownFlag())) 
+        {
             break;
         }
-        else {
-            LOGGER_LOG_ERROR("Failed to connect to master... killing");
-            GetMasterBroadway()->Kill();
-            GetContext()->Kill();
-            GetLog()->Flush();
-            GetLog()->Kill();
+        else 
+        {
+            LOGGER_LOG_ERROR("Failed to connect master server");
             return 0;
         }
     }
 
     LOGGER_LOG_INFO("Connected to master server");
 
-    if(!GetRoleManager()->Load(GetProgramPath() + "/roles.txt")) {
+    if(!GetRoleManager()->Load(GetProgramPath() + "/roles.txt")) 
+    {
         LOGGER_LOG_ERROR("Failed to load roles.txt");
         return 0;
     }
 
-    if(!LoadItemData()) {
+    if(!LoadItemData()) 
+    {
         return 0;
     }
 
-    if(!GetPlayModManager()->Load(GetProgramPath() + "/playmods.txt")) {
+    if(!GetPlayModManager()->Load(GetProgramPath() + "/playmods.txt")) 
+    {
         LOGGER_LOG_ERROR("Failed to load playmods.txt");
         //return 0;
     }
@@ -271,53 +368,25 @@ int main(int argc, char const* argv[])
     dbConfig.database = pGameConfig->database.database.c_str();
     dbConfig.port = pGameConfig->database.port;
 
-    if(!GetContext()->GetDatabasePool()->Init(1, dbConfig)) {
+    if(!GetContext()->GetDatabasePool()->Init(1, dbConfig)) 
+    {
         LOGGER_LOG_ERROR("Failed to initialize database pool");
         return 0;
     }
     LOGGER_LOG_INFO("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
 
-    if(!GetGameServer()->Init(gameServerInfo.wanIP, gameServerInfo.udpPort)) {
+    if(!GetGameServer()->Init(gameServerInfo.wanIP, gameServerInfo.udpPort)) 
+    {
         LOGGER_LOG_ERROR("Failed to initialize game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
         return 0;
     }
+    GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
     LOGGER_LOG_INFO("Started game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
 
     std::thread dbThread(DatabaseThreadFunc);
     std::thread eventThread(EventThreadFunc);
-    
-    uint64 nextTick = Time::GetSystemTime();
-    Context* pContext = GetContext();
-    GameServer* pGameServer = GetGameServer();
-    MasterBroadway* pMaster = GetMasterBroadway();
 
-    while(GetContext()->IsRunning()) {
-        uint64 tickStart = Time::GetSystemTime();
-        
-        if(!pContext->IsShutting()) {
-            pGameServer->UpdateGameLogic(15);
-        }
-
-        pMaster->UpdateTCPLogic(15);
-        ProcessDatabaseResults(15);
-
-        if(pContext->IsShutting() && !firstCallShutdown) {
-            ForceSaveEverything();
-        }
-
-        nextTick += TICK_INTERVAL;
-
-        uint64 checkTime = Time::GetSystemTime();
-        if(checkTime > nextTick) {
-            // lag
-            nextTick = checkTime;
-        }
-
-        uint64 sleepTime = nextTick - Time::GetSystemTime();
-        if(sleepTime > 0) {
-            SleepMS(sleepTime);
-        }
-    }
+    RunGameLoop();
 
     LOGGER_LOG_ERROR("Killing Game server %d", GetContext()->GetID());
 

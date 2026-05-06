@@ -83,6 +83,34 @@ bool GameConfig::LoadConfig(const string& filePath)
         if(args[0] == "world_max_player_count") {
             worldMaxPlayerCount = ToUInt(args[1]);
         }
+
+        if(args[0] == "enet_income_cmd_type") {
+            enetIncomeCmdType = (uint8)ToUInt(args[1]);
+        }
+
+        if(args[0] == "force_item_data_version") {
+            forceItemDataVersion = (uint16)ToUInt(args[1]);
+        }
+
+        if(args[0] == "android_supported_versions") {
+            androidSupportedVersions[0] = ToFloat(args[1]);
+            androidSupportedVersions[1] = ToFloat(args[2]);
+        }
+
+        if(args[0] == "windows_supported_versions") {
+            windowsSupportedVersions[0] = ToFloat(args[1]);
+            windowsSupportedVersions[1] = ToFloat(args[2]);
+        }
+
+        if(args[0] == "ios_supported_versions") {
+            iosSupportedVersions[0] = ToFloat(args[1]);
+            iosSupportedVersions[1] = ToFloat(args[2]);
+        }
+
+        if(args[0] == "macos_supported_versions") {
+            macosSupportedVersions[0] = ToFloat(args[1]);
+            macosSupportedVersions[1] = ToFloat(args[2]);
+        }
     }
 
     return true;
