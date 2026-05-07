@@ -1,6 +1,8 @@
 # Growtopia Private Server
 Cross-platform Growtopia private server
 
+New Discord server for development: https://discord.gg/5XjTQm3kRh
+
 ## Cloning
 Clone the repo : ``git clone --recurse-submodules https://github.com/keichira/GTopia.git``<br>
 *if you don't want to run **WorldRenderer** remove ``--recurse-submodules``*
