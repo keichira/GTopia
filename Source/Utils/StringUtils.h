@@ -36,8 +36,10 @@ float ToFloat(const char* str);
 void RemoveExtraWhiteSpaces(string& str);
 void RemoveExtraWhiteSpaces(char* str);
 
-void RemoveAllSpaces(string& str);
-void RemoveAllSpaces(char* str);
+string TrimLeft(const string& str, const string& trim);
+string TrimRight(const string& str, const string& trim);
+
+void StripWhiteSpace(string& str);
 
 void RemoveGTColorCodes(string& str);
 void RemoveGTColorCodes(char* str);

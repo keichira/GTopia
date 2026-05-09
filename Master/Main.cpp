@@ -154,7 +154,7 @@ int main(int argc, char const* argv[])
     signal(SIGTERM, SignalStop);
     signal(SIGINT, SignalStop);
 
-    LOGGER_LOG_INFO("Starting Master Server %s", Time::GetDateTimeStr().c_str());
+    LOGGER_LOG_INFO("Starting Master Server");
     LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia")
     
     GetContext()->Init();

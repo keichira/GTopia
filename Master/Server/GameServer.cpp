@@ -43,15 +43,15 @@ void GameServer::OnEventReceive(ENetEvent& event)
         return;
     }
 
-    if(!GetServerManager()->HasAnyGameServer()) {
-        SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|log\nmsg|`4OOPS! ``Unable to place you to a server, servers might be initializing.", event.peer);
-        SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logon_fail\n", event.peer);
+    if(!GetServerManager()->HasAnyGameServer()) 
+    {
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Unable to place you to a server, servers might be initializing.");
         return;
     }
 
-    if(GetPlayerManager()->GetInGamePlayerCount() >= GetContext()->GetGameConfig()->maxLoginsAtOnce) {
-        SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|log\nmsg|`4OOPS! ``Too many people logging in at once. Please press `5CANCEL`` and try again.", event.peer);
-        SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logon_fail\n", event.peer);
+    if(GetPlayerManager()->GetInGamePlayerCount() >= GetContext()->GetGameConfig()->maxLoginsAtOnce) 
+    {
+        pPlayer->SendLogonFailWithLog("`4OOPS! ``Too many people logging in at once. Please press `5CANCEL`` and try again.");
         return;
     }
 

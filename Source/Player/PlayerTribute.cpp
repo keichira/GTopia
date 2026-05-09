@@ -1,7 +1,6 @@
 #include "PlayerTribute.h"
 #include "../IO/File.h"
 #include "../Utils/StringUtils.h"
-#include "../Memory/MemoryBuffer.h"
 #include "../Proton/ProtonUtils.h"
 
 #include "../IO/Log.h"
@@ -12,47 +11,56 @@ PlayerTribute::PlayerTribute()
 
 PlayerTribute::~PlayerTribute()
 {
-    SAFE_DELETE_ARRAY(m_clientData.pData);
+    for(uint8 i = 0; i < MAX_TRIBUTE_DATA_VERSION_COUNT; ++i)
+    {
+        SAFE_DELETE_ARRAY(m_clientData[i].pData);
+    }
 }
 
 bool PlayerTribute::Load(const string& filePath)
 {
     File file;
-    if(!file.Open(filePath)) {
+    if(!file.Open(filePath))
         return false;
-    }
 
     uint32 fileSize = file.GetSize();
     string fileData(fileSize, '\0');
 
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
+    if(file.Read(fileData.data(), fileSize) != fileSize)
         return false;
-    }
 
     auto lines = Split(fileData, '\n');
 
-    m_dataVec.resize(2);
-
     uint8 currHeader = 0;
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
+    for(auto& line : lines) 
+    {
+        if(line.empty() || line[0] == '#')
             continue;
-        }
 
         auto args = Split(line, '|');
 
-        if(args[0] == "set_header") {
-            if(args[1] == "epic_players") {
+        if(args[0] == "set_header") 
+        {
+            if(args[1] == "epic_players") 
+            {
                 currHeader = 0;
             }
-
-            if(args[1] == "exceptional_mentors") {
+            else if(args[1] == "exceptional_mentors") 
+            {
                 currHeader = 1;
+            }
+            else if(args[1] == "charity_champions") 
+            {
+                currHeader = 2;
+            }
+            else if(args[1] == "grow_pass_leaders") 
+            {
+                currHeader = 3;
             }
             continue;
         }
 
-        m_dataVec[currHeader] += line + "\n";
+        m_tributeData[currHeader] += line + "\n";
     }
 
     return true;
@@ -60,21 +68,40 @@ bool PlayerTribute::Load(const string& filePath)
 
 void PlayerTribute::SaveToClientData()
 {
-    uint32 memEstimate = 2 * 2;
-    for(uint8 i = 0; i < m_dataVec.size(); ++i) {
-        memEstimate += m_dataVec[i].size();
+    for(uint8 i = 0; i < MAX_TRIBUTE_DATA_VERSION_COUNT; ++i)
+    {
+        MemoryBuffer memSize;
+        Serialize(memSize, i);
+
+        m_clientData[i].size = memSize.GetOffset();
+        m_clientData[i].pData = new uint8[m_clientData[i].size];
+
+        MemoryBuffer memBuffer(m_clientData[i].pData, m_clientData[i].size);
+        Serialize(memBuffer, i);
+
+        m_clientData[i].hash = Proton::HashString((const char*)m_clientData[i].pData, m_clientData[i].size);
+    }
+}
+
+PlayerTributeClientData* PlayerTribute::GetClientData(uint32 protocol)
+{
+    if(protocol > 206)
+        return &m_clientData[1];
+    return &m_clientData[0];
+}
+
+void PlayerTribute::Serialize(MemoryBuffer& memBuffer, uint8 version)
+{
+    uint8 sizeToUse = 3;
+    if(version == 1)
+    {
+        sizeToUse = 4;
     }
 
-    m_clientData.size = memEstimate;
-    m_clientData.pData = new uint8[memEstimate];
-
-    MemoryBuffer memBuffer(m_clientData.pData, memEstimate);
-    
-    for(uint8 i = 0; i < m_dataVec.size(); ++i) {
-        memBuffer.WriteStringRaw(m_dataVec[i] + "\n");
+    for(uint8 i = 0; i < sizeToUse; ++i)
+    {
+        memBuffer.WriteRaw(&m_tributeData[i], m_tributeData[i].size());
     }
-
-    m_clientData.hash = Proton::HashString((const char*)m_clientData.pData, m_clientData.size);
 }
 
 PlayerTribute* GetPlayerTributeManager() { return PlayerTribute::GetInstance(); }

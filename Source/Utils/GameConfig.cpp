@@ -1,8 +1,8 @@
 #include "GameConfig.h"
 #include "../IO/File.h"
 #include "StringUtils.h"
-
 #include "../IO/Log.h"
+#include "ConfigDB.h"
 
 GameConfig::GameConfig()
 {
@@ -10,106 +10,159 @@ GameConfig::GameConfig()
 
 bool GameConfig::LoadConfig(const string& filePath)
 {
-    File file;
-    if(!file.Open(filePath)) {
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
         return false;
-    }
 
-    uint32 fileSize = file.GetSize();
-    string fileData(fileSize, '\0');
+    for(const auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
+    
+        if(key == "database_info")
+        {
+            if(!line.Require(5))
+                return false;
 
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
-        return false;
-    }
-
-    auto lines = Split(fileData, '\n');
-
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
+            database.host = line.GetString(1);
+            database.user = line.GetString(2);
+            database.pass = line.GetString(3);
+            database.database = line.GetString(4);
+            database.port = line.GetUInt(5, 3306);
+    
             continue;
         }
+    
+        if(key == "cdn_server")
+        {
+            if(!line.Require(2))
+                return false;
 
-        auto args = Split(line, '|');
-
-        if(args[0] == "database_info") {
-            database.host = args[1];
-            database.user = args[2];
-            database.pass = args[3];
-            database.database = args[4];
-            database.port = (uint16)ToUInt(args[5]);
+            cdnServer = line.GetString(1);
+            cdnPath = line.GetString(2);
+    
+            continue;
         }
-
-        if(args[0] == "cdn_server") {
-            cdnServer = args[1];
-            cdnPath = args[2];
+    
+        if(key == "rendererStaticPath")
+        {
+            if(line.Require(1))
+                rendererStaticPath = line.GetString(1);
+    
+            continue;
         }
-
-        if(args[0] == "rendererStaticPath") {
-            rendererStaticPath = args[1];
+    
+        if(key == "rendererSavePath")
+        {
+            if(line.Require(1))
+                rendererSavePath = line.GetString(1);
+    
+            continue;
         }
-
-        if(args[0] == "rendererSavePath") {
-            rendererSavePath = args[1];
+    
+        if(key == "worldSavePath")
+        {
+            if(line.Require(1))
+                worldSavePath = line.GetString(1);
+    
+            continue;
         }
-
-        if(args[0] == "worldSavePath") {
-            worldSavePath = args[1];
+    
+        if(key == "max_logins_at_once")
+        {
+            maxLoginsAtOnce = line.GetUInt(1, 20);
+            continue;
         }
-
-        if(args[0] == "max_logins_at_once") {
-            maxLoginsAtOnce = (uint16)ToUInt(args[1]);
+    
+        if(key == "max_accounts_per_ip")
+        {
+            maxAccountsPerIP = line.GetUInt(1, 5);
+            continue;
         }
-
-        if(args[0] == "max_accounts_per_ip") {
-            maxAccountsPerIP = (uint16)ToUInt(args[1]);
+    
+        if(key == "max_accounts_per_gid")
+        {
+            maxAccountsPerGid = line.GetUInt(1, 5);
+            continue;
         }
-
-        if(args[0] == "max_accounts_per_gid") {
-            maxAccountsPerGid = (uint16)ToUInt(args[1]);
+    
+        if(key == "max_accounts_per_vid")
+        {
+            maxAccountsPerVid = line.GetUInt(1, 5);
+            continue;
         }
-
-        if(args[0] == "max_accounts_per_vid") {
-            maxAccountsPerVid = (uint16)ToUInt(args[1]);
+    
+        if(key == "max_accounts_per_sid")
+        {
+            maxAccountsPerSid = line.GetUInt(1, 5);
+            continue;
         }
-
-        if(args[0] == "max_accounts_per_sid") {
-            maxAccountsPerSid = (uint16)ToUInt(args[1]);
+    
+        if(key == "max_accounts_per_mac")
+        {
+            maxAccountsPerMac = line.GetUInt(1, 5);
+            continue;
         }
-
-        if(args[0] == "max_accounts_per_mac") {
-            maxAccountsPerMac = (uint16)ToUInt(args[1]);
+    
+        if(key == "world_max_player_count")
+        {
+            worldMaxPlayerCount = line.GetUInt(1, 70);
+            continue;
         }
-
-        if(args[0] == "world_max_player_count") {
-            worldMaxPlayerCount = ToUInt(args[1]);
+    
+        if(key == "enet_income_cmd_type")
+        {
+            enetIncomeCmdType = line.GetUInt(1, 3);
+            continue;
         }
-
-        if(args[0] == "enet_income_cmd_type") {
-            enetIncomeCmdType = (uint8)ToUInt(args[1]);
+    
+        if(key == "force_item_data_version")
+        {
+            forceItemDataVersion = line.GetUInt(1, 5);
+            continue;
         }
-
-        if(args[0] == "force_item_data_version") {
-            forceItemDataVersion = (uint16)ToUInt(args[1]);
+    
+        if(key == "android_supported_versions")
+        {
+            if(line.Require(2))
+            {
+                androidSupportedVersions[0] = line.GetFloat(1, 3.02f);
+                androidSupportedVersions[1] = line.GetFloat(2, 4.49f);
+            }
+    
+            continue;
         }
-
-        if(args[0] == "android_supported_versions") {
-            androidSupportedVersions[0] = ToFloat(args[1]);
-            androidSupportedVersions[1] = ToFloat(args[2]);
+    
+        if(key == "windows_supported_versions")
+        {
+            if(line.Require(2))
+            {
+                windowsSupportedVersions[0] = line.GetFloat(1, 3.02f);
+                windowsSupportedVersions[1] = line.GetFloat(2, 4.49f);
+            }
+    
+            continue;
         }
-
-        if(args[0] == "windows_supported_versions") {
-            windowsSupportedVersions[0] = ToFloat(args[1]);
-            windowsSupportedVersions[1] = ToFloat(args[2]);
+    
+        if(key == "ios_supported_versions")
+        {
+            if(line.Require(2))
+            {
+                iosSupportedVersions[0] = line.GetFloat(1, 3.02f);
+                iosSupportedVersions[1] = line.GetFloat(2, 4.49f);
+            }
+    
+            continue;
         }
-
-        if(args[0] == "ios_supported_versions") {
-            iosSupportedVersions[0] = ToFloat(args[1]);
-            iosSupportedVersions[1] = ToFloat(args[2]);
-        }
-
-        if(args[0] == "macos_supported_versions") {
-            macosSupportedVersions[0] = ToFloat(args[1]);
-            macosSupportedVersions[1] = ToFloat(args[2]);
+    
+        if(key == "macos_supported_versions")
+        {
+            if(line.Require(2))
+            {
+                macosSupportedVersions[0] = line.GetFloat(1, 3.02f);
+                macosSupportedVersions[1] = line.GetFloat(2, 4.49f);
+            }
+    
+            continue;
         }
     }
 

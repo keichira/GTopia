@@ -26,7 +26,7 @@ CREATE TABLE `Players` (
   KEY `idx_vid` (`VID`),
   KEY `idx_hash` (`Hash`),
   KEY `idx_sid` (`SID`),
-  KEY `idx_name` (`Name`),
+  KEY `idx_name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `Worlds` (

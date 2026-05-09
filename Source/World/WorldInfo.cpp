@@ -45,7 +45,7 @@ bool WorldInfo::Serialize(MemoryBuffer &memBuffer, bool write, bool database)
         return false;
     }
 
-    m_pObjMgr->Serialize(memBuffer, write);
+    m_pObjMgr->Serialize(memBuffer, write, database);
     
     memBuffer.ReadWrite(m_defaultWeather, write);
     memBuffer.ReadWrite(m_currentWeather, write);

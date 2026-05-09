@@ -7,7 +7,7 @@
 # set_punch_damage|value| <- for breaking block
 # set_gravity|value|
 # set_punch_type|value|
-# set_items|itemIDs| <- spaces doesnt matter just style
+# set_items|itemIDs|
 # set_punch_range|value|
 # set_build_range|value|
 
@@ -25,8 +25,8 @@ set_char_flags|CHAR_NO_CLIP|
 
 add_playmod|156|Double Jump|You can jump in mid-air!  It's like flying, but less.|Gravity - it's the law.|
 set_char_flags|CHAR_DOUBLE_JUMP|
-set_items|156, 350, 362, 678, 736, 1166, 3112, 1206, 1460, 1550, 1574, 1672, 1674, 1738, 1784, 1824, 1934, 1936, 1938, 2254, 2256, 2258|
-set_items|2260, 2262, 2264, 6162, 4184, 3104, 3114, 3120, 3134, 3144, 3576, 3604, 3762, 3514, 4820, 4412, 4428, 4440, 4442|
+set_items|156|350|362|678|736|1166|3112|1206|1460|1550|1574|1672|1674|1738|1784|1824|1934|1936|1938|2254|2256|2258|
+set_items|2260|2262|2264|6162|4184|3104|3114|3120|3134|3144|3576|3604|3762|3514|4820|4412|4428|4440|4442|
 
 add_playmod|1904|The One Ring|No one will take your precious!|I guess someone took your precious.|
 set_char_flags|CHAR_RENDER_EYES_ONLY|
@@ -40,7 +40,7 @@ set_items|1782|
 
 add_playmod|496|Speedy|You can move faster!|You are slow again.|
 set_speed|60|
-set_items|496, 1822, 1940|
+set_items|496|1822|1940|
 
 add_playmod|3578|Carrying a Torch|"I'm attacking the darkness!|My torch went out.|
 set_items|3578|
@@ -48,7 +48,7 @@ set_items|3578|
 add_playmod|4746|Energized Horn|You shoot lightning from your horn(s)!|Tired of tooting your own horn?|
 set_punch_type|75|
 set_build_range|1|
-set_items|4746, 4748, 4750|
+set_items|4746|4748|4750|
 
 add_playmod|3066|Fire Hose|Where does the water come from?|Guess you finally ran out of water.|
 set_punch_type|57|

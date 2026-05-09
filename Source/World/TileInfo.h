@@ -2,6 +2,7 @@
 
 #include "../Precompiled.h"
 #include "../Math/Vector2.h"
+#include "../Math/Rect.h"
 #include "../Memory/MemoryBuffer.h"
 #include "TileExtra.h"
 #include "../Utils/Timer.h"
@@ -58,6 +59,8 @@ public:
 
     void SetPos(uint16 x, uint16 y) { m_pos.x = x; m_pos.y = y; }
     Vector2Int GetPos() const { return m_pos; }
+
+    RectFloat GetRect() { return RectFloat(m_pos.x * 32, m_pos.y * 32, (m_pos.x + 1) * 32, (m_pos.y + 1) * 32); }
 
     void SetFlag(uint16 flag) { m_tileData->flags |= flag; }
     void RemoveFlag(uint16 flag) { m_tileData->flags &= ~flag; }

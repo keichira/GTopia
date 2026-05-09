@@ -38,6 +38,7 @@ bool World::LoadFromFile()
     if(file.Read(pData, fileSize) != fileSize)
     {
         file.Close();
+        SAFE_DELETE_ARRAY(pData);
         return false;
     }
 
@@ -747,7 +748,8 @@ void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
         }
     }
 
-    if(pTile->HasFlag(TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE)) {
+    if(pTile->HasFlag(TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE)) 
+    {
         pTile->RemoveFlag(TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE);
     }
     pTile->RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
@@ -849,42 +851,45 @@ void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
 
     obj.pos += vBasePos;
 
-    if(merge) {
+    if(merge) 
+    {
         RectFloat tileRect(vTilePos.x * 32, vTilePos.y * 32, (vTilePos.x + 1) * 32, (vTilePos.y + 1) * 32);
         auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(tileRect, obj.itemID);
     
-        if(!objsInRect.empty()) {
+        if(!objsInRect.empty()) 
+        {
             objsInRect.push_back(&obj);
 
             ItemInfo* pItem = GetItemInfoManager()->GetItemByID(obj.itemID);
-            if(!pItem) {
+            if(!pItem)
                 return;
-            }
 
             WorldObject* pBaseObj = nullptr;
     
-            for(auto& pObj : objsInRect) {
-                if(!pObj || pObj->HasFlag(OBJECT_FLAG_NO_STACK)) {
+            for(auto& pObj : objsInRect) 
+            {
+                if(!pObj || pObj->HasFlag(OBJECT_FLAG_NO_STACK))
                     continue;
-                }
     
-                if(!pBaseObj) {
+                if(!pBaseObj) 
+                {
                     pBaseObj = pObj;
                     continue;
                 }
     
-                if(pBaseObj == pObj) {
+                if(pBaseObj == pObj)
                     continue;
-                }
     
-                if(pBaseObj->count >= pItem->maxCanHold) {
+                if(pBaseObj->count >= pItem->maxCanHold) 
+                {
                     pBaseObj = pObj;
                     continue;
                 }
     
                 uint16 transfer = Min(pItem->maxCanHold - pBaseObj->count, pObj->count);
         
-                if(transfer > 0) {
+                if(transfer > 0) 
+                {
                     pBaseObj->count += transfer;
                     pBaseObj->SetFlag(OBJECT_FLAG_DIRTY);
     
@@ -892,12 +897,14 @@ void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
                     pObj->SetFlag(OBJECT_FLAG_DIRTY);
                 }
     
-                if(pBaseObj->count >= pItem->maxCanHold) {
+                if(pBaseObj->count >= pItem->maxCanHold) 
+                {
                     pBaseObj = pObj;
                 }
             }
 
-            for(auto& pObj : objsInRect) {
+            for(auto& pObj : objsInRect) 
+            {
                 if(!pObj) {
                     continue;
                 }
@@ -963,7 +970,6 @@ void World::ModifyObject(const WorldObject& obj)
     packet.worldObjectCount = obj.count;
     packet.worldObjectFlags = obj.flags;
     packet.worldObjectType = -3;
-
     packet.field4 = obj.objectID; // ?
 
     GetObjectManager()->HandleObjectPackets(&packet);

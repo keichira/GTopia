@@ -69,7 +69,6 @@ void GamePlayer::HandleCheckSession(VariantVector&& result)
     if(m_loginDetail.loginMode == LOGON_MODE_TRANSFER) 
     {
         m_currentWorldID = result[3].GetUINT();
-        LOGGER_LOG_ERROR("CHECK SESSION %d", m_currentWorldID);
     }
 
     TransferToGame();
@@ -85,12 +84,12 @@ void GamePlayer::TransferToGame()
     settings += "|enableInventoryTab=1";
 
     auto itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType, m_loginDetail.gameVersion);
-    auto tributeData = GetPlayerTributeManager()->GetClientData();
+    auto tributeData = GetPlayerTributeManager()->GetClientData(m_loginDetail.protocol);
     GameConfig* pGameConfig = GetContext()->GetGameConfig();
 
     RemoveState(PLAYER_STATE_LOGIN_REQUEST);
     SetState(PLAYER_STATE_ENTERING_GAME);
-    SendWelcomePacket(itemData->hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, tributeData.hash);
+    SendWelcomePacket(itemData->hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, tributeData->hash);
 }
 
 void GamePlayer::HandleRenderWorld(VariantVector&& result)

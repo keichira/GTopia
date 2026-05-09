@@ -33,6 +33,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/WorldDBTable.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
     ${SOURCE_UTILS}/DialogBuilder.cpp
+    ${SOURCE_UTILS}/ConfigDB.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
 

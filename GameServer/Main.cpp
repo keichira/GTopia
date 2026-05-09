@@ -166,12 +166,12 @@ bool LoadItemData()
         hashData.insert_or_assign(args[0], ToUInt(args[1]));
     }
 
-    uint minVersion = GetMinRequiredItemDataVersion(
+    uint32 minVersion = GetMinRequiredItemDataVersion(
         pGameConfig->androidSupportedVersions[0], pGameConfig->windowsSupportedVersions[0],
         pGameConfig->iosSupportedVersions[0], pGameConfig->macosSupportedVersions[0]
     );
 
-    uint maxVersion = GetMinRequiredItemDataVersion(
+    uint32 maxVersion = GetMinRequiredItemDataVersion(
         pGameConfig->androidSupportedVersions[1], pGameConfig->windowsSupportedVersions[1],
         pGameConfig->iosSupportedVersions[1], pGameConfig->macosSupportedVersions[1]
     );
@@ -283,7 +283,7 @@ int main(int argc, char const* argv[])
     if(!ReadArgs(argc, argv))
         return 0;
 
-    LOGGER_LOG_INFO("Starting Game Server %d | %s", GetContext()->GetID(), Time::GetDateTimeStr().c_str());
+    LOGGER_LOG_INFO("Starting Game Server %d", GetContext()->GetID());
     LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia")
 
     GetContext()->Init();
@@ -293,7 +293,7 @@ int main(int argc, char const* argv[])
 
     if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_SERVER_" + ToString(GetContext()->GetID()) + ".txt")) 
     {
-        LOGGER_LOG_ERROR("Failed to init log file");
+        LOGGER_LOG_ERROR("Failed to init log file, maybe try to create 'logs' folder?");
         return 0;
     }
 

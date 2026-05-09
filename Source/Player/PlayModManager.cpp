@@ -77,9 +77,9 @@ bool PlayModManager::Load(const string &filePath)
         }
 
         if(args[0] == "set_char_flags") {
-            auto flags = Split(args[1], ',');
-            for(auto& flag : flags) {
-                m_playMods.back().m_charState |= StrToCharacterStateFlag(flag);
+            for(uint8 i = 1; i < args.size(); ++i)
+            {
+                m_playMods.back().m_charState |= StrToCharacterStateFlag(args[i]);
             }
         }
 
@@ -112,15 +112,12 @@ bool PlayModManager::Load(const string &filePath)
         }
 
         if(args[0] == "set_items") {
-            RemoveAllSpaces(args[1]);
-            auto itemIDs = Split(args[1], ',');
-
             ItemInfoManager* pItemMgr = GetItemInfoManager();
             ePlayModType modType = m_playMods.back().m_modType;
 
-            for(auto& StrItemID : itemIDs) {
+            for(uint16 i = 1; i < args.size(); ++i) {
                 uint32 itemID = 0;
-                if(ToUInt(StrItemID, itemID) != TO_INT_SUCCESS) {
+                if(ToUInt(args[i], itemID) != TO_INT_SUCCESS) {
                     continue;
                 }
 

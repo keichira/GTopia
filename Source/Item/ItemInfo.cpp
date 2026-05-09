@@ -154,6 +154,16 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
         // NONE, SLIP, NO_SLIP
         memBuffer.ReadWrite(slipperyType, write);
     }
+
+    if(version > 24) {
+        string unk;
+        memBuffer.ReadWriteString(unk, write);
+    }
+
+    if(version > 25) {
+        uint8 unk = 0;
+        memBuffer.ReadWrite(unk, write);
+    }
 }
 
 bool ItemInfo::IsBackground()

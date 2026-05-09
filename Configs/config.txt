@@ -7,13 +7,13 @@ database_info|localhost|root|my_db_password|my_database_name|3306|
 cdn_server|127.0.0.1|cache/|
 
 # world renderer assets(rttex, font) path NO SLASH AT END
-rendererStaticPath|
+renderer_static_path|
 
 # world renderer save path for results NO SLASH AT END
-rendererSavePath|
+renderer_save_path|
 
 # game worlds save path NO SLASH AT END
-worldSavePath|
+world_save_path|
 
 # X people can login at once others gonna kicked
 max_logins_at_once|20

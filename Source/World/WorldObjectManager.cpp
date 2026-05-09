@@ -18,22 +18,36 @@ WorldObjectManager::~WorldObjectManager()
 {
 }
 
-void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write)
+void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
 {
-    int32 objectCount = m_objects.size();
+    uint32 objectCount = m_objects.size();
     memBuffer.ReadWrite(objectCount, write);
     memBuffer.ReadWrite(m_lastObjectID, write);
 
-    if(!write) {
+    if(!write) 
+    {
         m_objects.resize(objectCount);
     }
 
-    memBuffer.ReadWriteRaw(m_objects.data(), objectCount * sizeof(WorldObject), write);
+    if(!database)
+    {
+        m_lastObjectID = 0;
+    }
+
+    for(auto& obj : m_objects) // because of padding need to serialize like this way
+    {
+        obj.Serialize(memBuffer, write);
+
+        if(!database)
+        {
+            obj.itemID = ++m_lastObjectID;
+        }
+    }
 }
 
 uint32 WorldObjectManager::GetMemEstimate()
 {
-    return m_objects.size() * sizeof(WorldObject);
+    return sizeof(uint32) + sizeof(m_lastObjectID) + m_objects.size() * sizeof(WorldObject);
 }
 
 void WorldObjectManager::AddItem(uint16 itemID, uint8 count, Vector2Float pos, uint8 flags)
@@ -43,7 +57,7 @@ void WorldObjectManager::AddItem(uint16 itemID, uint8 count, Vector2Float pos, u
     obj.pos = pos;
     obj.count = count;
     obj.flags = flags;
-    obj.objectID = m_lastObjectID++;
+    obj.objectID = ++m_lastObjectID;
 
     m_objects.push_back(std::move(obj));
 }
@@ -80,11 +94,24 @@ void WorldObjectManager::HandleObjectPackets(GameUpdatePacket* pGamePacket)
         return;
     }
 
-    if(pGamePacket->worldObjectType == -3) { // modify
-        ModifyItem(pGamePacket->worldObjectID, pGamePacket->itemID, pGamePacket->worldObjectCount, Vector2Float(pGamePacket->posX, pGamePacket->posY), pGamePacket->worldObjectFlags);
+    if(pGamePacket->worldObjectType == -3) 
+    { // modify
+        ModifyItem(
+            pGamePacket->field4, 
+            pGamePacket->itemID, 
+            pGamePacket->worldObjectCount, 
+            Vector2Float(pGamePacket->posX, pGamePacket->posY), 
+            pGamePacket->worldObjectFlags
+        );
     }
-    else if(pGamePacket->worldObjectType == -1) { // add
-        AddItem(pGamePacket->itemID, (uint8)pGamePacket->worldObjectCount, Vector2Float(pGamePacket->posX, pGamePacket->posY), pGamePacket->worldObjectFlags);
+    else if(pGamePacket->worldObjectType == -1) 
+    { // add
+        AddItem(
+            pGamePacket->itemID,
+            (uint8)pGamePacket->worldObjectCount, 
+            Vector2Float(pGamePacket->posX, pGamePacket->posY), 
+            pGamePacket->worldObjectFlags
+        );
     }
     else { // remove
         DeleteByID(pGamePacket->worldObjectID);

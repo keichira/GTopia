@@ -5,18 +5,18 @@
 
 void RefreshTributeData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    PlayerTributeClientData clientData = GetPlayerTributeManager()->GetClientData();
-    if(!clientData.pData) 
+    PlayerTributeClientData* clientData = GetPlayerTributeManager()->GetClientData(pPlayer->GetLoginDetail().protocol);
+    if(!clientData->pData) 
     {
         LOGGER_LOG_WARN("Not sending player tribute data because its NULL");
         return;
     }
 
     GameUpdatePacket gamePacket;
-    gamePacket.type = NET_GAME_PACKET_SEND_PLAYERRIBUTE_DATA;
+    gamePacket.type = NET_GAME_PACKET_SEND_PLAYER_TRIBUTE_DATA;
     gamePacket.netID = -1;
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    gamePacket.extraDataSize = clientData.size;
+    gamePacket.extraDataSize = clientData->size;
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData.pData, pPlayer->GetPeer());
+    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData->pData, pPlayer->GetPeer());
 }

@@ -1,7 +1,7 @@
 #include "NetSocket.h"
 #include "../IO/Log.h"
 
-bool MakeSocketNonBlocking(int32 fd)
+bool MakeSocketNonBlocking(socket_t fd)
 {
 #ifdef _WIN32
     u_long mode = 1;
@@ -15,7 +15,7 @@ bool MakeSocketNonBlocking(int32 fd)
 #endif
 }
 
-void CloseSocket(int32 fd)
+void CloseSocket(socket_t fd)
 {
 #ifdef _WIN32
     closesocket(fd);
@@ -24,7 +24,7 @@ void CloseSocket(int32 fd)
 #endif
 }
 
-string GetIPFromSocket(int32 socket)
+string GetIPFromSocket(socket_t socket)
 {
     sockaddr_in addr;
 #ifdef _WIN32
@@ -48,7 +48,7 @@ string GetIPFromSocket(int32 socket)
 }
 
 NetSocket::NetSocket()
-: m_socket(-1), m_lastConnID(0)
+: m_socket(SOCKET_INVALID), m_lastConnID(0)
 {
 #ifdef SOCKET_USE_TLS
     m_pSslCtx = nullptr;
@@ -144,7 +144,7 @@ int16 NetSocket::Connect(const string& host, uint16 port, bool nonBlocking)
         sockAddr.sin_addr = *(in_addr*)hNet->h_addr;
     }
 
-    int32 socketCli = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    socket_t socketCli = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if(nonBlocking) {
         if(!MakeSocketNonBlocking(socketCli)) {
             return -2;
@@ -225,23 +225,25 @@ void NetSocket::Update(bool asClient)
     FD_ZERO(&rs);
     FD_ZERO(&ws);
 
-    int32 maxFD = -1;
+    socket_t maxFD = SOCKET_INVALID;
     if(!asClient) {
-        if(m_socket < 0) {
+        if(m_socket == SOCKET_INVALID) {
             return;
         }
 
         maxFD = m_socket;
     }
 
-    if(m_socket >= 0 && m_socket < FD_SETSIZE) {
-        FD_SET(m_socket, &rs);
-        if(m_socket > maxFD) {
-            maxFD = m_socket;
-        }
-    } else {
-        if(!asClient) {
-            return;
+    if(m_socket != SOCKET_INVALID)
+    {
+        if(!asClient || (asClient && m_socket != SOCKET_INVALID))
+        {
+            FD_SET(m_socket, &rs);
+    
+            if(m_socket > maxFD)
+            {
+                maxFD = m_socket;
+            }
         }
     }
 
@@ -260,9 +262,9 @@ void NetSocket::Update(bool asClient)
         }
 
 #ifdef SOCKET_USE_TLS
-        int32 fd = SSL_get_fd(pClient->pSsl);
+        socket_t fd = SSL_get_fd(pClient->pSsl);
 #else
-        int32 fd = pClient->socket;
+        socket_t fd = pClient->socket;
 #endif
 
         FD_SET(fd, &rs);
@@ -356,15 +358,16 @@ void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws, bool asClient)
 
         if(pClient->status != SOCKET_CLIENT_CLOSE && FD_ISSET(pClient->socket, &ws)) {
             if(pClient->status == SOCKET_CLIENT_CONNECTING) {
+            int error = 0;
+
     #ifdef _WIN32
-            char error = 0;
-            int32 len = sizeof(error);
+            int len = sizeof(error);
+            if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, (char*)&error, &len) == 0) {
     #else
-            int32 error = 0;
-            uint32 len = sizeof(error);
+            socklen_t len = sizeof(error);
+            if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, &error, &len) == 0) {
     #endif
 
-                if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, &error, &len) == 0) {
                     if (error == 0) {
             #ifdef SOCKET_USE_TLS
                         int32 sslRes = SSL_connect(pClient->pSsl);
@@ -436,11 +439,11 @@ void NetSocket::AcceptConnection()
 {
     sockaddr_in sockAddrClient;
 #ifdef _WIN32
-    int32 sockAddrCliLength = sizeof(sockAddrClient);
-    SOCKET socketClient = accept(m_socket, (SOCKADDR*)&sockAddrClient, &sockAddrCliLength);
+    int sockAddrCliLength = sizeof(sockAddrClient);
+    socket_t socketClient = accept(m_socket, (SOCKADDR*)&sockAddrClient, &sockAddrCliLength);
 #else
     socklen_t sockAddrCliLength = sizeof(sockAddrClient);
-    int32 socketClient = accept(m_socket, (sockaddr*)&sockAddrClient, &sockAddrCliLength);
+    socket_t socketClient = accept(m_socket, (sockaddr*)&sockAddrClient, &sockAddrCliLength);
 #endif
 
     if(socketClient < 0) {

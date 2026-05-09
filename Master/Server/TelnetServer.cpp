@@ -2,6 +2,7 @@
 #include "IO/File.h"
 #include "IO/Log.h"
 #include "Utils/StringUtils.h"
+#include "Utils/ConfigDB.h"
 
 #include "../Command/Telnet/TelnetCommandBase.h"
 #include "../Command/Telnet/SetRole.h"
@@ -222,68 +223,77 @@ void TelnetServer::OnClientDisconnect(NetClient* pClient)
 
 bool TelnetServer::LoadTelnetConfigFromFile(const string& filePath)
 {
-    File file;
-    if(!file.Open(filePath)) {
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
         return false;
-    }
 
-    uint32 fileSize = file.GetSize();
-    string fileData(fileSize, '\0');
+    for(auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
 
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
-        return false;
-    }
+        if(key == "telnet_host")
+        {
+            if(!line.Require(1))
+                return false;
 
-    auto lines = Split(fileData, '\n');
-
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
-            continue;
+            m_host = line.GetString(1);
         }
 
-        auto args = Split(line, '|');
+        if(key == "telnet_port")
+        {
+            if(!line.Require(1))
+                return false;
 
-        if(args[0] == "telnet_host") {
-            m_host = args[1];
+            m_port = line.GetUInt(1);
         }
 
-        if(args[0] == "telnet_port") {
-            m_port = (uint16)ToUInt(args[1]);
+        if(key == "skip_ip_check")
+        {
+            uint32 val = line.GetUInt(1);
+            m_skipIPCheck = val == 0 ? 0 : 1;
         }
 
-        if(args[0] == "skip_ip_check") {
-            m_skipIPCheck = ToUInt(args[1]) == 1 ? true : false;
-        }
+        if(key == "add_account")
+        {
+            if(!line.Require(3))
+                return false;
 
-        if(args[0] == "add_account") {
             TelnetClientConfig config;
-            config.displayName = args[1];
-            config.password = args[2];
-            config.adminLevel = ToInt(args[3]);
+            config.displayName = line.GetString(1);
+            config.password = line.GetString(2);
+            config.adminLevel = line.GetInt(3);
 
             m_clientConfig.push_back(std::move(config));
         }
 
-        if(args[0] == "allow_ip") {
-            if(m_clientConfig.empty()) {
+        if(key == "allow_ip")
+        {
+            if(m_clientConfig.empty())
                 continue;
-            }
 
-            for(uint8 i = 1; i < args.size(); ++i) {
-                m_clientConfig.back().allowedIPs.push_back(args[i]);
+            for(uint8 i = 1; i < line.GetArgSize(); ++i)
+            {
+                const string& ip = line.GetString(i);
+                if(ip.empty())
+                    continue;
 
-                if(!m_skipIPCheck) {
+                m_clientConfig.back().allowedIPs.push_back(ip);
+
+                if(!m_skipIPCheck)
+                {
                     bool ipExists = false;
-
-                    for(auto& trustedIP : m_trustedIPs) {
-                        if(trustedIP == args[i]) {
+                    for(auto& trustedIP : m_trustedIPs) 
+                    {
+                        if(trustedIP == ip) 
+                        {
                             ipExists = true;
                             break;
                         }
                     }
 
-                    if(!ipExists) {
-                        m_trustedIPs.push_back(args[i]);
+                    if(!ipExists)
+                    {
+                        m_trustedIPs.push_back(ip);
                     }
                 }
             }
@@ -332,17 +342,16 @@ TelnetClient* TelnetServer::GetClientByNetID(uint32 netID)
 void TelnetServer::RemoveClient(uint32 netID)
 {
     auto it = m_clients.find(netID);
-    if(it == m_clients.end()) {
+    if(it == m_clients.end())
         return;
-    }
 
     TelnetClient* pNetClient = it->second;
-    if(!pNetClient) {
+    if(!pNetClient)
         return;
-    }
 
-    if(pNetClient->IsAuthed()) {
-        LOGGER_LOG_INFO("[Telnet] Closing connection between IP: %s Name: %s at %s", pNetClient->GetIP().c_str(), pNetClient->GetDisplayName().c_str(), Time::GetDateTimeStr().c_str())
+    if(pNetClient->IsAuthed()) 
+    {
+        LOGGER_LOG_INFO("[Telnet] Closing connection between IP: %s Name: %s", pNetClient->GetIP().c_str(), pNetClient->GetDisplayName().c_str())
     }
 
     pNetClient->CloseConnection();
@@ -446,7 +455,7 @@ void TelnetServer::HandleCommand(TelnetClient* pNetClient, const string& command
         pNetClient->SetAuthed(true);
 
         pNetClient->SendMessage("\r\nWelcome back " + pNetClient->GetDisplayName() + ", listening you. (/help for help list): ", true);
-        LOGGER_LOG_INFO("[Telnet] Client IP: %s Name: %s authed %s", pNetClient->GetIP().c_str(), pNetClient->GetDisplayName().c_str(), Time::GetDateTimeStr().c_str());
+        LOGGER_LOG_INFO("[Telnet] Client IP: %s Name: %s", pNetClient->GetIP().c_str(), pNetClient->GetDisplayName().c_str());
         return;
     }
 
@@ -475,7 +484,7 @@ void TelnetServer::ExecuteCommand(TelnetClient* pNetClient, std::vector<string>&
         return;
     }
 
-    LOGGER_LOG_INFO("[Telnet] %s Client IP: %s Name: %s executed: %s", Time::GetDateTimeStr().c_str(), pNetClient->GetIP().c_str(), pNetClient->GetDisplayName().c_str(), JoinString(args, " ").c_str());
+    LOGGER_LOG_INFO("[Telnet] Client IP: %s Name: %s executed: %s", pNetClient->GetIP().c_str(), pNetClient->GetDisplayName().c_str(), JoinString(args, " ").c_str());
 
     m_commands.Dispatch(
         hashCmd,

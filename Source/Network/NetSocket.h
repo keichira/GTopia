@@ -21,9 +21,9 @@
 #include "NetClient.h"
 #include "../Event/EventDispatcher.h"
 
-bool MakeSocketNonBlocking(int32 fd);
-void CloseSocket(int32 fd);
-string GetIPFromSocket(int32 socket);
+bool MakeSocketNonBlocking(socket_t fd);
+void CloseSocket(socket_t fd);
+string GetIPFromSocket(socket_t socket);
 
 enum eSocketEventType
 {
@@ -60,7 +60,7 @@ public:
     SocketEventDispatcher& GetEvents() { return m_events; }
 
 private:
-    int32 m_socket;
+    socket_t m_socket;
     int16 m_lastConnID;
 
     SocketEventDispatcher m_events;

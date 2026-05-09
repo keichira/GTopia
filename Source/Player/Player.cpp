@@ -67,7 +67,8 @@ void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, con
     data[4] = "";
     data[5] = settings;
     
-    if(m_loginDetail.protocol > 93) {
+    if(m_loginDetail.protocol > 93) 
+    {
         data[6] = tributeHash;
     }
 

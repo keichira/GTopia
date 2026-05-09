@@ -1,7 +1,7 @@
 #include "RoleManager.h"
-#include "../IO/File.h"
 #include "../Utils/StringUtils.h"
 #include "../IO/Log.h"
+#include "../Utils/ConfigDB.h"
 
 RoleManager::RoleManager() :
 m_defaultRoleID(-1)
@@ -15,46 +15,50 @@ RoleManager::~RoleManager()
 
 bool RoleManager::Load(const string& filePath)
 {
-    File file;
-    if(!file.Open(filePath)) {
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
         return false;
-    }
-
-    uint32 fileSize = file.GetSize();
-    string fileData(fileSize, '\0');
-
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
-        return false;
-    }
-
-    auto lines = Split(fileData, '\n');
 
     Role* pLastRole = nullptr;
 
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
-            continue;
-        }
+    for(auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
 
-        auto args = Split(line, '|');
-
-        if(args[0] == "init_perms") {
-            for(uint16 i = 1; i < args.size(); ++i) {
-                m_permList[args[i]] = (eRolePerm)(m_permList.size() + 1);
+        if(key == "init_perms")
+        {
+            for(uint16 i = 1; i < line.GetArgSize(); ++i)
+            {
+                const string& permKey = line.GetString(i);
+                m_permList[permKey] = (eRolePerm)(m_permList.size() + 1);
             }
         }
 
-        if(args[0] == "set_default_role") {
-            m_defaultRoleID = ToUInt(args[1]);
+        if(key == "set_default_role")
+        {
+            if(!line.Require(1))
+                return false;
+
+            m_defaultRoleID = line.GetUInt(1);
+
+            if(m_defaultRoleID < 1)
+            {
+                LOGGER_LOG_ERROR("Did you forgot to set default role in roles.txt? it should bigger than 0");
+                return false;
+            }
         }
 
-        if(args[0] == "add_role") {
+        if(key == "add_role")
+        {
+            if(!line.Require(4))
+                return false;
+
             Role* pRole = new Role();
             
-            pRole->m_name = args[1];
-            pRole->m_id = ToUInt(args[2]);
-            pRole->m_prefix = args[3];
-            pRole->m_suffix = args[4];
+            pRole->m_name = line.GetString(1);
+            pRole->m_id = line.GetUInt(2);
+            pRole->m_prefix = line.GetString(3);
+            pRole->m_suffix = line.GetString(4);
 
             pRole->AddPerm(ROLE_PERM_NONE);
 
@@ -62,45 +66,46 @@ bool RoleManager::Load(const string& filePath)
             m_roles.insert_or_assign(pRole->GetID(), pRole);
         }
 
-        if(args[0] == "set_inherits") {
-            if(!pLastRole) {
+        if(key == "set_inherits")
+        {
+            if(!pLastRole)
                 continue;
-            }
 
-            for(uint8 i = 1; i < args.size(); ++i) {
-                if(args[i].empty()) {
-                    continue;
-                }
-
-                pLastRole->m_inherits.push_back(ToInt(args[i]));
+            for(uint8 i = 1; i < line.GetArgSize(); ++i)
+            {
+                pLastRole->m_inherits.push_back(line.GetInt(i));
             }
         }
 
-        if(args[0] == "set_name_color") {
-            if(!pLastRole) {
+        if(key == "set_name_color")
+        {
+            if(!pLastRole)
                 continue;
-            }
 
-            pLastRole->m_nameColor = args[1][0];
+            if(!line.GetString(1).empty())
+                pLastRole->m_nameColor = line.GetString(1)[0];
         }
 
-        if(args[0] == "set_chat_color") {
-            if(!pLastRole) {
+        if(key == "set_chat_color")
+        {
+            if(!pLastRole)
                 continue;
-            }
 
-            pLastRole->m_chatColor = args[1][0];
+            if(!line.GetString(1).empty())
+                pLastRole->m_chatColor = line.GetString(1)[0];
         }
 
-        if(args[0] == "set_perms") {
-            if(!pLastRole) {
+        if(key == "set_perms")
+        {
+            if(!pLastRole)
                 continue;
-            }
 
-            for(uint32 i = 1; i < args.size(); ++i) {
+            for(uint32 i = 1; i < line.GetArgSize(); ++i)
+            {
                 eRolePerm perm;
-                if(!GetRolePermFromString(args[i], perm)) {
-                    LOGGER_LOG_WARN("Unknown permission %s for %d", args[i].c_str(), pLastRole->GetID());
+                if(!GetRolePermFromString(line.GetString(i), perm))
+                {
+                    LOGGER_LOG_WARN("Unknown permission %s for %d", line.GetString(i).c_str(), pLastRole->GetID());
                     continue;
                 }
 
@@ -108,12 +113,6 @@ bool RoleManager::Load(const string& filePath)
             }
         }
     }
-
-    if(m_defaultRoleID < 1) {
-        LOGGER_LOG_ERROR("Did you forgot to set default role in roles.txt? it should bigger than 0");
-        return false;
-    }
-
 
     for(auto& [_, pRole] : m_roles) {
         if(pRole->m_state == ROLE_RESOLVE_NONE) {
@@ -186,6 +185,9 @@ Role* RoleManager::GetRole(int32 id)
 
 bool RoleManager::GetRolePermFromString(const string& permStr, eRolePerm& permOut)
 {
+    if(permStr.empty())
+        return false;
+
     auto it = m_permList.find(permStr);
     if(it == m_permList.end()) {
         return false;

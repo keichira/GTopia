@@ -8,30 +8,35 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     // platformID,is64bit,hardcoded?
     auto pPlatform = packet.Find(CompileTimeHashString("platformID"));
     string platformStr(pPlatform->value, pPlatform->size);
-    if(!pPlatform || ToUInt(platformStr, platformType) != TO_INT_SUCCESS) {
-        if(platformStr.find_first_of(",") != string::npos) {
-            if(ToUInt(Split(platformStr, ',')[0], platformType) != TO_INT_SUCCESS) {
+    if(!pPlatform || ToUInt(platformStr, platformType) != TO_INT_SUCCESS) 
+    {
+        if(platformStr.find_first_of(",") != string::npos) 
+        {
+            if(ToUInt(Split(platformStr, ',')[0], platformType) != TO_INT_SUCCESS) 
+            {
                 return false;
             }
         }
-        else {
+        else 
+        {
             return false;
         }
     }
 
-    if(platformType > Proton::PLATFORM_ID_COUNT) {
+    if(platformType > Proton::PLATFORM_ID_COUNT) 
+    {
         LOGGER_LOG_WARN("Unknown platform type %d IP: %s", pPlayer->GetAddress().c_str())
         return false;
     }
 
     auto pReqName = packet.Find(CompileTimeHashString("requestedName"));
-    if(!pReqName) {
+    if(!pReqName)
         return false;
-    }
     requestedName = string(pReqName->value, pReqName->size);
 
     auto pProto = packet.Find(CompileTimeHashString("protocol"));
-    if(!pProto || ToUInt(string(pProto->value, pProto->size), protocol) != TO_INT_SUCCESS) {
+    if(!pProto || ToUInt(string(pProto->value, pProto->size), protocol) != TO_INT_SUCCESS) 
+    {
         return false;
     }
 
@@ -64,10 +69,12 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     }
 
     auto pRid = packet.Find(CompileTimeHashString("rid"));
-    if(pRid) {
+    if(pRid) 
+    {
         rid = string(pRid->value, pRid->size);   
     }
-    else {
+    else 
+    {
         rid = "11111111111111111111111111111111";
     }
 
@@ -109,8 +116,6 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     mac = string(pMac->value, pMac->size);
 #endif
 
-mac = "f4:fb:8f:a9:7a:bd";
-
     if(platformType == Proton::PLATFORM_ID_WINDOWS && (mac.empty() || mac.size() != 17)) {
         LOGGER_LOG_WARN("Got weird mac address (%s) size %d IP: %s", mac.c_str(), mac.size(), pPlayer->GetAddress().c_str());
         return false;
@@ -150,21 +155,19 @@ mac = "f4:fb:8f:a9:7a:bd";
         }
     }
 
-    if(asGameServer) {
+    if(asGameServer) 
+    {
         auto pToken = packet.Find(CompileTimeHashString("token"));
-        if(!pToken || ToUInt(string(pToken->value, pToken->size), token) != TO_INT_SUCCESS) {
+        if(!pToken || ToUInt(string(pToken->value, pToken->size), token) != TO_INT_SUCCESS)
             return false;
-        }
 
         auto pUser = packet.Find(CompileTimeHashString("user"));
-        if(!pUser || ToUInt(string(pUser->value, pUser->size), user) != TO_INT_SUCCESS) {
+        if(!pUser || ToUInt(string(pUser->value, pUser->size), user) != TO_INT_SUCCESS)
             return false;
-        }
 
         auto pLMode = packet.Find(CompileTimeHashString("lmode"));
-        if(!pLMode || ToUInt(string(pLMode->value, pLMode->size), loginMode) != TO_INT_SUCCESS) {
+        if(!pLMode || ToUInt(string(pLMode->value, pLMode->size), loginMode) != TO_INT_SUCCESS)
             return false;
-        }
     }
 
     return true;

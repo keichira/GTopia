@@ -11,6 +11,15 @@
 
 #define SOCKET_MAX_BUFFER_SIZE 4096
 
+#ifdef _WIN32
+    #include <winsock2.h>
+    typedef SOCKET socket_t;
+    #define SOCKET_INVALID INVALID_SOCKET
+#else
+    typedef int socket_t;
+    #define SOCKET_INVALID (-1)
+#endif
+
 class NetSocket;
 
 enum eSocketClientStatus 
@@ -27,7 +36,7 @@ void DeSerializeVariantVectorForTCP(MemoryBuffer& memBuffer, VariantVector& out)
 
 struct NetClient 
 {
-    int32 socket = -1;
+    socket_t socket = SOCKET_INVALID;
     int16 connectionID;
     eSocketClientStatus status = SOCKET_CLIENT_UNKNOWN;
     string ip;

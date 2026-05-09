@@ -201,30 +201,30 @@ void RemoveExtraWhiteSpaces(char* str)
     *out = '\0';
 }
 
-void RemoveAllSpaces(string& str)
+string TrimLeft(const string& str, const string &trim)
 {
-    RemoveAllSpaces(&str[0]);
-    str.resize(strlen(&str[0]));
+    usize pos = str.find_first_not_of(trim);
+
+    if(pos == string::npos)
+        return "";
+
+    return str.substr(pos);
 }
 
-void RemoveAllSpaces(char* str)
+string TrimRight(const string &str, const string &trim)
 {
-    if(!str) {
-        return;
-    }
+    string ret = str;
+    usize pos = ret.find_last_not_of(trim);
 
-    char* src = str;
-    char* out = str;
+    if(pos == string::npos)
+        return "";
 
-    while(*src) {
-        if(*src != ' ') {
-            *out++ = *src;
-        }
+    return ret.erase(pos + 1);
+}
 
-        src++;
-    }
-
-    *out = '\0';
+void StripWhiteSpace(string& str)
+{
+    str = TrimLeft(TrimRight(str, " \t\r\n"), " \t\r\n");
 }
 
 void RemoveGTColorCodes(string &str)
@@ -320,7 +320,7 @@ eToIntResult ToUInt(const char* str, uint32& out, int32 base)
 Color ToColor(const string& str, char delim)
 {
     string removedStr = str;
-    RemoveAllSpaces(removedStr);
+    RemoveExtraWhiteSpaces(removedStr);
 
     auto args = Split(removedStr, delim);
     if(args.size() < 3) {

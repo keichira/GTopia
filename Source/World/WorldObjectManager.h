@@ -14,11 +14,11 @@ enum eObjectFlag
 
 struct WorldObject
 {
-    uint32 objectID = 0;
     uint16 itemID = 0;
+    Vector2Float pos;
     uint8 count = 0;
     uint8 flags = 0;
-    Vector2Float pos;
+    uint32 objectID = 0;
 
     void SetFlag(uint16 flag) { flags |= flag; }
     void RemoveFlag(uint16 flag) { flags &= ~flag; }
@@ -33,7 +33,7 @@ public:
     ~WorldObjectManager();
 
 public:
-    void Serialize(MemoryBuffer& memBuffer, bool write);
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database);
     uint32 GetMemEstimate();
     void AddItem(uint16 itemID, uint8 count, Vector2Float pos, uint8 flags = 0);
     void ModifyItem(uint32 objectID, uint16 itemID, uint8 count, Vector2Float pos, uint8 flags);
@@ -46,5 +46,5 @@ public:
 
 private:
     std::vector<WorldObject> m_objects;
-    uint32 m_lastObjectID;
+    int32 m_lastObjectID;
 };

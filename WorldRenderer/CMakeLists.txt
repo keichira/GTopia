@@ -41,6 +41,7 @@ set(WORLD_RENDERER_FILES PRIVATE
     ${SOURCE_UTILS}/ResourceManager.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
     ${SOURCE_UTILS}/ZLibUtils.cpp
+    ${SOURCE_UTILS}/ConfigDB.cpp
     ${SOURCE_PROTON}/ProtonUtils.cpp
 
     ${WORLD_RENDERER_ROOT}/MasterBroadway.cpp
