@@ -139,3 +139,11 @@ if(WIN32)
 endif(WIN32)
 
 copy_dll(GameServer "${MYSQL_LIB_DIR}/libmysql.dll")
+
+file(GLOB OPENSSL_DLLS
+    "${MYSQL_LIB_DIR}/../bin/libcrypto*.dll"
+    "${MYSQL_LIB_DIR}/../bin/libssl*.dll"
+)
+foreach(DLL ${OPENSSL_DLLS})
+    copy_dll(GameServer "${DLL}")
+endforeach()
