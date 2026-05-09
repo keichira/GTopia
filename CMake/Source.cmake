@@ -72,17 +72,15 @@ endif(WIN32)
 
 set(SOURCE_ZLIB_FILES
     ${THIRD_PARTY_ZLIB}/adler32.c
+    ${THIRD_PARTY_ZLIB}/compress.c
     ${THIRD_PARTY_ZLIB}/crc32.c
     ${THIRD_PARTY_ZLIB}/deflate.c
+    ${THIRD_PARTY_ZLIB}/gzio.c
+    ${THIRD_PARTY_ZLIB}/infback.c
     ${THIRD_PARTY_ZLIB}/inffast.c
     ${THIRD_PARTY_ZLIB}/inflate.c
     ${THIRD_PARTY_ZLIB}/inftrees.c
-    ${THIRD_PARTY_ZLIB}/gzclose.c
-    ${THIRD_PARTY_ZLIB}/gzlib.c
-    ${THIRD_PARTY_ZLIB}/gzread.c
-    ${THIRD_PARTY_ZLIB}/gzwrite.c
     ${THIRD_PARTY_ZLIB}/trees.c
-    ${THIRD_PARTY_ZLIB}/uncompr.c
     ${THIRD_PARTY_ZLIB}/zutil.c
     ${SOURCE_UTILS}/ZLibUtils.cpp
 )
