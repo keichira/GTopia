@@ -32,9 +32,8 @@ ServerManager::~ServerManager()
 
 void ServerManager::OnClientConnect(NetClient* pClient)
 {
-    if(!pClient) {
+    if(!pClient)
         return;
-    }
 
     ServerInfo* pServerInfo = new ServerInfo(pClient);
     pClient->data = pServerInfo;
@@ -49,17 +48,21 @@ void ServerManager::OnClientDisconnect(NetClient* pClient)
     }
 
     ServerInfo* pServerInfo = (ServerInfo*)pClient->data;
-    if(!pServerInfo) {
+    pClient->data = nullptr;
+
+    if(!pServerInfo)
+        return;
+
+    uint32 netID = pServerInfo->GetNetID();
+    uint16 serverID = pServerInfo->serverID;
+
+    if(serverID == 0) {
+        m_pendingClients.erase(netID);
+        SAFE_DELETE(pServerInfo);
         return;
     }
 
-    if(pServerInfo->serverID == 0) {
-        SAFE_DELETE(pServerInfo);
-        m_pendingClients.erase(pServerInfo->GetNetID());
-    }
-    else {
-        RemoveServer(pServerInfo->serverID);
-    }
+    RemoveServer(serverID);
 }
 
 void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
@@ -273,15 +276,8 @@ void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession,
         return;
     }
 
-    VariantVector data;
+    VariantVector data(4);
 
-    if(hasSession) {
-        data = VariantVector(4);
-    }
-    else {
-        data = VariantVector(2);
-    }
-    
     data[0] = TCP_PACKET_PLAYER_CHECK_SESSION;
     data[1] = playerNetID;
     data[2] = hasSession;
@@ -347,25 +343,27 @@ void ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverT
 void ServerManager::RemoveServer(uint16 serverID)
 {
     auto it = m_servers.find(serverID);
-    if(it == m_servers.end())
+    if (it == m_servers.end())
         return;
 
     ServerInfo* pServer = it->second;
-    if(!pServer)
+    if (!pServer)
+    {
+        m_servers.erase(it);
         return;
+    }
 
-    if(!pServer->deleteFlag)
-        pServer->deleteFlag = true;
-
-    if(pServer->pClient) {
+    if (pServer->pClient)
+    {
+        pServer->pClient->data = nullptr;
         pServer->pClient->status = SOCKET_CLIENT_CLOSE;
     }
 
-    GetPlayerManager()->EndSessionsByServer(pServer->serverID);
-    GetWorldManager()->EndSessionsByServerID(pServer->serverID);
-    
-    SAFE_DELETE(pServer);
+    GetPlayerManager()->EndSessionsByServer(serverID);
+    GetWorldManager()->EndSessionsByServerID(serverID);
+
     m_servers.erase(it);
+    SAFE_DELETE(pServer);
 }
 
 ServerInfo* ServerManager::GetBestGameServer()
@@ -491,6 +489,7 @@ void ServerManager::UpdateServers()
             if(pServer->lastHeartbeatTime.GetElapsedTime() >= 60 * 1000)
             {
                 pServer->pClient->status = SOCKET_CLIENT_CLOSE;
+                pServer->pClient->data = nullptr;
                 SAFE_DELETE(pServer);
                 it = m_pendingClients.erase(it);
                 continue;

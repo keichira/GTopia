@@ -5,6 +5,7 @@
 #include "../Proton/ProtonUtils.h"
 #include "../Math/Math.h"
 #include "../Utils/ZLibUtils.h"
+#include "../Utils/ConfigDB.h"
 
 uint16 GetSupportedItemDataVersion(float gameVersion)
 {
@@ -41,179 +42,198 @@ ItemInfoManager::~ItemInfoManager()
 
 bool ItemInfoManager::Load(const string& filePath)
 {
-    File file;
-    if(!file.Open(filePath)) {
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
         return false;
-    }
 
-    uint32 fileSize = file.GetSize();
-    string fileData(fileSize, '\0');
-
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
-        file.Close();
-        return false;
-    }
-
-    auto lines = Split(fileData, '\n');
     uint32 lastItemID = 0;
 
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
-            continue;
-        }
+    for(auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
 
-        auto args = Split(line.data(), line.size(), '|');
+        if(key == "make_null")
+        {
+            if(!line.Require(2))
+                return false;
 
-        if(args[0] == "make_null") {
-            int32 nullItemCount = ToInt(args[2]) - ToInt(args[1]);
+            int32 min = line.GetInt(1);
+            int32 max = line.GetInt(2);
 
-            for(int32 i = 0; i < nullItemCount; i += 2) {
+            if(min < 0 || max < 0 || max - min < 0)
+            {
+                LOGGER_LOG_ERROR("Error happened on line %d", line.lineNumber);
+                return false;
+            }
+
+            for(uint32 i = 0; i < (max - min); i += 2)
+            {
                 ItemInfo item;
-                item.id = ToInt(args[1]) + i;
+                item.id = min + i;
                 item.name = "null_item" + ToString(item.id + 1);
                 item.textureFile = "tiles_page1.rttex";
 
                 m_items.push_back(std::move(item));
                 CreateDefaultSeedForItem(&m_items.back());
             }
+
             continue;
         }
 
-        if(args[0] == "add_item") {
+        if(key == "add_item")
+        {
+            if(!line.Require(12))
+                return false;
+
             ItemInfo item;
+            item.id = line.GetUInt(1);
+            item.name = line.GetString(2);
+            item.type = StrToItemType(line.GetString(3));
+            item.material = StrToItemMaterial(line.GetString(4));
+            item.textureFile = line.GetString(5);
 
-            item.id = ToUInt(args[1]);
-            item.name = args[2];
-            item.type = StrToItemType(args[3]);
-            item.material = StrToItemMaterial(args[4]);
-            item.textureFile = args[5];
+            item.textureX = (uint8)line.GetUInt(6);
+            item.textureY = (uint8)line.GetUInt(7);
 
-            item.textureX = (uint8)ToUInt(args[6]);
-            item.textureY = (uint8)ToUInt(args[7]);
-
-            item.visualEffect = StrToItemVisualEffect(args[8]);
-            item.storage = StrToStorageType(args[9]);
-            item.collisionType = StrToCollisionType(args[10]);
-            item.hp = (uint8)ToUInt(args[11]) * 6;
-            item.restoreTime = ToInt(args[12]);
+            item.visualEffect = StrToItemVisualEffect(line.GetString(8));
+            item.storage = StrToStorageType(line.GetString(9));
+            item.collisionType = StrToCollisionType(line.GetString(10));
+            item.hp = line.GetUInt(11) * 6;
+            item.restoreTime = line.GetInt(12);
 
             lastItemID = item.id;
             m_items.push_back(std::move(item));
             CreateDefaultSeedForItem(&m_items[lastItemID]);
+            continue;
         }
 
-        if(args[0] == "add_cloth") {
+        if(key == "add_cloth")
+        {
+            if(!line.Require(9))
+                return false;
+
             ItemInfo item;
 
-            item.id = ToUInt(args[1]);
-            item.name = args[2];
-            item.material = StrToItemMaterial(args[3]);
-            item.textureFile = args[4];
+            item.id = line.GetUInt(1);
+            item.name = line.GetString(2);
+            item.material = StrToItemMaterial(line.GetString(3));
+            item.textureFile = line.GetString(4);
 
-            item.textureX = (uint8)ToUInt(args[5]);
-            item.textureY = (uint8)ToUInt(args[6]);
+            item.textureX = (uint8)line.GetUInt(5);
+            item.textureY = (uint8)line.GetUInt(6);
 
-            item.visualEffect = StrToItemVisualEffect(args[7]);
-            item.storage = StrToStorageType(args[8]);
-            item.bodyPart = StrToBodyPartType(args[9]);
+            item.visualEffect = StrToItemVisualEffect(line.GetString(7));
+            item.storage = StrToStorageType(line.GetString(8));
+            item.bodyPart = StrToBodyPartType(line.GetString(9));
 
             item.type = ITEM_TYPE_CLOTHES;
         
             lastItemID = item.id;
             m_items.push_back(std::move(item));
             CreateDefaultSeedForItem(&m_items[lastItemID]);
+            continue;
         }
 
-        if(args[0] == "set_seed") {
-            if(m_items.size() < lastItemID + 1) {
+        if(key == "set_seed")
+        {
+            if(lastItemID + 1 > m_items.size())
                 continue;
-            }
+
+            if(!line.Require(4))
+                return false;
 
             ItemInfo& seed = m_items[lastItemID + 1];
 
-            seed.seed1 = (uint16)ToUInt(args[1]);
-            seed.seed2 = (uint16)ToUInt(args[2]);
+            seed.seed1 = line.GetUInt(1);
+            seed.seed2 = line.GetUInt(2);
 
-            seed.seedBgColor = ToColor(args[3], ',');
-            seed.seedFgColor = ToColor(args[4], ',');
+            seed.seedBgColor = ToColor(line.GetString(3), ',');
+            seed.seedFgColor = ToColor(line.GetString(4), ',');
+            continue;
         }
 
-        if(args[0] == "description") {
-            if(m_items.size() < lastItemID) {
+        if(key == "description")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            m_items[lastItemID].description = args[1];
+            m_items[lastItemID].description = line.GetString(1);
         }
 
-        if(args[0] == "set_element") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_element")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            m_items[lastItemID].element = StrToItemElement(args[1]);
+            m_items[lastItemID].element = StrToItemElement(line.GetString(1));
+            continue;
         }
 
-        if(args[0] == "set_flags") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_flags")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
+                
+            for(uint16 i = 1; i < line.GetArgSize(); ++i) 
+            {
+                m_items[lastItemID].flags |= StrToItemFlag(line.GetString(i));
             }
 
-            for(uint16 i = 1; i < args.size(); ++i) {
-                m_items[lastItemID].flags |= StrToItemFlag(args[i]);
-            }
+            continue;
         }
 
-        if(args[0] == "set_flags2") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_flags2")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
+                
+            for(uint16 i = 1; i < line.GetArgSize(); ++i) 
+            {
+                m_items[lastItemID].flags2 |= StrToFlags2(line.GetString(i));
             }
 
-            for(uint16 i = 1; i < args.size(); ++i) {
-                m_items[lastItemID].flags2 |= StrToFlags2(args[i]);
-            }
+            continue;
         }
 
-        if(args[0] == "set_fx_flags") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_fx_flags")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
             uint32 i = 1;
-            while (i < args.size())
+            while (i < line.GetArgSize())
             {
-                uint32 convFlag = StrToFxFlag(args[i++]);
+                uint32 convFlag = StrToFxFlag(line.GetString(i++));
                 m_items[lastItemID].fxFlags |= convFlag;
             
-                if (convFlag == ITEM_FX_FLAG_MULTI_ANIM)
+                if(convFlag == ITEM_FX_FLAG_MULTI_ANIM)
                 {
-                    while (i < args.size() && args[i] != "MULTI_ANIM_END")
+                    while (i < line.GetArgSize() && line.GetString(i) != "MULTI_ANIM_END")
                     {
-                        m_items[lastItemID].multiAnim1 += args[i] + "|";
+                        m_items[lastItemID].multiAnim1 += line.GetString(i) + "|";
                         ++i;
                     }
                     ++i;
                     continue;
                 }
             
-                if (convFlag == ITEM_FX_FLAG_MULTI_ANIM2)
+                if(convFlag == ITEM_FX_FLAG_MULTI_ANIM2)
                 {
-                    while (i < args.size() && args[i] != "MULTI_ANIM2_END")
+                    while (i < line.GetArgSize() && line.GetString(i) != "MULTI_ANIM2_END")
                     {
-                        m_items[lastItemID].multiAnim2 += args[i] + "|";
+                        m_items[lastItemID].multiAnim2 += line.GetString(i) + "|";
                         ++i;
                     }
                     ++i;
                     continue;
                 }
             
-                if (convFlag == ITEM_FX_FLAG_DUAL_LAYER)
+                if(convFlag == ITEM_FX_FLAG_DUAL_LAYER)
                 {
-                    if (i >= args.size()) {
+                    if(i >= line.GetArgSize())
                         break;
-                    }
             
-                    auto dualLayer = Split(args[i++], ',');
+                    auto dualLayer = Split(line.GetString(i++), ',');
                     m_items[lastItemID].dualAnimLayer.x = ToInt(dualLayer[0]);
                     m_items[lastItemID].dualAnimLayer.y = ToInt(dualLayer[1]);
                     continue;
@@ -221,78 +241,79 @@ bool ItemInfoManager::Load(const string& filePath)
             
                 if (convFlag == ITEM_FX_FLAG_OVERLAY_OBJECT)
                 {
-                    if (i >= args.size()) {
+                    if (i >= line.GetArgSize()) {
                         break;
                     }
 
-                    m_items[lastItemID].overlayTextureFile = args[i++];
+                    m_items[lastItemID].overlayTextureFile = line.GetString(i++);
                     continue;
                 }
             
                 if (convFlag == ITEM_FX_FLAG_RENDER_FX_VARIANT_VERSION)
                 {
-                    if (i >= args.size()) {
+                    if (i >= line.GetArgSize()) {
                         break;
                     }
 
-                    m_items[lastItemID].variantVersionItem = ToInt(args[i++]);
+                    m_items[lastItemID].variantVersionItem = line.GetInt(i++);
                     continue;
                 }
             }
+
+            continue;
         }
 
-        if(args[0] == "set_extra") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_extra")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            if(!args[1].empty()) {
-                m_items[lastItemID].extraString = args[1];
-            }
-
-            if(!args[2].empty()) {
-                m_items[lastItemID].animMS = ToInt(args[2]);
-            }
+            m_items[lastItemID].extraString = line.GetString(1);
+            m_items[lastItemID].animMS = line.GetInt(2, 200);
+            continue;
         }
 
-        if(args[0] == "set_max_hold") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_max_hold")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            m_items[lastItemID].maxCanHold = ToUInt(args[1]);
+            m_items[lastItemID].maxCanHold = line.GetUInt(1, 1);
+            continue;
         }
 
-        if(args[0] == "set_custom_punch") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_custom_punch")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            m_items[lastItemID].customizedPunchParameters = args[1];
+            m_items[lastItemID].customizedPunchParameters = line.GetString(1);
+            continue;
         }
 
-        if(args[0] == "set_config_name") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_config_name")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            m_items[lastItemID].configName = args[1];
+            m_items[lastItemID].configName = line.GetString(1);
+            continue;
         }
 
-        if(args[0] == "set_rarity") {
-            if(m_items.size() < lastItemID) {
+        if(key == "set_rarity")
+        {
+            if(m_items.size() < lastItemID)
                 continue;
-            }
 
-            m_items[lastItemID].rarity = (int16)ToInt(args[1]);
+            m_items[lastItemID].rarity = line.GetInt(1, 1);
 
-            if(m_items.size() >= lastItemID + 1) {
+            if(m_items.size() >= lastItemID + 1) 
+            {
                 m_items[lastItemID + 1].rarity = m_items[lastItemID].rarity;
             }
+            continue;
         }
     }
-
-    file.Close();
 
     m_itemCount = m_items.size();
     return true;

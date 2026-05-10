@@ -48,6 +48,7 @@ public:
     TileInfo* GetTile(int32 x, int32 y);
     TileInfo* GetKeyTile(eKeyTile keyTile);
     TileInfo* GetTile(int32 index);
+    TileInfo* GetTileByWorldPos(float x, float y);
 
     void ModifyKeyTile(TileInfo* pTile, bool remove);
 

@@ -20,6 +20,7 @@
 #include "../Event/UDP/GameMessage/GrowID.h"
 #include "../Event/UDP/GameMessage/Quit.h"
 #include "../Event/UDP/GameMessage/SetSkin.h"
+#include "../Event/UDP/GameMessage/Drop.h"
 
 #include "../Command/RenderWorld.h"
 #include "../Command/GiveItem.h"
@@ -134,10 +135,12 @@ void GameServer::OnEventDisconnect(ENetEvent& event)
         return;
 
     GamePlayer* pPlayer = (GamePlayer*)event.peer->data;
-    if(event.peer != pPlayer->GetPeer())
+    if(!pPlayer)
         return;
 
     pPlayer->LogOff(true, true, true);
+
+    event.peer->data = nullptr;
     GetPlayerManager()->RemovePlayer(pPlayer->GetNetID());
 }
 
@@ -154,6 +157,7 @@ void GameServer::RegisterEvents()
     RegisterMessagePacket<GrowID>(CompileTimeHashString("growid"));
     RegisterMessagePacket<Quit>(CompileTimeHashString("quit"));
     RegisterMessagePacket<SetSkin>(CompileTimeHashString("setSkin"));
+    RegisterMessagePacket<Drop>(CompileTimeHashString("drop"));
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();

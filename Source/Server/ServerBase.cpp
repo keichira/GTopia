@@ -76,6 +76,9 @@ void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
             }
 
             case ENET_EVENT_TYPE_RECEIVE: {
+                if(!event.peer->data)
+                    continue;
+
                 OnEventReceive(event);
                 enet_packet_destroy(event.packet);
                 break;

@@ -538,6 +538,9 @@ bool NetSocket::Send(NetClient* pClient, void* pData, uint32 size)
         return false;
     }
 
+    if(pClient->status == SOCKET_CLIENT_CLOSE)
+        return false;
+
     {
         std::lock_guard<std::mutex> lock(pClient->sendMutex);
         pClient->sendQueue.Write(pData, size);

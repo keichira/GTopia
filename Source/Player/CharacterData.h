@@ -3,6 +3,7 @@
 #include "../Precompiled.h"
 #include "../Math/Color.h"
 #include "PlayMod.h"
+#include "../Math/Vector2.h"
 #include "../Utils/Timer.h"
 
 #define CHARACTER_DEFAULT_FIRE_DAMAGE 1.0f // umm
@@ -130,6 +131,8 @@ private:
 
     bool m_needSkinUpdate;
     bool m_needCharStateUpdate;
+
+    Vector2Int m_avatarSize;
 
     std::vector<PlayerPlayModInfo> m_reqUpdatePlayMods;
     std::vector<PlayerPlayModInfo> m_staticPlayMods;

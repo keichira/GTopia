@@ -838,27 +838,28 @@ bool World::IsPlayerWorldAdmin(GamePlayer* pPlayer)
     return false;
 }
 
-void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
+void World::DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge)
 {
-    if(!pTile) {
+    if(!pTile)
         return;
-    }
 
     Vector2Int vTilePos = pTile->GetPos();
     Vector2Float vBasePos = Vector2Float(vTilePos.x, vTilePos.y) * 32;
-    vBasePos.x += 16.0f;
-    vBasePos.y += 16.0f;
+    vBasePos += 8.0f;
 
-    obj.pos += vBasePos;
+    WorldObject obj;
+    obj.itemID = itemID;
+    obj.count = count;
+    obj.pos = vBasePos + offset;
 
     if(merge) 
     {
-        RectFloat tileRect(vTilePos.x * 32, vTilePos.y * 32, (vTilePos.x + 1) * 32, (vTilePos.y + 1) * 32);
-        auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(tileRect, obj.itemID);
+        auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(pTile->GetRect(), itemID);
     
         if(!objsInRect.empty()) 
         {
-            objsInRect.push_back(&obj);
+            WorldObject tempObj = obj;
+            objsInRect.push_back(&tempObj);
 
             ItemInfo* pItem = GetItemInfoManager()->GetItemByID(obj.itemID);
             if(!pItem)
@@ -868,7 +869,7 @@ void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
     
             for(auto& pObj : objsInRect) 
             {
-                if(!pObj || pObj->HasFlag(OBJECT_FLAG_NO_STACK))
+                if(!pObj || pObj->count == 0 || pObj->HasFlag(OBJECT_FLAG_NO_STACK))
                     continue;
     
                 if(!pBaseObj) 
@@ -886,7 +887,8 @@ void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
                     continue;
                 }
     
-                uint16 transfer = Min(pItem->maxCanHold - pBaseObj->count, pObj->count);
+                uint16 space = pItem->maxCanHold - pBaseObj->count;
+                uint16 transfer = Min(space, pObj->count);
         
                 if(transfer > 0) 
                 {
@@ -909,15 +911,23 @@ void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
                     continue;
                 }
 
-                if(pObj->objectID == 0 && pObj->count > 0) {
+                if(pObj->count == 0)
+                {
+                    if(pObj->objectID != 0)
+                    {
+                        RemoveObject(pObj->objectID);
+                    }
+            
+                    continue;
+                }
+            
+                if(pObj->objectID == 0 && pObj->count > 0)
+                {
                     pObj->pos = vBasePos;
                     DropObject(*pObj);
                 }
-                else if(pObj->count == 0) {
-                    RemoveObject(pObj->objectID);
-                    continue;
-                }
-                else if(pObj->HasFlag(OBJECT_FLAG_DIRTY)) {
+                else if(pObj->HasFlag(OBJECT_FLAG_DIRTY))
+                {
                     pObj->RemoveFlag(OBJECT_FLAG_DIRTY);
                     ModifyObject(*pObj);
                 }
@@ -933,19 +943,24 @@ void World::DropObject(TileInfo* pTile, WorldObject& obj, bool merge)
     DropObject(obj);
 }
 
-void World::DropObject(const WorldObject& obj)
+void World::DropObject(uint16 itemID, uint8 count, const Vector2Float& pos)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
-    packet.itemID = obj.itemID;
-    packet.posX = obj.pos.x;
-    packet.posY = obj.pos.y;
-    packet.worldObjectCount = obj.count;
-    packet.worldObjectFlags = obj.flags;
+    packet.itemID = itemID;
+    packet.posX = pos.x;
+    packet.posY = pos.y;
+    packet.worldObjectCount = count;
+    //packet.worldObjectFlags = obj.flags;
     packet.worldObjectType = -1;
 
     GetObjectManager()->HandleObjectPackets(&packet);
     SendGamePacketToAll(&packet);
+}
+
+void World::DropObject(const WorldObject& obj)
+{
+    DropObject(obj.itemID, obj.count, obj.pos);
 }
 
 void World::RemoveObject(uint32 objectID)
@@ -970,7 +985,7 @@ void World::ModifyObject(const WorldObject& obj)
     packet.worldObjectCount = obj.count;
     packet.worldObjectFlags = obj.flags;
     packet.worldObjectType = -3;
-    packet.field4 = obj.objectID; // ?
+    packet.field4 = obj.objectID;
 
     GetObjectManager()->HandleObjectPackets(&packet);
     SendGamePacketToAll(&packet);

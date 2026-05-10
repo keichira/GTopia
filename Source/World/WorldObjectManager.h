@@ -40,8 +40,9 @@ public:
     void DeleteByID(uint32 objectID);
     void HandleObjectPackets(GameUpdatePacket* pGamePacket);
 
-    std::vector<WorldObject*> GetObjectsInRect(RectFloat& rect);
-    std::vector<WorldObject*> GetObjectsInRectByItemID(RectFloat& rect, uint16 itemID);
+    std::vector<WorldObject*> GetObjectsInRect(const RectFloat& rect);
+    std::vector<WorldObject*> GetObjectsInRectByItemID(const RectFloat& rect, uint16 itemID);
+    uint32 GetCounfOfObjestsInRect(const RectFloat& rect);
     WorldObject* GetObjectByID(uint32 objectID);
 
 private:

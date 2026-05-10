@@ -1,5 +1,6 @@
 #include "WorldInfo.h"
 #include "../Utils/StringUtils.h"
+#include "../Math/Random.h"
 
 bool IsValidWorldName(const string& worldName)
 {
@@ -15,6 +16,15 @@ bool IsValidWorldName(const string& worldName)
     }
 
     return true;
+}
+
+Vector2Float GetRandomItemDropOffset()
+{
+    Vector2Float ret;
+    ret.x = RandomRangeInt(-8, 8);
+    ret.y = RandomRangeInt(-4, 4);
+
+    return ret;
 }
 
 WorldInfo::WorldInfo()

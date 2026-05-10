@@ -46,7 +46,7 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
     TCPPacketEvent event;
 
     while(m_packetQueue.try_dequeue(event)) {
-        if(!event.pClient)
+        if(!event.pClient || event.data.empty())
             continue;
 
         int32 type = event.data[0].GetINT();
@@ -95,19 +95,24 @@ void MasterBroadway::SendAuthPacket(const string& authKey)
 
 void MasterBroadway::OnClientConnect(NetClient* pClient)
 {
-    if(m_pNetClient && pClient) 
+    if(!pClient)
+        return;
+
+    if(m_pNetClient && m_pNetClient != pClient) 
     {
         pClient->status = SOCKET_CLIENT_CLOSE;
+        return;
     }
-    else if(!m_pNetClient && pClient) 
-    {
-        m_pNetClient = pClient;
-    }
+
+    m_pNetClient = pClient;
 }
 
 void MasterBroadway::OnClientDisconnect(NetClient* pClient)
 {
-    if(pClient && m_pNetClient && (m_pNetClient == pClient)) 
+    if(!pClient)
+        return;
+
+    if(m_pNetClient == pClient)
     {
         m_pNetClient = nullptr;
     }

@@ -43,7 +43,7 @@ bool GameConfig::LoadConfig(const string& filePath)
             continue;
         }
     
-        if(key == "rendererStaticPath")
+        if(key == "renderer_static_path")
         {
             if(line.Require(1))
                 rendererStaticPath = line.GetString(1);
@@ -51,7 +51,7 @@ bool GameConfig::LoadConfig(const string& filePath)
             continue;
         }
     
-        if(key == "rendererSavePath")
+        if(key == "renderer_save_path")
         {
             if(line.Require(1))
                 rendererSavePath = line.GetString(1);
@@ -59,7 +59,7 @@ bool GameConfig::LoadConfig(const string& filePath)
             continue;
         }
     
-        if(key == "worldSavePath")
+        if(key == "world_save_path")
         {
             if(line.Require(1))
                 worldSavePath = line.GetString(1);

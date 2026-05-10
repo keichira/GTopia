@@ -29,7 +29,7 @@ void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
         m_objects.resize(objectCount);
     }
 
-    if(!database)
+    if(database)
     {
         m_lastObjectID = 0;
     }
@@ -38,9 +38,9 @@ void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
     {
         obj.Serialize(memBuffer, write);
 
-        if(!database)
+        if(database)
         {
-            obj.itemID = ++m_lastObjectID;
+            obj.objectID = ++m_lastObjectID;
         }
     }
 }
@@ -118,7 +118,7 @@ void WorldObjectManager::HandleObjectPackets(GameUpdatePacket* pGamePacket)
     }
 }
 
-std::vector<WorldObject*> WorldObjectManager::GetObjectsInRect(RectFloat& rect)
+std::vector<WorldObject*> WorldObjectManager::GetObjectsInRect(const RectFloat& rect)
 {
     std::vector<WorldObject*> objsInRect;
 
@@ -131,7 +131,7 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRect(RectFloat& rect)
     return objsInRect;
 }
 
-std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(RectFloat& rect, uint16 itemID)
+std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(const RectFloat& rect, uint16 itemID)
 {
     std::vector<WorldObject*> objsInRect;
 
@@ -142,6 +142,20 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(RectFloat
     }
 
     return objsInRect;
+}
+
+uint32 WorldObjectManager::GetCounfOfObjestsInRect(const RectFloat& rect)
+{
+    uint32 count = 0;
+    for(auto& obj : m_objects)
+    {
+        if(rect.IsInside(obj.pos))
+        {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 WorldObject* WorldObjectManager::GetObjectByID(uint32 objectID)

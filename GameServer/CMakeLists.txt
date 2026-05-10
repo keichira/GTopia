@@ -62,6 +62,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GameMessage/GrowID.cpp
     ${GAME_EVENT}/UDP/GameMessage/Quit.cpp
     ${GAME_EVENT}/UDP/GameMessage/SetSkin.cpp
+    ${GAME_EVENT}/UDP/GameMessage/Drop.cpp
 
     ${GAME_EVENT}/UDP/GamePacket/ItemActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
@@ -87,6 +88,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/LockDialog.cpp
     ${GAME_DIALOG}/RenderWorldDialog.cpp
     ${GAME_DIALOG}/RegisterDialog.cpp
+    ${GAME_DIALOG}/DropItemDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

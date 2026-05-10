@@ -14,8 +14,9 @@ PlayerManager::PlayerManager()
 
 PlayerManager::~PlayerManager()
 {
-    m_sessions.clear();
     RemoveAllPlayers();
+    m_sessions.clear();
+    m_gamePlayers.clear();
 }
 
 PlayerSession* PlayerManager::GetSessionByID(uint32 userID)
@@ -74,20 +75,20 @@ void PlayerManager::AddPlayer(GamePlayer* pPlayer)
 
 void PlayerManager::RemovePlayer(uint32 netID)
 {
-    GamePlayer* pPlayer = GetPlayerByNetID(netID);
-    if(!pPlayer) {
+    auto it = m_gamePlayers.find(netID);
+    if(it == m_gamePlayers.end())
         return;
-    }
 
-    SAFE_DELETE(pPlayer);
+    SAFE_DELETE(it->second);
+    m_gamePlayers.erase(it);
 
     m_isPlayerCountDirty = true;
-    m_gamePlayers.erase(netID);
 }
 
 void PlayerManager::RemoveAllPlayers()
 {
-    for(auto& [_, pPlayer] : m_gamePlayers) {
+    for(auto& [_, pPlayer] : m_gamePlayers) 
+    {
         SAFE_DELETE(pPlayer);
     }
 

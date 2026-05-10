@@ -69,11 +69,8 @@ public:
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);
 
-    void DropObject(TileInfo* pTile, WorldObject& obj, bool merge);
-
-    void DropObject(const WorldObject& obj);
-    void RemoveObject(uint32 objectID);
-    void ModifyObject(const WorldObject& obj);
+    void DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge);
+    void DropObject(uint16 itemID, uint8 count, const Vector2Float& pos);
 
     void SendCurrentWeatherToAll();
     uint32 GetPlayerCount() const { return m_players.size(); }
@@ -81,6 +78,9 @@ public:
     Timer& GetOfflineTime() { return m_worldOfflineTime; }
 
 private:
+    void DropObject(const WorldObject& obj);
+    void RemoveObject(uint32 objectID);
+    void ModifyObject(const WorldObject& obj);
     bool OnPlayerJoin(GamePlayer* pPlayer);
 
 private:

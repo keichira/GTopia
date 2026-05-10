@@ -14,7 +14,7 @@
 void SignalStop(int32 signum) 
 { 
     LOGGER_LOG_WARN("Received signal %d", signum);
-    GetContext()->Stop();
+    GetContext()->Shutdown();
 }
 
 void DatabaseThreadFunc() 
@@ -41,9 +41,15 @@ void EventThreadFunc()
     GameServer* pGameServer = GetGameServer();
     ServerManager* pServerMgr = GetServerManager();
     TelnetServer* pTelnetServer = GetTelnetServer();
+    Context* pContext = GetContext();
 
-    while(GetContext()->IsRunning()) {
-        pGameServer->Update();
+    while(pContext->IsRunning()) {
+        
+        if(!pContext->IsShutting())
+        {
+            pGameServer->Update();
+        }
+
         pServerMgr->Update(false);
         pTelnetServer->Update();
 
@@ -94,6 +100,12 @@ void RunGameLoop()
 
         pServerMgr->UpdateTCPLogic(NETWORK_BUDGET_MS);
         ProcessDatabaseResults(DB_RESULT_BUDGET_MS);
+
+        if(pContext->IsShutting())
+        {
+            pContext->Stop();
+            continue;
+        }
 
         while(now >= nextTick && loops < MAX_CATCHUP_TICKS)
         {

@@ -109,6 +109,21 @@ void TileInfo::SetBG(uint16 itemID)
     m_tileData->bg = itemID;
 }
 
+bool TileInfo::IsCollidable()
+{
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(GetDisplayedItem());
+    if(!pItem)
+        return true;
+
+    if(pItem->type == ITEM_TYPE_GEMS)
+        return !HasFlag(TILE_FLAG_IS_ON);
+
+    if(pItem->type == ITEM_TYPE_GATEWAY)
+        return HasFlag(TILE_FLAG_IS_ON);
+
+    return !(pItem->collisionType == COLLISION_NONE || pItem->collisionType == COLLISION_ONE_WAY);
+}
+
 void TileInfo::BindTileData(TempTileData* pTileData)
 {
     m_tileData = pTileData;

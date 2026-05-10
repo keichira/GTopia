@@ -13,7 +13,7 @@ public:
     T Width() const { return right - left; }
     T Height() const { return bottom - top; }
 
-    bool IsInside(const Vector2<T>& other) {
+    bool IsInside(const Vector2<T>& other) const {
         if (other.x < left || other.y < top || other.x >= right || other.y >= bottom)
             return false;
         

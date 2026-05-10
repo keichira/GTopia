@@ -80,7 +80,8 @@ public:
     void ToggleCloth(uint16 itemID);
 
     void ModifyInventoryItem(uint16 itemID, int16 amount);
-    void TrashItem(uint16 itemID, uint8 amount);
+    void TrashItem(uint16 itemID, uint16 amount);
+    void DropItem(uint16 itemID, uint16 amount, bool openDialog);
 
     void AddPlayMod(ePlayModType modType, bool silent = false);
     void RemovePlayMod(ePlayModType modType, bool silent = false);
@@ -119,7 +120,6 @@ private:
     Timer m_lastActionTime;
 
     string m_logonJoinWorld;
-
     Timer m_lastJoinRequestTime;
 
     uint32 m_guestID;

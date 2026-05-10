@@ -83,10 +83,11 @@ void GameServer::OnEventDisconnect(ENetEvent& event)
     }
 
     GamePlayer* pPlayer = (GamePlayer*)event.peer->data;
-    if(event.peer != pPlayer->GetPeer()) {
+    if(!pPlayer) {
         return;
     }
 
+    event.peer->data = nullptr;
     GetPlayerManager()->RemovePlayer(pPlayer->GetNetID());
 }
 

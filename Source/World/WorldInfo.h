@@ -2,6 +2,7 @@
 
 #include "../Precompiled.h"
 #include "WorldTileManager.h"
+#include "../Math/Vector2.h"
 #include "../Memory/MemoryBuffer.h"
 #include "WorldObjectManager.h"
 
@@ -23,6 +24,7 @@ enum eWeatherTypes
 };
 
 bool IsValidWorldName(const string& worldName);
+Vector2Float GetRandomItemDropOffset();
 
 class WorldInfo {
 public:

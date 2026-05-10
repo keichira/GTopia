@@ -234,8 +234,8 @@ void WorldManager::EndSessionsByServerID(uint32 serverID)
 {
     for(auto it = m_worldSessionsByInstance.begin(); it != m_worldSessionsByInstance.end();) {
         if(it->second.serverID == serverID) {
-            it = m_worldSessionsByInstance.erase(it);
             m_worldInstanceByName.erase(it->second.worldName);
+            it = m_worldSessionsByInstance.erase(it);
             continue;
         }
 

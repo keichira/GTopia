@@ -13,8 +13,10 @@
 #include "Dialog/PlayerDialog.h"
 #include "Dialog/RenderWorldDialog.h"
 #include "Dialog/RegisterDialog.h"
+#include "Dialog/DropItemDialog.h"
 #include "Proton/ProtonUtils.h"
 #include "PlayerManager.h"
+#include "Math/Math.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
 : Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
@@ -385,7 +387,7 @@ void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)
     }
 }
 
-void GamePlayer::TrashItem(uint16 itemID, uint8 amount)
+void GamePlayer::TrashItem(uint16 itemID, uint16 amount)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if(!pItem) 
@@ -407,6 +409,87 @@ void GamePlayer::TrashItem(uint16 itemID, uint8 amount)
 
     PlaySFX("trash.vaw");
     SendOnConsoleMessage("Trashed " + ToString(amount) + " " + pItem->name);
+}
+
+void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
+{
+    if(m_currentWorldID == 0)
+        return;
+
+    InventoryItemInfo* pInvItem = m_inventory.GetItemByID(itemID);
+    if(!pInvItem)
+        return;
+
+    if(amount > pInvItem->count)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
+    if(!pItem)
+        return;
+
+    if(pItem->type == ITEM_TYPE_PETFISH && pInvItem->count != amount)
+    {
+        SendOnTalkBubble("Please don't chop up the fish", true);
+        return;
+    }
+
+    if(pItem->maxCanHold == 0)
+    {
+        SendOnTalkBubble("You can't drop that.", true);
+        PlaySFX("cant_place_tile.wav");
+        return;
+    }
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
+        return;
+
+    Vector2Float random = GetRandomItemDropOffset();
+
+    Vector2Float playerCenter;
+    playerCenter.x = m_worldPos.x + 20 * 0.5f;
+    playerCenter.y = m_worldPos.y + 30 * 0.5f;
+    
+    float facing = m_characterData.HasCharFlag(CHARACTER_FLAG_FACING_LEFT) ? -0.75f : 0.75f;
+    
+    Vector2Float dropPos;
+    dropPos.x = playerCenter.x + random.x + facing * 32.f;
+    dropPos.y = playerCenter.y + random.y;
+
+    TileInfo* pTile = pWorld->GetTileManager()->GetTileByWorldPos(dropPos.x, dropPos.y);
+    if(!pTile || pTile->IsCollidable())
+    {
+        SendOnTalkBubble("You can't drop that here, face somewhere with open space.", true);
+        PlaySFX("cant_place_tile.wav");
+        return;
+    }
+
+    Vector2Int tilePos = pTile->GetPos();
+    dropPos.x = Clamp(dropPos.x, tilePos.x * 32.f + 2.f, tilePos.x * 32.f + 29.f);
+    dropPos.y = Clamp(dropPos.y, tilePos.y * 32.f + 2.f, tilePos.y * 32.f + 29.f);
+
+    if(pWorld->GetObjectManager()->GetCounfOfObjestsInRect(pTile->GetRect()) > 19)
+    {
+        SendOnTalkBubble("You can't drop that here, find an emptier spot!", true);
+        PlaySFX("cant_place_tile.wav");
+        return;
+    }
+
+    if(IsMainDoor(pTile->GetDisplayedItem()))
+    {
+        SendOnTalkBubble("You can't drop items on the white door.", true);
+        PlaySFX("audio/cant_place_tile.wav");
+        return;
+    }
+
+    if(openDialog)
+    {
+        DropItemDialog::Request(this, pInvItem);
+        return;
+    }
+
+    ModifyInventoryItem(itemID, -amount);
+    pWorld->DropObjectOnTile(pTile, itemID, amount, random, true);
 }
 
 void GamePlayer::AddPlayMod(ePlayModType modType, bool silent)

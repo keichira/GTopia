@@ -175,7 +175,18 @@ TileInfo* WorldTileManager::GetTile(int32 index)
         return nullptr;
     }
 
+    if(index >= m_tiles.size())
+        return nullptr;
+
     return &m_tiles[index];
+}
+
+TileInfo* WorldTileManager::GetTileByWorldPos(float x, float y)
+{
+    if(x <= 0 || y <= 0)
+        return nullptr;
+
+    return GetTile((int32)(x / 32.0f), (int32)(y / 32.0f));
 }
 
 void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
