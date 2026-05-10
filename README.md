@@ -23,11 +23,11 @@ chmod +x setup_linux.sh
 #### Windows
 *Go to **Build** folder* and run
 ```
-compile_win.bat
+setup_win.bat
 ```
 
 ## Configure
-After running setup navigate to **Runtime** folder and edit given fields below. You can use given LAN IP from setup.bat/.sh for host or VPS/VDS (given more infor in setup)
+After running setup navigate to **Runtime** folder and edit given fields below. You can use given LAN IP from setup.bat/.sh for host or VPS/VDS (given more info in setup)
 
 - config.txt (examples given in config.txt)
 ```
@@ -47,11 +47,11 @@ add_server|
 telnet_host|
 ```
 
-- items.txt
+- items.txt <br>
 Game servers are not working with raw items.dat you have to generate it with ItemManager, You have to compile (compiling given below) ItemManager and run it to generate items.txt 
 <br>
 
-- wiki_data.txt (optional)
+- wiki_data.txt (optional) <br>
 No usage of it right now, if you are wondering you can generate it by using ItemManager
 
 ## Compile
