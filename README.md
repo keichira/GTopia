@@ -1,42 +1,73 @@
 # Growtopia Private Server
-Cross-platform Growtopia private server
+Cross-platform Growtopia private server with sub-server support
 
 New Discord server for development: https://discord.gg/5XjTQm3kRh
 
-## Cloning
+## Clone
 Clone the repo : ``git clone --recurse-submodules https://github.com/keichira/GTopia.git``<br>
 *if you don't want to run **WorldRenderer** remove ``--recurse-submodules``*
 
-## Building
+## Setup
+Project requires (will be asked in setup script)
 
-### Linux
-- Installation
+- [CMake](https://cmake.org/download/)
+- [MySQL Community](https://dev.mysql.com/downloads/installer/)<br>
 
-*Depends on your distro*
-```sh
-sudo apt update
-sudo apt install cmake libmysqlclient-dev
+#### Linux
+*Go to **Build** folder* and run
+```
+chmod +x setup_linux.sh
+./setup_linux.sh
 ```
 
-- Compile
+#### Windows
+*Go to **Build** folder* and run
+```
+compile_win.bat
+```
 
-*Go to Build folder* and run
-```sh
+## Configure
+After running setup navigate to **Runtime** folder and edit given fields below. You can use given LAN IP from setup.bat/.sh for host or VPS/VDS (given more infor in setup)
+
+- config.txt (examples given in config.txt)
+```
+database_info|
+world_save_path|
+cdn_server|
+```
+
+- servers.txt (examples given in servers.txt)
+```
+set_master|
+add_server|
+```
+
+- telnet_config.txt (examples given in telnet_config.txt)
+```
+telnet_host|
+```
+
+- items.txt
+Game servers are not working with raw items.dat you have to generate it with ItemManager, You have to compile (compiling given below) ItemManager and run it to generate items.txt 
+<br>
+
+- wiki_data.txt (optional)
+No usage of it right now, if you are wondering you can generate it by using ItemManager
+
+## Compile
+- *Scripts are gonna ask you what you want to build*<br>
+
+#### Linux
+*Go to **Build** folder* and run
+```
 chmod +x compile_linux.sh
 ./compile_linux.sh
 ```
 
-### Windows
-- Installation
-
-Download [CMake](https://cmake.org/download/)<br>
-Download [MySQL Community](https://dev.mysql.com/downloads/installer/)
-
-- Compile
-
-*Go to Build folder* and run
+#### Windows
+*Go to **Build** folder* and run
 ```
-compile_win.bat
+compile_linux.bat
 ```
 
 # Note

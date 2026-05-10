@@ -1,3 +1,5 @@
+# if line starts with '#' it means its comment line
+
 # servers should be in order
 # set_master|lan|wan|
 # add_server|lan|wan|server_count|
@@ -14,6 +16,28 @@ tcp_start|18500
 # server gonna host on port udp_start + server_id
 udp_start|18000
 
+# YOU SHOULD EDIT `CHANGE HERE` TO HOST_IP
+# like LAN IP or VPS/VDS IP
+
+# if you are gonna host it on local it should be 
+# set_master|LAN IP|LAN IP|
+# add_server|LAN IP|LAN IP|1|
+
+# if you are gonna host it on vps/vds it should be 
+# set_master|LAN IP|VPS/VDS IP|
+# add_server|LAN IP|VPS/VDS IP|1|
+
+# set_master SHOULD ON TOP!
 set_master|CHANGE HERE|CHANGE HERE|
+
+# YOU CAN SKIP THIS PART
+# what does number mean at end?: it gonna register X amount servers to master
+# if you wan to host on diffirent servers just modify host_ip
+# example add_server|x.x.x.1|x.x.x.1|5| it gonna register 5 server for x.x.x.1 address
+# example add_server|x.x.x.2|x.x.x.2|5| it gonna register 5 server for x.x.x.2 address
+# YOU CAN SKIP THIS PART
+
+# you can edit it with your LAN or VPS/VDS IP
+
 add_server|CHANGE HERE|CHANGE HERE|1|
-#add_renderer|CHANGE HERE|CHANGE HERE|1|
+# add_renderer|CHANGE HERE|CHANGE HERE|1|

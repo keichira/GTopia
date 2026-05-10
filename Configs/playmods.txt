@@ -1,3 +1,5 @@
+# if line starts with '#' it means its comment line
+
 # add_playmod|displayItemID|name|addMessage|removeMessage|
 # set_audio|audoFile|
 # set_char_flags|flags...|

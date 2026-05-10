@@ -9,36 +9,44 @@ def hash(data: bytes) -> int:
 
     return h
 
-if len(sys.argv) < 2:
-    print("Usage: python3 update_file_hashes.py <folder_path>")
-    exit(1)
-else:
-    baseFolder = sys.argv[1]
+def generate_file_hashes(base_folder: str, output_file: str = "filehashes.txt"):
+    if not os.path.isdir(base_folder):
+        raise ValueError(f"{base_folder} is not a valid directory")
 
-if not os.path.isdir(baseFolder):
-    print(f"{baseFolder} is not exists")
-    exit(1)
+    excluded_folders = set()
+    included_ext = {".rttex", ".wav", ".ogg", ".mp3"}
 
-output = open("filehashes.txt", "w")
+    with open(output_file, "w", encoding="utf-8") as output:
+        for root, dirs, files in os.walk(base_folder):
+            dirs[:] = [d for d in dirs if d not in excluded_folders]
 
-exludedFolders = {}
-includedExt = {".rttex", ".wav", ".ogg", ".mp3"}
+            for file in files:
+                ext = os.path.splitext(file)[1]
+                if ext.lower() not in included_ext:
+                    continue
 
-for(root, dirs, files) in os.walk(baseFolder):
-    dirs[:] = [d for d in dirs if d not in exludedFolders]
+                full_path = os.path.join(root, file)
 
-    for file in files:
-        ext = os.path.splitext(file)[1]
-        if not ext.lower() in {e.lower() for e in includedExt}:
-            continue
-        
-        fullPath = os.path.join(root, file)
-        with open(fullPath, "rb") as data:
-            bytes = data.read()
-            relativePath = os.path.relpath(fullPath, baseFolder)
-            output.write(
-                relativePath.replace("\\", "/") + "|" +
-                str(hash(bytes)) + "|\n"
-            )
-            
-output.close()
+                with open(full_path, "rb") as f:
+                    data_bytes = f.read()
+
+                relative_path = os.path.relpath(full_path, base_folder)
+
+                output.write(
+                    relative_path.replace("\\", "/") + "|" +
+                    str(hash(data_bytes)) + "|\n"
+                )
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python update_file_hashes.py <folder_path> [output_file]")
+        sys.exit(1)
+
+    base_folder = sys.argv[1]
+
+    output_file = "filehashes.txt"
+    if len(sys.argv) >= 3:
+        output_file = sys.argv[2]
+
+    generate_file_hashes(base_folder, output_file)

@@ -1,3 +1,6 @@
+# if line starts with '#' it means its comment line
+
+
 #ROLE ID MUST BIGGER THAN 0
 #add_role|name|id|prefix|suffix|
 #set_inherits|role_ids...|
