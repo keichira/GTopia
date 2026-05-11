@@ -27,10 +27,10 @@ QueryRequest PlayerDB::GetData(uint32 userID, uint32 ownerID)
     return req;
 }
 
-QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 gems, uint32 lastWorld, uint32 ownerID)
+QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 gems, uint32 lastWorld, string progressData, uint32 ownerID)
 {
     QueryRequest req(ownerID);
-    req.AddData(roleID, inventoryData, skinColor, flags, gems, lastWorld, userID);
+    req.AddData(roleID, inventoryData, skinColor, flags, gems, lastWorld, progressData, userID);
 
     req.queryID = DB_PLAYER_SAVE;
     return req;

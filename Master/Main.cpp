@@ -176,7 +176,7 @@ int main(int argc, char const* argv[])
 
     GetContext()->SetID(0);
     if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_MASTER.txt")) {
-        LOGGER_LOG_ERROR("Failed to init log file");
+        LOGGER_LOG_ERROR("Failed to init log file, maybe try to create 'logs' folder?");
         return 0;
     }
 

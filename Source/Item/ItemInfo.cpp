@@ -158,6 +158,9 @@ void ItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, uint16 version)
     if(version > 24) {
         string unk;
         memBuffer.ReadWriteString(unk, write);
+
+        uint32 unk2 = 0;
+        memBuffer.ReadWrite(unk2, write);
     }
 
     if(version > 25) {

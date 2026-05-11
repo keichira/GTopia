@@ -6,8 +6,8 @@ static TableQuery sPlayerQueryTable[] =
 {
     {"SELECT ID FROM Players WHERE Name = '' AND Mac = ? AND PlatformType = ? LIMIT 1;", QUERY_FLAG_RETURN_RESULT},
     {"INSERT INTO Players (GuestName, PlatformType, GuestID, Mac, IP, CreationDate, LastSeenTime) VALUES (?, ?, ?, ?, ?, SYSDATE(), NOW());", QUERY_FLAG_RETURN_INCREMENT},
-    {"SELECT GuestID, Name, SkinColor, Gems, Flags, LastWorld, RoleID, HEX(Inventory) AS Inventory FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
-    {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = UNHEX(?), SkinColor = ?, Flags = ?, Gems = ?, LastWorld = ? WHERE ID = ?;", QUERY_FLAG_NONE},
+    {"SELECT GuestID, Name, SkinColor, Gems, Flags, LastWorld, RoleID, HEX(ProgressData) AS ProgressData, HEX(Inventory) AS Inventory FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
+    {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = UNHEX(?), SkinColor = ?, Flags = ?, Gems = ?, LastWorld = ?, ProgressData = UNHEX(?) WHERE ID = ?;", QUERY_FLAG_NONE},
     {"SELECT ID FROM Players WHERE IP = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID FROM Players WHERE Name = '' AND VID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID FROM Players WHERE Name = '' AND GID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
@@ -49,7 +49,7 @@ namespace PlayerDB
     QueryRequest GetByMac(const string& mac, uint8 platformType, uint32 ownerID = 0);
     QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, const string& ip, uint32 ownerID = 0);
     QueryRequest GetData(uint32 userID, uint32 ownerID = 0);
-    QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 gems, uint32 lastWorld, uint32 ownerID = 0);
+    QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 gems, uint32 lastWorld, string progressData, uint32 ownerID = 0);
     QueryRequest CountByIP(const string& ip, uint32 ownerID = 0);
 
     QueryRequest GetByVID(const string& vid, uint8 platformType, uint32 ownerID = 0);

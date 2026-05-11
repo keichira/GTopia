@@ -241,6 +241,17 @@ void Player::SendOnDataConfig(bool isMod, bool isSMod, Player* pPlayer)
     SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
+void Player::SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
+{
+    VariantVector data(4);
+    data[0] = "OnParticleEffect";
+    data[1] = (int32)effectType;
+    data[2] = pos;
+    data[3] = angle;
+
+    SendCallFunctionPacket(data, -1, delayMs);
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;

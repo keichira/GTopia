@@ -13,6 +13,7 @@
 #include "Player/RoleManager.h"
 #include "Player/PlayModManager.h"
 #include "Math/Math.h"
+#include "Player/AchievementManager.h"
 
 bool firstCallShutdown = false;
 
@@ -356,7 +357,11 @@ int main(int argc, char const* argv[])
     if(!GetPlayModManager()->Load(GetProgramPath() + "/playmods.txt")) 
     {
         LOGGER_LOG_ERROR("Failed to load playmods.txt");
-        //return 0;
+    }
+
+    if(!GetAchievementManager()->Load(GetProgramPath() + "/achievements.txt"))
+    {
+        LOGGER_LOG_ERROR("Failed to load achievements.txt");
     }
 
     GetMasterBroadway()->SendHelloPacket();

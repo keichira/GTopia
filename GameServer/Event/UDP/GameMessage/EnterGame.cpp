@@ -90,6 +90,20 @@ void LoadAccount(QueryTaskResult&& result)
         SAFE_DELETE_ARRAY(pInvData);
     }
 
+    string progressData = result.result->GetField("ProgressData", 0).GetString();
+    if(!progressData.empty())
+    {
+        uint32 progressMemEstimate = progressData.size() / 2;
+        uint8* pProgressData = new uint8[progressMemEstimate];
+
+        HexToBytes(progressData, pProgressData);
+
+        MemoryBuffer progressMemBuffer(pProgressData, progressMemEstimate);
+        pPlayer->GetProgressData().Serialize(progressMemBuffer, false);
+
+        SAFE_DELETE_ARRAY(pProgressData);
+    }
+
     if(inventory.GetCountOfItem(ITEM_ID_FIST) == 0) 
     {
         inventory.AddItem(ITEM_ID_FIST, 1);
@@ -132,8 +146,11 @@ void LoadAccount(QueryTaskResult&& result)
         QueryRequest req = WorldDB::GetByID(worldID, pPlayer->GetNetID());
         req.callback = &CheckAndSendToWorldIfPossible;
         DatabaseWorldExec(GetContext()->GetDatabasePool(), req);
+        return;
     }
-    else if(pPlayer->GetCurrentWorld() != 0; World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld())) 
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if(pWorld) 
     {
         pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
         pPlayer->SetState(PLAYER_STATE_IN_GAME);

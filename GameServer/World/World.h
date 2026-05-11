@@ -4,6 +4,7 @@
 #include "World/WorldInfo.h"
 #include "Packet/GamePacket.h"
 #include "Database/Table/WorldDBTable.h"
+#include "../Player/GamePlayer.h"
 #include <queue>
 
 enum eWorldState
@@ -56,6 +57,7 @@ public:
     void SendTileApplyDamage(uint16 tileX, uint16 tileY, int32 damage, int32 netID);
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
     void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
+    void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);

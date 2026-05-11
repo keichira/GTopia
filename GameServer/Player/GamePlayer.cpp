@@ -20,7 +20,8 @@
 
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
 : Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
-m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0)
+m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0),
+m_progressData(this)
 {
     RandomizeNextDBSaveTime();
 }
@@ -32,6 +33,39 @@ GamePlayer::~GamePlayer()
 void GamePlayer::SendGems(bool skipAnim)
 {
     SendOnSetBux(m_gems, skipAnim, HasFlag(PLAYER_FLAG_SUPPORTER), HasFlag(PLAYER_FLAG_SUPER_SUPPORTER));
+}
+
+void GamePlayer::GiveXP(uint32 amount)
+{
+    // XP= 50 * ( LVL2 + 2 )
+
+    uint32 playerLevel = Sqrt((m_progressData.GetProgress(PLAYER_PROGRESS_XP)/50) - 2);
+
+    if(playerLevel == 125)
+        return;
+    
+    m_progressData.AddProgress(PLAYER_PROGRESS_XP, amount);
+
+    uint32 playerNewLevel = Sqrt((m_progressData.GetProgress(PLAYER_PROGRESS_XP)/50) - 2);
+    if(playerNewLevel > 125)
+    {
+        // force level to 125
+        playerNewLevel = 125;
+        m_progressData.SetProgress(PLAYER_PROGRESS_XP, 50 * (125 * 125 + 2));
+    }
+
+    if(playerNewLevel > playerLevel)
+    {
+        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+        if(!pWorld)
+        {
+            SendOnConsoleMessage("You are now level " + ToString(playerNewLevel) + "!");
+            return;
+        }
+
+        pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_LEVELUP, m_worldPos);
+        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName() + " ``is now level " + ToString(playerNewLevel) + "!", true, this);
+    }
 }
 
 void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
@@ -122,9 +156,13 @@ void GamePlayer::SaveToDatabase()
 {
     uint32 invMemSize = m_inventory.GetMemEstimate(true);
     uint8* pInvData = new uint8[invMemSize];
-
     MemoryBuffer invMemBuffer(pInvData, invMemSize);
     m_inventory.Serialize(invMemBuffer, true, true);
+
+    uint32 progressMemSize = m_progressData.GetMemEstimate();
+    uint8* pProgressData = new uint8[progressMemSize];
+    MemoryBuffer progressMemBuffer(pProgressData, progressMemSize);
+    m_progressData.Serialize(progressMemBuffer, true);
 
     uint32 worldID = 0;
     if(m_currentWorldID != 0) 
@@ -144,10 +182,12 @@ void GamePlayer::SaveToDatabase()
         m_flags,
         m_gems,
         worldID,
+        ToHex(pProgressData, progressMemSize),
         GetNetID()
     );
     
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
+    SAFE_DELETE_ARRAY(pProgressData);
     SAFE_DELETE_ARRAY(pInvData);
 }
 
@@ -167,7 +207,7 @@ void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
             SaveToDatabase();
         }
 
-        if(forceDelete && m_currentWorldID != 0) 
+        if(forceDelete && m_currentWorldID != 0 && HasState(PLAYER_STATE_IN_GAME)) 
         {
             World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
             if(pWorld) {
@@ -213,7 +253,7 @@ void GamePlayer::Update()
         }
     }
 
-    if(m_logonStartTime.GetElapsedTime() >= 8000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) 
+    if(m_logonStartTime.GetElapsedTime() >= 60000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) 
     {
         LogOff(true, false, true);
         return;
@@ -231,6 +271,12 @@ string GamePlayer::GetDisplayName()
 {
     string displayName;
 
+    if(m_pRole->GetNameColor() != 0) 
+    {
+        displayName += "`"; 
+        displayName += m_pRole->GetNameColor();
+    }
+
     if(m_currentWorldID != 0) 
     {
         World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
@@ -244,12 +290,6 @@ string GamePlayer::GetDisplayName()
                 displayName += "`^";
             }
         }
-    }
-
-    if(m_pRole->GetNameColor() != 0) 
-    {
-        displayName += "`"; 
-        displayName += m_pRole->GetNameColor();
     }
     
     displayName += m_pRole->GetPrefix() + GetRawName() + m_pRole->GetSuffix();

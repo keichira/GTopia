@@ -119,6 +119,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
+        pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
         pPlayer->ModifyInventoryItem(pItem->id, -1);
     }
 
@@ -140,6 +141,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         else 
         {
             pTile->PunchTile((uint8)pPlayer->GetCharData().GetPunchDamage());
+            pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PUNCH_COUNT, 1);
 
             float tileHealth = pTile->GetHealthPercent();
             if(tileHealth > 0) 
@@ -196,11 +198,12 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             
             if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE) 
             {
-                pWorld->SetCurrentWeather(pTileItem->weatherID);
+                pWorld->SetCurrentWeather(pWorld->GetDefaultWeather());
                 pTile->RemoveFlag(TILE_FLAG_IS_ON);
                 pWorld->SendCurrentWeatherToAll();
             }
     
+            pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_BREAK_COUNT, 1);
             pWorld->SendTileApplyDamage(tilePos.x, tilePos.y, (int32)pPlayer->GetCharData().GetPunchDamage(), pPlayer->GetNetID());
         }
     }

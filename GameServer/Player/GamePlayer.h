@@ -6,6 +6,7 @@
 #include "Player/PlayMod.h"
 #include "Database/QueryUtils.h"
 #include "Math/Random.h"
+#include "PlayerProgress.h"
 
 enum ePlayerState
 {
@@ -41,6 +42,7 @@ public:
 
     void SetGems(uint32 amount) { m_gems = amount; }
     void SendGems(bool skipAnim);
+    void GiveXP(uint32 amount);
 
     void StartLoginRequest(ParsedTextPacket<25>& packet);
     void HandleCheckSession(VariantVector&& result);
@@ -109,12 +111,16 @@ public:
     void RandomizeNextDBSaveTime() { m_nextDbSaveTime = RandomRangeInt(10 * 60, 15 * 60) * 1000; };
     uint64 GetNextDBSaveTime() const { return m_nextDbSaveTime; };
 
+    PlayerProgress& GetProgressData() { return m_progressData; }
+
 private:
     uint32 m_state;
     bool m_joiningWorld;
     uint32 m_currentWorldID;
     uint32 m_flags;
     uint32 m_gems;
+
+    PlayerProgress m_progressData;
 
     uint64 m_lastItemActivateTime;
     Timer m_lastActionTime;

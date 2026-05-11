@@ -1,6 +1,5 @@
 #include "World.h"
 #include "IO/Log.h"
-#include "../Player/GamePlayer.h"
 #include "Packet/NetPacket.h"
 #include "Item/ItemInfoManager.h"
 #include "Math/Rect.h"
@@ -546,6 +545,15 @@ void World::SendPlayerDataConfigToAll(GamePlayer* pPlayer)
     for(auto& pWorldPlayer : m_players) {
         if(pWorldPlayer) {
             pWorldPlayer->SendOnDataConfig(hasMState, hasSmState, pPlayer);
+        }
+    }
+}
+
+void World::SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
+{
+    for(auto& pWorldPlayer : m_players) {
+        if(pWorldPlayer) {
+            pWorldPlayer->SendOnParticleEffect(effectType, pos, delayMs, angle);
         }
     }
 }

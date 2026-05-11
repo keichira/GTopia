@@ -21,6 +21,7 @@ public:
     DialogBuilder* SetDefaultColor(char colorID);
     DialogBuilder* AddSpacer(bool big = false);
     DialogBuilder* AddCheckBox(const string& boxID, const string& text, bool active);
+    DialogBuilder* AddPlayerInfo(const string& label, uint32 level, uint32 currentXP, uint32 XPToLevelUP);
 
     DialogBuilder* EmbedData(const string& name, const string& value);
 

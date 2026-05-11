@@ -21,6 +21,7 @@
 #include "../Event/UDP/GameMessage/Quit.h"
 #include "../Event/UDP/GameMessage/SetSkin.h"
 #include "../Event/UDP/GameMessage/Drop.h"
+#include "../Event/UDP/GameMessage/Wrench.h"
 
 #include "../Command/RenderWorld.h"
 #include "../Command/GiveItem.h"
@@ -158,6 +159,7 @@ void GameServer::RegisterEvents()
     RegisterMessagePacket<Quit>(CompileTimeHashString("quit"));
     RegisterMessagePacket<SetSkin>(CompileTimeHashString("setSkin"));
     RegisterMessagePacket<Drop>(CompileTimeHashString("drop"));
+    RegisterMessagePacket<Wrench>(CompileTimeHashString("wrench"));
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();

@@ -288,6 +288,9 @@ World* WorldManager::GetWorldByName(const string& worldName)
 
 World* WorldManager::GetWorldByInstanceID(uint32 instanceID)
 {
+    if(instanceID == 0)
+        return nullptr;
+
     auto it = m_worlds.find(instanceID);
     if(it != m_worlds.end()) 
         return it->second;

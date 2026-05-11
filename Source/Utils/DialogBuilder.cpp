@@ -88,6 +88,12 @@ DialogBuilder* DialogBuilder::AddCheckBox(const string& boxID, const string& tex
     return this;
 }
 
+DialogBuilder* DialogBuilder::AddPlayerInfo(const string& label, uint32 level, uint32 currentXP, uint32 XPToLevelUP)
+{
+    m_str += "add_player_info|" + label + "|" + ToString(level) + "|" + ToString(currentXP) + "|" + ToString(XPToLevelUP) + "|";
+    return this;
+}
+
 DialogBuilder* DialogBuilder::EmbedData(const string& name, const string& value)
 {
     m_str += "embed_data|" + name + "|" + value + "\n";

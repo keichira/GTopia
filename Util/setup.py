@@ -138,9 +138,10 @@ def check_cmake():
             ans = input("\n👉 Do you want to open installer page now? [y/N]: ").strip().lower()
 
             if ans == "y":
-                open_install_page("https://dev.mysql.com/downloads/installer/")
+                open_install_page("https://cmake.org/download/")
         else:
-            print("Install: sudo apt install cmake")
+            print("\nInstall CMake using your package manager:")
+            print("Ubuntu/Debian: sudo apt install cmake")
         sys.exit(1)
 
     print("✅ CMake OK")
@@ -291,6 +292,8 @@ def main():
     move_file(CONFIGS_DIR / "playmods.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "roles.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "telnet_config.txt", RUNTIME_DIR)
+    move_file(CONFIGS_DIR / "servers.txt", RUNTIME_DIR)
+    move_file(CONFIGS_DIR / "achievements.txt", RUNTIME_DIR)
         
     print("\nSetup finished\n")
     print(f"Your LAN IP address is `{get_local_ip()}`, if you are not running on VPS/VDS use this IP address to host")

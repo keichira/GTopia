@@ -63,6 +63,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GameMessage/Quit.cpp
     ${GAME_EVENT}/UDP/GameMessage/SetSkin.cpp
     ${GAME_EVENT}/UDP/GameMessage/Drop.cpp
+    ${GAME_EVENT}/UDP/GameMessage/Wrench.cpp
 
     ${GAME_EVENT}/UDP/GamePacket/ItemActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
@@ -89,6 +90,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/RenderWorldDialog.cpp
     ${GAME_DIALOG}/RegisterDialog.cpp
     ${GAME_DIALOG}/DropItemDialog.cpp
+    ${GAME_DIALOG}/WrenchSelfDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
@@ -101,6 +103,8 @@ set(GAME_FILES PRIVATE
     ${SOURCE_PLAYER}/PlayModManager.cpp
     ${GAME_PLAYER}/GamePlayer.cpp
     ${GAME_PLAYER}/PlayerManager.cpp
+    ${GAME_PLAYER}/AchievementManager.cpp
+    ${GAME_PLAYER}/PlayerProgress.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp
