@@ -17,6 +17,7 @@
 #include "Proton/ProtonUtils.h"
 #include "PlayerManager.h"
 #include "Math/Math.h"
+#include "Utils/GrowUtils.h"
 
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
 : Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
@@ -33,6 +34,18 @@ GamePlayer::~GamePlayer()
 void GamePlayer::SendGems(bool skipAnim)
 {
     SendOnSetBux(m_gems, skipAnim, HasFlag(PLAYER_FLAG_SUPPORTER), HasFlag(PLAYER_FLAG_SUPER_SUPPORTER));
+}
+
+void GamePlayer::ModifyGems(int32 count, bool sendToPlayer)
+{
+    if(count == 0)
+        return;
+
+    m_gems += count;
+    if(sendToPlayer)
+    {
+        SendGems(false);
+    }
 }
 
 void GamePlayer::GiveXP(uint32 amount)
@@ -180,9 +193,9 @@ void GamePlayer::SaveToDatabase()
         ToHex(pInvData, invMemSize),
         0, //m_characterData.GetSkinColor(),
         m_flags,
-        m_gems,
         worldID,
         ToHex(pProgressData, progressMemSize),
+        m_gems,
         GetNetID()
     );
     
@@ -484,7 +497,7 @@ void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
     if(!pWorld)
         return;
 
-    Vector2Float random = GetRandomItemDropOffset();
+    Vector2Float random = GetRandomPlayerItemDropOffset();
 
     Vector2Float playerCenter;
     playerCenter.x = m_worldPos.x + 20 * 0.5f;
@@ -505,8 +518,8 @@ void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
     }
 
     Vector2Int tilePos = pTile->GetPos();
-    dropPos.x = Clamp(dropPos.x, tilePos.x * 32.f + 2.f, tilePos.x * 32.f + 29.f);
-    dropPos.y = Clamp(dropPos.y, tilePos.y * 32.f + 2.f, tilePos.y * 32.f + 29.f);
+    //dropPos.x = Clamp(dropPos.x, tilePos.x * 32.f + 2.f, tilePos.x * 32.f + 29.f);
+    //dropPos.y = Clamp(dropPos.y, tilePos.y * 32.f + 2.f, tilePos.y * 32.f + 29.f);
 
     if(pWorld->GetObjectManager()->GetCounfOfObjestsInRect(pTile->GetRect()) > 19)
     {
@@ -804,4 +817,28 @@ void GamePlayer::SendPositionToWorldPlayers()
     }
 
     pWorld->SendGamePacketToAll(&packet, this);
+}
+
+float GamePlayer::GetDistToTile(TileInfo* pGoalTile)
+{
+    if(!pGoalTile)
+        return 0.0f;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
+        return 0.0f;
+
+    TileInfo* pPlayerTile = pWorld->GetTileManager()->GetTileByWorldPos(m_worldPos);
+    if(!pPlayerTile)
+        return 0.0f;
+
+    Vector2Float vPlayerTilePos = pPlayerTile->GetWorldPos();
+    Vector2Float vGoalPos = pGoalTile->GetWorldPos();
+
+    return Sqrt((vPlayerTilePos.x - vGoalPos.x)*(vPlayerTilePos.x - vGoalPos.x) + (vPlayerTilePos.y - vGoalPos.y)*(vPlayerTilePos.y - vGoalPos.y));
+}
+
+uint32 GamePlayer::GetDistToTileInTiles(TileInfo* pGoalTile)
+{
+    return GetDistToTile(pGoalTile) / 32;
 }

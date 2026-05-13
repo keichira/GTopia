@@ -3,16 +3,14 @@ set -e
 echo "Select project to build:"
 echo "1) Master"
 echo "2) GameServer"
-echo "3) ItemManager"
-echo "4) WorldRenderer"
+echo "3) WorldRenderer"
 read -n1 -p "Project: " project_choice
 echo ""
 
 case "$project_choice" in
     1) PROJECT="Master" ;;
     2) PROJECT="GameServer" ;;
-    3) PROJECT="ItemManager" ;;
-    4) PROJECT="WorldRenderer" ;;
+    3) PROJECT="WorldRenderer" ;;
     *) echo "Invalid project type"
        exit 1 ;;
 esac

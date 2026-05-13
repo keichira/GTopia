@@ -189,6 +189,18 @@ float TileInfo::GetHealthPercent()
     return 1.0f - (m_damage / pItem->hp);
 }
 
+bool TileInfo::IsTree()
+{
+    if(m_tileData->fg == ITEM_ID_BLANK)
+        return false;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(m_tileData->fg);
+    if(!pItem)
+        return false;
+
+    return pItem->type == ITEM_TYPE_SEED;
+}
+
 uint16 TileInfo::GetDisplayedItem()
 {
     return m_tileData->fg != ITEM_ID_BLANK ? m_tileData->fg : m_tileData->bg;

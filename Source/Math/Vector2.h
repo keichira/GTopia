@@ -68,6 +68,11 @@ public:
         return Vector2<T>(x + rhs.x, y + rhs.y);
     }
 
+    Vector2<T> operator+(int32 rhs) 
+    {
+        return Vector2<T>(x + rhs, y + rhs);
+    }
+
     Vector2<T> operator-(const Vector2<T>& rhs) 
     {
         return Vector2<T>(x - rhs.x, y - rhs.y);

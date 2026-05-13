@@ -19,6 +19,7 @@ CREATE TABLE `Players` (
   `SID` binary(16) NOT NULL DEFAULT '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',
   `SkinColor` int NOT NULL DEFAULT '0',
   `Gems` int NOT NULL DEFAULT '0',
+  `ProgressData` varbinary(512) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `idx_gid` (`GID`),
   KEY `idx_rid` (`RID`),

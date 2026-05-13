@@ -36,10 +36,16 @@ void SetRoleUpdateRoleCB(QueryTaskResult&& result)
         Variant* pRoleID = result.GetExtraData(0);
         Variant* pUserID = result.GetExtraData(1);
 
-        if(pRoleID && pUserID) {
+        if(pRoleID && pUserID) 
+        {
             PlayerSession* pPlayerSession = GetPlayerManager()->GetSessionByID(pUserID->GetUINT());
-            if(pPlayerSession; ServerInfo* pServer = GetServerManager()->GetServerByID(pPlayerSession->serverID)) {
-                GetServerManager()->SendCommandSetRole(pServer, pPlayerSession->userID, pRoleID->GetUINT());
+            if(pPlayerSession) 
+            {
+                ServerInfo* pServer = GetServerManager()->GetServerByID(pPlayerSession->serverID);
+                if(pServer)
+                {
+                    GetServerManager()->SendCommandSetRole(pServer, pPlayerSession->userID, pRoleID->GetUINT());
+                }
             }
         }
     }

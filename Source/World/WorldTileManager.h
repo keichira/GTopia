@@ -49,6 +49,10 @@ public:
     TileInfo* GetKeyTile(eKeyTile keyTile);
     TileInfo* GetTile(int32 index);
     TileInfo* GetTileByWorldPos(float x, float y);
+    TileInfo* GetTileByWorldPos(const Vector2Float& pos);
+
+    int32 GetTileIndex(TileInfo* pTile);
+    bool CanPlantTreeHere(TileInfo* pTile);
 
     void ModifyKeyTile(TileInfo* pTile, bool remove);
 
@@ -65,6 +69,9 @@ public:
     bool AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTargetTile, bool ignoreEmpty);
     bool ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty, std::vector<TileInfo*>& outTiles);
 
+    uint32& GetPathCurrentStamp() { return m_pathcurrStamp; }
+    std::vector<uint16>& GetPathClosed() { return m_pathClosedStamp; }
+
 private:
     void FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
     void FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems);
@@ -76,4 +83,7 @@ private:
 
     std::vector<TileInfo*> m_keyTiles;
     std::vector<Vector2Int> m_onFireTiles;
+
+    std::vector<uint16> m_pathClosedStamp;
+    uint32 m_pathcurrStamp;
 };

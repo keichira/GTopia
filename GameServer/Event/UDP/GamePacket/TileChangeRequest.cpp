@@ -119,6 +119,12 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
+        if(pItem->type == ITEM_TYPE_SEED)
+        {
+            pWorld->OnPlantSeed(pPlayer, pTile, pItem, pPacket);
+            return;
+        }
+
         pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
         pPlayer->ModifyInventoryItem(pItem->id, -1);
     }
@@ -142,6 +148,19 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         {
             pTile->PunchTile((uint8)pPlayer->GetCharData().GetPunchDamage());
             pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PUNCH_COUNT, 1);
+
+            if(pTileItem->type == ITEM_TYPE_SEED)
+            {
+                TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
+                if(
+                    pTileExtra && 
+                    GetTileExtraGrowthPercent(pTileItem->growTime, GetTileExtraGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime)) >= 100.0f
+                )
+                {
+                    pWorld->OnHarvestTree(pPlayer, pTile);
+                    return;
+                }
+            }
 
             float tileHealth = pTile->GetHealthPercent();
             if(tileHealth > 0) 

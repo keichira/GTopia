@@ -34,6 +34,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_UTILS}/GameConfig.cpp
     ${SOURCE_UTILS}/DialogBuilder.cpp
     ${SOURCE_UTILS}/ConfigDB.cpp
+    ${SOURCE_UTILS}/GrowUtils.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
 
@@ -68,6 +69,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GamePacket/ItemActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/State.cpp
+    ${GAME_EVENT}/UDP/GamePacket/ObjectActivateRequest.cpp
 
     ${GAME_COMMAND}/RenderWorld.cpp
     ${GAME_COMMAND}/GiveItem.cpp

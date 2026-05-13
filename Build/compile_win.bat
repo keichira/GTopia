@@ -2,14 +2,12 @@
 echo Select project to build:
 echo 1) Master
 echo 2) GameServer
-echo 3) ItemManager
-echo 4) WorldRenderer
+echo 3) WorldRenderer
 set /p project_choice=Project: 
 
 if "%project_choice%"=="1" set PROJECT=Master
 if "%project_choice%"=="2" set PROJECT=GameServer
-if "%project_choice%"=="3" set PROJECT=ItemManager
-if "%project_choice%"=="4" set PROJECT=WorldRenderer
+if "%project_choice%"=="3" set PROJECT=WorldRenderer
 if not defined PROJECT (
     echo Invalid project type
     exit /b 1

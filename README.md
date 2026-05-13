@@ -27,7 +27,7 @@ setup_win.bat
 ```
 
 ## Configure
-After running setup navigate to **Runtime** folder and edit given fields below. You can use given LAN IP from setup.bat/.sh for host or VPS/VDS (given more info in setup)
+After running setup navigate to **Runtime** folder and edit given fields below. You can use given LAN IP from setup script for host or VPS/VDS (given more info in setup)
 
 - config.txt (examples given in config.txt)
 ```
@@ -48,11 +48,11 @@ telnet_host|
 ```
 
 - items.txt <br>
-Game servers are not working with raw items.dat you have to generate it with ItemManager, You have to compile (compiling given below) ItemManager and run it to generate items.txt 
+Game servers are not working with raw items.dat you have to generate it into txt format, you can use generate_item_data script to generate it (it will be asked in setup script)
 <br>
 
-- wiki_data.txt (optional) <br>
-No usage of it right now, if you are wondering you can generate it by using ItemManager
+- wiki_data.txt <br>
+No usage of it right now
 
 ## Compile
 - *Scripts are gonna ask you what you want to build*<br>

@@ -619,26 +619,35 @@ uint32 ItemInfoManager::GetItemRarity(uint32 itemID)
 
 void ItemInfoManager::SetupItemExtras()
 {
-    for(uint32 i = 1; i < m_items.size(); i += 2) {
+    for(uint32 i = 1; i < m_items.size(); i += 2) 
+    {
         ItemInfo* pSeed = GetItemByID(i);
-        if(!pSeed) {
+        if(!pSeed)
             continue;
-        }
 
         pSeed->rarity = GetItemRarity(pSeed->id);
-        if(ItemInfo* pItem = GetItemByID(i - 1)) {
+        if(ItemInfo* pItem = GetItemByID(i - 1)) 
+        {
             pItem->rarity = pSeed->rarity;
         }
 
-        if(pSeed->rarity == 999) {
+        if(pSeed->rarity == 999) 
+        {
             pSeed->growTime = 3600;
         }
-        else {
+        else 
+        {
             pSeed->growTime = (pSeed->rarity * pSeed->rarity * pSeed->rarity) + (30 * pSeed->rarity);
         }
 
-        if(pSeed->growTime == 0) {
+        if(pSeed->growTime == 0) 
+        {
             pSeed->growTime = 31;
+        }
+
+        if(pSeed->maxFruitCount == 0)
+        {
+            pSeed->maxFruitCount = 5;
         }
     }
 }

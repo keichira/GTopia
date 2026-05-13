@@ -6,10 +6,9 @@
 1|Pro Builder|placing 1,000 blocks of any type.|TYPE_STAT|PLACE_COUNT|1000
 2|Expert Builder|placing 100,000 blocks of any type.|TYPE_STAT|PLACE_COUNT|100000
 
-# todo harvest
-# 3|Farmer|
-# 4|Farmer In The Dell|
-# 5|Farmasaurus Rex|
+3|Farmer|harvesting 100 trees.|TYPE_STAT|HARVEST_COUNT|100
+4|Farmer In The Dell|harvesting 1,000 trees.|TYPE_STAT|HARVEST_COUNT|1000
+5|Farmasaurus Rex|harvesting 100,000 trees.|TYPE_STAT|HARVEST_COUNT|100000
 
 6|Demolition|smashing 100 blocks.|TYPE_STAT|BREAK_COUNT|100
 7|Wrecking Crew|smashing 1,000 blocks.|TYPE_STAT|BREAK_COUNT|1000

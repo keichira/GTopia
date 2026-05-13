@@ -5,7 +5,7 @@
 #include "WorldInfo.h"
 
 WorldTileManager::WorldTileManager()
-: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
+: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT), m_pathcurrStamp(1)
 {
     m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
     m_tempTiles.resize(m_size.x * m_size.y);
@@ -30,6 +30,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     if(!write) {
         m_tiles.resize(totalTiles);
         m_tempTiles.resize(totalTiles);
+        m_pathClosedStamp.resize(totalTiles);
     }
 
     if(write) {
@@ -147,11 +148,16 @@ void WorldTileManager::Clear(bool reInit)
         m_tiles.resize(m_size.x * m_size.y);
         m_tempTiles.resize(m_size.x * m_size.y);
         m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
+        m_tempTiles.resize(m_size.x * m_size.y);
+        m_pathClosedStamp.resize(m_size.x * m_size.y);
 
         for(uint32 i = 0; i < m_tiles.size(); ++i) { 
             m_tiles[i].BindTileData(&m_tempTiles[i]);
             m_tiles[i].SetPos(i % m_size.x, i / m_size.x); 
         }
+    }
+    else {
+        m_pathClosedStamp.clear();
     }
 }
 
@@ -187,6 +193,37 @@ TileInfo* WorldTileManager::GetTileByWorldPos(float x, float y)
         return nullptr;
 
     return GetTile((int32)(x / 32.0f), (int32)(y / 32.0f));
+}
+
+TileInfo* WorldTileManager::GetTileByWorldPos(const Vector2Float& pos)
+{
+    return GetTileByWorldPos(pos.x, pos.y);
+}
+
+int32 WorldTileManager::GetTileIndex(TileInfo* pTile)
+{
+    if(!pTile)
+        return -1;
+
+    Vector2Int vTilePos = pTile->GetPos();
+    if(vTilePos.x < 0 || vTilePos.y < 0 || vTilePos.x >= m_size.x || vTilePos.y >= m_size.y) {
+        return -1;
+    }
+
+    return vTilePos.y * m_size.x + vTilePos.x;
+}
+
+bool WorldTileManager::CanPlantTreeHere(TileInfo *pTile)
+{
+    if(!pTile)
+        return false;
+
+    Vector2Int tilePos = pTile->GetPos();
+    TileInfo* pBottom = GetTile(tilePos.x, tilePos.y + 1);
+    if(!pBottom)
+        return false;
+
+    return pBottom->IsCollidable();
 }
 
 void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)

@@ -18,15 +18,6 @@ bool IsValidWorldName(const string& worldName)
     return true;
 }
 
-Vector2Float GetRandomItemDropOffset()
-{
-    Vector2Float ret;
-    ret.x = RandomRangeInt(-8, 8);
-    ret.y = RandomRangeInt(-4, 4);
-
-    return ret;
-}
-
 WorldInfo::WorldInfo()
 : m_version(10), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
 {

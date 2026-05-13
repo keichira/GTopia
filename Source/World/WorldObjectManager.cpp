@@ -90,9 +90,8 @@ void WorldObjectManager::DeleteByID(uint32 objectID)
 
 void WorldObjectManager::HandleObjectPackets(GameUpdatePacket* pGamePacket)
 {
-    if(!pGamePacket) {
+    if(!pGamePacket)
         return;
-    }
 
     if(pGamePacket->worldObjectType == -3) 
     { // modify
@@ -123,7 +122,7 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRect(const RectFloat& 
     std::vector<WorldObject*> objsInRect;
 
     for(auto& obj : m_objects) {
-        if(rect.IsInside(obj.pos)) {
+        if(rect.IsInside(obj.GetCenterPos())) {
             objsInRect.push_back(&obj);
         }
     }
@@ -136,7 +135,7 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(const Rec
     std::vector<WorldObject*> objsInRect;
 
     for(auto& obj : m_objects) {
-        if(rect.IsInside(obj.pos) && obj.itemID == itemID) {
+        if(rect.IsInside(obj.GetCenterPos()) && obj.itemID == itemID) {
             objsInRect.push_back(&obj);
         }
     }

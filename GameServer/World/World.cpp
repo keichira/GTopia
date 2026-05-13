@@ -1,7 +1,6 @@
 #include "World.h"
 #include "IO/Log.h"
 #include "Packet/NetPacket.h"
-#include "Item/ItemInfoManager.h"
 #include "Math/Rect.h"
 #include "Math/Math.h"
 #include "../Context.h"
@@ -9,6 +8,7 @@
 #include "../Player/PlayerManager.h"
 #include "WorldManager.h"
 #include "../Server/MasterBroadway.h"
+#include "Utils/GrowUtils.h"
 
 World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
@@ -558,6 +558,29 @@ void World::SendParticleEffectToAll(eParticleEffect effectType, const Vector2Flo
     }
 }
 
+void World::SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer)
+{
+    if(!pTile)
+        return;
+
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_SEND_TILE_TREE_STATE;
+
+    Vector2Int vTilePos = pTile->GetPos();
+    packet.tileX = vTilePos.x;
+    packet.tileY = vTilePos.y;
+
+    if(pPlayer)
+    {
+        packet.netID = pPlayer->GetNetID();
+    }
+
+    packet.field4 = -1;
+
+    HandleTilePackets(&packet);
+    SendGamePacketToAll(&packet);
+}
+
 void World::PlaySFXForEveryone(const string& fileName, int32 delay)
 {
     for(auto& pWorldPlayer : m_players) {
@@ -596,7 +619,14 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
     }
 
     switch(pGamePacket->type) {
-        case NET_GAME_PACKET_SEND_LOCK: {
+        case NET_GAME_PACKET_ITEM_CHANGE_OBJECT:
+        {
+            GetObjectManager()->HandleObjectPackets(pGamePacket);
+            break;
+        }
+
+        case NET_GAME_PACKET_SEND_LOCK: 
+        {
             TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
             if(!pTile) {
                 return;
@@ -625,25 +655,28 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 return;
             }
 
-            if(pItem->IsBackground()) {
+            if(pItem->IsBackground()) 
+            {
                 pTile->SetBG(pItem->id);
             }
-            else if(pItem->type == ITEM_TYPE_SEED) {
-
-            }
-            else if(pItem->type == ITEM_TYPE_FIST) {
-                if(pTile->GetFG() != ITEM_ID_BLANK) {
+            else if(pItem->type == ITEM_TYPE_FIST) 
+            {
+                if(pTile->GetFG() != ITEM_ID_BLANK) 
+                {
                     pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
                 }
-                else {
+                else 
+                {
                     pTile->SetBG(ITEM_ID_BLANK);
                 }
             }
             else {
-                if(pItem->IsBackground()) {
+                if(pItem->IsBackground()) 
+                {
                     pTile->SetBG(pItem->id);
                 }
-                else {
+                else 
+                {
                     pTile->SetFG(pItem->id, GetTileManager());
                 }
             }
@@ -659,11 +692,19 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 }
             }
             else {
-                /**
-                 * 
-                 * seed check
-                 * 
-                 */
+                if(pItem->type == ITEM_TYPE_SEED && pTile->GetExtra<TileExtra_Seed>()) 
+                {
+                    if(pGamePacket->field1 == 1)
+                    {
+                        pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+                    }
+                    else {
+                        pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+                    }
+    
+                    pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
+                    pTile->GetExtra<TileExtra_Seed>()->fruitCount = pGamePacket->field2;
+                }
 
                 if(pItem->HasFlag(ITEM_FLAG_FLIPPABLE)) {
                     if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT)) {
@@ -676,7 +717,274 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
             }
             break;
         }
+
+        case NET_GAME_PACKET_SEND_TILE_TREE_STATE:
+        {
+            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
+            if(!pTile)
+                return;
+
+            if(pGamePacket->field4 == -1)
+            {
+                pTile->RemoveFlag(TILE_FLAG_PAINTED_BLACK);
+                pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
+                return;
+            }
+
+            TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
+            if(!pTileExtra)
+                return;
+
+            pTileExtra->fruitCount = pGamePacket->field6;
+            if(pGamePacket->field1 == 1)
+            {
+                pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+            }
+            else 
+            {
+                pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+            }
+
+            if(pGamePacket->field2 == 1)
+            {
+                pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
+            }
+            else 
+            {
+                pTile->RemoveFlag(TILE_FLAG_IS_SEEDLING);
+            }
+
+            pTileExtra->growTime = pGamePacket->field4;
+            break;
+        }
     }
+}
+
+uint32 World::PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal)
+{
+    if (!pNode || !pStart || !pGoal)
+        return 999999;
+
+    Vector2Int vNodePos = pNode->GetPos();
+    Vector2Int vStartPos = pStart->GetPos();
+    Vector2Int vGoalPos = pGoal->GetPos();
+
+    return Abs(vNodePos.x - vStartPos.x) + Abs(vNodePos.y - vStartPos.y) + Abs(vNodePos.x - vGoalPos.x) + Abs(vNodePos.y - vGoalPos.y);
+}
+
+int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList)
+{
+    int32 bestIndex = -1;
+    int32 bestDist = -1;
+
+    for(int32 i = 0; i < openList.size(); ++i)
+    {
+        TileInfo* pTile = openList[i];
+        if(!pTile) 
+            continue;
+
+        int32 dist = PathfindCalcDistance(pTile, pStart, pGoal);
+
+        if(bestIndex == -1 || dist < bestDist)
+        {
+            bestIndex = i;
+            bestDist = dist;
+        }
+    }
+
+    return bestIndex;
+}
+
+bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList)
+{
+    if(!pStart || !pGoal)
+        return false;
+
+    WorldTileManager* pTileMgr = GetTileManager();
+    Vector2Int vStartPos = pStart->GetPos();
+
+    auto& closedPath = pTileMgr->GetPathClosed();
+    uint32& currStamp = pTileMgr->GetPathCurrentStamp();
+
+    for (int32 dy = -1; dy <= 1; ++dy)
+    {
+        for(int32 dx = -1; dx <= 1; ++dx)
+        {
+            if(dx == 0 && dy == 0)
+                continue;
+
+            if(dx != 0 && dy != 0)
+                continue;
+
+            TileInfo* pTile = pTileMgr->GetTile(vStartPos.x + dx, vStartPos.y + dy);
+            if(!pTile)
+                continue;
+
+            if(IsTileCollidableForPlayer(pPlayer, pTile, true))
+                continue;
+
+            if(pTile == pGoal)
+                return true;
+
+            int32 idx = pTileMgr->GetTileIndex(pTile);
+            if(idx == -1)
+                continue;
+
+            if(closedPath[idx] == currStamp)
+                continue;
+
+            bool exists = false;
+            for(auto& pOpen : openList)
+            {
+                if(pOpen == pTile)
+                {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if(exists)
+                continue;
+
+            openList.push_back(pTile);
+        }
+    }
+
+    return false;
+}
+
+bool World::CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal)
+{
+    if(!pStart || !pGoal)
+        return false;
+
+    if(pStart == pGoal)
+        return true;
+
+    std::vector<TileInfo*> openList;
+
+    WorldTileManager* pTileMgr = GetTileManager();
+    auto& closedPath = pTileMgr->GetPathClosed();
+    uint32& currStamp = pTileMgr->GetPathCurrentStamp();
+
+    currStamp++;
+
+    if(currStamp == 0)
+    {
+        memset(closedPath.data(), 0, closedPath.size() * sizeof(uint16));
+        currStamp = 1;
+    }
+
+    openList.push_back(pStart);
+
+    int32 iterations = 0;
+    const int32 maxIterations = 300; // add to config?
+
+    while(iterations++ < maxIterations)
+    {
+        int32 bestIndex = PathfindGetShortestOpenTile(pStart, pGoal, openList);
+
+        if(bestIndex < 0)
+            return false;
+
+        TileInfo* pCurrent = openList[bestIndex];
+        openList.erase(openList.begin() + bestIndex);
+
+        int32 idx = pTileMgr->GetTileIndex(pCurrent);
+        if(idx == -1)
+            continue;
+
+        closedPath[idx] = currStamp;
+
+        if(PathfindAddNeighborsToList(pPlayer, pCurrent, pGoal, openList))
+            return true;
+    }
+
+    return false;
+}
+
+bool World::IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms)
+{
+    if(!pTile || pTile->IsCollidable())
+        return true;
+
+    uint16 displayedItem = pTile->GetDisplayedItem();
+    if(displayedItem == 0)
+        return false;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(displayedItem);
+    if(!pItem)
+        return true;
+
+    if(pItem->collisionType == COLLISION_NONE)
+        return false;
+
+    if(ignorePlatforms && (pItem->collisionType == COLLISION_JUMP_THROUGH || pItem->collisionType == COLLISION_JUMP_DOWN))
+        return false;
+
+    if(pItem->collisionType == COLLISION_ONE_WAY)
+        return false;
+
+    if(pItem->collisionType == COLLISION_GATEWAY)
+    {
+        if(PlayerHasAccessOnTile(pPlayer, pTile) || pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC))
+            return false;
+    }
+
+    if(pItem->collisionType == COLLISION_VIP)
+    {
+        /**
+         * todo
+         */
+
+        return true;
+    }
+
+    if(pItem->collisionType == COLLISION_ADVENTURE)
+    {
+        /**
+         * todo
+         */
+
+        return true;
+    }
+
+    if(pItem->collisionType == COLLISION_FACTION)
+    {
+        /**
+         * todo but laaaaaaaaaaaaaaaaaaaaaaaaater
+         */
+
+        return true;
+    }
+
+    if(pItem->collisionType == COLLISION_CLOUD)
+    {
+        /**
+         * todo
+         */
+    }
+
+    if(pItem->collisionType == COLLISION_IF_OFF)
+    {
+        return !pTile->HasFlag(TILE_FLAG_IS_ON);
+    }
+
+    if(pItem->collisionType == COLLISION_IF_ON)
+    {
+        /**
+         * todo
+         */
+    }
+
+    if(pItem->collisionType == COLLISION_GUILD)
+    {
+        /**
+         * todo
+         */
+    }
+
+    return true;
 }
 
 bool World::PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile)
@@ -777,6 +1085,8 @@ void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
         pPlayer->SendOnTalkBubble("Area locked.", true);
         pPlayer->SendOnPlayPositioned("use_lock.wav");
     }
+
+    pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
 }
 
 void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
@@ -798,6 +1108,111 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
         std::vector<TileInfo*> unlockedTiles = GetTileManager()->RemoveTileParentsLockedBy(pTile);
         SendTileUpdateMultiple(unlockedTiles);
     }
+}
+
+void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket)
+{
+    if(!pPlayer || !pTile || !pSeed || !pPacket)
+        return;
+
+    if(!(pTile->IsTree() || pTile->GetDisplayedItem() == ITEM_ID_BLANK))
+        return;
+    
+    if(!GetTileManager()->CanPlantTreeHere(pTile))
+    {
+        pPlayer->SendOnTalkBubble("Can't plant here!", true);
+        return;
+    }
+
+    if(pTile->GetDisplayedItem() == ITEM_ID_BLANK)
+    {
+        uint32 fruitCount = 0;
+        bool dropSeed = false;
+
+        GetTreeSpawnInfo(pSeed, fruitCount, dropSeed);
+        pPacket->netID = pPlayer->GetNetID();
+        pPacket->field2 = fruitCount;
+        pPacket->field1 = dropSeed ? 1 : 0;
+
+        pPlayer->ModifyInventoryItem(pPacket->itemID, -1);
+        pTile->SetFG(pPacket->itemID, GetTileManager());
+
+        if(pPacket->field1 == 1)
+        {
+            pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+        }
+        else
+        {
+            pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+        }
+
+        pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
+
+        TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
+        if(pTileExtra)
+        {
+            pTileExtra->fruitCount = pPacket->field2;
+        }
+
+        SendGamePacketToAll(pPacket);
+    }
+
+    HandleTilePackets(pPacket);
+}
+
+void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
+{
+    if(!pPlayer || !pTile)
+        return;
+
+    TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
+    if(!pTileExtra)
+        return;
+
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+    ItemInfo* pItem = pItemMgr->GetItemByID(pTile->GetFG());
+    if(!pItem || pItem->type != ITEM_TYPE_SEED)
+        return;
+
+    uint32 fgItem = pTile->GetFG();
+
+    pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_HARVEST_COUNT, 1);
+
+    if(fgItem == ITEM_ID_LEGENDARY_WIZARD_SEED)
+    {
+        if(RandomRangeInt(0, 1))
+        {
+            pTile->SetFlag(TILE_FLAG_FLIPPED_X);
+        }
+        else {
+            pTile->RemoveFlag(TILE_FLAG_FLIPPED_X);
+        }
+
+        pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
+        SendTileUpdate(pTile);
+
+        SendParticleEffectToAll(PARTICLE_EFFECT_ACHIEVE, pTile->GetWorldPos());
+        PlaySFXForEveryone("achievement.wav");
+        return;
+    }
+
+    uint32 gemAmount = GetGemCountHarvestTree(pItem);
+    if(gemAmount > 0)
+    {
+        DropGemsOnTile(pTile, gemAmount);
+    }
+
+    if(pTile->HasFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO))
+    {
+        ItemInfo* pSeed = pItemMgr->GetItemByID(pItemMgr->GetBaseItemID(pItem->id));
+        if(pSeed)
+        {
+            DropObjectOnTile(pTile, pSeed->id, 1, GetRandomItemDropOffset(), true);
+            pPlayer->SendOnTalkBubble("A `w" + pSeed->name + "`` falls out!", true);
+        }
+    }
+
+    SendHarvestTreeToAll(pTile, pPlayer);
 }
 
 bool World::IsPlayerWorldOwner(GamePlayer* pPlayer)
@@ -844,6 +1259,58 @@ bool World::IsPlayerWorldAdmin(GamePlayer* pPlayer)
     }
 
     return false;
+}
+
+void World::DropGemsOnTile(TileInfo* pTile, uint32 gemCount)
+{
+    if(!pTile || gemCount == 0)
+        return;
+
+    auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(pTile->GetRect(), ITEM_ID_GEMS);
+
+    uint32 total = gemCount;
+
+    for(auto& pObj : objsInRect)
+    {
+        if(pObj && pObj->itemID == ITEM_ID_GEMS) 
+        {
+            total += pObj->count;
+        }
+    }
+
+    auto types = ParseGemIntoGemTypes(total);
+
+    Vector2Int vTilePos = pTile->GetPos();
+    Vector2Float vBasePos = Vector2Float(vTilePos.x, vTilePos.y) * 32;
+    vBasePos += 8.0f;
+
+    uint32 i = 0;
+
+    for(auto& pObj : objsInRect)
+    {
+        if(!pObj || pObj->itemID != ITEM_ID_GEMS)
+            continue;
+
+        if(i < types.size())
+        {
+            pObj->count = GetGemAmountByGemType(types[i]);
+
+            ModifyObject(*pObj);
+            i++;
+        }
+        else
+        {
+            if(pObj->objectID != 0)
+            {
+                RemoveObject(pObj->objectID);
+            }
+        }
+    }
+
+    for (; i < types.size(); ++i)
+    {
+        DropObject(ITEM_ID_GEMS, GetGemAmountByGemType(types[i]), vBasePos + GetRandomItemDropOffset());
+    }
 }
 
 void World::DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge)

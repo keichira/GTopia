@@ -5,6 +5,7 @@
 #include "Packet/GamePacket.h"
 #include "Database/Table/WorldDBTable.h"
 #include "../Player/GamePlayer.h"
+#include "Item/ItemInfoManager.h"
 #include <queue>
 
 enum eWorldState
@@ -58,19 +59,30 @@ public:
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
     void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
     void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
+    void SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void HandleTilePackets(GameUpdatePacket* pGamePacket);
 
+    uint32 PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal);
+    int32 PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
+    bool PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
+    bool CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal);
+
+    bool IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms);
     bool PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile);
 
     void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID);
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
 
+    void OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket);
+    void OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile);
+
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);
 
+    void DropGemsOnTile(TileInfo* pTile, uint32 gemCount);
     void DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge);
     void DropObject(uint16 itemID, uint8 count, const Vector2Float& pos);
 

@@ -350,9 +350,7 @@ int main(int argc, char const* argv[])
     }
 
     if(!LoadItemData()) 
-    {
         return 0;
-    }
 
     if(!GetPlayModManager()->Load(GetProgramPath() + "/playmods.txt")) 
     {

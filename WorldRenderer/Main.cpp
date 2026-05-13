@@ -65,8 +65,8 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
-    LOGGER_LOG_INFO("Starting renderer server %d | %s", GetContext()->GetID(), Time::GetDateTimeStr().c_str());
-    LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia")
+    LOGGER_LOG_INFO("Starting renderer server %d", GetContext()->GetID());
+    LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia");
     GetContext()->Init();
 
     SetRandomSeed(Time::GetSystemTime());

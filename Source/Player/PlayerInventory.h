@@ -42,6 +42,7 @@ public:
     bool IsWearingItem(uint16 itemID);
 
     bool HaveRoomForItem(uint16 itemID, uint8 itemCount);
+    uint32 GetFitItemCount(uint16 itemID);
 
     uint8 GetCountOfItem(uint16 itemID);
 

@@ -10,7 +10,7 @@ PlayerProgress::PlayerProgress(GamePlayer* pPlayer)
     memset(m_progressData, 0, sizeof(m_progressData));
     memset(m_achieves, 0, sizeof(m_achieves));
 
-    m_progressData[PLAYER_PROGRESS_XP] = 100; // do not touch it else ve gonna root negative number
+    m_progressData[PLAYER_PROGRESS_XP] = 101; // do not touch it else we gonna root negative number
 }
 
 void PlayerProgress::Serialize(MemoryBuffer& memBuffer, bool write)
@@ -28,7 +28,7 @@ void PlayerProgress::Serialize(MemoryBuffer& memBuffer, bool write)
 
 uint32 PlayerProgress::GetMemEstimate()
 {
-    return sizeof(m_version) + sizeof(m_progressData) + sizeof(m_achieves);
+    return sizeof(m_version) + sizeof(uint16) + sizeof(m_progressData) + sizeof(uint16) + sizeof(m_achieves);
 }
 
 uint32 PlayerProgress::GetProgress(ePlayerProgress progress) const
@@ -97,6 +97,9 @@ void PlayerProgress::UnlockAchievement(eAchievement achievement)
 {
     AchievementInfo* pAchievement = GetAchievementManager()->GetAchievement(achievement);
     if(!pAchievement)
+        return;
+
+    if(HasAchievement(achievement))
         return;
 
     UnlockAchievementRaw(achievement);

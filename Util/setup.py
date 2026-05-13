@@ -8,6 +8,7 @@ import urllib.request
 from pathlib import Path
 import socket
 from update_file_hashes import generate_file_hashes
+from generate_item_data import generate_item_txt_from_dat
 
 ROOT = Path.cwd()
 CERT_DIR = (ROOT / ".." / "HTTPServer").resolve()
@@ -262,6 +263,15 @@ def file_hashes_wizard():
     print("Generating filehashes.txt this might took a bit")
     generate_file_hashes(path)
 
+def item_txt_wizard():
+    print("\n--- Starting item data generation ---")
+
+    folder_path = input("items.dat file path: ").strip()
+    path = Path(folder_path).expanduser().resolve()
+
+    print("Generating items.txt this might took a bit")
+    generate_item_txt_from_dat(0, path)
+
 def main():
     check_cmake()
     print("----------\n")
@@ -275,7 +285,9 @@ def main():
             print("❌ Failed to import SQL tables, skipping...")
     print("----------\n")
 
-    download_mkcert()
+    ans = input("\n👉 Do you want to create SSL Certificates? [y/N]: ").strip().lower()
+    if ans == "y":
+        download_mkcert()
     print("----------\n")
 
     os.makedirs(RUNTIME_DIR, exist_ok=True)
@@ -287,6 +299,14 @@ def main():
         move_file(ROOT / "filehashes.txt", RUNTIME_DIR)
     else:
         print("Okay! you can generate by using update_file_hashes.py later\n")
+
+    ans = input("\n👉 Do you want to generate items.txt [y/N]: ").strip().lower()
+    if ans == "y":
+        item_txt_wizard()
+        print("----------\n")
+        move_file(ROOT / "items.txt", RUNTIME_DIR)
+    else:
+        print("Okay! you can generate by using generate_item_data.py later\n")
 
     move_file(CONFIGS_DIR / "config.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "playmods.txt", RUNTIME_DIR)

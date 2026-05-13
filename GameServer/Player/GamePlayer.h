@@ -42,6 +42,7 @@ public:
 
     void SetGems(uint32 amount) { m_gems = amount; }
     void SendGems(bool skipAnim);
+    void ModifyGems(int32 count, bool sendToPlayer);
     void GiveXP(uint32 amount);
 
     void StartLoginRequest(ParsedTextPacket<25>& packet);
@@ -103,6 +104,8 @@ public:
     static void CreateAccountFinalCB(QueryTaskResult&& result);
 
     void SendPositionToWorldPlayers();
+    float GetDistToTile(TileInfo* pGoalTile);
+    uint32 GetDistToTileInTiles(TileInfo* pGoalTile);
 
     Timer& GetLastActionTime() { return m_lastActionTime; }
     Timer& GetLastDBSaveTime() { return m_lastDbSaveTime; }
@@ -118,7 +121,7 @@ private:
     bool m_joiningWorld;
     uint32 m_currentWorldID;
     uint32 m_flags;
-    uint32 m_gems;
+    int32 m_gems;
 
     PlayerProgress m_progressData;
 

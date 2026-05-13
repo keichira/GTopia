@@ -26,7 +26,8 @@ ePlayerProgress StrToProgressType(const string& type)
         { "PLACE_COUNT", PLAYER_PROGRESS_PLACE_COUNT },
         { "PUNCH_COUNT", PLAYER_PROGRESS_PUNCH_COUNT },
         { "NONE", PLAYER_PROGRESS_NONE },
-        { "BREAK_COUNT", PLAYER_PROGRESS_BREAK_COUNT }
+        { "BREAK_COUNT", PLAYER_PROGRESS_BREAK_COUNT },
+        { "HARVEST_COUNT", PLAYER_PROGRESS_HARVEST_COUNT }
     };
 
     auto it = progressTypeMap.find(type);
@@ -74,7 +75,7 @@ bool AchievementManager::Load(const string& filePath)
         m_achieves.push_back(std::move(achi));
     }
 
-    for(uint32 i = 0; i < ACHIEVEMENT_COUNT; ++i)
+    for(uint32 i = 0; i < m_achieves.size(); ++i)
     {
         AchievementInfo* pAchieve = &m_achieves[i];
         if(!pAchieve || pAchieve->progressType == PLAYER_PROGRESS_NONE)

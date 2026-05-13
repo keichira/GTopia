@@ -2,6 +2,7 @@
 
 #include "../Precompiled.h"
 #include "../Memory/MemoryBuffer.h"
+#include "Utils/Timer.h"
 
 class TileExtra;
 
@@ -107,6 +108,11 @@ enum eTileExtraFlags
 uint8 GetTileExtraType(uint8 itemType);
 TileExtra* CreateTileExtra(uint8 extraType);
 
+void TileExtraFinalizeGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, uint32 ageMS);
+void TileExtraModGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, int32 deltaAgeSec, int32 ageSec);
+uint32 GetTileExtraGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth);
+float GetTileExtraGrowthPercent(uint32 requiredTime, uint32 growth);
+
 class TileInfo;
 
 class TileExtra {
@@ -195,9 +201,10 @@ TILE_EXTRA(TileExtra_Lock, TILE_EXTRA_TYPE_LOCK)
 };
 
 TILE_EXTRA(TileExtra_Seed, TILE_EXTRA_TYPE_SEED)
+    uint32 timer = Time::GetSystemTime();
     uint32 growTime = 0;
     uint8 fruitCount = 3;
-};
+};  
 
 TILE_EXTRA(TileExtra_Component, TILE_EXTRA_TYPE_COMPONENT)
     uint8 randValue = 0;

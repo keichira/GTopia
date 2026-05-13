@@ -438,7 +438,7 @@ string ItemFlagToStr(uint16 type)
         { ITEM_FLAG_PERMANENT, "PERMANENT" },
         { ITEM_FLAG_DROPLESS, "DROPLESS" },
         { ITEM_FLAG_NOSELF, "NOSELF" },
-        { ITEM_FLAG_RANDGROW, "NOSHADOW" },
+        { ITEM_FLAG_NOSHADOW, "NOSHADOW" },
         { ITEM_FLAG_WORLDLOCKED, "WORLDLOCKED" },
         { ITEM_FLAG_BETA, "BETA" },
         { ITEM_FLAG_AUTOPICKUP, "AUTOPICKUP" },

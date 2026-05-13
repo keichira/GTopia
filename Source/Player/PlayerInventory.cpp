@@ -221,6 +221,28 @@ bool PlayerInventory::HaveRoomForItem(uint16 itemID, uint8 itemCount)
     return true;
 }
 
+uint32 PlayerInventory::GetFitItemCount(uint16 itemID)
+{
+    if(itemID == ITEM_ID_GEMS || itemID == ITEM_ID_CARRIED_GAME_FLAG || itemID == ITEM_ID_CARRIED_GAME_EGG)
+        return 999999;
+
+    InventoryItemInfo* pItem = GetItemByID(itemID);
+    ItemInfo* pInfo = GetItemInfoManager()->GetItemByID(itemID);
+
+    if(!pInfo)
+        return 0;
+
+    if(!pItem)
+    {
+        return m_items.size() < m_capacity ? pInfo->maxCanHold : 0;
+    }
+
+    if(pItem->count >= pInfo->maxCanHold)
+        return 0;
+
+    return m_items.size() < m_capacity ? pInfo->maxCanHold - pItem->count : 0;
+}
+
 uint8 PlayerInventory::GetCountOfItem(uint16 itemID)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);

@@ -9,6 +9,7 @@
 #include "../Event/UDP/GamePacket/ItemActivateRequest.h"
 #include "../Event/UDP/GamePacket/TileChangeRequest.h"
 #include "../Event/UDP/GamePacket/State.h"
+#include "../Event/UDP/GamePacket/ObjectActivateRequest.h"
 
 WorldManager::WorldManager()
 {
@@ -413,6 +414,7 @@ void WorldManager::RegisterEvents()
     RegisterPacketEvent<ItemActivateRequest>(NET_GAME_PACKET_ITEM_ACTIVATE_REQUEST);
     RegisterPacketEvent<TileChangeRequest>(NET_GAME_PACKET_TILE_CHANGE_REQUEST);
     RegisterPacketEvent<State>(NET_GAME_PACKET_STATE);
+    RegisterPacketEvent<ObjectActivateRequest>(NET_GAME_PACKET_ITEM_ACTIVATE_OBJECT_REQUEST);
 }
 
 WorldManager* GetWorldManager() { return WorldManager::GetInstance(); }

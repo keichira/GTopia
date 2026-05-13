@@ -1,5 +1,7 @@
 #include "ItemInfo.h"
 #include "../Proton/ProtonUtils.h"
+#include "../Math/Random.h"
+#include "ItemInfoManager.h"
 
 ItemInfo::ItemInfo()
 {
@@ -236,4 +238,72 @@ uint16 GetMaxTilesToLock(uint16 itemID)
         default:
             return 0;
     }
+}
+
+void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed)
+{
+    if(!pItem)
+    {
+        fruitCount = 0;
+        dropSeed = 0;
+        return;
+    }
+
+    switch(pItem->id)
+    {
+        case ITEM_ID_LEGENDARY_WIZARD_SEED:
+        case ITEM_ID_WIZARDS_STAFF:
+        case ITEM_ID_SHIFTING_SCROLL:
+        {
+            fruitCount = 1;
+            break;
+        }
+
+        case ITEM_ID_LEGEN_SEED:
+        case ITEM_ID_DARY_SEED:
+        case ITEM_ID_MUTATED_SEED:
+        {
+            fruitCount = 0;
+            break;
+        }
+
+        default:
+        {
+            fruitCount = RandomRangeInt(1, pItem->maxFruitCount - 1);
+        }
+    }
+
+    dropSeed = false;
+    
+    if(!pItem->HasFlag(ITEM_FLAG_SEEDLESS))
+    {
+        dropSeed = (RandomRangeInt(0, pItem->rarity/4 + 4) == 0);
+    }
+}
+
+uint32 GetGemCountHarvestTree(ItemInfo* pSeed)
+{
+    if(!pSeed)
+        return 0;
+
+    if(pSeed->rarity == 999 || pSeed->HasFlag2(ITEM_FLAG_GEMLESS))
+        return 0;
+    
+    if(pSeed->type == ITEM_TYPE_SEED)
+    {
+        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pSeed->id - 1);
+        if(pItem && pItem->HasFlag2(ITEM_FLAG_GEMLESS))
+            return 0;
+    }
+
+    uint32 value = pSeed->rarity / 4;
+    if(pSeed->rarity < 31)
+    {
+        value = (value * 3) / 4;
+    }
+
+    if(value < 2)
+        value = 2;
+
+    return RandomRangeInt(0, value - 1);
 }

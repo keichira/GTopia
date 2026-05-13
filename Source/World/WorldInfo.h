@@ -24,7 +24,6 @@ enum eWeatherTypes
 };
 
 bool IsValidWorldName(const string& worldName);
-Vector2Float GetRandomItemDropOffset();
 
 class WorldInfo {
 public:
