@@ -69,6 +69,8 @@ public:
     bool AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTargetTile, bool ignoreEmpty);
     bool ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty, std::vector<TileInfo*>& outTiles);
 
+    void AgeTiles(uint32 ageMS);
+
     uint32& GetPathCurrentStamp() { return m_pathcurrStamp; }
     std::vector<uint16>& GetPathClosed() { return m_pathClosedStamp; }
 

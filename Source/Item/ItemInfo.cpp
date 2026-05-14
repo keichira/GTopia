@@ -223,6 +223,20 @@ bool IsMainDoor(uint16 itemID)
     }
 }
 
+bool IsFuelPack(uint16 itemID)
+{
+    switch(itemID) {
+        case ITEM_ID_FUEL_PACK:
+        case ITEM_ID_ECTO_PACK:
+        case ITEM_ID_PINEAPPLE_JUICE:
+        case ITEM_ID_DANGEROUS_PINEAPPLE_JUICE_BACKPACK:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 uint16 GetMaxTilesToLock(uint16 itemID)
 {
     switch(itemID) {

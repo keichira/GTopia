@@ -425,7 +425,6 @@ def generate_item_txt_from_dat(serialize_until: int = 0, file_path: str = "items
                 item_str += f"{ItemStorageTypeToStr(p_item.storage)}|"
                 item_str += f"{ItemBodyPartToStr(p_item.body_part)}|\n"
 
-            # SEED
             elif p_item.type == 19:
                 item_str += (
                     f"set_seed|{p_item.seed1}|{p_item.seed2}|"
@@ -437,7 +436,6 @@ def generate_item_txt_from_dat(serialize_until: int = 0, file_path: str = "items
                 inc += 1
                 continue
 
-            # DEFAULT ITEM
             else:
                 item_str += "add_item|"
                 item_str += f"{p_item.id}|{p_item.name}|"
@@ -448,7 +446,7 @@ def generate_item_txt_from_dat(serialize_until: int = 0, file_path: str = "items
                 item_str += f"{ItemVisualEffectToStr(p_item.visual_effect)}|"
                 item_str += f"{ItemStorageTypeToStr(p_item.storage)}|"
                 item_str += f"{ItemCollisionTypeToStr(p_item.collision_type)}|"
-                item_str += f"{p_item.hp // 6}|{p_item.restore_time}|\n"
+                item_str += f"{p_item.hp // 6}|{p_item.restore_time}|1|\n"
 
             if p_item.flags != 0:
                 flag_list = []

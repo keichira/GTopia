@@ -43,7 +43,8 @@ public:
     GamePlayer* PopPendingPlayer();
 
     void AddPlayer(GamePlayer* pPlayer);
-    void PlayerLeaverWorld(GamePlayer* pPlayer);
+    void PlayerLeaveWorld(GamePlayer* pPlayer);
+    void ReconnectPlayers();
 
     void SendSkinColorUpdateToAll(GamePlayer* pPlayer);
     void SendTalkBubbleAndConsoleToAll(const string& message, bool stackBubble, GamePlayer* pPlayer = nullptr);
@@ -78,6 +79,7 @@ public:
 
     void OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket);
     void OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile);
+    void OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile);
 
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);

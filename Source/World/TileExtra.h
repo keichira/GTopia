@@ -211,8 +211,9 @@ TILE_EXTRA(TileExtra_Component, TILE_EXTRA_TYPE_COMPONENT)
 };
 
 TILE_EXTRA(TileExtra_Provider, TILE_EXTRA_TYPE_PROVIDER)
-    uint32 readyTime = 0;
-    int32 itemID = 0;
+    uint32 timer = Time::GetSystemTime();
+    uint32 growTime = 0;
+    uint32 otherData = 0;
 };
 
 TILE_EXTRA(TileExtra_Lab, TILE_EXTRA_TYPE_LAB)

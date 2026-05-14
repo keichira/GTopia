@@ -542,6 +542,14 @@ bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock,
     return true;
 }
 
+void WorldTileManager::AgeTiles(uint32 ageMS)
+{
+    for(auto& tile : m_tiles)
+    {
+        tile.AgeTile(ageMS);
+    }
+}
+
 void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance)
 {
     rect.top = rect.bottom - thickness;

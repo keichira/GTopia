@@ -76,6 +76,7 @@ set(GAME_FILES PRIVATE
     ${GAME_COMMAND}/Ghost.cpp
     ${GAME_COMMAND}/TogglePlayMod.cpp
     ${GAME_COMMAND}/Magic.cpp
+    ${GAME_COMMAND}/AgeWorld.cpp
 
     ${SOURCE_WORLD}/TileExtra.cpp
     ${SOURCE_WORLD}/TileInfo.cpp

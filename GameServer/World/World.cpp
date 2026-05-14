@@ -277,7 +277,7 @@ void World::AddPlayer(GamePlayer* pPlayer)
     m_pendingPlayers.push(pPlayer);
 }
 
-void World::PlayerLeaverWorld(GamePlayer *pPlayer)
+void World::PlayerLeaveWorld(GamePlayer* pPlayer)
 {
     if(!pPlayer)
         return;
@@ -306,6 +306,27 @@ void World::PlayerLeaverWorld(GamePlayer *pPlayer)
     if(m_players.empty()) 
     {
         m_worldOfflineTime.Reset();
+    }
+}
+
+void World::ReconnectPlayers()
+{
+    auto players = m_players;
+
+    for(auto& pPlayer : m_players)
+    {
+        if(!pPlayer)
+            continue;
+
+        PlayerLeaveWorld(pPlayer);
+    }
+
+    for(auto& pPlayer : players)
+    {
+        if(!pPlayer)
+            continue;
+
+        AddPlayer(pPlayer);
     }
 }
 
@@ -1188,12 +1209,49 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
             pTile->RemoveFlag(TILE_FLAG_FLIPPED_X);
         }
 
-        pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
+        pTile->SetFG(ITEM_ID_LEGENDARY_WIZARD, GetTileManager());
         SendTileUpdate(pTile);
 
         SendParticleEffectToAll(PARTICLE_EFFECT_ACHIEVE, pTile->GetWorldPos());
         PlaySFXForEveryone("achievement.wav");
         return;
+    }
+
+    ItemInfo* pItemFruit = GetItemInfoManager()->GetItemByID(pItem->id - 1);
+    if(!pItemFruit)
+        return;
+
+    uint32 fruitCount = pTileExtra->fruitCount;
+
+    PlayerInventory& inventory = pPlayer->GetInventory();
+    if(inventory.IsWearingItem(ITEM_ID_HAND_SCYTHE) && pItem->rarity < 100)
+    {
+        if(RandomRangeInt(0, 100) < 70)
+        {
+            pPlayer->ModifyInventoryItem(ITEM_ID_HAND_SCYTHE, -1);
+            pPlayer->SendOnConsoleMessage("Your Hand Scythe broke!");
+        }
+
+        fruitCount *= 2;
+    }
+    else if(
+        pItem->rarity < 100 &&
+        (inventory.IsWearingItem(ITEM_ID_HARVESTER) || inventory.IsWearingItem(ITEM_ID_HARVESTER_OF_SORROWS)) &&
+        IsFuelPack(inventory.GetClothByPart(BODY_PART_BACK))
+    ) {
+        if(RandomRangeInt(0, 100) < 10)
+        {
+            pPlayer->ModifyInventoryItem(inventory.GetClothByPart(BODY_PART_BACK), -1);
+            fruitCount *= 2;
+        }
+    }
+
+    if(pItem->farmablity > 0)
+    {
+        for(uint8 i = 0; i < fruitCount; ++i)
+        {
+            DropObjectOnTile(pTile, pItem->id - 1, RandomRangeInt(1, pItemFruit->farmablity), GetRandomItemDropOffset(), true);
+        }
     }
 
     uint32 gemAmount = GetGemCountHarvestTree(pItem);
@@ -1213,6 +1271,33 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
     }
 
     SendHarvestTreeToAll(pTile, pPlayer);
+}
+
+void World::OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile)
+{
+    if(!pPlayer || !pTile)
+        return;
+
+    switch(pTile->GetFG())
+    {
+        case ITEM_ID_SCIENCE_STATION:
+        {
+
+            break;
+        }
+    }
+
+    TileExtra_Provider* pTileExtra = pTile->GetExtra<TileExtra_Provider>();
+    if(pTileExtra)
+    {
+        TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, 0, 0);
+
+        TileExtraFinalizeGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, 0);
+        pTileExtra->growTime = 0; // todo
+    }
+
+    pPlayer->GiveXP(1);
+    SendTileUpdate(pTile);
 }
 
 bool World::IsPlayerWorldOwner(GamePlayer* pPlayer)

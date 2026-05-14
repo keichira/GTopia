@@ -28,6 +28,7 @@
 #include "../Command/Ghost.h"
 #include "../Command/TogglePlayMod.h"
 #include "../Command/Magic.h"
+#include "../Command/AgeWorld.h"
 
 GameServer::GameServer()
 {
@@ -166,6 +167,7 @@ void GameServer::RegisterEvents()
     RegisterCommand<Ghost>();
     RegisterCommand<TogglePlayMod>();
     RegisterCommand<Magic>();
+    RegisterCommand<AgeWorld>();
 }
 
 void GameServer::UpdateGameLogic(uint64 maxTimeMS)

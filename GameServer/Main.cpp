@@ -291,7 +291,7 @@ int main(int argc, char const* argv[])
     
     SetRandomSeed(Time::GetSystemTime());
     RandomizeRandomSeed();
-
+    
     if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_SERVER_" + ToString(GetContext()->GetID()) + ".txt")) 
     {
         LOGGER_LOG_ERROR("Failed to init log file, maybe try to create 'logs' folder?");

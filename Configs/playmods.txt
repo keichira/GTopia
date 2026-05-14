@@ -61,3 +61,7 @@ set_items|3066|
 add_playmod|1204|Focused Eyes|Give people the evil eye.|Your vision is normal.|
 set_punch_type|10|
 set_items|1204|
+
+add_playmod|898|Putt Putt Putt|Tractors are not speedy.|You can walk faster than that thing!|
+set_speed|-100|
+set_items|898|1830|1966|

@@ -75,6 +75,7 @@ public:
     bool IsTree();
 
     uint16 GetDisplayedItem();
+    void AgeTile(uint32 ageMS);
         
     template<class T>
     T* GetExtra() {

@@ -116,6 +116,7 @@ public:
     uint8 element = ITEM_ELEMENT_NONE;
     ePlayModType playModType = PLAYMOD_TYPE_NONE;
     int32 maxFruitCount = 0;
+    int32 farmablity = 1;
 
 public:
     bool HasFlag(uint16 flag) { return (flags & flag) != 0; }
@@ -127,6 +128,7 @@ public:
 bool IsIllegalItem(uint16 itemID);
 bool IsWorldLock(uint16 itemID);
 bool IsMainDoor(uint16 itemID);
+bool IsFuelPack(uint16 itemID);
 uint16 GetMaxTilesToLock(uint16 itemID);
 void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed);
 uint32 GetGemCountHarvestTree(ItemInfo* pSeed);

@@ -82,7 +82,7 @@ bool ItemInfoManager::Load(const string& filePath)
 
         if(key == "add_item")
         {
-            if(!line.Require(12))
+            if(!line.Require(13))
                 return false;
 
             ItemInfo item;
@@ -100,6 +100,7 @@ bool ItemInfoManager::Load(const string& filePath)
             item.collisionType = StrToCollisionType(line.GetString(10));
             item.hp = line.GetUInt(11) * 6;
             item.restoreTime = line.GetInt(12);
+            item.farmablity = line.GetInt(13);
 
             lastItemID = item.id;
             m_items.push_back(std::move(item));

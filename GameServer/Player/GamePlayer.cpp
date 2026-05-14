@@ -42,6 +42,12 @@ void GamePlayer::ModifyGems(int32 count, bool sendToPlayer)
         return;
 
     m_gems += count;
+
+    if(count > 0)
+    {
+        
+    }
+
     if(sendToPlayer)
     {
         SendGems(false);
@@ -224,7 +230,7 @@ void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
         {
             World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
             if(pWorld) {
-                pWorld->PlayerLeaverWorld(this);
+                pWorld->PlayerLeaveWorld(this);
             }
         }
 

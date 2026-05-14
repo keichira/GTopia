@@ -18,6 +18,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_SEED:
             return TILE_EXTRA_TYPE_SEED;
 
+        case ITEM_TYPE_PROVIDER:
+            return TILE_EXTRA_TYPE_PROVIDER;
+
         default:
             return TILE_EXTRA_TYPE_NONE;
     }
@@ -236,10 +239,12 @@ void TileExtra_Component::Serialize(MemoryBuffer& memBuffer, bool write, bool da
 
 void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
-    TileExtra::Serialize(memBuffer, write);
-    memBuffer.ReadWrite(readyTime, write);
+    TileExtraFinalizeGrowth(this, timer, growTime, 0);
 
-    uint16 fgItem = pTile->GetFG();
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWrite(growTime, write);
+
+    /*uint16 fgItem = pTile->GetFG();
     if(fgItem == ITEM_ID_WINTERFEST_CALENDAR_2017) {
         memBuffer.ReadWrite(itemID, write);
     }
@@ -269,7 +274,7 @@ void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
         // long
         // long
         // same as building blocks machine
-    }
+    }*/
 }
 
 void TileExtra_Lab::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)

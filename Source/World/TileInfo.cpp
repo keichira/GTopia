@@ -205,3 +205,33 @@ uint16 TileInfo::GetDisplayedItem()
 {
     return m_tileData->fg != ITEM_ID_BLANK ? m_tileData->fg : m_tileData->bg;
 }
+
+void TileInfo::AgeTile(uint32 ageMS)
+{
+    if(GetDisplayedItem() == ITEM_ID_BLANK)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(GetDisplayedItem());
+    if(!pItem)
+        return;
+
+    if(pItem->type == ITEM_TYPE_SEED)
+    {
+        TileExtra_Seed* pTileExtra = GetExtra<TileExtra_Seed>();
+        if(!pTileExtra)
+            return;
+
+        TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, ageMS/1000, pItem->growTime);
+        return;
+    }
+
+    if(pItem->type == ITEM_TYPE_PROVIDER)
+    {
+        TileExtra_Provider* pTileExtra = GetExtra<TileExtra_Provider>();
+        if(!pTileExtra)
+            return;
+
+        TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, ageMS, pItem->growTime);
+        return;
+    }
+}

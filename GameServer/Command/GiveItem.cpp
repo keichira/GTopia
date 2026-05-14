@@ -67,7 +67,7 @@ void GiveItem::Execute(GamePlayer* pPlayer, std::vector<string>& args)
     }
 
     pPlayer->SendOnConsoleMessage(
-        "`oGiven " + ToString(givenCount) + "x " + pItem->name + " to " + pTarget->GetRawName() + " (ID: " + ToString(pTarget->GetUserID()) + ")"
+        "`oGiven " + ToString(givenCount) + " " + pItem->name + " to " + pTarget->GetRawName() + " (ID: " + ToString(pTarget->GetUserID()) + ")"
     );
-    pTarget->SendOnConsoleMessage("`oGiven: " + ToString(givenCount) + "x " + pItem->name);
+    pTarget->SendOnConsoleMessage("`oGiven: " + ToString(givenCount) + " " + pItem->name);
 }

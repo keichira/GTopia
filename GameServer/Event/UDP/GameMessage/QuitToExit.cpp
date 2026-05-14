@@ -10,5 +10,5 @@ void QuitToExit::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pWorld)
         return;
 
-    pWorld->PlayerLeaverWorld(pPlayer);
+    pWorld->PlayerLeaveWorld(pPlayer);
 }
