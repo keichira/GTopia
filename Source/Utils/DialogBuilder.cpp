@@ -90,7 +90,48 @@ DialogBuilder* DialogBuilder::AddCheckBox(const string& boxID, const string& tex
 
 DialogBuilder* DialogBuilder::AddPlayerInfo(const string& label, uint32 level, uint32 currentXP, uint32 XPToLevelUP)
 {
-    m_str += "add_player_info|" + label + "|" + ToString(level) + "|" + ToString(currentXP) + "|" + ToString(XPToLevelUP) + "|";
+    m_str += "add_player_info|" + label + "|" + ToString(level) + "|" + ToString(currentXP) + "|" + ToString(XPToLevelUP) + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddCustomButton(const string& buttonID, const string& data)
+{
+    m_str += "add_custom_button|" + buttonID + "|" + data + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddButton(
+                            const string& buttonID, const string& name, const string& texturePath,
+                            const string& description, uint8 posX, uint8 posY, int32 gemCost, int32 videoCreditCost,
+                            const string& overlayText, const string& ovelayTexture, int32 overlayPosX, int32 overlayPosY, 
+                            const string& popupTexture, int32 popupPosX, int32 popupPosY, bool enabled,
+                            const string& disabledTexture, int32 disabledPosX, int32 disabledPosY)
+{
+    m_str += "add_button|" + buttonID + "|" + name + "|" + texturePath + "|" + description + "|" + ToString(posX) + "|" + ToString(posY) + "|";
+    m_str += ToString(gemCost) + "|" + ToString(videoCreditCost) + "|" + overlayText + "|" + ovelayTexture + "|" + ToString(overlayPosX) + "|" + ToString(overlayPosY) + "|";
+    m_str += popupTexture + "|" + ToString(popupPosX) + "|" + ToString(popupPosY) + "|" + "||"; 
+    m_str += enabled ? "1|" : "0|";
+    m_str += "||||" + disabledTexture + "|" + ToString(disabledPosX) + "|" + ToString(disabledPosY) + "|\n";
+
+    return this;
+}
+
+DialogBuilder* DialogBuilder::SetDescriptionText(const string& text)
+{
+    m_str += "set_description_text|" + text + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddTabButton(const string& buttonID, const string& name, const string& texturePath, const string& description, bool active, uint8 textureY)
+{
+    AddButton(buttonID, name, texturePath, description, active ? 1 : 0, textureY);
+    
+    usize pos = m_str.rfind("add_button");
+    if(pos != string::npos)
+    {
+        m_str.replace(pos, 10, "add_tab_button");
+    }
+
     return this;
 }
 

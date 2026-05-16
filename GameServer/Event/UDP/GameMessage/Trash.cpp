@@ -7,6 +7,9 @@ void Trash::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pItemID)
         return;
 
-    string itemID(pItemID->value, pItemID->size);
-    TrashDialog::Request(pPlayer, ToUInt(itemID));
+    uint32 itemID = 0;
+    if(ToUInt(string(pItemID->value, pItemID->size), itemID) != TO_INT_SUCCESS)
+        return;
+
+    TrashDialog::Request(pPlayer, itemID);
 }

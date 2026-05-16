@@ -87,6 +87,20 @@ void GamePlayer::GiveXP(uint32 amount)
     }
 }
 
+uint32 GamePlayer::GetPlayerLevel()
+{
+    uint32 playerXP = m_progressData.GetProgress(PLAYER_PROGRESS_XP);
+    if(playerXP < 100)
+        return 0;
+
+    return Sqrt((playerXP/50) - 2);
+}
+
+uint32 GamePlayer::GetPlayerNextLevelXP()
+{
+    return 50 * ((GetPlayerLevel() + 1) * (GetPlayerLevel() + 1) + 2);
+}
+
 void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
 {
     if(!HasState(PLAYER_STATE_LOGIN_REQUEST))

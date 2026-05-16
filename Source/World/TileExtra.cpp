@@ -246,11 +246,11 @@ void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
 
     /*uint16 fgItem = pTile->GetFG();
     if(fgItem == ITEM_ID_WINTERFEST_CALENDAR_2017) {
-        memBuffer.ReadWrite(itemID, write);
+        memBuffer.ReadWrite(otherData, write);
     }
 
     if(!database && (fgItem == ITEM_ID_WINTERFEST_CALENDAR_2018 || fgItem == ITEM_ID_WINTERFEST_CALENDAR_2019)) {
-        memBuffer.ReadWrite(itemID, write);
+        memBuffer.ReadWrite(otherData, write);
     }
 
     if(!database && fgItem == ITEM_ID_BUILDING_BLOCKS_MACHINE) {

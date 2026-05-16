@@ -1,6 +1,7 @@
 #include "CharacterData.h"
 #include "PlayModManager.h"
 #include "../IO/Log.h"
+#include "../Item/ItemUtils.h"
 
 CharacterData::CharacterData()
 : m_charState(0), m_charFlags(0),
@@ -50,6 +51,39 @@ uint32 CharacterData::GetSkinColor(bool tint)
     }
 
     return finalColor.GetAsUINTSwap();
+}
+
+void CharacterData::GetActiveModsForDialog(DialogBuilder& db)
+{
+    PlayModManager* pModMgr = GetPlayModManager();
+
+    for(auto& modID : m_activePlayMods)
+    {
+        PlayMod* pPlayMod = pModMgr->GetPlayMod(modID);
+        PlayerPlayModInfo* pPlayerMod = GetPlayMod(modID);
+        if(!pPlayMod || !pPlayerMod)
+        {
+            db.AddLabelWithIcon("UNKNOWN (" + ToString(modID) + ")", ITEM_ID_BLANK);
+            continue;
+        }
+
+        string label = pPlayMod->GetName();
+        if(pPlayerMod->durationMS > 0)
+        {
+            uint64 elapsedMs = pPlayerMod->timer.GetElapsedTime();
+
+            if(elapsedMs >= pPlayerMod->durationMS)
+            {
+                label += " `o(`wNONE `oleft)";
+            }
+            else
+            {
+                label += " `o(`w" + Time::ConvertTimeToStr(pPlayerMod->durationMS - elapsedMs) + " `oleft)";
+            }
+        }
+
+        db.AddLabelWithIcon(label, pPlayMod->GetDisplayItem());
+    }
 }
 
 bool CharacterData::HasPlayMod(ePlayModType modType)

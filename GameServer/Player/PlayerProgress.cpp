@@ -10,7 +10,7 @@ PlayerProgress::PlayerProgress(GamePlayer* pPlayer)
     memset(m_progressData, 0, sizeof(m_progressData));
     memset(m_achieves, 0, sizeof(m_achieves));
 
-    m_progressData[PLAYER_PROGRESS_XP] = 101; // do not touch it else we gonna root negative number
+    m_progressData[PLAYER_PROGRESS_XP] = 150;
 }
 
 void PlayerProgress::Serialize(MemoryBuffer& memBuffer, bool write)

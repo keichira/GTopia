@@ -42,6 +42,8 @@ public:
     void SendOnSetBux(uint32 gemCount, bool skipAnim, bool isSupporter, bool isSuperSupporter);
     void SendOnDataConfig(bool isMod, bool isSMod, Player* pPlayer = nullptr);
     void SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMS = 0, float angle = 0.0f);
+    void SendOnStoreRequest(const string& storeData);
+    void SendOnStorePurchaseResult(const string& resultText);
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);

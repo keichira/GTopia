@@ -49,7 +49,7 @@ void LoadAccount(QueryTaskResult&& result)
     }
 
     uint32 roleID = result.result->GetField("RoleID", 0).GetUINT();
-    if(roleID == 0) 
+    if(roleID == 0)
     {
         roleID = GetRoleManager()->GetDefaultRoleID();
     }

@@ -252,6 +252,24 @@ void Player::SendOnParticleEffect(eParticleEffect effectType, const Vector2Float
     SendCallFunctionPacket(data, -1, delayMs);
 }
 
+void Player::SendOnStoreRequest(const string &storeData)
+{
+    VariantVector data(2);
+    data[0] = "OnStoreRequest";
+    data[1] = storeData;
+
+    SendCallFunctionPacket(data);
+}
+
+void Player::SendOnStorePurchaseResult(const string& resultText)
+{
+    VariantVector data(2);
+    data[0] = "OnStorePurchaseResult";
+    data[1] = resultText;
+
+    SendCallFunctionPacket(data);
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;

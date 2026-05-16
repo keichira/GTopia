@@ -256,12 +256,11 @@ uint16 GetMaxTilesToLock(uint16 itemID)
 
 void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed)
 {
+    fruitCount = 0;
+    dropSeed = false;
+
     if(!pItem)
-    {
-        fruitCount = 0;
-        dropSeed = 0;
         return;
-    }
 
     switch(pItem->id)
     {
@@ -286,8 +285,6 @@ void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed)
             fruitCount = RandomRangeInt(1, pItem->maxFruitCount - 1);
         }
     }
-
-    dropSeed = false;
     
     if(!pItem->HasFlag(ITEM_FLAG_SEEDLESS))
     {
@@ -320,4 +317,66 @@ uint32 GetGemCountHarvestTree(ItemInfo* pSeed)
         value = 2;
 
     return RandomRangeInt(0, value - 1);
+}
+
+void GetBlockSpawnInfo(ItemInfo* pItem, bool isLucky, bool& dropBlock, bool& dropSeed, int32& dropGems)
+{
+    dropBlock = false;
+    dropSeed = false;
+    dropGems = 0;
+
+    if(!pItem)
+        return;
+
+    if(RandomRangeInt(0, 2) == 0 || isLucky)
+    {
+        if(!pItem->HasFlag(ITEM_FLAG_DROPLESS))
+        {
+            dropBlock = true;
+        }
+
+        if(isLucky)
+        {
+            if(RandomRangeInt(0, 3) == 0 && !pItem->HasFlag(ITEM_FLAG_SEEDLESS))
+            {
+                dropSeed = true;
+            }
+        }
+        else if(RandomRangeInt(0, 3) != 0)
+        {
+            if(!pItem->HasFlag(ITEM_FLAG_SEEDLESS))
+            {
+                dropSeed = true;
+            }
+            dropBlock = false;
+        }
+
+        if(!isLucky)
+            return;
+    }
+
+    if(pItem->rarity != 999 && !pItem->HasFlag(ITEM_FLAG_SEEDLESS) && !pItem->HasFlag2(ITEM_FLAG_GEMLESS))
+    {
+        int32 randGem = RandomRangeInt(0, 19);
+        if(randGem == 0 || isLucky)
+        {
+            dropGems = 1;
+        }
+
+        int32 value = pItem->rarity / 4;
+        if(value > 1)
+        {
+            if(pItem->rarity < 31)
+            {
+                value = (value * 3) / 4;
+            }
+
+            dropGems += RandomRangeInt(0, value - 1);
+
+            if(isLucky)
+            {
+                dropGems *= 5;
+            }
+        }
+    }
 }

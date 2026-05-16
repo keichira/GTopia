@@ -129,6 +129,30 @@ void World::Update()
     }
 }
 
+bool World::ExportWorld()
+{
+    File file;
+    if(!file.Open(GetProgramPath() + "/" + GetWorlName() + ".bin"))
+        return false;
+
+    uint32 worldMemEst = GetMemEstimate(true);
+    uint8* pData = new uint8[worldMemEst];
+    
+    MemoryBuffer memBuffer(pData, worldMemEst);
+    Serialize(memBuffer, true, true);
+
+    if(file.Write(pData, worldMemEst) != worldMemEst)
+    {
+        file.Close();
+        SAFE_DELETE_ARRAY(pData);
+        return false;
+    }
+
+    file.Close();
+    SAFE_DELETE_ARRAY(pData);
+    return true;
+}
+
 bool World::OnPlayerJoin(GamePlayer* pPlayer)
 {
     if(!pPlayer)
@@ -1155,7 +1179,7 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         pPacket->field2 = fruitCount;
         pPacket->field1 = dropSeed ? 1 : 0;
 
-        pPlayer->ModifyInventoryItem(pPacket->itemID, -1);
+        pPlayer->GetInventory().RemoveItem(pPacket->itemID, 1);
         pTile->SetFG(pPacket->itemID, GetTileManager());
 
         if(pPacket->field1 == 1)
@@ -1252,21 +1276,21 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
         {
             DropObjectOnTile(pTile, pItem->id - 1, RandomRangeInt(1, pItemFruit->farmablity), GetRandomItemDropOffset(), true);
         }
-    }
 
-    uint32 gemAmount = GetGemCountHarvestTree(pItem);
-    if(gemAmount > 0)
-    {
-        DropGemsOnTile(pTile, gemAmount);
-    }
-
-    if(pTile->HasFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO))
-    {
-        ItemInfo* pSeed = pItemMgr->GetItemByID(pItemMgr->GetBaseItemID(pItem->id));
-        if(pSeed)
+        uint32 gemAmount = GetGemCountHarvestTree(pItem);
+        if(gemAmount > 0)
         {
-            DropObjectOnTile(pTile, pSeed->id, 1, GetRandomItemDropOffset(), true);
-            pPlayer->SendOnTalkBubble("A `w" + pSeed->name + "`` falls out!", true);
+            DropGemsOnTile(pTile, gemAmount);
+        }
+    
+        if(pTile->HasFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO))
+        {
+            ItemInfo* pSeed = pItemMgr->GetItemByID(pItemMgr->GetBaseItemID(pItem->id));
+            if(pSeed)
+            {
+                DropObjectOnTile(pTile, pSeed->id, 1, GetRandomItemDropOffset(), true);
+                pPlayer->SendOnTalkBubble("A `w" + pSeed->name + "`` falls out!", true);
+            }
         }
     }
 
@@ -1298,6 +1322,57 @@ void World::OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile)
 
     pPlayer->GiveXP(1);
     SendTileUpdate(pTile);
+}
+
+void World::OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile)
+{
+    if(!pPlayer || !pTile)
+        return;
+
+    if(pTile->GetDisplayedItem() == ITEM_ID_BLANK)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
+    if(!pItem)
+        return;
+
+    if(pItem->type == ITEM_TYPE_SEED)
+    {
+        OnHarvestTree(pPlayer, pTile);
+        return;
+    }
+
+    PlayerInventory& inventory = pPlayer->GetInventory();
+    if(inventory.IsWearingItem(ITEM_ID_COSMIC_CAPE) && RandomRangeInt(0, 800) == 0)
+    {
+        DropObjectOnTile(pTile, ITEM_ID_COMET_DUST, 1, GetRandomItemDropOffset(), true);
+    }
+
+
+    if(pItem->type == ITEM_TYPE_TREASURE)
+    {
+        return;
+    }
+
+    bool dropBlock = false;
+    bool dropSeed = false;
+    int32 dropGems = 0;
+    GetBlockSpawnInfo(pItem, false, dropBlock, dropSeed, dropGems);
+
+    if(dropBlock)
+    {
+        DropObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
+    }
+
+    if(dropSeed)
+    {
+        DropObjectOnTile(pTile, pItem->id + 1, 1, GetRandomItemDropOffset(), true);
+    }
+
+    if(dropGems > 0)
+    {
+        DropGemsOnTile(pTile, dropGems);
+    }
 }
 
 bool World::IsPlayerWorldOwner(GamePlayer* pPlayer)

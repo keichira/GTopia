@@ -1,0 +1,35 @@
+# if line starts with '#' it means its comment line
+
+# add_tab SHOULD be on TOP
+# dont forget to add _menu in button_id
+# add_tab|tab_id|button_id|name|texture|textureY|description|
+
+# add_store|tab_id|button_id|name|cost|texture|textureX|textureY|description|
+# use negative numbers for growtoken in cost
+
+# set_items|button_id|count|itemID|count|itemID|.....
+
+# set_rule|button_id|DISABLED|STARTTIME|(epoch time)|ENDTIME|(epoch time)|CHOOSERANDOM|amount|
+# you dont have to use all rules at once
+# DISABLED -> disables the store entry
+# STARTTIME -> store entry will be shown on that time
+# ENDTIME -> store entry will be disappear on that time
+# CHOOSERANDOM -> choose random X items from set_items
+
+# EXAMPLES
+
+add_tab|0|main_menu|Home|btn_shop.rttex|0||
+add_tab|1|locks_menu|Locks And Stuff|btn_shop.rttex|1||
+add_tab|2|itempack_menu|Item Packs|btn_shop.rttex|3||
+add_tab|3|bigitems_menu|Awesome Items|btn_shop.rttex|4||
+add_tab|4|weather_menu|Weather Menu|btn_shop.rttex|5||
+add_tab|5|token_menu|Growtoken Items|btn_shop.rttex|2||
+
+add_store|0|world_lock|`oWorld Lock``|2000|store_buttons.rttex|0|7|`2You Get:`` 1 World Lock.<CR><CR>`5Description:`` Become the undisputed ruler of your domain with one of these babies.  It works like a normal lock except it locks the `$enti re world``!  Won't work on worlds that other people already have locks on. You can even  add additional normal locks to give access to certain areas to friends. `5It's a perma -item, is never lost when destroyed.``  `wRecycles for 200 Gems.``|
+set_items|world_lock|1|242|
+
+add_store|0|world_lock_10_pack|`oWorld Lock Pack``|20000|store_buttons.rttex|0|7|`2You Get:`` 10 World Locks.<CR><CR>`5Description:`` 10-pack of World Locks. Become the  undisputed ruler of up to TEN kingdoms with these babies. Each works like a normal lock  except it locks the `$entire world``!  Won't work on worlds that other people already have locks on. You can even add additional normal locks to give access to certain areas to friends. `5It's a perma-item, is never lost when destroyed.`` `wEach recycles for 200 Gems.``|
+set_items|world_lock_10_pack|10|242|
+
+add_store|0|small_lock|`oSmall Lock``|50|store_buttons.rttex|1|3|`2You Get:`` 1 Small Lock.<CR><CR>`5Description:`` Protect up to `$10`` tiles.  Can add  friends to the lock so others can edit that area as well. `5It's a perma-item, is neve r lost when destroyed.``|
+set_items|small_lock|1|202|

@@ -132,3 +132,4 @@ bool IsFuelPack(uint16 itemID);
 uint16 GetMaxTilesToLock(uint16 itemID);
 void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed);
 uint32 GetGemCountHarvestTree(ItemInfo* pSeed);
+void GetBlockSpawnInfo(ItemInfo* pItem, bool isLucky, bool& dropBlock, bool& dropSeed, int32& dropGems);

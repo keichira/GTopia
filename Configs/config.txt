@@ -3,7 +3,7 @@
 # configs to connect database
 # host user pass databaseName port
 
-# if you auto imported tables from setup.bat/.sh my_database_name SHOULD match the given database name when generating SQL tables
+# if you auto imported tables from setup script my_database_name SHOULD match the given database name when generating SQL tables
 
 database_info|localhost|root|my_db_password|my_database_name|3306|
 

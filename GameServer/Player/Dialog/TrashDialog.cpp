@@ -7,7 +7,7 @@
 
 void TrashDialog::Request(GamePlayer* pPlayer, uint16 itemID)
 {
-    if(!pPlayer)
+    if(!pPlayer || itemID == ITEM_ID_BLANK)
         return;
 
     if(itemID == ITEM_ID_FIST || itemID == ITEM_ID_WRENCH) 

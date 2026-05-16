@@ -243,6 +243,36 @@ uint32 PlayerInventory::GetFitItemCount(uint16 itemID)
     return m_items.size() < m_capacity ? pInfo->maxCanHold - pItem->count : 0;
 }
 
+// count, itemID, count, itemID
+bool PlayerInventory::CanAllItemsFit(const std::vector<uint32>& items)
+{
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+    if(items.size() % 2 != 0)
+        return false;
+
+    for(uint16 i = 0; i < items.size(); i += 2)
+    {
+        uint32 itemID = items[i + 1];
+        uint32 count = items[i];
+
+        ItemInfo* pItem = pItemMgr->GetItemByID(itemID);
+        if(!pItem)
+            return false;
+
+        if(count > pItem->maxCanHold)
+            return false;
+
+        InventoryItemInfo* pInvItem = GetItemByID(itemID);
+        if(pInvItem && pInvItem->count + count > pItem->maxCanHold)
+            return false;
+
+        if(!pInvItem && m_items.size() + 1 > m_capacity)
+            return false;
+    }
+
+    return true;
+}
+
 uint8 PlayerInventory::GetCountOfItem(uint16 itemID)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);

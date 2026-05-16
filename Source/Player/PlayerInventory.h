@@ -43,6 +43,7 @@ public:
 
     bool HaveRoomForItem(uint16 itemID, uint8 itemCount);
     uint32 GetFitItemCount(uint16 itemID);
+    bool CanAllItemsFit(const std::vector<uint32>& items);
 
     uint8 GetCountOfItem(uint16 itemID);
 
@@ -51,6 +52,8 @@ public:
 
     uint32 GetMemEstimate(bool database);
     void SetVersion(uint32 protocol);
+
+    uint32 GetInventorySize() const { return m_capacity; }
 
 private:
     uint8 m_version;

@@ -208,17 +208,19 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             {
                 pPlayer->GetInventory().AddItem(pTileItem->id, 1, pPlayer);
             }
-    
-            if(pTileItem->type == ITEM_TYPE_LOCK) 
+            else if(pTileItem->type == ITEM_TYPE_LOCK) 
             {
                 pWorld->OnRemoveLock(pPlayer, pTile);
             }
-            
-            if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE) 
+            else if(pTileItem->type == ITEM_TYPE_WEATHER_MACHINE) 
             {
                 pWorld->SetCurrentWeather(pWorld->GetDefaultWeather());
                 pTile->RemoveFlag(TILE_FLAG_IS_ON);
                 pWorld->SendCurrentWeatherToAll();
+            }
+            else
+            {
+                pWorld->OnTileDestroyedDropObject(pPlayer, pTile);
             }
     
             pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_BREAK_COUNT, 1);

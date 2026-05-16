@@ -34,7 +34,7 @@ void Magic::Execute(GamePlayer* pPlayer, std::vector<string>& args)
     pWorld->PlaySFXForEveryone("magic.wav");
     Vector2Float playerPos = pPlayer->GetWorldPos();
 
-    for(uint8 i = 0; i < 15; ++i) 
+    for(uint8 i = 0; i < 20; ++i) 
     {
         float offsetX = RandomRangeFloat(-80.0f, 100.0f);
         float offsetY = RandomRangeFloat(-80.0f, 100.0f);

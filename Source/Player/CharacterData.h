@@ -5,6 +5,7 @@
 #include "PlayMod.h"
 #include "../Math/Vector2.h"
 #include "../Utils/Timer.h"
+#include "../Utils/DialogBuilder.h"
 
 #define CHARACTER_DEFAULT_FIRE_DAMAGE 1.0f // umm
 #define CHARACTER_DEFAULT_SPEED 1000.0f
@@ -90,6 +91,7 @@ public:
     float GetFireDamage() const { return m_fireDamage; }
 
     uint32 GetSkinColor(bool tint = false);
+    void GetActiveModsForDialog(DialogBuilder& db);
 
     bool HasPlayMod(ePlayModType modType);
     PlayerPlayModInfo* GetPlayMod(ePlayModType modType);
@@ -105,6 +107,7 @@ public:
     void SetNeedCharStateUpdate(bool val) { m_needCharStateUpdate = val; }
 
     std::vector<PlayerPlayModInfo>& GetReqUpdatePlayMods() { return m_reqUpdatePlayMods; }
+    uint32 GetActiveModCount() { return m_activePlayMods.size(); };
 
 private:
     void RemovePlayMod(PlayerPlayModInfo* pPlayerMod);

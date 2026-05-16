@@ -22,6 +22,15 @@ public:
     DialogBuilder* AddSpacer(bool big = false);
     DialogBuilder* AddCheckBox(const string& boxID, const string& text, bool active);
     DialogBuilder* AddPlayerInfo(const string& label, uint32 level, uint32 currentXP, uint32 XPToLevelUP);
+    DialogBuilder* AddCustomButton(const string& buttonID, const string& data);
+    DialogBuilder* AddButton(const string& buttonID, const string& name, const string& texturePath,
+                            const string& description, uint8 posX, uint8 posY, int32 gemCost = 0, int32 videoCreditCost = 0,
+                            const string& overlayText = "", const string& ovelayTexture = "", int32 overlayPosX = -1, int32 overlayPosY = -1, 
+                            const string& popupTexture = "", int32 popupPosX = -1, int32 popupPosY = -1, bool enabled = true,
+                            const string& disabledTexture = "", int32 disabledPosX = 0, int32 disabledPosY = 0);
+    DialogBuilder* SetDescriptionText(const string& text);
+    DialogBuilder* AddTabButton(const string& buttonID, const string& name, const string& texturePath, 
+                               const string& description, bool active, uint8 textureY);
 
     DialogBuilder* EmbedData(const string& name, const string& value);
 

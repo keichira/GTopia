@@ -27,6 +27,7 @@ set(GAME_EVENT "${GAME_ROOT}/Event")
 set(GAME_WORLD "${GAME_ROOT}/World")
 set(GAME_COMMAND "${GAME_ROOT}/Command")
 set(GAME_DIALOG "${GAME_PLAYER}/Dialog")
+set(GAME_STORE "${GAME_ROOT}/Store")
 
 set(GAME_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/PlayerDBTable.cpp
@@ -65,6 +66,8 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GameMessage/SetSkin.cpp
     ${GAME_EVENT}/UDP/GameMessage/Drop.cpp
     ${GAME_EVENT}/UDP/GameMessage/Wrench.cpp
+    ${GAME_EVENT}/UDP/GameMessage/Buy.cpp
+    ${GAME_EVENT}/UDP/GameMessage/Store.cpp
 
     ${GAME_EVENT}/UDP/GamePacket/ItemActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
@@ -108,6 +111,8 @@ set(GAME_FILES PRIVATE
     ${GAME_PLAYER}/PlayerManager.cpp
     ${GAME_PLAYER}/AchievementManager.cpp
     ${GAME_PLAYER}/PlayerProgress.cpp
+
+    ${GAME_STORE}/StoreManager.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp

@@ -37,6 +37,7 @@ public:
     static void SaveToDatabaseCB(QueryTaskResult&& result);
     void SaveToDatabase();
     void Update();
+    bool ExportWorld();
 
     void QueuePendingPlayer(GamePlayer* pPlayer);
     bool HasPendingPlayers() const;
@@ -80,6 +81,7 @@ public:
     void OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket);
     void OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile);
     void OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile);
+    void OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile);
 
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);

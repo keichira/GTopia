@@ -41,9 +41,13 @@ public:
     bool HasFlag(ePlayerFlags flag) { return m_flags & flag; }
 
     void SetGems(uint32 amount) { m_gems = amount; }
+    int32 GetGems() const { return m_gems; }
     void SendGems(bool skipAnim);
     void ModifyGems(int32 count, bool sendToPlayer);
     void GiveXP(uint32 amount);
+
+    uint32 GetPlayerLevel();
+    uint32 GetPlayerNextLevelXP();
 
     void StartLoginRequest(ParsedTextPacket<25>& packet);
     void HandleCheckSession(VariantVector&& result);

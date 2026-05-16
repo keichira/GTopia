@@ -23,7 +23,7 @@ struct WorldObject
     void SetFlag(uint16 flag) { flags |= flag; }
     void RemoveFlag(uint16 flag) { flags &= ~flag; }
     bool HasFlag(uint16 flag) { return flags & flag; };
-    Vector2Float GetCenterPos() { return pos + 8; }
+    Vector2Float GetCenterPos() { return pos + 8.0f; }
 
     void Serialize(MemoryBuffer& memBuffer, bool write);
 };

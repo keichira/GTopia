@@ -14,6 +14,7 @@
 #include "Player/PlayModManager.h"
 #include "Math/Math.h"
 #include "Player/AchievementManager.h"
+#include "Store/StoreManager.h"
 
 bool firstCallShutdown = false;
 
@@ -360,6 +361,11 @@ int main(int argc, char const* argv[])
     if(!GetAchievementManager()->Load(GetProgramPath() + "/achievements.txt"))
     {
         LOGGER_LOG_ERROR("Failed to load achievements.txt");
+    }
+
+    if(!GetStoreManager()->Load(GetProgramPath() + "/store.txt"))
+    {
+        LOGGER_LOG_ERROR("Failed to load store.txt");
     }
 
     GetMasterBroadway()->SendHelloPacket();
