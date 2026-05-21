@@ -44,7 +44,9 @@ set(MASTER_FILES PRIVATE
     ${MASTER_EVENT}/TCP/TCPEventPlayerEndSession.cpp
     ${MASTER_EVENT}/TCP/TCPEventKillServer.cpp
     ${MASTER_EVENT}/TCP/TCPEventHeartBeat.cpp
+    ${MASTER_EVENT}/TCP/TCPEventWorldPlayerSession.cpp
 
+    ${SOURCE_WORLD}/WorldBalancer.cpp
     ${MASTER_WORLD}/WorldManager.cpp
 
     ${SOURCE_PLAYER}/Player.cpp

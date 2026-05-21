@@ -83,7 +83,7 @@ void GamePlayer::GiveXP(uint32 amount)
         }
 
         pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_LEVELUP, m_worldPos);
-        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName() + " ``is now level " + ToString(playerNewLevel) + "!", true, this);
+        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName() + " `wis now level " + ToString(playerNewLevel) + "!", true, this);
     }
 }
 
@@ -244,7 +244,7 @@ void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
         {
             World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
             if(pWorld) {
-                pWorld->PlayerLeaveWorld(this);
+                pWorld->PlayerLeaveWorld(this, true);
             }
         }
 
@@ -537,9 +537,9 @@ void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
         return;
     }
 
-    Vector2Int tilePos = pTile->GetPos();
-    //dropPos.x = Clamp(dropPos.x, tilePos.x * 32.f + 2.f, tilePos.x * 32.f + 29.f);
-    //dropPos.y = Clamp(dropPos.y, tilePos.y * 32.f + 2.f, tilePos.y * 32.f + 29.f);
+    Vector2Float vTileWorldPos = pTile->GetWorldPos();
+    dropPos.x = Clamp(dropPos.x, vTileWorldPos.x + 2.f, vTileWorldPos.x + 29.f);
+    dropPos.y = Clamp(dropPos.y, vTileWorldPos.y + 2.f, vTileWorldPos.y + 29.f);
 
     if(pWorld->GetObjectManager()->GetCounfOfObjestsInRect(pTile->GetRect()) > 19)
     {
@@ -562,7 +562,7 @@ void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
     }
 
     ModifyInventoryItem(itemID, -amount);
-    pWorld->DropObjectOnTile(pTile, itemID, amount, random, true);
+    pWorld->DropObjectOnTile(pTile, itemID, amount, dropPos - pTile->GetWorldPosCenter(), true);
 }
 
 void GamePlayer::AddPlayMod(ePlayModType modType, bool silent)

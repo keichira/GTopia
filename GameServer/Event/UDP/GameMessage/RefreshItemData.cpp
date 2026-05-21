@@ -11,6 +11,7 @@ void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!clientData->pItemData) 
     {
         pPlayer->SendOnConsoleMessage("Someting went wrong while sending updates");
+        pPlayer->LogOff(true, false, true);
         LOGGER_LOG_WARN("Not sending file update data because its NULL");
         return;
     }

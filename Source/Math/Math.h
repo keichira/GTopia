@@ -29,3 +29,5 @@ inline T Sqrt(T x) { return sqrt(x); }
 
 template<typename T>
 inline T Abs(T value) { return value >= 0.0 ? value : -value; }
+
+inline bool IsNan(float value) { return std::isnan(value); }

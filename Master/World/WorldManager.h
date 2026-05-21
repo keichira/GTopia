@@ -2,6 +2,7 @@
 
 #include "Precompiled.h"
 #include "Database/QueryUtils.h"
+#include "World/WorldBalancer.h"
 
 class ServerInfo;
 
@@ -27,12 +28,13 @@ struct WorldSession
     uint32 instanceID = 0;
     uint32 databaseID = 0;
     uint32 serverID = 0;
+    uint32 playerCount = 0;
     WorldState state = WORLD_STATE_LOADING;
     string worldName;
     std::vector<PendingTransfer> waitingPlayers;
 };
 
-class WorldManager {
+class WorldManager : public WorldBalancer {
 public:
     WorldManager();
     ~WorldManager();
@@ -63,7 +65,7 @@ private:
 
 private:
     std::unordered_map<uint32, WorldSession> m_worldSessionsByInstance;
-    std::unordered_map<string, uint32> m_worldInstanceByName;
+    std::unordered_map<string, std::vector<uint32>> m_worldInstanceByName;
 };
 
 WorldManager* GetWorldManager();

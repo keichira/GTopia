@@ -279,7 +279,7 @@ bool StoreManager::PurchaseItem(GamePlayer* pPlayer, const string& entryCode)
             randItems.push_back(pStoreEntry->items[base + 1]);
         }
 
-        if(!inventory.CanAllItemsFit(pStoreEntry->items))
+        if(!inventory.CanAllItemsFit(randItems))
         {
             pPlayer->SendOnStorePurchaseResult("You can't fit all that in your backpack!");
             pPlayer->PlaySFX("bleep_fail.wav");

@@ -161,6 +161,21 @@ void RunGameLoop()
     }
 }
 
+/*void RegisterBalancedWorlds()
+{
+    GameConfig* pGameConfig = GetContext()->GetGameConfig();
+    WorldManager* pWorldMgr = GetWorldManager();
+
+    pWorldMgr->SetBalancerEnabled(pGameConfig->isWorldBalancerEnabled);
+    if(!pWorldMgr->IsBalancerEnabled())
+        return;
+
+    for(auto& balance : pGameConfig->balancedWorlds)
+    {
+        pWorldMgr->RegisterBalancedWorld(balance);
+    }
+}*/
+
 int main(int argc, char const* argv[])
 {
     signal(SIGTERM, SignalStop);
@@ -224,18 +239,27 @@ int main(int argc, char const* argv[])
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
     LOGGER_LOG_INFO("Started game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
 
-    TelnetServer* pTelnetServer = GetTelnetServer();
-    if(pTelnetServer->LoadTelnetConfigFromFile(GetProgramPath() + "/telnet_config.txt")) {
-        if(!pTelnetServer->Init()) {
-            LOGGER_LOG_ERROR("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
-            return 0;
+    //RegisterBalancedWorlds();
+
+    if(pGameConfig->enableTelnetServer)
+    {
+        TelnetServer* pTelnetServer = GetTelnetServer();
+        if(pTelnetServer->LoadTelnetConfigFromFile(GetProgramPath() + "/telnet_config.txt")) {
+            if(!pTelnetServer->Init()) {
+                LOGGER_LOG_ERROR("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+                return 0;
+            }
+            else {
+                LOGGER_LOG_INFO("Started telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+            }
         }
         else {
-            LOGGER_LOG_INFO("Started telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+            LOGGER_LOG_ERROR("Failed to load telnet_config.txt not gonna initialize telnet server");
         }
     }
-    else {
-        LOGGER_LOG_ERROR("Failed to load telnet_config.txt not gonna initialize telnet server");
+    else
+    {
+        LOGGER_LOG_INFO("Not starting telnet server its disabled in config");
     }
 
     std::thread dbThread(DatabaseThreadFunc);

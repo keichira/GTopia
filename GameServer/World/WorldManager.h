@@ -13,13 +13,6 @@ struct PendingWorldData
     uint64 requestTime;
 };
 
-struct PendingJoinData
-{
-    GamePlayer* player;
-    uint32 worldInstanceID = 0;
-    uint64 requestTime;
-};
-
 class WorldManager {
 public:
     WorldManager();
@@ -64,9 +57,6 @@ private:
     void RegisterEvents();
     void StartWorldLoad(World* pWorld);
     void OnPlayerJoinRequest(GamePlayer* pPlayer, World* pWorld);
-    void QueuePlayerToWorld(GamePlayer* pPlayer, World* pWorld);
-    void OnWorldReady(World* pWorld);
-    void FlushWorldJoinQueue(World* pWorld);
 
 private:
     Timer m_lastWorldUpdateTime;

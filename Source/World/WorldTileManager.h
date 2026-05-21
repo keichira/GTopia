@@ -71,9 +71,6 @@ public:
 
     void AgeTiles(uint32 ageMS);
 
-    uint32& GetPathCurrentStamp() { return m_pathcurrStamp; }
-    std::vector<uint16>& GetPathClosed() { return m_pathClosedStamp; }
-
 private:
     void FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
     void FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems);
@@ -85,7 +82,4 @@ private:
 
     std::vector<TileInfo*> m_keyTiles;
     std::vector<Vector2Int> m_onFireTiles;
-
-    std::vector<uint16> m_pathClosedStamp;
-    uint32 m_pathcurrStamp;
 };

@@ -25,7 +25,7 @@ enum eTileFlags
     TILE_FLAG_PAINTED_RED = 1 << 13,
     TILE_FLAG_PAINTED_GREEN = 1 << 14,
     TILE_FLAG_PAINTED_BLUE = 1 << 15,
-    TILE_FLAG_PAINTED_BLACK = TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE
+    TILE_FLAG_PAINTED_WHITE = TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE
 };
 
 class WorldTileManager;
@@ -60,9 +60,11 @@ public:
     uint16 GetParent() const { return m_tileData->parent; }
 
     void SetPos(uint16 x, uint16 y) { m_pos.x = x; m_pos.y = y; }
-    Vector2Int GetPos() const { return m_pos; }
+    Vector2Int& GetPos() { return m_pos; }
 
     Vector2Float GetWorldPos() { return Vector2Float(m_pos.x * 32.0f, m_pos.y * 32.0f); }
+    Vector2Float GetWorldPosCenter() { return GetWorldPos() + 16.0f; }
+
     RectFloat GetRect() { return RectFloat(m_pos.x * 32, m_pos.y * 32, (m_pos.x + 1) * 32, (m_pos.y + 1) * 32); }
 
     void SetFlag(uint16 flag) { m_tileData->flags |= flag; }
@@ -71,8 +73,10 @@ public:
     void ToggleFlag(uint16 flag) { m_tileData->flags ^= flag; }
 
     void PunchTile(uint8 damage);
+    bool WillBreak(uint8 damage);
     float GetHealthPercent();
     bool IsTree();
+    float GetGrowthPercent();
 
     uint16 GetDisplayedItem();
     void AgeTile(uint32 ageMS);

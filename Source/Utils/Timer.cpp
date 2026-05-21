@@ -17,9 +17,21 @@ void Timer::Reset(uint64 newTime)
     m_startTime = newTime;
 }
 
+void Timer::Set(uint64 ms)
+{
+    m_startTime = GetTick() + ms;
+}
+
+bool Timer::IsPassed()
+{
+    return GetTick() >= m_startTime;
+}
+
 uint64 Timer::GetElapsedTime(bool reset)
 {
-    uint64 elapsedTime = GetTick() - m_startTime;
+    uint64 now = GetTick();
+
+    uint64 elapsedTime = (now > m_startTime) ? (now - m_startTime) : 0;
 
     if(reset)
     {

@@ -148,4 +148,26 @@ void PlayerManager::SaveAllToDatabase()
     }
 }
 
+void PlayerManager::BroadcastMessage(const string& message, const string& worldName, const string& audio)
+{
+    if(message.empty())
+        return;
+
+    for(auto& [_, pPlayer] : m_gamePlayers)
+    {
+        if(!pPlayer)
+            continue; 
+
+        if(pPlayer->HasState(PLAYER_STATE_DELETE))
+            continue;
+
+        pPlayer->SendOnConsoleMessage(message);
+
+        if(!audio.empty())
+        {
+            pPlayer->PlaySFX(audio);
+        }
+    }
+}
+
 PlayerManager* GetPlayerManager() { return PlayerManager::GetInstance(); }

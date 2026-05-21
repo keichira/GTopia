@@ -5,7 +5,7 @@
 #include "WorldInfo.h"
 
 WorldTileManager::WorldTileManager()
-: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT), m_pathcurrStamp(1)
+: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
 {
     m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
     m_tempTiles.resize(m_size.x * m_size.y);
@@ -30,7 +30,6 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     if(!write) {
         m_tiles.resize(totalTiles);
         m_tempTiles.resize(totalTiles);
-        m_pathClosedStamp.resize(totalTiles);
     }
 
     if(write) {
@@ -149,15 +148,11 @@ void WorldTileManager::Clear(bool reInit)
         m_tempTiles.resize(m_size.x * m_size.y);
         m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
         m_tempTiles.resize(m_size.x * m_size.y);
-        m_pathClosedStamp.resize(m_size.x * m_size.y);
 
         for(uint32 i = 0; i < m_tiles.size(); ++i) { 
             m_tiles[i].BindTileData(&m_tempTiles[i]);
             m_tiles[i].SetPos(i % m_size.x, i / m_size.x); 
         }
-    }
-    else {
-        m_pathClosedStamp.clear();
     }
 }
 

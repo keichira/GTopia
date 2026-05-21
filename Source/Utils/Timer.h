@@ -9,6 +9,8 @@ public:
 public:
     void Reset();
     void Reset(uint64 newTime);
+    void Set(uint64 ms);
+    bool IsPassed();
     uint64 GetElapsedTime(bool reset = false);
     uint64 GetStartTime() const;
 

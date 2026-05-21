@@ -164,6 +164,42 @@ bool GameConfig::LoadConfig(const string& filePath)
     
             continue;
         }
+
+        if(key == "enable_telnet_server")
+        {
+            if(!line.Require(1))
+                return false;
+            
+            enableTelnetServer = line.GetUInt(1) == 1 ? true : false;
+            continue;
+        }
+
+        /*if(key == "enable_world_balance")
+        {
+            if(!line.Require(1))
+                return false;
+
+            isWorldBalancerEnabled = line.GetInt(1) == 1 ? true : false;
+        }
+
+        if(key == "balance_world")
+        {
+            if(!line.Require(4))
+                return false;
+
+            WorldBalanceConfigSchema blnc;
+            blnc.worldName = line.GetString(1);
+            blnc.fileName = line.GetString(2);
+            blnc.maxInstance = line.GetUInt(3);
+            blnc.keepExactId = line.GetInt(4) == 1 ? true : false;
+
+            balancedWorlds.push_back(std::move(blnc));
+        }
+
+        if(key == "balance_soft_cap_ratio")
+        {
+            balanceSoftCapRatio = line.GetFloat(1, 0.6f);
+        }*/
     }
 
     return true;

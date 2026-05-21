@@ -166,6 +166,23 @@ void TileInfo::PunchTile(uint8 damage)
     }
 }
 
+bool TileInfo::WillBreak(uint8 damage)
+{
+    uint16 itemToDamage = GetDisplayedItem();
+
+    if(itemToDamage == ITEM_ID_BLANK)
+        return false;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemToDamage);
+    if(!pItem)
+        return false;
+
+    if(m_lastDamageTime.GetElapsedTime() >= pItem->restoreTime * 1000)
+        return false;
+
+    return m_damage + damage >= pItem->hp;
+}
+
 float TileInfo::GetHealthPercent()
 {
     uint16 itemToDamage = GetDisplayedItem();
@@ -186,7 +203,7 @@ float TileInfo::GetHealthPercent()
         return 1.0f;
     }
     
-    return 1.0f - (m_damage / pItem->hp);
+    return 1.0f - ((float)m_damage / pItem->hp);
 }
 
 bool TileInfo::IsTree()
@@ -199,6 +216,14 @@ bool TileInfo::IsTree()
         return false;
 
     return pItem->type == ITEM_TYPE_SEED;
+}
+
+float TileInfo::GetGrowthPercent()
+{
+    if(!m_pExtraData)
+        return 0.0f;
+
+    return m_pExtraData->GetGrowthPercent(GetFG());
 }
 
 uint16 TileInfo::GetDisplayedItem()

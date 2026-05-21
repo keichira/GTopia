@@ -6,9 +6,12 @@ void QuitToExit::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer)
         return;
 
+    if(pPlayer->GetCurrentWorld() == 0)
+        return;
+
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if(!pWorld)
         return;
 
-    pWorld->PlayerLeaveWorld(pPlayer);
+    pWorld->PlayerLeaveWorld(pPlayer, true);
 }

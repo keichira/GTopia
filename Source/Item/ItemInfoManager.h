@@ -59,11 +59,13 @@ public:
     uint32 GetItemCount() const { return m_itemCount; }
     void ForceItemDataVersion(uint16 newVersion) { m_version = newVersion; }
 
+    ItemInfo* GetSpliceInfo(uint16 seed1, uint16 seed2);
+    void SetupItemExtras();
+
     ItemsClientData* GetClientData(uint8 platformType, float gameVersion);
 
 private:
     uint32 GetItemRarity(uint32 itemID);
-    void SetupItemExtras();
     void CreateDefaultSeedForItem(ItemInfo* pItem);
 
 private:
@@ -74,6 +76,7 @@ private:
     ItemsClientData m_itemDataOgg[MAX_SUPPORTED_ITEM_DATA_VERSION];
 
     std::vector<ItemInfo> m_items;
+    std::unordered_map<uint32, uint32> m_spliceData;
 };
 
 ItemInfoManager* GetItemInfoManager();

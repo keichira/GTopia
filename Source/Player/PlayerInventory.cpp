@@ -276,9 +276,8 @@ bool PlayerInventory::CanAllItemsFit(const std::vector<uint32>& items)
 uint8 PlayerInventory::GetCountOfItem(uint16 itemID)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);
-    if(!pItem) {
+    if(!pItem) 
         return 0;
-    }
 
     return pItem->count;
 }

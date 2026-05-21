@@ -1,8 +1,15 @@
 #include "State.h"
+#include "Math/Math.h"
 
 void State::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
     if(!pPlayer || !pWorld || !pPacket)
+        return;
+
+    if(IsNan(pPacket->posX) || IsNan(pPacket->posY))
+        return;
+
+    if(IsNan(pPacket->characterGravity) || IsNan(pPacket->characterSpeed))
         return;
 
     if(pPacket->posX == 0 || pPacket->posY == 0)

@@ -28,6 +28,14 @@ struct DatabaseConfigSchema
     uint16 port;
 };
 
+struct WorldBalanceConfigSchema
+{
+    string worldName;
+    string fileName;
+    int32 maxInstance = 2;
+    bool keepExactId = false;
+};
+
 class GameConfig {
 public:
     GameConfig();
@@ -64,4 +72,10 @@ public:
     float windowsSupportedVersions[2];
     float iosSupportedVersions[2];
     float macosSupportedVersions[2];
+
+    bool enableTelnetServer = false;
+
+    bool isWorldBalancerEnabled = false;
+    std::vector<WorldBalanceConfigSchema> balancedWorlds;
+    float balanceSoftCapRatio = 0.6;
 };

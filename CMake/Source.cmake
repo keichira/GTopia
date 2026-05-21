@@ -25,6 +25,7 @@ set(SOURCE_DEFAULT_FILES
     ${SOURCE_IO}/Log.cpp
 
     ${SOURCE_MATH}/Random.cpp
+    ${SOURCE_MATH}/WeightRand.cpp
     ${SOURCE_MATH}/Vector2.cpp
     ${SOURCE_MATH}/Vector3.cpp
     ${SOURCE_MATH}/Color.cpp

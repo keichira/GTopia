@@ -114,6 +114,7 @@ public:
     Timer& GetLastActionTime() { return m_lastActionTime; }
     Timer& GetLastDBSaveTime() { return m_lastDbSaveTime; }
     Timer& GetLastJoinRequestTime() { return m_lastJoinRequestTime; }
+    Timer& GetLastTileChangeTime() { return m_lastTileChangeTime; }
 
     void RandomizeNextDBSaveTime() { m_nextDbSaveTime = RandomRangeInt(10 * 60, 15 * 60) * 1000; };
     uint64 GetNextDBSaveTime() const { return m_nextDbSaveTime; };
@@ -134,6 +135,7 @@ private:
 
     string m_logonJoinWorld;
     Timer m_lastJoinRequestTime;
+    Timer m_lastTileChangeTime;
 
     uint32 m_guestID;
 

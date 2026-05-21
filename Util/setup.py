@@ -9,6 +9,7 @@ from pathlib import Path
 import socket
 from update_file_hashes import generate_file_hashes
 from generate_item_data import generate_item_txt_from_dat
+from generate_wiki_data import fetch_wiki_and_write
 
 ROOT = Path.cwd()
 CERT_DIR = (ROOT / ".." / "HTTPServer").resolve()
@@ -272,6 +273,18 @@ def item_txt_wizard():
     print("Generating items.txt this might took a bit")
     generate_item_txt_from_dat(0, path)
 
+def wiki_data_wizard():
+    print("\n--- Starting wiki data generation ---")
+
+    print("\nWiki data used for getting splice recipes, descriptions and elements")
+    print("If items.dat version is greater or equals to 22 or 23 you don't have to generate wiki_data.txt, since theres no usage for item elements\n")
+
+    folder_path = input("items.dat file path: ").strip()
+    path = Path(folder_path).expanduser().resolve()
+
+    print("Generating wiki_data.txt this might took a bit")
+    fetch_wiki_and_write(0, path)
+
 def main():
     check_cmake()
     print("----------\n")
@@ -307,6 +320,14 @@ def main():
         move_file(ROOT / "items.txt", RUNTIME_DIR)
     else:
         print("Okay! you can generate by using generate_item_data.py later\n")
+
+    ans = input("\n👉 Do you want to generate wiki_data.txt [y/N]: ").strip().lower()
+    if ans == "y":
+        wiki_data_wizard()
+        print("----------\n")
+        move_file(ROOT / "wiki_data.txt", RUNTIME_DIR)
+    else:
+        print("Okay! you can generate by using generate_wiki_data.py later\n")
 
     move_file(CONFIGS_DIR / "config.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "playmods.txt", RUNTIME_DIR)

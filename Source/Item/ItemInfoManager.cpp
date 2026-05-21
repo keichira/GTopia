@@ -354,61 +354,49 @@ bool ItemInfoManager::LoadByItemsDat(const string& filePath)
 
 bool ItemInfoManager::LoadWikiData(const string& filePath)
 {
-    File file;
-    if(!file.Open(filePath)) {
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
         return false;
-    }
 
-    uint32 fileSize = file.GetSize();
-    string fileData(fileSize, '\0');
+    for(auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
 
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
-        return false;
-    }
+        if(key == "set_wiki")
+        {
+            if(!line.Require(5))
+                return false;
 
-    auto lines = Split(fileData, '\n');
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
-            continue;
-        }
-
-        auto args = Split(line, '|');
-
-        if(args[0] == "set_wiki") {
-            uint32 itemID = ToUInt(args[1]);
-
-            ItemInfo* pItem = GetItemByID(itemID);
-            if(!pItem) {
-                LOGGER_LOG_ERROR("Tried add wiki data on %d but non exists?", itemID);
+            uint32 itemID = line.GetUInt(1);
+            if(itemID == ITEM_ID_BLANK)
                 continue;
-            }
 
             ItemInfo* pSeed = GetItemByID(itemID + 1);
-            if(pSeed) {
-                if(pSeed->seed1 == 0 && pSeed->seed2 == 0) {
-                    pSeed->seed1 = ToUInt(args[2]);
-                    pSeed->seed2 = ToUInt(args[3]);
-                }
-            }
-            else {
-                LOGGER_LOG_ERROR("Tried to set wiki seed data on %d but seed not exists!", itemID);
+
+            if(pSeed && pSeed->seed1 != 0 && pSeed->seed2 != 0)
+            {
+                pSeed->seed1 = line.GetUInt(2);
+                pSeed->seed2 = line.GetUInt(3);
             }
 
-            if(pItem->element == ITEM_ELEMENT_NONE) {
-                pItem->element = StrToItemElement(args[4]);
+            ItemInfo* pItem = GetItemByID(itemID);
+            if(!pItem)
+                continue;
+
+            if(pItem->element == ITEM_ELEMENT_NONE)
+            {
+                pItem->element = StrToItemElement(line.GetString(4));
             }
 
-            if(pItem->description.empty()) {
-                pItem->description = args[5];
+            if(pItem->description == "No info.")
+            {
+                pItem->description = line.GetString(5);
             }
+
+            continue;
         }
-
-        /*if(args[0] == "set_combine") {
-
-        }*/
     }
 
-    SetupItemExtras();
     return true;
 }
 
@@ -574,6 +562,20 @@ ItemInfo* ItemInfoManager::GetItemByName(const string& name)
     return nullptr;
 }
 
+ItemInfo* ItemInfoManager::GetSpliceInfo(uint16 seed1, uint16 seed2)
+{
+    uint16 a = Min(seed1, seed2);
+    uint16 b = Max(seed1, seed2);
+
+    uint32 key = (uint32(a) << 16) | uint32(b);
+
+    auto it = m_spliceData.find(key);
+    if (it == m_spliceData.end())
+        return nullptr;
+
+    return GetItemByID(it->second);
+}
+
 ItemsClientData* ItemInfoManager::GetClientData(uint8 platformType, float gameVersion)
 {
     uint16 supportedVersion = m_version != 0 ? m_version : GetSupportedItemDataVersion(gameVersion);
@@ -620,11 +622,17 @@ uint32 ItemInfoManager::GetItemRarity(uint32 itemID)
 
 void ItemInfoManager::SetupItemExtras()
 {
-    for(uint32 i = 1; i < m_items.size(); i += 2) 
+    for(uint32 i = 1; i < m_items.size(); i += 2)
     {
         ItemInfo* pSeed = GetItemByID(i);
         if(!pSeed)
             continue;
+        
+        uint16 minV = Min(pSeed->seed1, pSeed->seed2);
+        uint16 maxV = Max(pSeed->seed1, pSeed->seed2);
+        
+        uint32 key = (uint32(minV) << 16) | uint32(maxV);
+        m_spliceData.insert_or_assign(key, pSeed->id);
 
         pSeed->rarity = GetItemRarity(pSeed->id);
         if(ItemInfo* pItem = GetItemByID(i - 1)) 
@@ -636,7 +644,7 @@ void ItemInfoManager::SetupItemExtras()
         {
             pSeed->growTime = 3600;
         }
-        else 
+        else
         {
             pSeed->growTime = (pSeed->rarity * pSeed->rarity * pSeed->rarity) + (30 * pSeed->rarity);
         }

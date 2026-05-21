@@ -40,6 +40,9 @@ world_max_player_count|70
 # type2 not working for newer clients
 enet_income_cmd_type|3
 
+# make it 1 to enable telnet server you need telnet_config.txt
+enable_telnet_server|0
+
 # make 0 to disable, if disabled it gonna choose item data version range from X_min_version to X_max_version
 # WARNING! auto choose from range is very experimental!
 

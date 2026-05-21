@@ -31,6 +31,8 @@ public:
     void UpdatePlayers();
     void SaveAllToDatabase();
 
+    void BroadcastMessage(const string& message, const string& worldName = "", const string& audio = "");
+
 private:
     std::unordered_map<uint32, GamePlayer*> m_gamePlayers;
     std::vector<GamePlayer*> m_pendingDelete;

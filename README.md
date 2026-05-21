@@ -52,7 +52,7 @@ Game servers are not working with raw items.dat you have to generate it into txt
 <br>
 
 - wiki_data.txt <br>
-No usage of it right now
+This file contains splice data, description and elements (if your items.dat contains splice data or descriptions you don't have to generate it since no usage of item elements for now), you can use generate_wiki_data script to generate it (it will be asked in setup script)
 
 ## Compile
 - *Scripts are gonna ask you what you want to build*<br>

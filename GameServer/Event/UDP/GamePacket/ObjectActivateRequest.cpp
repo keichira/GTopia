@@ -18,7 +18,8 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     if(!pItemInfo)
         return;
 
-    if(pItemInfo->HasFlag(ITEM_FLAG_AUTOPICKUP))
+    Role* pRole = pPlayer->GetRole();
+    if(!pRole)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTileByWorldPos(pObject->GetCenterPos());
@@ -38,8 +39,11 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     if(!pPlayerTile)
         return;
 
-    /*if(!pWorld->CanPlayerTravelToTile(pPlayer, pPlayerTile, pTile))
-        return;*/
+    if(!pWorld->CanPlayerTravelToTile(pPlayer, pPlayerTile, pTile))
+        return;
+
+    if(pItemInfo->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_MSTATE))
+        return;
 
     PlayerInventory& inventory = pPlayer->GetInventory();
 
@@ -53,7 +57,7 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     
     uint32 remaining = pObject->count - takeCount;
     
-    if(remaining > 0)
+    if(pObject->itemID != ITEM_ID_GEMS && remaining > 0)
     {
         pWorld->DropObjectOnTile(pTile, pObject->itemID, remaining, Vector2Float(0, 0), false);
     }
@@ -65,7 +69,6 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     packet.worldObjectID = pObject->objectID;
 
     pWorld->HandleTilePackets(&packet);
-    pWorld->SendGamePacketToAll(&packet);
 
     if(pItemInfo->id == ITEM_ID_GEMS)
     {
@@ -73,10 +76,9 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     }
     else
     {
-        inventory.AddItem(pObject->itemID, takeCount);
+        inventory.AddItem(pItemInfo->id, takeCount);
 
         string noticeMessage = "Collected `w" + ToString(takeCount) + " " + pItemInfo->name + "``.";
-
         if(pItemInfo->rarity != 999)
         {
             noticeMessage += " Rarity: `w" + ToString(pItemInfo->rarity) + "``.";
@@ -84,4 +86,6 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
 
         pPlayer->SendOnConsoleMessage(noticeMessage);
     }
+
+    pWorld->SendGamePacketToAll(&packet);
 }

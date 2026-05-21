@@ -19,7 +19,7 @@ World::~World()
 {
 }
 
-bool World::LoadFromFile()
+bool World::InitWorld()
 {
     if(m_databaseID == 0)
         return false;
@@ -91,26 +91,6 @@ void World::Update()
     if(m_state != WORLD_STATE_READY)
         return;
 
-    if(!m_pendingPlayers.empty()) {
-        uint32 count = 0;
-
-        uint32 maxPlayerCount = GetContext()->GetGameConfig()->worldMaxPlayerCount;
-        while(count != 8 && !m_pendingPlayers.empty()) 
-        {
-            GamePlayer* pPlayer = m_pendingPlayers.front();
-            m_pendingPlayers.pop();
-
-            if(m_players.size() + 1 >= maxPlayerCount) {
-                pPlayer->SendOnConsoleMessage("Oops, `5" + GetWorlName() + "`` already has `4" + ToString(maxPlayerCount) + "`` people in it. Try again later.");
-                pPlayer->SendOnFailedToEnterWorld();
-                continue;
-            }
-
-            count++;
-            OnPlayerJoin(pPlayer);
-        }
-    }
-
     if(m_players.size() > 0) 
     {
         m_worldOfflineTime.Reset();
@@ -129,10 +109,13 @@ void World::Update()
     }
 }
 
-bool World::ExportWorld()
+bool World::ExportWorld(const string& name)
 {
+    if(name.empty())
+        return false;
+
     File file;
-    if(!file.Open(GetProgramPath() + "/" + GetWorlName() + ".bin"))
+    if(!file.Open(GetProgramPath() + "/" + name + ".bin", FILE_MODE_WRITE))
         return false;
 
     uint32 worldMemEst = GetMemEstimate(true);
@@ -153,10 +136,54 @@ bool World::ExportWorld()
     return true;
 }
 
-bool World::OnPlayerJoin(GamePlayer* pPlayer)
+bool World::ImportWorld(const string& name)
+{
+    if(name.empty())
+        return false;
+
+    string worldName = GetWorlName();
+    if(worldName.empty())
+        return false;
+
+    File file;
+    if(!file.Open(GetProgramPath() + "/" + name + ".bin"))
+        return false;
+
+    uint32 worldMemSize = file.GetSize();
+    uint8* pData = new uint8[worldMemSize];
+
+    if(file.Read(pData, worldMemSize) != worldMemSize)
+    {
+        file.Close();
+        SAFE_DELETE_ARRAY(pData);
+        return false;
+    }
+
+    auto players = m_players;
+    RemoveAllPlayers();
+
+    MemoryBuffer memBuffer(pData, worldMemSize);
+    Serialize(memBuffer, false, true);
+    SAFE_DELETE_ARRAY(pData);
+    file.Close();
+
+    SetName(worldName);
+
+    for(auto& pPlayer : players)
+    {
+        if(!pPlayer)
+            continue;
+
+        AddPlayer(pPlayer, false);
+    }
+
+    return true;
+}
+
+void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
 {
     if(!pPlayer)
-        return false;
+        return;
 
     pPlayer->SetJoiningWorld(false);
     pPlayer->SetCurrentWorld(m_instanceID);
@@ -192,6 +219,11 @@ bool World::OnPlayerJoin(GamePlayer* pPlayer)
     pPlayer->SendOnSpawn(pPlayer->GetSpawnData(true));
     pPlayer->SendOnSetClothing();
     pPlayer->SendCharacterState();
+
+    if(newJoin)
+    {
+        GetMasterBroadway()->SendPlayerJoinedWorld(pPlayer->GetUserID(), GetInstanceID());    
+    }
 
     string playerDisplayName = pPlayer->GetDisplayName();
     string joinNotifyOtherMsg = "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
@@ -259,49 +291,9 @@ bool World::OnPlayerJoin(GamePlayer* pPlayer)
              */
         }
     }
-
-    return true;
 }
 
-void World::QueuePendingPlayer(GamePlayer* pPlayer)
-{
-    if(!pPlayer)
-        return;
-
-    m_pendingPlayers.push(pPlayer);
-}
-
-bool World::HasPendingPlayers() const
-{
-    return !m_pendingPlayers.empty();
-}
-
-GamePlayer* World::PopPendingPlayer()
-{
-    if(m_pendingPlayers.empty())
-        return nullptr;
-
-    GamePlayer* pPlayer = m_pendingPlayers.front();
-    m_pendingPlayers.pop();
-    return pPlayer;
-}
-
-void World::AddPlayer(GamePlayer* pPlayer)
-{
-    if(!pPlayer)
-        return;
-
-    if(m_state != WORLD_STATE_READY)
-    {
-        m_pendingPlayers.push(pPlayer);
-        return;
-    }
-
-    pPlayer->SetJoiningWorld(true);
-    m_pendingPlayers.push(pPlayer);
-}
-
-void World::PlayerLeaveWorld(GamePlayer* pPlayer)
+void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
 {
     if(!pPlayer)
         return;
@@ -325,6 +317,11 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer)
         m_players.pop_back();
 
         pPlayer->SetCurrentWorld(0);
+
+        if(hardLeave)
+        {
+            GetMasterBroadway()->SendPlayerLeftWorld(pPlayer->GetUserID(), GetInstanceID());
+        }
     }
 
     if(m_players.empty()) 
@@ -333,24 +330,29 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer)
     }
 }
 
-void World::ReconnectPlayers()
+void World::RemoveAllPlayers()
 {
-    auto players = m_players;
-
     for(auto& pPlayer : m_players)
     {
         if(!pPlayer)
             continue;
 
-        PlayerLeaveWorld(pPlayer);
+        PlayerLeaveWorld(pPlayer, false);
     }
+}
+
+void World::ReconnectPlayers()
+{
+    auto players = m_players;
+
+    RemoveAllPlayers();
 
     for(auto& pPlayer : players)
     {
         if(!pPlayer)
             continue;
 
-        AddPlayer(pPlayer);
+        AddPlayer(pPlayer, false);
     }
 }
 
@@ -518,12 +520,17 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
     SAFE_DELETE_ARRAY(pData);
 }
 
-void World::SendTileApplyDamage(uint16 tileX, uint16 tileY, int32 damage, int32 netID)
+void World::SendTileApplyDamage(TileInfo* pTile, int32 damage, int32 netID)
 {
+    if(!pTile)
+        return;
+
+    Vector2Int& vTilePos = pTile->GetPos(); 
+
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_TILE_APPLY_DAMAGE;
-    packet.tileX = tileX;
-    packet.tileY = tileY;
+    packet.tileX = vTilePos.x;
+    packet.tileY = vTilePos.y;
     packet.tileDamage = damage;
     packet.netID = netID;
 
@@ -663,7 +670,18 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
         return;
     }
 
-    switch(pGamePacket->type) {
+    switch(pGamePacket->type) 
+    {
+        case NET_GAME_PACKET_TILE_APPLY_DAMAGE:
+        {
+            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
+            if(!pTile)
+                return;
+
+            pTile->PunchTile(pGamePacket->tileDamage);
+            break;
+        }
+
         case NET_GAME_PACKET_ITEM_CHANGE_OBJECT:
         {
             GetObjectManager()->HandleObjectPackets(pGamePacket);
@@ -771,7 +789,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
 
             if(pGamePacket->field4 == -1)
             {
-                pTile->RemoveFlag(TILE_FLAG_PAINTED_BLACK);
+                pTile->RemoveFlag(TILE_FLAG_PAINTED_WHITE);
                 pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
                 return;
             }
@@ -805,9 +823,28 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
     }
 }
 
+void World::ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count)
+{
+    if(!pPlayer)
+        return;
+
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_ITEM_EFFECT;
+    packet.posX = pos.x;
+    packet.posY = pos.y;
+    packet.field4 = pPlayer->GetNetID();
+    packet.field2 = 5;
+    packet.field3 = 0;
+    packet.field8 = itemID; // ?? idk
+    packet.field12 = itemID;
+    packet.field13 = count;
+
+    SendGamePacketToAll(&packet);
+}
+
 uint32 World::PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal)
 {
-    if (!pNode || !pStart || !pGoal)
+    if(!pNode || !pStart || !pGoal)
         return 999999;
 
     Vector2Int vNodePos = pNode->GetPos();
@@ -820,7 +857,7 @@ uint32 World::PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* 
 int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList)
 {
     int32 bestIndex = -1;
-    int32 bestDist = -1;
+    uint32 bestDist = 9999999;
 
     for(int32 i = 0; i < openList.size(); ++i)
     {
@@ -829,7 +866,6 @@ int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std:
             continue;
 
         int32 dist = PathfindCalcDistance(pTile, pStart, pGoal);
-
         if(bestIndex == -1 || dist < bestDist)
         {
             bestIndex = i;
@@ -847,9 +883,6 @@ bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, Ti
 
     WorldTileManager* pTileMgr = GetTileManager();
     Vector2Int vStartPos = pStart->GetPos();
-
-    auto& closedPath = pTileMgr->GetPathClosed();
-    uint32& currStamp = pTileMgr->GetPathCurrentStamp();
 
     for (int32 dy = -1; dy <= 1; ++dy)
     {
@@ -871,13 +904,6 @@ bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, Ti
             if(pTile == pGoal)
                 return true;
 
-            int32 idx = pTileMgr->GetTileIndex(pTile);
-            if(idx == -1)
-                continue;
-
-            if(closedPath[idx] == currStamp)
-                continue;
-
             bool exists = false;
             for(auto& pOpen : openList)
             {
@@ -888,10 +914,10 @@ bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, Ti
                 }
             }
 
-            if(exists)
-                continue;
-
-            openList.push_back(pTile);
+            if(!exists)
+            {
+                openList.push_back(pTile);
+            }
         }
     }
 
@@ -906,26 +932,15 @@ bool World::CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInf
     if(pStart == pGoal)
         return true;
 
-    std::vector<TileInfo*> openList;
-
     WorldTileManager* pTileMgr = GetTileManager();
-    auto& closedPath = pTileMgr->GetPathClosed();
-    uint32& currStamp = pTileMgr->GetPathCurrentStamp();
 
-    currStamp++;
-
-    if(currStamp == 0)
-    {
-        memset(closedPath.data(), 0, closedPath.size() * sizeof(uint16));
-        currStamp = 1;
-    }
-
+    std::vector<TileInfo*> openList;
+    openList.reserve(64);
     openList.push_back(pStart);
 
-    int32 iterations = 0;
-    const int32 maxIterations = 300; // add to config?
+    const int32 maxIteration = 350; // add to config?
 
-    while(iterations++ < maxIterations)
+    for(int32 i = 0; i < maxIteration; ++i)
     {
         int32 bestIndex = PathfindGetShortestOpenTile(pStart, pGoal, openList);
 
@@ -934,12 +949,6 @@ bool World::CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInf
 
         TileInfo* pCurrent = openList[bestIndex];
         openList.erase(openList.begin() + bestIndex);
-
-        int32 idx = pTileMgr->GetTileIndex(pCurrent);
-        if(idx == -1)
-            continue;
-
-        closedPath[idx] = currStamp;
 
         if(PathfindAddNeighborsToList(pPlayer, pCurrent, pGoal, openList))
             return true;
@@ -1140,7 +1149,7 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
         return;
     }
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
     if(!pItem || pItem->type != ITEM_TYPE_LOCK) {
         return;
     }
@@ -1179,8 +1188,8 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         pPacket->field2 = fruitCount;
         pPacket->field1 = dropSeed ? 1 : 0;
 
-        pPlayer->GetInventory().RemoveItem(pPacket->itemID, 1);
-        pTile->SetFG(pPacket->itemID, GetTileManager());
+        pPlayer->GetInventory().RemoveItem(pSeed->id, 1);
+        pTile->SetFG(pSeed->id, GetTileManager());
 
         if(pPacket->field1 == 1)
         {
@@ -1201,6 +1210,66 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
 
         SendGamePacketToAll(pPacket);
     }
+    else
+    {
+        if(pTile->HasFlag(TILE_FLAG_WAS_SPLICED))
+        {
+            pPlayer->SendOnTalkBubble("It would be too dangerous to try to mix three seeds.", true);
+            return;
+        }
+
+        if(pTile->GetGrowthPercent() >= 100.0f)
+        {
+            pPlayer->SendOnTalkBubble("This tree is already too big to splice another seed with.", true);
+            return;
+        }
+
+        ItemInfo* pTileSeed = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+        if(!pTileSeed)
+            return;
+
+        ItemInfo* pMixItem = GetItemInfoManager()->GetSpliceInfo(pTile->GetFG(), pSeed->id);
+        if(!pMixItem)
+        {
+            pPlayer->SendOnTalkBubble(
+                "Hmm, it looks like `w" + pTileSeed->name + "`` and `w" + pSeed->name + "`` can't be spliced.", true
+            );
+            return;
+        }
+
+        pPlayer->ModifyInventoryItem(pSeed->id, -1);
+
+        pPlayer->SendOnTalkBubble(
+            "`w" + pTileSeed->name + "`` and `w" + pSeed->name + "`` have been spliced to make a `$" + pMixItem->name + "!", true
+        );
+        pPlayer->PlaySFX("success.wav");
+
+        pTile->SetFG(pMixItem->id, GetTileManager());
+        pTile->SetFlag(TILE_FLAG_WAS_SPLICED);
+
+        uint32 fruitCount = 0;
+        bool dropSeed = false;
+        GetTreeSpawnInfo(pSeed, fruitCount, dropSeed);
+
+        if(dropSeed)
+        {
+            pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
+        }
+        else
+        {
+            pTile->RemoveFlag(TILE_FLAG_IS_SEEDLING);
+        }
+
+        TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
+        if(pTileExtra)
+        {
+            pTileExtra->fruitCount = fruitCount;
+            TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, 0, 0);
+        }
+
+        SendTileUpdate(pTile);
+        return;
+    }
 
     HandleTilePackets(pPacket);
 }
@@ -1220,8 +1289,6 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
         return;
 
     uint32 fgItem = pTile->GetFG();
-
-    pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_HARVEST_COUNT, 1);
 
     if(fgItem == ITEM_ID_LEGENDARY_WIZARD_SEED)
     {
@@ -1419,6 +1486,19 @@ bool World::IsPlayerWorldAdmin(GamePlayer* pPlayer)
     }
 
     return false;
+}
+
+int32 World::GetWorldOwnerID()
+{
+    TileInfo* pTile = GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
+    if(!pTile)
+        return -1;
+
+    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
+    if(!pTileExtra)
+        return -1;
+
+    return pTileExtra->ownerID;
 }
 
 void World::DropGemsOnTile(TileInfo* pTile, uint32 gemCount)

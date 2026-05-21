@@ -13,7 +13,6 @@ void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pName) 
     {
         pPlayer->SendOnFailedToEnterWorld();
-        pPlayer->SendOnConsoleMessage("Unable to enter world by unknown reason");
         return;
     }
 

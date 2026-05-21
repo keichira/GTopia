@@ -57,7 +57,7 @@ void WorldManager::StartWorldLoad(World* pWorld)
     if(!pWorld)
         return;
 
-    if(!pWorld->LoadFromFile())
+    if(!pWorld->InitWorld())
     {
         pWorld->GenerateWorld(WORLD_GENERATION_DEFAULT);
         pWorld->SetState(WORLD_STATE_READY);
@@ -68,11 +68,10 @@ void WorldManager::StartWorldLoad(World* pWorld)
         pWorld->SetState(WORLD_STATE_READY);
     }
 
-    OnWorldReady(pWorld);
     GetMasterBroadway()->SendWorldInitResult(true, pWorld->GetInstanceID());
 }
 
-void WorldManager::HandlePlayerJoin(VariantVector &&result)
+void WorldManager::HandlePlayerJoin(VariantVector&& result)
 {
     if(result.size() < 7)
         return;
@@ -133,14 +132,7 @@ void WorldManager::HandlePlayerJoin(VariantVector &&result)
         return;
     }
 
-    if(pWorld->GetState() == WORLD_STATE_LOADING)
-    {
-        pWorld->QueuePendingPlayer(pPlayer);
-        pPlayer->SetJoiningWorld(true);
-        return;
-    }
-
-    pWorld->AddPlayer(pPlayer);
+    pWorld->AddPlayer(pPlayer, true);
 }
 
 void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldName)
@@ -188,7 +180,6 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
 
     if(pWorld->GetState() == WORLD_STATE_LOADING)
     {
-        QueuePlayerToWorld(pPlayer, pWorld);
         return;
     }
 
@@ -227,11 +218,6 @@ void WorldManager::UpdateWorlds()
             deleteList.push_back(worldID);
             continue;
         }
-
-        if(pWorld->GetState() == WORLD_STATE_READY && pWorld->HasPendingPlayers())
-        {
-            FlushWorldJoinQueue(pWorld);
-        }
     }
 
     for (uint32 worldID : deleteList)
@@ -268,13 +254,11 @@ void WorldManager::UpdatePendingLoadWorlds()
 
         loadedOne = true;
 
-        if(!pWorld->LoadFromFile())
+        if(!pWorld->InitWorld())
         {
             pWorld->GenerateWorld(WORLD_GENERATION_DEFAULT);
             pWorld->SaveToDatabase();
         }
-
-        OnWorldReady(pWorld);
     }
 }
 
@@ -326,48 +310,10 @@ void WorldManager::OnPlayerJoinRequest(GamePlayer* pPlayer, World* pWorld)
 
     if(pWorld->GetState() != WORLD_STATE_READY)
     {
-        QueuePlayerToWorld(pPlayer, pWorld);
         return;
     }
 
-    pWorld->AddPlayer(pPlayer);
-}
-
-void WorldManager::QueuePlayerToWorld(GamePlayer* pPlayer, World* pWorld)
-{
-    if(!pPlayer || !pWorld)
-        return;
-
-    pPlayer->SetJoiningWorld(true);
-    pWorld->AddPlayer(pPlayer);
-}
-
-void WorldManager::OnWorldReady(World* pWorld)
-{
-    if(!pWorld)
-        return;
-
-    if(pWorld->GetState() == WORLD_STATE_DELETE)
-        return;
-
-    pWorld->SetState(WORLD_STATE_READY);
-    FlushWorldJoinQueue(pWorld);
-}
-
-void WorldManager::FlushWorldJoinQueue(World* pWorld)
-{
-    if(!pWorld || pWorld->GetState() != WORLD_STATE_READY)
-        return;
-
-    while(pWorld->HasPendingPlayers())
-    {
-        GamePlayer* pPlayer = pWorld->PopPendingPlayer();
-        if(!pPlayer)
-            continue;
-
-        pPlayer->SetJoiningWorld(false);
-        pWorld->AddPlayer(pPlayer);
-    }
+    pWorld->AddPlayer(pPlayer, true);
 }
 
 void WorldManager::OnHandleGamePacket(ENetEvent& event)
@@ -390,8 +336,9 @@ void WorldManager::OnHandleGamePacket(ENetEvent& event)
     if(!pWorld)
         return;
 
-    if(pGamePacket->type != NET_GAME_PACKET_NPC) 
-    {
+    if(pGamePacket->type != NET_GAME_PACKET_NPC && pGamePacket->type != NET_GAME_PACKET_PING_REPLY 
+        && pGamePacket->type != NET_GAME_PACKET_PING_REQUEST && pGamePacket->type != NET_GAME_PACKET_SET_ICON_STATE
+    ) {
         pPlayer->GetLastActionTime().Reset();
     }
 

@@ -17,12 +17,12 @@
     #define SOCKET_INVALID INVALID_SOCKET
 #else
     typedef int socket_t;
-    #define SOCKET_INVALID (-1)
+    #define SOCKET_INVALID (~0)
 #endif
 
 class NetSocket;
 
-enum eSocketClientStatus 
+enum eSocketClientStatus
 {
     SOCKET_CLIENT_UNKNOWN,
     SOCKET_CLIENT_CONNECTED,
@@ -42,12 +42,7 @@ struct NetClient
     string ip;
 
     RingBuffer sendQueue = RingBuffer(8 * 1024);
-    
-#ifdef CLI_MEM_ITEM_MANAGER
-    RingBuffer recvQueue = RingBuffer(50 * 16 * 1024);
-#else
     RingBuffer recvQueue = RingBuffer(8 * 1024);
-#endif
 
     NetSocket* pNetSocket = nullptr;
     void* data = nullptr;

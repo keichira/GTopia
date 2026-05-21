@@ -237,6 +237,12 @@ bool IsFuelPack(uint16 itemID)
     }
 }
 
+bool IsJammer(uint16 itemID)
+{
+    return itemID == ITEM_ID_PUNCH_JAMMER || itemID == ITEM_ID_SIGNAL_JAMMER || itemID == ITEM_ID_ZOMBIE_JAMMER || itemID == ITEM_ID_GUARDIAN_PINEAPPLE
+    || itemID == ITEM_ID_ANTIGRAVITY_GENERATOR || itemID == ITEM_ID_MINI_MOD;
+}
+
 uint16 GetMaxTilesToLock(uint16 itemID)
 {
     switch(itemID) {

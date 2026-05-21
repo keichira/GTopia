@@ -22,6 +22,11 @@ void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& 
     uint32 userID = result[1].GetUINT();
     string worldName = ToUpper(result[2].GetString());
 
+    if(IsBalancerEnabled() && IsBalancedWorld(worldName))
+    {
+        GetBalancedName(worldName, worldName);
+    }
+
     WorldSession* pWorld = GetWorldByName(worldName);
     if(pWorld) {
         if(pWorld->state == WORLD_STATE_DELETE) {
@@ -146,7 +151,7 @@ void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databas
     world.waitingPlayers.push_back(pending);
 
     m_worldSessionsByInstance.insert_or_assign(instanceID, world);
-    m_worldInstanceByName.insert_or_assign(worldName, instanceID);
+    m_worldInstanceByName[worldName].push_back(instanceID);
 
     GetServerManager()->SendWorldInitPacket(pTargetServer, worldName, instanceID, databaseID);
 }
@@ -218,7 +223,41 @@ WorldSession* WorldManager::GetWorldByName(const string& worldName)
     if(it == m_worldInstanceByName.end())
         return nullptr;
 
-    return GetWorldByInstanceID(it->second);
+    if(it->second.empty())
+        return nullptr;
+
+    if(!IsBalancerEnabled() || (IsBalancerEnabled() && IsBalancedWorld(worldName)))
+        return GetWorldByInstanceID(it->second[0]);
+
+    GameConfig* pGameConfig = GetContext()->GetGameConfig();
+
+    uint32 maxPlayersPerWorld = pGameConfig->worldMaxPlayerCount;
+    uint32 softCap = maxPlayersPerWorld * pGameConfig->balanceSoftCapRatio;
+
+    WorldSession* pBest = nullptr;
+    int32 bestScore = 99999999;
+
+    bool underSoftCap = false;
+
+    for(auto& instance : it->second)
+    {
+        WorldSession* pSession = GetWorldByInstanceID(instance);
+        if(!pSession)
+            continue;
+
+        uint32 score = pSession->playerCount + pSession->waitingPlayers.size();
+
+        if(score < bestScore)
+        {
+            bestScore = score;
+            pBest = pSession;
+        }
+    }
+
+    if(bestScore >= softCap)
+        return nullptr;
+
+    return pBest;
 }
 
 WorldSession* WorldManager::GetWorldByInstanceID(uint32 instanceID)

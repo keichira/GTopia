@@ -3,6 +3,7 @@
 #include "../Precompiled.h"
 #include "../Memory/MemoryBuffer.h"
 #include "Utils/Timer.h"
+#include "../Item/ItemInfoManager.h"
 
 class TileExtra;
 
@@ -121,6 +122,7 @@ public:
     virtual ~TileExtra() {};
 
     virtual void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) = 0;
+    virtual float GetGrowthPercent(uint16 fgID) { return 0.0f; };
 
 protected:
     virtual void Serialize(MemoryBuffer& memBuffer, bool write);
@@ -204,6 +206,18 @@ TILE_EXTRA(TileExtra_Seed, TILE_EXTRA_TYPE_SEED)
     uint32 timer = Time::GetSystemTime();
     uint32 growTime = 0;
     uint8 fruitCount = 3;
+
+    float GetGrowthPercent(uint16 fgID) override
+    {
+        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(fgID);
+        if(!pItem)
+            return 0.0f;
+    
+        return GetTileExtraGrowthPercent(
+            pItem->growTime,
+            GetTileExtraGrowth(this, timer, growTime)
+        );
+    }
 };  
 
 TILE_EXTRA(TileExtra_Component, TILE_EXTRA_TYPE_COMPONENT)
@@ -214,6 +228,18 @@ TILE_EXTRA(TileExtra_Provider, TILE_EXTRA_TYPE_PROVIDER)
     uint32 timer = Time::GetSystemTime();
     uint32 growTime = 0;
     uint32 otherData = 0;
+
+    float GetGrowthPercent(uint16 fgID) override
+    {
+        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(fgID);
+        if(!pItem)
+            return 0.0f;
+    
+        return GetTileExtraGrowthPercent(
+            pItem->growTime,
+            GetTileExtraGrowth(this, timer, growTime)
+        );
+    }
 };
 
 TILE_EXTRA(TileExtra_Lab, TILE_EXTRA_TYPE_LAB)

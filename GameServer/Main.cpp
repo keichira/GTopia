@@ -139,8 +139,9 @@ bool LoadItemData()
     }
 
     if(!pItemMgr->LoadWikiData(GetProgramPath() + "/wiki_data.txt")) {
-        LOGGER_LOG_ERROR("Failed to load wiki_data.txt!");
+        LOGGER_LOG_ERROR("wiki_data.txt not found, skipping");
     }
+    pItemMgr->SetupItemExtras();
 
     File fileHashes;
     if(!fileHashes.Open(GetProgramPath() + "/filehashes.txt")) {

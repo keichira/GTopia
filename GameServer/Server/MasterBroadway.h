@@ -33,6 +33,8 @@ public:
     void SendHeartBeat();
     void SendEndPlayerSession(uint32 userID);
     void SendServerKillPacket();
+    void SendPlayerJoinedWorld(uint32 playerUserID, uint32 worldInstanceID);
+    void SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstanceID);
     bool IsConnected() { return m_pNetClient != nullptr; }
     bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag = nullptr);
 

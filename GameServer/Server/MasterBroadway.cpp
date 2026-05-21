@@ -199,6 +199,34 @@ void MasterBroadway::SendEndPlayerSession(uint32 userID)
     m_pNetClient->Send(data);   
 }
 
+void MasterBroadway::SendPlayerJoinedWorld(uint32 playerUserID, uint32 worldInstanceID)
+{
+    if(!m_pNetClient)
+        return;
+
+    VariantVector data(4);
+    data[0] = TCP_PACKET_WORLD_PLAYER_SESSION;
+    data[1] = TCP_WORLD_PLAYER_JOIN;
+    data[2] = playerUserID;
+    data[3] = worldInstanceID;
+
+    m_pNetClient->Send(data); 
+}
+
+void MasterBroadway::SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstanceID)
+{
+    if(!m_pNetClient)
+        return;
+
+    VariantVector data(4);
+    data[0] = TCP_PACKET_WORLD_PLAYER_SESSION;
+    data[1] = TCP_WORLD_PLAYER_LEAVE;
+    data[2] = playerUserID;
+    data[3] = worldInstanceID;
+
+    m_pNetClient->Send(data);   
+}
+
 bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
 {
     return ServerBroadwayBase::Connect(host, port, retryCount, &m_pNetClient, shutdownFlag);

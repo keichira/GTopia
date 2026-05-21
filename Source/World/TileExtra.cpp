@@ -68,10 +68,9 @@ void TileExtraFinalizeGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growt
 
     uint32 elapsedMS = now - timer;
     uint32 elapsedSec = elapsedMS / 1000;
-
     uint32 correctedTimer = now - (elapsedMS % 1000);
 
-    if (ageMS != 0)
+    if(ageMS != 0)
     {
         elapsedSec = ageMS / 1000;
         correctedTimer = timer;
@@ -126,6 +125,8 @@ void TileExtraModGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, in
             growth = 0;
             return;
         }
+
+        growth += deltaAgeSec;
     }
     else 
     {

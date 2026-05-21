@@ -4,8 +4,8 @@
 Vector2Float GetRandomItemDropOffset()
 {
     Vector2Float ret;
-    ret.x = RandomRangeInt(-8, 8);
-    ret.y = RandomRangeInt(-12, 12);
+    ret.x = RandomRangeInt(-7, 6);
+    ret.y = RandomRangeInt(-11, 10);
 
     return ret;
 }
@@ -13,8 +13,8 @@ Vector2Float GetRandomItemDropOffset()
 Vector2Float GetRandomPlayerItemDropOffset()
 {
     Vector2Float ret;
-    ret.x = RandomRangeInt(-8, 8);
-    ret.y = RandomRangeInt(-4, 4);
+    ret.x = RandomRangeInt(-7, 6);
+    ret.y = RandomRangeInt(-3, 2);
 
     return ret;
 }

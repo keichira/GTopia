@@ -14,6 +14,7 @@
 #include "../Event/TCP/TCPEventPlayerEndSession.h"
 #include "../Event/TCP/TCPEventKillServer.h"
 #include "../Event/TCP/TCPEventHeartBeat.h"
+#include "../Event/TCP/TCPEventWorldPlayerSession.h"
 
 ServerInfo::ServerInfo(NetClient* pNetClient)
 : NetEntity(ENTITY_TYPE_SERVER)
@@ -132,6 +133,7 @@ void ServerManager::RegisterEvents()
     RegisterEvent<TCPEventPlayerEndSession>(TCP_PACKET_PLAYER_END_SESSION);
     RegisterEvent<TCPEventKillServer>(TCP_PACKET_KILL_SERVER);
     RegisterEvent<TCPEventHeartBeat>(TCP_PACKET_HEARTBEAT);
+    RegisterEvent<TCPEventWorldPlayerSession>(TCP_PACKET_WORLD_PLAYER_SESSION);
 }
 
 ServerInfo* ServerManager::GetServerByID(uint16 serverID)
@@ -184,12 +186,13 @@ void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& world
     if(!pServer || !pServer->pClient)
         return;
 
-    VariantVector data(4);
+    VariantVector data(5);
 
     data[0] = TCP_PACKET_WORLD_INIT;
     data[1] = worldName;
     data[2] = instanceID;
     data[3] = databaseID;
+    data[4] = pServer->serverID;
 
     pServer->pClient->Send(data);
 }

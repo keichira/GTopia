@@ -32,19 +32,19 @@ public:
     void SetInstanceID(uint32 id) { m_instanceID = id; }
     uint32 GetInstanceID() const { return m_instanceID; }
 
-    bool LoadFromFile();
+    bool InitWorld();
 
     static void SaveToDatabaseCB(QueryTaskResult&& result);
     void SaveToDatabase();
     void Update();
-    bool ExportWorld();
 
-    void QueuePendingPlayer(GamePlayer* pPlayer);
-    bool HasPendingPlayers() const;
-    GamePlayer* PopPendingPlayer();
+    bool ExportWorld(const string& name);
+    bool ImportWorld(const string& name);
 
-    void AddPlayer(GamePlayer* pPlayer);
-    void PlayerLeaveWorld(GamePlayer* pPlayer);
+    void AddPlayer(GamePlayer* pPlayer, bool newJoin);
+    void PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave);
+
+    void RemoveAllPlayers();
     void ReconnectPlayers();
 
     void SendSkinColorUpdateToAll(GamePlayer* pPlayer);
@@ -57,7 +57,7 @@ public:
     void SendTileUpdate(TileInfo* pTile);
     void SendTileUpdate(uint16 tileX, uint16 tileY);
     void SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles);
-    void SendTileApplyDamage(uint16 tileX, uint16 tileY, int32 damage, int32 netID);
+    void SendTileApplyDamage(TileInfo* pTile, int32 damage, int32 netID);
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
     void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
     void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
@@ -66,6 +66,8 @@ public:
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void HandleTilePackets(GameUpdatePacket* pGamePacket);
+
+    void ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
 
     uint32 PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal);
     int32 PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
@@ -85,6 +87,7 @@ public:
 
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);
+    int32 GetWorldOwnerID();
 
     void DropGemsOnTile(TileInfo* pTile, uint32 gemCount);
     void DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge);
@@ -99,15 +102,12 @@ private:
     void DropObject(const WorldObject& obj);
     void RemoveObject(uint32 objectID);
     void ModifyObject(const WorldObject& obj);
-    bool OnPlayerJoin(GamePlayer* pPlayer);
 
 private:
     uint32 m_databaseID;
     uint32 m_instanceID;
 
     eWorldState m_state;
-
-    std::queue<GamePlayer*> m_pendingPlayers;
     std::vector<GamePlayer*> m_players;
 
     Timer m_worldOfflineTime;
