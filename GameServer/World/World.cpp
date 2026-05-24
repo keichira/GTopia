@@ -9,6 +9,7 @@
 #include "WorldManager.h"
 #include "../Server/MasterBroadway.h"
 #include "Utils/GrowUtils.h"
+#include "../Server/UserCacheManager.h"
 
 World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
@@ -225,7 +226,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
         GetMasterBroadway()->SendPlayerJoinedWorld(pPlayer->GetUserID(), GetInstanceID());    
     }
 
-    string playerDisplayName = pPlayer->GetDisplayName();
+    string playerDisplayName = pPlayer->GetDisplayName(true);
     string joinNotifyOtherMsg = "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
 
     for(auto& pWorldPlayer : m_players) 
@@ -396,7 +397,7 @@ void World::SendNameChangeToAll(GamePlayer* pPlayer)
         return;
     }
 
-    string playerName = pPlayer->GetDisplayName();
+    string playerName = pPlayer->GetDisplayName(true);
     for(auto& pWorldPlayer : m_players) {
         if(pWorldPlayer) {
             pWorldPlayer->SendOnNameChanged(playerName, pPlayer);
@@ -957,6 +958,56 @@ bool World::CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInf
     return false;
 }
 
+bool World::CanPlayerTravelStraight(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal)
+{
+    if(!pPlayer || !pStart || !pGoal)
+        return false;
+
+    if(pStart == pGoal)
+        return true;
+
+    Vector2Float vStartPos = pStart->GetWorldPosCenter();
+    Vector2Float vGoalPos = pGoal->GetWorldPosCenter();
+
+    Vector2Float d = vGoalPos - vStartPos;
+    float distance = Sqrt(d.x * d.x + d.y * d.y);
+
+    int32 step = int32(distance / 32.0f) * 2 + 2;
+    d /= step;
+
+    TileInfo* pPrevTile = nullptr;
+    
+    float absDx = Abs(d.x);
+    float absDy = Abs(d.y);
+
+    WorldTileManager* pTileMgr = GetTileManager();
+
+    if(Abs(absDx - absDy) >= 0.1)
+    {
+        for(int32 i = 0; i < step; ++i)
+        {
+            TileInfo* pTile = pTileMgr->GetTileByWorldPos(vStartPos);
+
+            if(pTile != pPrevTile)
+            {
+                pPrevTile = pTile;
+
+                if(pTile)
+                {
+                    if(IsTileCollidableForPlayer(pPlayer, pTile, true))
+                        return false;
+                }
+            }
+
+            vStartPos += d;
+        }
+
+        return true;
+    }
+
+    return CanPlayerTravelToTile(pPlayer, pStart, pGoal);
+}
+
 bool World::IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms)
 {
     if(!pTile || pTile->IsCollidable())
@@ -1128,7 +1179,7 @@ void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
     pPlayer->ModifyInventoryItem(lockID, -1);
 
     if(IsWorldLock(lockID)) {
-        string playerName = pPlayer->GetDisplayName();
+        string playerName = pPlayer->GetDisplayName(false);
 
         SendTalkBubbleAndConsoleToAll("`5[`w" + GetWorlName() +  " has been `$World Locked`` by " + playerName + "`5]``", true, pPlayer);
         LOGGER_LOG_INFO("World %s has been locked by %d", GetWorlName().c_str(), pPlayer->GetUserID());
@@ -1162,6 +1213,31 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
         std::vector<TileInfo*> unlockedTiles = GetTileManager()->RemoveTileParentsLockedBy(pTile);
         SendTileUpdateMultiple(unlockedTiles);
     }
+}
+
+void World::OnPunchedLock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
+{
+    if(!pPlayer || !pTile || !pItem)
+        return;
+
+    if(pItem->type != ITEM_TYPE_LOCK)
+        return;
+
+    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
+    if(!pTileExtra)
+        return;
+
+    if(pTileExtra->ownerID == pPlayer->GetUserID())
+        return;
+
+    UserCacheManager* pCacheMgr = GetUserCacheManager();
+
+    pCacheMgr->FetchMetadata(
+        pPlayer->GetNetID(),
+        CACHE_REQ_WORLD_LOCK_PUNCH,
+        { (uint32)pTileExtra->ownerID },
+        { pTileExtra->ownerID, pItem->id, pTileExtra->HasAccess(pPlayer->GetUserID()) }
+    );
 }
 
 void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket)
@@ -1264,7 +1340,7 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         if(pTileExtra)
         {
             pTileExtra->fruitCount = fruitCount;
-            TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, 0, 0);
+            pTile->ModGrowth(0, 0);
         }
 
         SendTileUpdate(pTile);
@@ -1381,9 +1457,9 @@ void World::OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile)
     TileExtra_Provider* pTileExtra = pTile->GetExtra<TileExtra_Provider>();
     if(pTileExtra)
     {
-        TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, 0, 0);
+        pTile->ModGrowth(0, 0);
+        pTile->FinalizeGrowth(0);
 
-        TileExtraFinalizeGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, 0);
         pTileExtra->growTime = 0; // todo
     }
 

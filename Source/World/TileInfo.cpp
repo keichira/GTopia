@@ -223,7 +223,23 @@ float TileInfo::GetGrowthPercent()
     if(!m_pExtraData)
         return 0.0f;
 
-    return m_pExtraData->GetGrowthPercent(GetFG());
+    return m_pExtraData->GetGrowthPercent(this);
+}
+
+void TileInfo::FinalizeGrowth(uint32 ageMS)
+{
+    if(!m_pExtraData)
+        return;
+
+    m_pExtraData->FinalizeGrowth(ageMS);
+}
+
+void TileInfo::ModGrowth(int32 deltaAgeSec, int32 ageSec)
+{
+    if(!m_pExtraData)
+        return;
+
+    m_pExtraData->ModGrowth(deltaAgeSec, ageSec);
 }
 
 uint16 TileInfo::GetDisplayedItem()
@@ -240,23 +256,5 @@ void TileInfo::AgeTile(uint32 ageMS)
     if(!pItem)
         return;
 
-    if(pItem->type == ITEM_TYPE_SEED)
-    {
-        TileExtra_Seed* pTileExtra = GetExtra<TileExtra_Seed>();
-        if(!pTileExtra)
-            return;
-
-        TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, ageMS/1000, pItem->growTime);
-        return;
-    }
-
-    if(pItem->type == ITEM_TYPE_PROVIDER)
-    {
-        TileExtra_Provider* pTileExtra = GetExtra<TileExtra_Provider>();
-        if(!pTileExtra)
-            return;
-
-        TileExtraModGrowth(pTileExtra, pTileExtra->timer, pTileExtra->growTime, ageMS, pItem->growTime);
-        return;
-    }
+    ModGrowth(ageMS/1000, pItem->growTime);
 }

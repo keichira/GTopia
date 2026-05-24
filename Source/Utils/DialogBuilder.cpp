@@ -100,12 +100,11 @@ DialogBuilder* DialogBuilder::AddCustomButton(const string& buttonID, const stri
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddButton(
-                            const string& buttonID, const string& name, const string& texturePath,
-                            const string& description, uint8 posX, uint8 posY, int32 gemCost, int32 videoCreditCost,
-                            const string& overlayText, const string& ovelayTexture, int32 overlayPosX, int32 overlayPosY, 
-                            const string& popupTexture, int32 popupPosX, int32 popupPosY, bool enabled,
-                            const string& disabledTexture, int32 disabledPosX, int32 disabledPosY)
+DialogBuilder* DialogBuilder::AddButton(const string& buttonID, const string& name, const string& texturePath,
+                                        const string& description, uint8 posX, uint8 posY, int32 gemCost, int32 videoCreditCost,
+                                        const string& overlayText, const string& ovelayTexture, int32 overlayPosX, int32 overlayPosY, 
+                                        const string& popupTexture, int32 popupPosX, int32 popupPosY, bool enabled,
+                                        const string& disabledTexture, int32 disabledPosX, int32 disabledPosY)
 {
     m_str += "add_button|" + buttonID + "|" + name + "|" + texturePath + "|" + description + "|" + ToString(posX) + "|" + ToString(posY) + "|";
     m_str += ToString(gemCost) + "|" + ToString(videoCreditCost) + "|" + overlayText + "|" + ovelayTexture + "|" + ToString(overlayPosX) + "|" + ToString(overlayPosY) + "|";
@@ -131,6 +130,18 @@ DialogBuilder* DialogBuilder::AddTabButton(const string& buttonID, const string&
     {
         m_str.replace(pos, 10, "add_tab_button");
     }
+
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddLabel(const string& label, bool big)
+{
+    m_str += "add_label|";
+
+    if(big) m_str += "big|";
+    else m_str += "small|";
+
+    m_str += label;
 
     return this;
 }

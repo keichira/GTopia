@@ -20,7 +20,7 @@ void WrenchSelfDialog::Request(GamePlayer* pPlayer)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-    ->AddPlayerInfo(pPlayer->GetDisplayName(), pPlayer->GetPlayerLevel(), progressData.GetProgress(PLAYER_PROGRESS_XP), pPlayer->GetPlayerNextLevelXP());
+    ->AddPlayerInfo(pPlayer->GetDisplayName(true), pPlayer->GetPlayerLevel(), progressData.GetProgress(PLAYER_PROGRESS_XP), pPlayer->GetPlayerNextLevelXP());
 
     if(loginDetail.protocol > 96)
     {

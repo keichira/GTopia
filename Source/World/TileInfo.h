@@ -76,7 +76,10 @@ public:
     bool WillBreak(uint8 damage);
     float GetHealthPercent();
     bool IsTree();
+
     float GetGrowthPercent();
+    void FinalizeGrowth(uint32 ageMS);
+    void ModGrowth(int32 deltaAgeSec, int32 ageSec);
 
     uint16 GetDisplayedItem();
     void AgeTile(uint32 ageMS);

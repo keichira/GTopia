@@ -132,7 +132,7 @@ void LoadAccount(QueryTaskResult&& result)
 
     if(loginDetail.loginMode == LOGON_MODE_WELCOME) 
     {
-        pPlayer->SendOnConsoleMessage("Welcome back, `w" + pPlayer->GetDisplayName() + "`o.");
+        pPlayer->SendOnConsoleMessage("Welcome back, `w" + pPlayer->GetDisplayName(false) + "`o.");
     }
 
     pPlayer->SendGems(true);

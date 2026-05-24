@@ -8,6 +8,7 @@
 #include "Item/ItemInfoManager.h"
 #include "Player/RoleManager.h"
 #include "../Context.h"
+#include "UserCacheManager.h"
 
 #include "../Event/UDP/GameMessage/RefreshItemData.h"
 #include "../Event/UDP/GameMessage/EnterGame.h"
@@ -179,6 +180,7 @@ void GameServer::UpdateGameLogic(uint64 maxTimeMS)
     ServerBase::UpdateGameLogic(maxTimeMS);
     GetPlayerManager()->UpdatePlayers();
     GetWorldManager()->UpdateWorlds();
+    GetUserCacheManager()->Update();
 }
 
 void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)

@@ -183,6 +183,22 @@ bool ItemInfo::IsBackground()
     return false;
 }
 
+bool ItemInfo::IsLOSBlocking()
+{
+    if(type == ITEM_TYPE_USER_DOOR || type == ITEM_TYPE_LOCK || type == ITEM_TYPE_PORTAL || type == ITEM_TYPE_SUNGATE || type == ITEM_TYPE_ADVENTURE_RESET)
+    {
+        return true;
+    }
+
+    if(id == ITEM_ID_PATH_MARKER || id == ITEM_ID_BULLSEYE || id == ITEM_ID_CARNIVAL_LANDING || id == ITEM_ID_CHALLENGE_TIMER ||
+        id == ITEM_ID_CHALLENGE_END_FLAG || id == ITEM_ID_GRUESOME_MARKER || id == ITEM_ID_OBJECTIVE_MARKER
+    ) {
+        return true;
+    }
+
+    return false;
+}
+
 bool IsIllegalItem(uint16 itemID)
 {
     switch(itemID) {

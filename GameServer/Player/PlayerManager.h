@@ -17,6 +17,8 @@ public:
         return &instance;
     }
 
+public:
+
     GamePlayer* IsPlayerAlreadyOn(GamePlayer* pNewPlayer);
     GamePlayer* GetPlayerByNetID(uint32 netID);
     GamePlayer* GetPlayerByUserID(uint32 userID);

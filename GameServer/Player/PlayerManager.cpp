@@ -106,7 +106,7 @@ void PlayerManager::UpdatePlayers()
         if(!pPlayer->HasState(PLAYER_STATE_IN_GAME)) 
         {
             // ?
-            return;
+            continue;
         }
 
         if(!pPlayer->HasState(PLAYER_STATE_LOGGING_OFF)) 

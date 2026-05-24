@@ -57,6 +57,18 @@ public:
         return *this;
     }
 
+    Vector2<T>& operator/=(const T& val)
+    {
+        x /= val; y /= val;
+        return *this;
+    }
+
+    Vector2<T>& operator/=(const Vector2<T>& rhs)
+    {
+        x /= rhs.x; y /= rhs.y;
+        return *this;
+    }
+
     Vector2<T>& operator=(const Vector2<T>& rhs) 
     {
         x = rhs.x; y = rhs.y;

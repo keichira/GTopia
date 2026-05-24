@@ -122,7 +122,9 @@ public:
     bool HasFlag(uint16 flag) { return (flags & flag) != 0; }
     bool HasFlag2(uint32 flag) { return (flags2 & flag) != 0; }
     void Serialize(MemoryBuffer& memBuffer, bool write, uint16 version);
+
     bool IsBackground();
+    bool IsLOSBlocking();
 };
 
 bool IsIllegalItem(uint16 itemID);
@@ -130,7 +132,9 @@ bool IsWorldLock(uint16 itemID);
 bool IsMainDoor(uint16 itemID);
 bool IsFuelPack(uint16 itemID);
 bool IsJammer(uint16 itemID);
+
 uint16 GetMaxTilesToLock(uint16 itemID);
+
 void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed);
 uint32 GetGemCountHarvestTree(ItemInfo* pSeed);
 void GetBlockSpawnInfo(ItemInfo* pItem, bool isLucky, bool& dropBlock, bool& dropSeed, int32& dropGems);

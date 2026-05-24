@@ -20,7 +20,8 @@ static TableQuery sPlayerQueryTable[] =
     {"UPDATE Players SET Name = ?, Password = UNHEX(MD5(?)) WHERE ID = ?;"},
     {"SELECT ID FROM Players WHERE Name = ? AND Password = UNHEX(MD5(?));", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
-    {"UPDATE Players SET RoleID = ? WHERE ID = ?;"}
+    {"UPDATE Players SET RoleID = ? WHERE ID = ?;", QUERY_FLAG_NONE},
+    {"SELECT ID, Name, GuestName, RoleID, GuestID FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT}
 };
 
 enum ePlayerDBQuery
@@ -41,7 +42,8 @@ enum ePlayerDBQuery
     DB_PLAYER_GROWID_CREATE,
     DB_PLAYER_GET_BY_NAME_AND_PASS,
     DB_PLAYER_EXISTS_BY_ID,
-    DB_PLAYER_SET_ROLE_BY_ID
+    DB_PLAYER_SET_ROLE_BY_ID,
+    DB_PLAYER_GET_OFFLINE_DATA
 };
 
 namespace PlayerDB
@@ -68,6 +70,7 @@ namespace PlayerDB
     QueryRequest ExistByID(uint32 userID, int32 ownerID = 0);
 
     QueryRequest SetRoleByID(uint32 roleID, uint32 userID, int32 ownerID = 0);
+    QueryRequest GetOfflineData(uint32 userID, int32 ownerID = 0);
 }
 
 void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred = false);

@@ -118,6 +118,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp
     ${GAME_SERVER}/GameServer.cpp
     ${GAME_SERVER}/MasterBroadway.cpp
+    ${GAME_SERVER}/UserCacheManager.cpp
 
     ${GAME_ROOT}/Context.cpp
     ${GAME_ROOT}/Main.cpp

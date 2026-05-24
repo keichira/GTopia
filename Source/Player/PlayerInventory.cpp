@@ -233,14 +233,12 @@ uint32 PlayerInventory::GetFitItemCount(uint16 itemID)
         return 0;
 
     if(!pItem)
-    {
         return m_items.size() < m_capacity ? pInfo->maxCanHold : 0;
-    }
 
     if(pItem->count >= pInfo->maxCanHold)
         return 0;
 
-    return m_items.size() < m_capacity ? pInfo->maxCanHold - pItem->count : 0;
+    return pInfo->maxCanHold - pItem->count;
 }
 
 // count, itemID, count, itemID

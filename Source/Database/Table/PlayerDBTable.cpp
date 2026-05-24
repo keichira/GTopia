@@ -153,6 +153,15 @@ QueryRequest PlayerDB::SetRoleByID(uint32 roleID, uint32 userID, int32 ownerID)
     return req;
 }
 
+QueryRequest PlayerDB::GetOfflineData(uint32 userID, int32 ownerID)
+{
+    QueryRequest req(ownerID);
+    req.AddData(userID);
+
+    req.queryID = DB_PLAYER_GET_OFFLINE_DATA;
+    return req;
+}
+
 void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
 {
     if(req.queryID < 0) {

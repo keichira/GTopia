@@ -59,13 +59,14 @@ TileExtra* CreateTileExtra(uint8 type)
     }
 }
 
-void TileExtraFinalizeGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, uint32 ageMS)
+void TileExtra::Serialize(MemoryBuffer& memBuffer, bool write)
 {
-    if(!pTileExtra)
-        return;
+    memBuffer.ReadWrite(type, write);
+}
 
+void TileExtraGrowth::FinalizeGrowth(uint32 ageMS)
+{
     uint32 now = Time::GetSystemTime();
-
     uint32 elapsedMS = now - timer;
     uint32 elapsedSec = elapsedMS / 1000;
     uint32 correctedTimer = now - (elapsedMS % 1000);
@@ -76,82 +77,81 @@ void TileExtraFinalizeGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growt
         correctedTimer = timer;
     }
 
-    if(pTileExtra->type == TILE_EXTRA_TYPE_TAMAGOTCHI)
-    {
+    if(type == TILE_EXTRA_TYPE_TAMAGOTCHI)
         return;
-    }
 
-    if(pTileExtra->type == TILE_EXTRA_TYPE_FORGE || pTileExtra->type == TILE_EXTRA_TYPE_STEAM_ENGINE || pTileExtra->type == TILE_EXTRA_TYPE_FOSSIL_PREP)
-    {
-        growth = (growth > elapsedSec) ? (growth - elapsedSec) : 0;
+    if(type == TILE_EXTRA_TYPE_FORGE ||
+        type == TILE_EXTRA_TYPE_STEAM_ENGINE ||
+        type == TILE_EXTRA_TYPE_FOSSIL_PREP
+    ) {
+        if(growTime < elapsedSec)
+        {
+            growTime = 0;
+        }
+        else
+        {
+            growTime -= elapsedSec;
+        }
+
         timer = correctedTimer;
         return;
     }
 
-    growth += elapsedSec;
+    growTime += elapsedSec;
     timer = correctedTimer;
-
-    if(pTileExtra->type == TILE_EXTRA_TYPE_BULLETIN && growth != 0 /* && X != 0*/)
-    {
-        /**
-         * 
-         */
-
-        growth = 0;
-    }
-    
 }
 
-void TileExtraModGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, int32 deltaAgeSec, int32 ageSec)
+void TileExtraGrowth::ModGrowth(int32 deltaAgeSec, int32 ageSec)
 {
-    if(!pTileExtra)
-        return;
-
-    TileExtraFinalizeGrowth(pTileExtra, timer, growth, 0);
+    FinalizeGrowth(0);
+    uint32 newGrowTime = 0;
 
     if(deltaAgeSec < 1)
     {
-        if(pTileExtra->type == TILE_EXTRA_TYPE_BURGLAR || pTileExtra->type == TILE_EXTRA_TYPE_STEAM_ENGINE || pTileExtra->type == TILE_EXTRA_TYPE_FOSSIL_PREP)
+        if(type == TILE_EXTRA_TYPE_BURGLAR || type == TILE_EXTRA_TYPE_STEAM_ENGINE || type == TILE_EXTRA_TYPE_FOSSIL_PREP)
         {
-            growth -= deltaAgeSec;
-
-            if(growth > ageSec)
-                growth = ageSec;
-            return;
+            newGrowTime = growTime - deltaAgeSec;
         }
-
-        if(growth + deltaAgeSec < 0)
+        else
         {
-            growth = 0;
-            return;
-        }
+            newGrowTime = growTime + deltaAgeSec;
 
-        growth += deltaAgeSec;
+            if(newGrowTime < 0)
+            {
+                growTime = 0;
+                return;
+            }
+        }   
     }
-    else 
+    else
     {
-        TileExtraFinalizeGrowth(pTileExtra, timer, growth, deltaAgeSec * 1000);
+        FinalizeGrowth(deltaAgeSec * 1000);
+        newGrowTime = growTime;
     }
 
-    if(growth > ageSec)
-        growth = ageSec;
+    if(ageSec < newGrowTime)
+    {
+        newGrowTime = ageSec;
+    }
+
+    growTime = newGrowTime;
 }
 
-uint32 GetTileExtraGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth)
+float TileExtraGrowth::GetGrowthPercent(TileInfo* pTile)
 {
-    TileExtraFinalizeGrowth(pTileExtra, timer, growth, 0);
+    if(!pTile)
+        return 0.0f;
 
-    return growth;
-}
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
+        return 0.0f;
 
-float GetTileExtraGrowthPercent(uint32 requiredTime, uint32 growth)
-{
-    if(requiredTime == 0.0f)
+    if(pItem->growTime == 0.0f)
     {
-        requiredTime = 0.0001f;
+        pItem->growTime = 0.0001f;
     }
 
-    float progress = (float)growth / requiredTime;
+    float progress = (float)growTime / pItem->growTime;
 
     if(progress > 1.0f)
     {
@@ -159,11 +159,6 @@ float GetTileExtraGrowthPercent(uint32 requiredTime, uint32 growth)
     }
 
     return progress * 100.0f;
-}
-
-void TileExtra::Serialize(MemoryBuffer& memBuffer, bool write)
-{
-    memBuffer.ReadWrite(type, write);
 }
 
 void TileExtra_Door::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
@@ -225,7 +220,7 @@ void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
 
 void TileExtra_Seed::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
-    TileExtraFinalizeGrowth(this, timer, growTime, 0);
+    FinalizeGrowth(0);
 
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(growTime, write);
@@ -240,7 +235,7 @@ void TileExtra_Component::Serialize(MemoryBuffer& memBuffer, bool write, bool da
 
 void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
-    TileExtraFinalizeGrowth(this, timer, growTime, 0);
+    FinalizeGrowth(0);
 
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(growTime, write);

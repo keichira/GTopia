@@ -37,7 +37,7 @@ void Input::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     char colorCode = pPlayer->GetRole()->GetChatColor();
 
-    string consoleText = "<" + pPlayer->GetDisplayName() + "``> ";
+    string consoleText = "<" + pPlayer->GetDisplayName(true) + "``> ";
     if(colorCode != 0) 
     {
         consoleText += "`" + string(1, colorCode);

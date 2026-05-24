@@ -66,10 +66,7 @@ public:
     void SetCurrentWorld(uint32 worldID) { m_currentWorldID = worldID; }
     uint32 GetCurrentWorld() const { return m_currentWorldID; }
 
-    void ResetLogonJoinWorld() { m_logonJoinWorld = ""; }
-    string GetLogonJoinWorld() const { return m_logonJoinWorld; }
-
-    string GetDisplayName();
+    string GetDisplayName(bool checkWorld);
     string GetRawName();
     string GetSpawnData(bool local);
 
@@ -133,7 +130,6 @@ private:
     uint64 m_lastItemActivateTime;
     Timer m_lastActionTime;
 
-    string m_logonJoinWorld;
     Timer m_lastJoinRequestTime;
     Timer m_lastTileChangeTime;
 

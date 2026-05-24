@@ -15,6 +15,7 @@
 #include "Math/Math.h"
 #include "Player/AchievementManager.h"
 #include "Store/StoreManager.h"
+#include "Server/UserCacheManager.h"
 
 bool firstCallShutdown = false;
 
@@ -392,6 +393,8 @@ int main(int argc, char const* argv[])
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
     LOGGER_LOG_INFO("Started game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
+
+    GetUserCacheManager()->Init(100);
 
     std::thread dbThread(DatabaseThreadFunc);
     std::thread eventThread(EventThreadFunc);

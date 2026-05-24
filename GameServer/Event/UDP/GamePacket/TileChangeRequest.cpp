@@ -17,16 +17,26 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
     lastTileChangeTime.Set(pPacket->itemID == ITEM_ID_FIST ? 130 : 70);
 
-    TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->tileX, pPacket->tileY);
-    if(!pTile)
-        return;
-
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->itemID);
     if(!pItem)
         return;
 
     if(pItem->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_MSTATE))
         return;
+
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->tileX, pPacket->tileY);
+    if(!pTile)
+        return;
+
+    TileInfo* pPlayerTile = pWorld->GetTileManager()->GetTileByWorldPos(pPlayer->GetWorldPos());
+    if(!pPlayerTile)
+        return;
+
+    /*if(!pWorld->CanPlayerTravelStraight(pPlayer, pPlayerTile, pTile))
+    {
+        pPlayer->SendFakePingReply();
+        return;
+    }*/
 
     PlayerInventory& inventory = pPlayer->GetInventory();
 
@@ -100,10 +110,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         return;
     }
 
-    TileInfo* pPlayerTile = pWorld->GetTileManager()->GetTileByWorldPos(pPlayer->GetWorldPos());
-    if(!pPlayerTile)
-        return;
-
     if(pTile->HasFlag(TILE_FLAG_ON_FIRE) && 
         (pPacket->itemID != ITEM_ID_WATER_BALLOON &&
         pPacket->itemID != ITEM_ID_WATER_BUCKET &&
@@ -113,6 +119,23 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     ) {
         pPlayer->SendFakePingReply();
         return;
+    }
+
+    ItemInfo* pTileItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
+    if(!pTileItem)
+        return;
+
+    if(pTileItem->type == ITEM_TYPE_LOCK)
+    {
+        TileExtra_Lock* pTileExtraLock = pTile->GetExtra<TileExtra_Lock>();
+        if(!pTileExtraLock)
+            return;
+
+        if(pTileExtraLock->ownerID != pPlayer->GetUserID())
+        {
+            pWorld->OnPunchedLock(pPlayer, pTile, pTileItem);
+            return;
+        }
     }
 
     if(pItem->type == ITEM_TYPE_CONSUMABLE)
@@ -189,10 +212,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
 
         if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
-            return;
-
-        ItemInfo* pTileItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-        if(!pTileItem)
             return;
 
         if(pTileItem->HasFlag(ITEM_FLAG_SMOD) && !pRole->HasPerm(ROLE_PERM_SMSTATE))

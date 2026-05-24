@@ -31,6 +31,7 @@ public:
     DialogBuilder* SetDescriptionText(const string& text);
     DialogBuilder* AddTabButton(const string& buttonID, const string& name, const string& texturePath, 
                                const string& description, bool active, uint8 textureY);
+    DialogBuilder* AddLabel(const string& label, bool big = false);
 
     DialogBuilder* EmbedData(const string& name, const string& value);
 

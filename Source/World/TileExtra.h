@@ -6,12 +6,28 @@
 #include "../Item/ItemInfoManager.h"
 
 class TileExtra;
+class TileExtraGrowth;
 
 #define TILE_EXTRA(CLASS, TYPEID)        \
 class CLASS : public TileExtra {         \
 public:                                  \
     static constexpr uint8 TYPE = TYPEID;\
     CLASS() : TileExtra(TYPE) {}         \
+protected:                               \
+    void Serialize(                      \
+        MemoryBuffer& memBuffer,         \
+        bool write,                      \
+        bool database,                   \
+        TileInfo* pTile,                 \
+        uint16 worldVersion              \
+    ) override;                          \
+public:
+
+#define TILE_EXTRA_GROWTH(CLASS, TYPEID) \
+class CLASS : public TileExtraGrowth {  \
+public:                                  \
+    static constexpr uint8 TYPE = TYPEID; \
+    CLASS() : TileExtraGrowth(TYPE) {}   \
 protected:                               \
     void Serialize(                      \
         MemoryBuffer& memBuffer,         \
@@ -109,11 +125,6 @@ enum eTileExtraFlags
 uint8 GetTileExtraType(uint8 itemType);
 TileExtra* CreateTileExtra(uint8 extraType);
 
-void TileExtraFinalizeGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, uint32 ageMS);
-void TileExtraModGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth, int32 deltaAgeSec, int32 ageSec);
-uint32 GetTileExtraGrowth(TileExtra* pTileExtra, uint32& timer, uint32& growth);
-float GetTileExtraGrowthPercent(uint32 requiredTime, uint32 growth);
-
 class TileInfo;
 
 class TileExtra {
@@ -122,13 +133,31 @@ public:
     virtual ~TileExtra() {};
 
     virtual void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) = 0;
-    virtual float GetGrowthPercent(uint16 fgID) { return 0.0f; };
+    virtual float GetGrowthPercent(TileInfo* pTile) { return 0.0f; }
+    virtual void FinalizeGrowth(uint32 ageMS) {}
+    virtual void ModGrowth(int32 deltaAgeSec, int32 ageSec) {}
 
 protected:
     virtual void Serialize(MemoryBuffer& memBuffer, bool write);
 
 public:
     uint8 type = TILE_EXTRA_TYPE_NONE;
+};
+
+class TileExtraGrowth : public TileExtra {
+public:
+    explicit TileExtraGrowth(uint8 tileExtraType) : TileExtra(tileExtraType)
+    {
+        timer = Time::GetSystemTime();
+    }
+
+    uint32 timer = Time::GetSystemTime();
+    uint32 growTime = 0;
+
+    void FinalizeGrowth(uint32 ageMS) override;
+    void ModGrowth(int32 deltaAgeSec, int32 ageSec) override;
+    float GetGrowthPercent(TileInfo* pTile) override;
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion) override = 0;
 };
 
 TILE_EXTRA(TileExtra_Door, TILE_EXTRA_TYPE_DOOR)
@@ -202,44 +231,16 @@ TILE_EXTRA(TileExtra_Lock, TILE_EXTRA_TYPE_LOCK)
     }
 };
 
-TILE_EXTRA(TileExtra_Seed, TILE_EXTRA_TYPE_SEED)
-    uint32 timer = Time::GetSystemTime();
-    uint32 growTime = 0;
+TILE_EXTRA_GROWTH(TileExtra_Seed, TILE_EXTRA_TYPE_SEED)
     uint8 fruitCount = 3;
-
-    float GetGrowthPercent(uint16 fgID) override
-    {
-        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(fgID);
-        if(!pItem)
-            return 0.0f;
-    
-        return GetTileExtraGrowthPercent(
-            pItem->growTime,
-            GetTileExtraGrowth(this, timer, growTime)
-        );
-    }
 };  
 
 TILE_EXTRA(TileExtra_Component, TILE_EXTRA_TYPE_COMPONENT)
     uint8 randValue = 0;
 };
 
-TILE_EXTRA(TileExtra_Provider, TILE_EXTRA_TYPE_PROVIDER)
-    uint32 timer = Time::GetSystemTime();
-    uint32 growTime = 0;
+TILE_EXTRA_GROWTH(TileExtra_Provider, TILE_EXTRA_TYPE_PROVIDER)
     uint32 otherData = 0;
-
-    float GetGrowthPercent(uint16 fgID) override
-    {
-        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(fgID);
-        if(!pItem)
-            return 0.0f;
-    
-        return GetTileExtraGrowthPercent(
-            pItem->growTime,
-            GetTileExtraGrowth(this, timer, growTime)
-        );
-    }
 };
 
 TILE_EXTRA(TileExtra_Lab, TILE_EXTRA_TYPE_LAB)

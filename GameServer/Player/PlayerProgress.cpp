@@ -118,7 +118,7 @@ void PlayerProgress::UnlockAchievement(eAchievement achievement)
 
         pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_ACHIEVE, m_pPlayer->GetWorldPos());
         pWorld->SendTalkBubbleAndConsoleToAll(
-            m_pPlayer->GetDisplayName() + " `5earned the achievement \"" + pAchievement->name + "\"!``", false, m_pPlayer
+            m_pPlayer->GetDisplayName(false) + " `5earned the achievement \"" + pAchievement->name + "\"!``", false, m_pPlayer
         );
     }
 }

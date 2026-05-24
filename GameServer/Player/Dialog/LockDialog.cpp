@@ -9,15 +9,15 @@ void LockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     if(!pPlayer || !pTile || pPlayer->GetCurrentWorld() == 0)
         return;
 
-    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-    if(!pTileExtra)
-        return;
-
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if(!pWorld)
         return;
 
-    if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
+    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
+    if(!pTileExtra)
+        return;
+
+    if(!pTileExtra->HasAccess(pPlayer->GetUserID()))
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
@@ -29,6 +29,22 @@ void LockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
     ->EmbedData("tilex", pTile->GetPos().x)
     ->EmbedData("tiley", pTile->GetPos().y);
+
+    if(pTileExtra->ownerID != pPlayer->GetUserID())
+    {
+        if(pTileExtra->IsAdmin(pPlayer->GetUserID()))
+        {
+            db.AddLabel("This lock is owned by someone, but I have access on it.");
+            db.EndDialog("lock_edit", "Remove My Access", "Cancel");
+            pPlayer->SendOnDialogRequest(db.Get());
+        }
+        else
+        {
+            pPlayer->SendOnTalkBubble("I'm `4unable`` to pick the lock.", true);
+        }
+
+        return;
+    }
 
     if(!IsWorldLock(pItem->id)) 
     {
@@ -90,6 +106,28 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
     }
 
+    auto pIgnoreAir = packet.Find(CompileTimeHashString("checkbox_ignore"));
+    if(pIgnoreAir)
+    {
+        int32 ignoreAir = pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
+        if(ToInt(string(pIgnoreAir->value, pIgnoreAir->size), ignoreAir) != TO_INT_SUCCESS)
+            return;
+
+        if(ignoreAir == 1)
+        {
+            pTileExtra->SetFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
+        }
+        else 
+        {
+            pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
+        }
+    }
+
+    if(IsWorldLock(pItem->id))
+    {
+
+    }
+
     if(IsWorldLock(pItem->id)) 
     {
 
@@ -97,7 +135,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     else 
     {
         auto pIgnoreAir = packet.Find(CompileTimeHashString("checkbox_ignore"));
-        if(pIgnoreAir) 
+        if(pIgnoreAir)
         {
             int32 ignoreAir = pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
             if(ToInt(string(pIgnoreAir->value, pIgnoreAir->size), ignoreAir) != TO_INT_SUCCESS)

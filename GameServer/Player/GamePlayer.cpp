@@ -83,7 +83,7 @@ void GamePlayer::GiveXP(uint32 amount)
         }
 
         pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_LEVELUP, m_worldPos);
-        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName() + " `wis now level " + ToString(playerNewLevel) + "!", true, this);
+        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName(false) + " `wis now level " + ToString(playerNewLevel) + "!", true, this);
     }
 }
 
@@ -300,7 +300,7 @@ void GamePlayer::Update()
     }
 }
 
-string GamePlayer::GetDisplayName()
+string GamePlayer::GetDisplayName(bool checkWorld)
 {
     string displayName;
 
@@ -310,7 +310,7 @@ string GamePlayer::GetDisplayName()
         displayName += m_pRole->GetNameColor();
     }
 
-    if(m_currentWorldID != 0) 
+    if(checkWorld && m_currentWorldID != 0) 
     {
         World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
         if(pWorld) {
@@ -344,7 +344,7 @@ string GamePlayer::GetSpawnData(bool local)
     spawnData += "userID|" + ToString(m_userID) + "\n";
     spawnData += "colrect|0|0|20|30\n"; //its ok to hardcoded (for now?)
     spawnData += "posXY|" + ToString(m_worldPos.x)  + "|" + ToString(m_worldPos.y) + "\n"; 
-    spawnData += "name|" + GetDisplayName() + "``\n";
+    spawnData += "name|" + GetDisplayName(true) + "``\n";
     spawnData += "country|" + m_loginDetail.country + "\n";
     spawnData += "invis|0\n"; // todo
     spawnData += "mstate|";
