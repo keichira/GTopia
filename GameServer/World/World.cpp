@@ -10,6 +10,7 @@
 #include "../Server/MasterBroadway.h"
 #include "Utils/GrowUtils.h"
 #include "../Server/UserCacheManager.h"
+#include "Math/WeightRand.h"
 
 World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
@@ -211,7 +212,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_MAP_DATA;
-    packet.netID = -1;
+    packet.field_4 = -1;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.extraDataSize = worldMemSize;
     SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData, pPlayer->GetPeer());
@@ -362,7 +363,7 @@ void World::SendSkinColorUpdateToAll(GamePlayer* pPlayer)
     if(!pPlayer)
         return;
 
-    uint32 skinColor = pPlayer->GetCharData().GetSkinColor(true);
+    uint32 skinColor = pPlayer->GetModController().GetSkinColor();
     for(auto& pWorldPlayer: m_players) 
     {
         if(pWorldPlayer) 
@@ -435,28 +436,28 @@ void World::SendParticleEffectToAll(float coordX, float coordY, uint32 particleT
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_PARTICLE_EFFECT;
-    packet.posX = coordX;
-    packet.posY = coordY;
-    packet.particleEffectType = (float)particleType;
-    packet.particleEffectSize = particleSize;
-    packet.delay = delay;
+    packet.field_8.x = coordX;
+    packet.field_8.y = coordY;
+    packet.field_9.x = (float)particleType;
+    packet.field_9.y = particleSize;
+    packet.field_7 = delay;
 
     for(auto& pWorldPlayer : m_players) {
         SendGamePacketToAll(&packet);
     }
 }
 
-void World::SendTileUpdate(TileInfo* pTile)
+void World::SendTileUpdate(TileInfo* pTile, GamePlayer* pPlayer)
 {
     if(!pTile) {
         return;
     }
 
     Vector2Int vTilePos = pTile->GetPos();
-    SendTileUpdate(vTilePos.x, vTilePos.y);
+    SendTileUpdate(vTilePos.x, vTilePos.y, pPlayer);
 }
 
-void World::SendTileUpdate(uint16 tileX, uint16 tileY)
+void World::SendTileUpdate(uint16 tileX, uint16 tileY, GamePlayer* pPlayer)
 {
     TileInfo* pTile = GetTileManager()->GetTile(tileX, tileY);
     if(!pTile) {
@@ -465,8 +466,8 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY)
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_TILE_UPDATE_DATA;
-    packet.tileX = tileX;
-    packet.tileY = tileY;
+    packet.field_11 = tileX;
+    packet.field_12 = tileY;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
 
     MemoryBuffer memSizeBuf;
@@ -479,7 +480,14 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY)
     MemoryBuffer memBuffer(pTileData, memSize);
     pTile->Serialize(memBuffer, true, false, this);
 
-    SendGamePacketToAll(&packet, nullptr, pTileData);
+    if(pPlayer)
+    {
+        SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pTileData, pPlayer->GetPeer());
+    }
+    else
+    {
+        SendGamePacketToAll(&packet, nullptr, pTileData);
+    }
 
     SAFE_DELETE_ARRAY(pTileData);
 }
@@ -514,8 +522,8 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
     packet.type = NET_GAME_PACKET_SEND_TILE_UPDATE_DATA_MULTIPLE;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.extraDataSize = memSize;
-    packet.tileX = -1;
-    packet.tileY = -1;
+    packet.field_11 = -1;
+    packet.field_12 = -1;
     
     SendGamePacketToAll(&packet, nullptr, pData);
     SAFE_DELETE_ARRAY(pData);
@@ -530,34 +538,33 @@ void World::SendTileApplyDamage(TileInfo* pTile, int32 damage, int32 netID)
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_TILE_APPLY_DAMAGE;
-    packet.tileX = vTilePos.x;
-    packet.tileY = vTilePos.y;
-    packet.tileDamage = damage;
-    packet.netID = netID;
+    packet.field_11 = vTilePos.x;
+    packet.field_12 = vTilePos.y;
+    packet.field_7 = damage;
+    packet.field_4 = netID;
 
     SendGamePacketToAll(&packet);
 }
 
 void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile)
 {
-    if(!pLockTile) {
+    if(!pLockTile)
         return;
-    }
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_LOCK;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    packet.tileX = pLockTile->GetPos().x;
-    packet.tileY = pLockTile->GetPos().y;
-    packet.itemID = lockID;
-    packet.userID = userID;
+    packet.field_11 = pLockTile->GetPos().x;
+    packet.field_12 = pLockTile->GetPos().y;
+    packet.field_7 = lockID;
+    packet.field_4 = userID;
 
     HandleTilePackets(&packet);
 
     uint8* pData = nullptr;
 
     if(!tiles.empty()) {
-        packet.tileCount = tiles.size();
+        packet.field_5 = tiles.size();
         packet.extraDataSize = tiles.size() * sizeof(uint16);
     
         uint32 memSize = packet.extraDataSize;
@@ -620,15 +627,19 @@ void World::SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer)
     packet.type = NET_GAME_PACKET_SEND_TILE_TREE_STATE;
 
     Vector2Int vTilePos = pTile->GetPos();
-    packet.tileX = vTilePos.x;
-    packet.tileY = vTilePos.y;
+    packet.field_11 = vTilePos.x;
+    packet.field_12 = vTilePos.y;
 
     if(pPlayer)
     {
-        packet.netID = pPlayer->GetNetID();
+        packet.field_4 = pPlayer->GetNetID();
+    }
+    else
+    {
+        packet.field_4 = -1;
     }
 
-    packet.field4 = -1;
+    packet.field_5 = -1;
 
     HandleTilePackets(&packet);
     SendGamePacketToAll(&packet);
@@ -675,11 +686,11 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
     {
         case NET_GAME_PACKET_TILE_APPLY_DAMAGE:
         {
-            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
+            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->field_11, pGamePacket->field_12);
             if(!pTile)
                 return;
 
-            pTile->PunchTile(pGamePacket->tileDamage);
+            pTile->PunchTile(pGamePacket->field_7);
             break;
         }
 
@@ -691,33 +702,31 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
 
         case NET_GAME_PACKET_SEND_LOCK: 
         {
-            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
+            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->field_11, pGamePacket->field_12);
             if(!pTile) {
                 return;
             }
 
-            pTile->SetFG(pGamePacket->itemID, GetTileManager());
+            pTile->SetFG(pGamePacket->field_7, GetTileManager());
 
             TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
             if(!pTileExtra) {
                 return;
             }
 
-            pTileExtra->ownerID = pGamePacket->userID;
-            SendTileUpdate(pGamePacket->tileX, pGamePacket->tileY);
+            pTileExtra->ownerID = pGamePacket->field_4;
+            SendTileUpdate(pGamePacket->field_11, pGamePacket->field_12);
             break;
         }
 
         case NET_GAME_PACKET_TILE_CHANGE_REQUEST: {
-            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
-            if(!pTile) {
+            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->field_11, pGamePacket->field_12);
+            if(!pTile)
                 return;
-            }
     
-            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pGamePacket->itemID);
-            if(!pItem) {
+            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pGamePacket->field_7);
+            if(!pItem)
                 return;
-            }
 
             if(pItem->IsBackground()) 
             {
@@ -745,50 +754,63 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 }
             }
 
-            if(pItem->IsBackground()) {
-                if(pTile->HasFlag(TILE_FLAG_HAS_EXTRA_DATA)) {
-                    if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT)) {
+            if(pItem->IsBackground())
+            {
+                if(pItem->HasFlag(ITEM_FLAG_FLIPPABLE))
+                {
+                    if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT))
+                    {
                         pTile->SetFlag(TILE_FLAG_FLIPPED_X);
                     }
-                    else {
+                    else
+                    {
                         pTile->RemoveFlag(TILE_FLAG_FLIPPED_X);
                     }
                 }
             }
-            else {
-                if(pItem->type == ITEM_TYPE_SEED && pTile->GetExtra<TileExtra_Seed>()) 
+            else
+            {
+                if(pTile->IsTree())
                 {
-                    if(pGamePacket->field1 == 1)
+                    TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
+                    if(pTileExtra)
                     {
-                        pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
-                    }
-                    else {
-                        pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
-                    }
+                        if(pGamePacket->field_2 == 1)
+                        {
+                            pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+                        }
+                        else {
+                            pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
+                        }
     
-                    pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
-                    pTile->GetExtra<TileExtra_Seed>()->fruitCount = pGamePacket->field2;
+                        pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
+                        pTileExtra->fruitCount = pGamePacket->field_3;
+                    }
                 }
 
-                if(pItem->HasFlag(ITEM_FLAG_FLIPPABLE)) {
-                    if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT)) {
+                if(pItem->HasFlag(ITEM_FLAG_FLIPPABLE))
+                {
+                    if(pGamePacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT))
+                    {
                         pTile->SetFlag(TILE_FLAG_FLIPPED_X);
                     }
-                    else {
+                    else
+                    {
                         pTile->RemoveFlag(TILE_FLAG_FLIPPED_X);
                     }
                 }
             }
+
             break;
         }
 
         case NET_GAME_PACKET_SEND_TILE_TREE_STATE:
         {
-            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->tileX, pGamePacket->tileY);
+            TileInfo* pTile = GetTileManager()->GetTile(pGamePacket->field_11, pGamePacket->field_12);
             if(!pTile)
                 return;
 
-            if(pGamePacket->field4 == -1)
+            if(pGamePacket->field_5 = -1)
             {
                 pTile->RemoveFlag(TILE_FLAG_PAINTED_WHITE);
                 pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
@@ -799,8 +821,8 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
             if(!pTileExtra)
                 return;
 
-            pTileExtra->fruitCount = pGamePacket->field6;
-            if(pGamePacket->field1 == 1)
+            pTileExtra->fruitCount = pGamePacket->field_7;
+            if(pGamePacket->field_2 == 1)
             {
                 pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
             }
@@ -809,7 +831,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
             }
 
-            if(pGamePacket->field2 == 1)
+            if(pGamePacket->field_3 == 1)
             {
                 pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
             }
@@ -818,7 +840,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 pTile->RemoveFlag(TILE_FLAG_IS_SEEDLING);
             }
 
-            pTileExtra->growTime = pGamePacket->field4;
+            pTileExtra->growTime = pGamePacket->field_4;
             break;
         }
     }
@@ -831,14 +853,13 @@ void World::ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Floa
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_EFFECT;
-    packet.posX = pos.x;
-    packet.posY = pos.y;
-    packet.field4 = pPlayer->GetNetID();
-    packet.field2 = 5;
-    packet.field3 = 0;
-    packet.field8 = itemID; // ?? idk
-    packet.field12 = itemID;
-    packet.field13 = count;
+    packet.field_8.x = pos.x;
+    packet.field_8.y = pos.y;
+    packet.field_5 = pPlayer->GetNetID();
+    packet.field_3 = 5;
+    packet.field_4 = 0;
+    packet.field_11 = itemID;
+    packet.field_12 = count;
 
     SendGamePacketToAll(&packet);
 }
@@ -1232,11 +1253,13 @@ void World::OnPunchedLock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
 
     UserCacheManager* pCacheMgr = GetUserCacheManager();
 
+    Vector2Int& vTilePos = pTile->GetPos();
+
     pCacheMgr->FetchMetadata(
         pPlayer->GetNetID(),
         CACHE_REQ_WORLD_LOCK_PUNCH,
-        { (uint32)pTileExtra->ownerID },
-        { pTileExtra->ownerID, pItem->id, pTileExtra->HasAccess(pPlayer->GetUserID()) }
+        { pTileExtra->ownerID },
+        { GetInstanceID(), vTilePos.x, vTilePos.y }
     );
 }
 
@@ -1260,14 +1283,14 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         bool dropSeed = false;
 
         GetTreeSpawnInfo(pSeed, fruitCount, dropSeed);
-        pPacket->netID = pPlayer->GetNetID();
-        pPacket->field2 = fruitCount;
-        pPacket->field1 = dropSeed ? 1 : 0;
+        pPacket->field_4 = pPlayer->GetNetID();
+        pPacket->field_3 = fruitCount;
+        pPacket->field_2 = dropSeed ? 1 : 0;
 
         pPlayer->GetInventory().RemoveItem(pSeed->id, 1);
         pTile->SetFG(pSeed->id, GetTileManager());
 
-        if(pPacket->field1 == 1)
+        if(pPacket->field_2 == 1)
         {
             pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
         }
@@ -1281,7 +1304,7 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         TileExtra_Seed* pTileExtra = pTile->GetExtra<TileExtra_Seed>();
         if(pTileExtra)
         {
-            pTileExtra->fruitCount = pPacket->field2;
+            pTileExtra->fruitCount = pPacket->field_3;
         }
 
         SendGamePacketToAll(pPacket);
@@ -1445,14 +1468,44 @@ void World::OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile)
     if(!pPlayer || !pTile)
         return;
 
+    int32 itemIDToDrop = 0;
+    uint32 dropCount = 0;
+
     switch(pTile->GetFG())
     {
         case ITEM_ID_SCIENCE_STATION:
         {
+            static WeightRand scienceChemWeight(
+            {
+                {ITEM_ID_CHEMICAL_G, 38},
+                {ITEM_ID_CHEMICAL_R, 23},
+                {ITEM_ID_CHEMICAL_P, 6},
+                {ITEM_ID_CHEMICAL_B, 12},
+                {ITEM_ID_CHEMICAL_Y, 16}
+            });
 
+            if(!scienceChemWeight.Roll(itemIDToDrop))
+                return;
+
+            dropCount = 1;
             break;
         }
     }
+
+    if(itemIDToDrop < 0 || itemIDToDrop == 0 || dropCount == 0)
+        return;
+
+    if(itemIDToDrop == ITEM_ID_GEMS)
+    {
+        pPlayer->ModifyGems(dropCount, true);
+    }
+    else
+    {
+        DropObjectOnTile(pTile, itemIDToDrop, dropCount, GetRandomItemDropOffset(), true);
+    }
+
+    pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_COLLECT_PROVIDER, 1);
+    pPlayer->GiveXP(1);
 
     TileExtra_Provider* pTileExtra = pTile->GetExtra<TileExtra_Provider>();
     if(pTileExtra)
@@ -1460,10 +1513,9 @@ void World::OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile)
         pTile->ModGrowth(0, 0);
         pTile->FinalizeGrowth(0);
 
-        pTileExtra->growTime = 0; // todo
+        pTileExtra->growTime = 0; // leave it for now
     }
 
-    pPlayer->GiveXP(1);
     SendTileUpdate(pTile);
 }
 
@@ -1738,12 +1790,12 @@ void World::DropObject(uint16 itemID, uint8 count, const Vector2Float& pos)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
-    packet.itemID = itemID;
-    packet.posX = pos.x;
-    packet.posY = pos.y;
-    packet.worldObjectCount = count;
+    packet.field_7 = itemID;
+    packet.field_8.x = pos.x;
+    packet.field_8.y = pos.y;
+    packet.field_6 = count;
     //packet.worldObjectFlags = obj.flags;
-    packet.worldObjectType = -1;
+    packet.field_4 = -1;
 
     GetObjectManager()->HandleObjectPackets(&packet);
     SendGamePacketToAll(&packet);
@@ -1758,9 +1810,9 @@ void World::RemoveObject(uint32 objectID)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
-    packet.worldObjectID = objectID;
-    packet.worldObjectType = -2;
-    packet.field4 = -1;
+    packet.field_7 = objectID;
+    packet.field_4 = -2;
+    packet.field_5 = -1;
 
     GetObjectManager()->HandleObjectPackets(&packet);
     SendGamePacketToAll(&packet);
@@ -1770,13 +1822,13 @@ void World::ModifyObject(const WorldObject& obj)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
-    packet.itemID = obj.itemID;
-    packet.posX = obj.pos.x;
-    packet.posY = obj.pos.y;
-    packet.worldObjectCount = obj.count;
-    packet.worldObjectFlags = obj.flags;
-    packet.worldObjectType = -3;
-    packet.field4 = obj.objectID;
+    packet.field_7 = obj.itemID;
+    packet.field_8.x = obj.pos.x;
+    packet.field_8.y = obj.pos.y;
+    packet.field_6 = obj.count;
+    packet.field_1 = obj.flags;
+    packet.field_4 = -3;
+    packet.field_5 = obj.objectID;
 
     GetObjectManager()->HandleObjectPackets(&packet);
     SendGamePacketToAll(&packet);

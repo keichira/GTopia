@@ -18,8 +18,8 @@ void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     GameUpdatePacket gamePacket;
     gamePacket.type = NET_GAME_PACKET_SEND_ITEM_DATABASE_DATA;
-    gamePacket.netID = -1;
-    gamePacket.actualItemDataSize = clientData->size;
+    gamePacket.field_4 = -1;
+    gamePacket.field_7 = clientData->size;
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     gamePacket.extraDataSize = clientData->compressSize;
 

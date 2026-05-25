@@ -15,16 +15,16 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     if(!lastTileChangeTime.IsPassed())
         return;
 
-    lastTileChangeTime.Set(pPacket->itemID == ITEM_ID_FIST ? 130 : 70);
+    lastTileChangeTime.Set(pPacket->field_7 == ITEM_ID_FIST ? 130 : 70);
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->itemID);
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->field_7);
     if(!pItem)
         return;
 
     if(pItem->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_MSTATE))
         return;
 
-    TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->tileX, pPacket->tileY);
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->field_11, pPacket->field_12);
     if(!pTile)
         return;
 
@@ -40,7 +40,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
     PlayerInventory& inventory = pPlayer->GetInventory();
 
-    if(pPacket->itemID == ITEM_ID_FIST)
+    if(pPacket->field_7 == ITEM_ID_FIST)
     {
         uint16 handItemID = inventory.GetClothByPart(BODY_PART_HAND);
         uint16 backItemID = inventory.GetClothByPart(BODY_PART_BACK);
@@ -111,11 +111,11 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     }
 
     if(pTile->HasFlag(TILE_FLAG_ON_FIRE) && 
-        (pPacket->itemID != ITEM_ID_WATER_BALLOON &&
-        pPacket->itemID != ITEM_ID_WATER_BUCKET &&
-        pPacket->itemID != ITEM_ID_SMALL_WAR_BALLOON &&
-        pPacket->itemID != ITEM_ID_MEDIUM_WAR_BALLOON &&
-        pPacket->itemID != ITEM_ID_LARGE_WAR_BALLOON)
+        (pPacket->field_7 != ITEM_ID_WATER_BALLOON &&
+        pPacket->field_7 != ITEM_ID_WATER_BUCKET &&
+        pPacket->field_7 != ITEM_ID_SMALL_WAR_BALLOON &&
+        pPacket->field_7 != ITEM_ID_MEDIUM_WAR_BALLOON &&
+        pPacket->field_7 != ITEM_ID_LARGE_WAR_BALLOON)
     ) {
         pPlayer->SendFakePingReply();
         return;
@@ -144,9 +144,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     if(pItem->type == ITEM_TYPE_CLOTHES)
         return;
 
-    bool tileBroken = false;
-
-    if(pPacket->itemID != ITEM_ID_FIST)
+    if(pItem->type == ITEM_TYPE_WRENCH)
     {
         if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
         {
@@ -154,16 +152,30 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
-        if(pItem->type == ITEM_TYPE_WRENCH)
+        PlayerDialog::Handle(pPlayer, pTile);
+        return;
+    }
+
+    if(pPacket->field_7 != ITEM_ID_FIST && pTile->GetFG() != ITEM_ID_BLANK)
+    {
+        pPlayer->SendFakePingReply();
+        return;
+    }
+
+    bool tileBroken = false;
+
+    if(pPacket->field_7 != ITEM_ID_FIST)
+    {
+        if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
         {
-            PlayerDialog::Handle(pPlayer, pTile);
+            pPlayer->SendFakePingReply();
             return;
         }
 
-        if(inventory.GetCountOfItem(pPacket->itemID) < 1)
+        if(inventory.GetCountOfItem(pPacket->field_7) < 1)
             return;
 
-        if(IsJammer(pPacket->itemID) ||
+        if(IsJammer(pPacket->field_7) ||
             pItem->type == ITEM_TYPE_WEATHER_MACHINE ||
             pItem->type == ITEM_TYPE_WEATHER_SPECIAL2 ||
             pItem->type == ITEM_TYPE_INFINITY_WEATHER_MACHINE
@@ -177,11 +189,11 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             }
         }
 
-        if((pPacket->itemID == ITEM_ID_GUARDIAN_PINEAPPLE && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE))
-            || (pPacket->itemID == ITEM_ID_PUNCH_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_PUNCH_JAMMER))
-            || (pPacket->itemID == ITEM_ID_ZOMBIE_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_ZOMBIE_JAMMER))
-            || (pPacket->itemID == ITEM_ID_SIGNAL_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_SIGNAL_JAMMER))
-            || (pPacket->itemID == ITEM_ID_ANTIGRAVITY_GENERATOR && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_ANTIGRAVITY))
+        if((pPacket->field_7 == ITEM_ID_GUARDIAN_PINEAPPLE && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE))
+            || (pPacket->field_7 == ITEM_ID_PUNCH_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_PUNCH_JAMMER))
+            || (pPacket->field_7 == ITEM_ID_ZOMBIE_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_ZOMBIE_JAMMER))
+            || (pPacket->field_7 == ITEM_ID_SIGNAL_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_SIGNAL_JAMMER))
+            || (pPacket->field_7 == ITEM_ID_ANTIGRAVITY_GENERATOR && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_ANTIGRAVITY))
         ) {
             pPlayer->SendFakePingReply();
             pPlayer->SendOnTalkBubble("This world already has a " + pItem->name + " somewhere on it, installing two would be dangerous!", true);
@@ -200,7 +212,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
-        pPlayer->ModifyInventoryItem(pPacket->itemID, -1);
+        pPlayer->ModifyInventoryItem(pPacket->field_7, -1);
         pWorld->HandleTilePackets(pPacket);
 
         pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
@@ -235,7 +247,11 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
         if(pTileItem->type == ITEM_TYPE_PROVIDER)
         {
-
+            if(pTile->GetGrowthPercent() >= 100.0f)
+            {
+                pWorld->OnCollectProvider(pPlayer, pTile);
+            }
+            return;
         }
 
         if(pTileItem->HasFlag(ITEM_FLAG_AUTOPICKUP))
@@ -247,7 +263,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             }
         }
 
-        uint32 punchDamage = pPlayer->GetCharData().GetPunchDamage();
+        uint32 punchDamage = pPlayer->GetCharData().punchDamage;
 
         if(inventory.GetClothByPart(BODY_PART_HAND) == ITEM_ID_DIGGERS_SPADE)
         {
@@ -264,7 +280,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(!pTile->WillBreak(punchDamage))
         {
             pPacket->type = NET_GAME_PACKET_TILE_APPLY_DAMAGE;
-            pPacket->tileDamage = punchDamage;
+            pPacket->field_7 = punchDamage;
 
             if(pTileItem->id == ITEM_ID_SIGNAL_JAMMER)
             {
@@ -327,18 +343,18 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     {
         if(pTile->GetHealthPercent() > 0.0f)
         {
-            pWorld->SendTileApplyDamage(pTile, pPlayer->GetCharData().GetPunchDamage(), pPlayer->GetNetID());
+            pWorld->SendTileApplyDamage(pTile, pPlayer->GetCharData().punchDamage, pPlayer->GetNetID());
         }
         else if(tileBroken)
         {
             GameUpdatePacket packet;
             packet.type   = NET_GAME_PACKET_TILE_CHANGE_REQUEST;
-            packet.netID  = pPlayer->GetNetID();
-            packet.itemID = ITEM_ID_FIST;
+            packet.field_4  = pPlayer->GetNetID();
+            packet.field_7 = ITEM_ID_FIST;
 
             Vector2Int& vTilePos = pTile->GetPos();
-            packet.tileX = vTilePos.x;
-            packet.tileY = vTilePos.y;
+            packet.field_11 = vTilePos.x;
+            packet.field_12 = vTilePos.y;
 
             pWorld->SendGamePacketToAll(&packet);
         }

@@ -133,126 +133,23 @@ struct GameUpdatePacket
 
     uint8 type = NET_GAME_PACKET_STATE;
 
-    union
-    {
-        uint8 field0 = 0;
-        uint8 characterPunchType;
-        uint8 worldObjectFlags;
-    };
-
-    union
-    {
-        uint8 field1 = 0;
-        uint8 jumpCount;
-        uint8 buildRange;
-        uint8 removedItemCount;
-    };
-
-    union
-    {
-        uint8 field2 = 0;
-        uint8 animType;
-        uint8 punchRange;
-        uint8 addedItemCount;
-    };
-
-    union
-    {
-        int32 field3 = 0;
-        int32 netID;
-        int32 userID;
-        int32 worldObjectType;
-    };
-
-    union
-    {
-        int32 field4 = 0;
-        int32 tileCount;
-    };
-
+    uint8 field_1 = 0;
+    uint8 field_2 = 0;
+    uint8 field_3 = 0;
+    int32 field_4 = 0;
+    int32 field_5 = 0;
     uint32 flags = 0;
-
-    union
-    {
-        float field5 = 0;
-        float characterWaterSpeed;
-        float worldObjectCount;
-    };
-
-    union
-    {
-        int32 field6 = 0;
-        int32 delay;
-        int32 itemID;
-        int32 tileDamage;
-        int32 characterFlags;
-        int32 worldObjectID;
-        int32 actualItemDataSize;
-    };
-
-    union
-    {
-        float field7 = 0;
-        float characterSpeed;
-        float posX;
-        float speedX;
-    };
-
-    union
-    {
-        float field8 = 0;
-        float characterPunchPower;
-        float posY;
-        float speedY;
-    };
-
-    union
-    {
-        float field9 = 0;
-        float characterAccel;
-        float particleEffectSize;
-    };
-
-    union
-    {
-        float field10 = 0;
-        float characterGravity;
-        float particleEffectType;
-    };
-
-    union
-    {
-        float field11 = 0;
-        float characterFireDamage;
-    };
-
-    union
-    {
-        uint32 field12 = 0;
-        uint32 tileX;
-    };
-
-    union
-    {
-        uint32 field13 = 0;
-        uint32 tileY;
-    };
+    float field_6 = 0.0f;
+    int32 field_7 = 0;
+    Vector2Float field_8;
+    Vector2Float field_9;
+    float field_10 = 0.0f;
+    int32 field_11 = 0;
+    int32 field_12 = 0;
 
     uint32 extraDataSize = 0;
 
     bool HasFlag(eGamePacketFlags flag) { return flags & flag; }
     void SetFlag(eGamePacketFlags flag) { flags |= flag; }
-
-    void Print() 
-    {
-        LOGGER_LOG_DEBUG(
-            "field0=%u, field1=%u, field2=%u, field3=%d, field4=%d, flags=%d, "
-            "field5=%f, field6=%d, field7=%f, field8=%f, field9=%f, field10=%f, "
-            "field11=%f, field12=%d, field13=%d, extraDataSize=%u\n",
-            field0, field1, field2, field3, field4, flags,
-            field5, field6, field7, field8, field9, field10,
-            field11, field12, field13, extraDataSize
-        );
-    }
 };
 #pragma pack(pop)

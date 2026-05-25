@@ -221,6 +221,7 @@ bool IsWorldLock(uint16 itemID)
         case ITEM_ID_DIAMOND_LOCK:
         case ITEM_ID_HARMONIC_LOCK:
         case ITEM_ID_ROBOTIC_LOCK:
+        case ITEM_ID_ROYAL_LOCK:
             return true;
 
         default:
@@ -310,7 +311,7 @@ void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed)
     
     if(!pItem->HasFlag(ITEM_FLAG_SEEDLESS))
     {
-        dropSeed = (RandomRangeInt(0, pItem->rarity/4 + 4) == 0);
+        dropSeed = (RandomRangeInt(0, pItem->rarity / 4 + 4) == 0);
     }
 }
 

@@ -14,6 +14,7 @@ public:
 
 public:
     WeightRand();
+    WeightRand(const std::vector<Element>& elements);
     ~WeightRand();
 
 public:

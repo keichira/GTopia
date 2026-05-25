@@ -104,13 +104,13 @@ set(GAME_FILES PRIVATE
     ${SOURCE_PLAYER}/PlayerTribute.cpp
     ${SOURCE_PLAYER}/PlayerInventory.cpp
     ${SOURCE_PLAYER}/PlayerLoginDetail.cpp
-    ${SOURCE_PLAYER}/CharacterData.cpp
     ${SOURCE_PLAYER}/PlayMod.cpp
     ${SOURCE_PLAYER}/PlayModManager.cpp
     ${GAME_PLAYER}/GamePlayer.cpp
     ${GAME_PLAYER}/PlayerManager.cpp
     ${GAME_PLAYER}/AchievementManager.cpp
     ${GAME_PLAYER}/PlayerProgress.cpp
+    ${GAME_PLAYER}/PlayerPlayModController.cpp
 
     ${GAME_STORE}/StoreManager.cpp
 

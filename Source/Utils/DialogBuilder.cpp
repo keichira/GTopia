@@ -141,7 +141,25 @@ DialogBuilder* DialogBuilder::AddLabel(const string& label, bool big)
     if(big) m_str += "big|";
     else m_str += "small|";
 
-    m_str += label;
+    m_str += label + "|\n";
+
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddPlayerPicker(const string& id, const string& label)
+{
+    m_str += "add_player_picker|" + id + "|" + label + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddSmallText(const string& text, bool center)
+{
+    m_str += "add_small_text|";
+
+    if(center) m_str += "center|";
+    else m_str += "left|";
+
+    m_str += text;
 
     return this;
 }

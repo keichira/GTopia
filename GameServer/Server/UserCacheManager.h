@@ -6,10 +6,13 @@
 #include "Database/Table/PlayerDBTable.h"
 #include "Utils/Timer.h"
 
+class GamePlayer;
+
 enum eCacheRequestType : uint8
 {
     CACHE_REQ_NONE,
-    CACHE_REQ_WORLD_LOCK_PUNCH
+    CACHE_REQ_WORLD_LOCK_PUNCH,
+    CACHE_REQ_WORLD_LOCK_DIALOG
 };
 
 union CacheParam
@@ -59,7 +62,7 @@ public:
     bool IsCached(uint32 userID);
     void FetchMetadata(uint32 playerNetID,
                        eCacheRequestType reqType,
-                       const std::vector<uint32>& userIDs,  
+                       const std::vector<int32>& userIDs,  
                        std::array<CacheParam, 5> params = {}, 
                        const char* textParam = nullptr);
     void Update();    
@@ -95,6 +98,7 @@ private:
     };
 
     void ExecuteRequest(uint32 playerNetID, const PendingRequest& request);
+    void OnPunchedLock(GamePlayer* pPlayer, const PendingRequest& request);
 
     std::unordered_map<uint32, UserMetadata> m_cache;
     std::unordered_map<uint32, PendingRequest> m_pendingRequests;

@@ -7,12 +7,6 @@
 #include "Event/EventDispatcher.h"
 #include <queue>
 
-struct PendingWorldData
-{
-    World* world;
-    uint64 requestTime;
-};
-
 class WorldManager {
 public:
     WorldManager();

@@ -16,9 +16,7 @@ public:
         static PlayModManager instance;
         return &instance;
     }
-
-    static bool IsRequiredUpdate(ePlayModType modType);
-
+    
 public:
     bool Load(const string& filePath);
 

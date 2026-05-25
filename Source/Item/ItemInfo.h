@@ -32,7 +32,8 @@ public:
     uint16 flags = 0;
     uint8 type = 0;
     
-    union {
+    union 
+    {
         uint8 material = 0;
         uint8 clothSleeve;
     };

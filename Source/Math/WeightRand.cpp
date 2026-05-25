@@ -6,6 +6,14 @@ WeightRand::WeightRand()
 {
 }
 
+WeightRand::WeightRand(const std::vector<Element>& elements)
+{
+    for(auto& elem : elements)
+    {
+        Add(elem.num, elem.weight);
+    }
+}
+
 WeightRand::~WeightRand()
 {
 }

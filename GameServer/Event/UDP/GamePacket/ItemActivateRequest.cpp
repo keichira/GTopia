@@ -24,22 +24,22 @@ void ItemActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdate
 
     pPlayer->ResetItemActiveTime();
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->itemID);
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->field_7);
     if(!pItem) 
     {
-        LOGGER_LOG_WARN("Player %s (ID: %d) tried to activate item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->itemID);
+        LOGGER_LOG_WARN("Player %s (ID: %d) tried to activate item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->field_7);
         return;
     }
 
     if(pItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD)) 
     {
-        LOGGER_LOG_WARN("Player %s (ID: %d) tried to use mod flagged item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->itemID);
+        LOGGER_LOG_WARN("Player %s (ID: %d) tried to use mod flagged item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->field_7);
         return;
     }
 
     if(pItem->type == ITEM_TYPE_CLOTHES) 
     {
-        pPlayer->ToggleCloth(pPacket->itemID);
+        pPlayer->ToggleCloth(pPacket->field_7);
         return;
     }
 }

@@ -12,5 +12,5 @@ void SetSkin::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(ToUInt(string(pColor->value, pColor->size), skinColor) != TO_INT_SUCCESS)
         return;
 
-    pPlayer->SetSkinColor(skinColor);
+    //pPlayer->SetSkinColor(skinColor);
 }

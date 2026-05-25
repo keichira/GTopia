@@ -229,6 +229,24 @@ TILE_EXTRA(TileExtra_Lock, TILE_EXTRA_TYPE_LOCK)
 
         return false;
     }
+
+    uint32 GetTotalAccessedCount()
+    {
+        uint32 count = 0;
+
+        for(auto& id : accessList)
+        {
+            if(id > 0)
+                count++;
+        }
+
+        return count;
+    }
+
+    void RemoveFromList(int32 id)
+    {
+        accessList.erase(accessList.begin() + id);
+    }
 };
 
 TILE_EXTRA_GROWTH(TileExtra_Seed, TILE_EXTRA_TYPE_SEED)

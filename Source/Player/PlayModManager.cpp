@@ -30,19 +30,6 @@ PlayModManager::~PlayModManager()
 {
 }
 
-bool PlayModManager::IsRequiredUpdate(ePlayModType modType)
-{
-    switch(modType) {
-        case PLAYMOD_TYPE_BLUEBERRY:
-        case PLAYMOD_TYPE_CARRYING_A_TORCH: {
-            return true;
-        }
-
-        default:
-            return false;
-    }
-}
-
 bool PlayModManager::Load(const string &filePath)
 {
     File file;

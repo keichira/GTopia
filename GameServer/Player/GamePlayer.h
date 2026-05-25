@@ -7,6 +7,7 @@
 #include "Database/QueryUtils.h"
 #include "Math/Random.h"
 #include "PlayerProgress.h"
+#include "PlayerPlayModController.h"
 
 enum ePlayerState
 {
@@ -87,13 +88,6 @@ public:
     void TrashItem(uint16 itemID, uint16 amount);
     void DropItem(uint16 itemID, uint16 amount, bool openDialog);
 
-    void AddPlayMod(ePlayModType modType, bool silent = false);
-    void RemovePlayMod(ePlayModType modType, bool silent = false);
-    void UpdateNeededPlayModThings();
-    void UpdatePlayMods();
-    void UpdateTorchPlayMod();
-    void SetSkinColor(uint32 skinColor);
-
     bool CanActivateItemNow() { return Time::GetSystemTime() - m_lastItemActivateTime >= 100; };
     void ResetItemActiveTime() { m_lastItemActivateTime = Time::GetSystemTime(); }
 
@@ -117,6 +111,7 @@ public:
     uint64 GetNextDBSaveTime() const { return m_nextDbSaveTime; };
 
     PlayerProgress& GetProgressData() { return m_progressData; }
+    PlayerPlayModController& GetModController() { return m_modController; }
 
 private:
     uint32 m_state;
@@ -126,6 +121,7 @@ private:
     int32 m_gems;
 
     PlayerProgress m_progressData;
+    PlayerPlayModController m_modController;
 
     uint64 m_lastItemActivateTime;
     Timer m_lastActionTime;

@@ -634,10 +634,15 @@ void ItemInfoManager::SetupItemExtras()
         uint32 key = (uint32(minV) << 16) | uint32(maxV);
         m_spliceData.insert_or_assign(key, pSeed->id);
 
-        pSeed->rarity = GetItemRarity(pSeed->id);
-        if(ItemInfo* pItem = GetItemByID(i - 1)) 
+        ItemInfo* pItem = GetItemByID(i - 1);
+        if(pItem->rarity == 0)
         {
+            pSeed->rarity = GetItemRarity(pSeed->id);
             pItem->rarity = pSeed->rarity;
+        }
+        else
+        {
+            pSeed->rarity = pItem->rarity;
         }
 
         if(pSeed->rarity == 999) 
@@ -652,11 +657,6 @@ void ItemInfoManager::SetupItemExtras()
         if(pSeed->growTime == 0) 
         {
             pSeed->growTime = 31;
-        }
-
-        if(pSeed->maxFruitCount == 0)
-        {
-            pSeed->maxFruitCount = 5;
         }
     }
 }

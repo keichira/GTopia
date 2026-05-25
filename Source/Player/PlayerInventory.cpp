@@ -280,7 +280,7 @@ uint8 PlayerInventory::GetCountOfItem(uint16 itemID)
     return pItem->count;
 }
 
-void PlayerInventory::UpdateInventory(Player *pPlayer, uint16 itemID, uint8 count, bool added)
+void PlayerInventory::UpdateInventory(Player* pPlayer, uint16 itemID, uint8 count, bool added)
 {
     if(!pPlayer) {
         return;
@@ -288,13 +288,13 @@ void PlayerInventory::UpdateInventory(Player *pPlayer, uint16 itemID, uint8 coun
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_MODIFY_ITEM_INVENTORY;
-    packet.itemID = itemID;
+    packet.field_7 = itemID;
 
     if(added) {
-        packet.addedItemCount = count;
+        packet.field_3 = count;
     }
     else {
-        packet.removedItemCount = count;
+        packet.field_2 = count;
     }
 
     SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr, pPlayer->GetPeer());

@@ -1,9 +1,10 @@
 #include "Player.h"
 #include "../Packet/NetPacket.h"
 #include "Proton/ProtonUtils.h"
+#include "../Utils/Timer.h"
 
 Player::Player(ENetPeer* pPeer)
-: NetEntity(ENTITY_TYPE_PLAYER),  m_pPeer(pPeer)
+: NetEntity(ENTITY_TYPE_PLAYER), m_pPeer(pPeer)
 {
     enet_address_get_host_ip(&pPeer->address, m_address, sizeof(m_address));
 }
@@ -293,8 +294,8 @@ void Player::SendCallFunctionPacket(VariantVector& data, int32 netID, int32 dela
     GameUpdatePacket gamePacket;
     gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    gamePacket.netID = netID;
-    gamePacket.delay = delay;
+    gamePacket.field_4 = netID;
+    gamePacket.field_7 = delay;
 
     uint32 size = 0;
     uint8* pData = Proton::SerializeToMem(data, &size, nullptr);
@@ -337,7 +338,7 @@ void Player::SendOnSetClothing(Player* pPlayer)
     data[2] = Vector3Float(clothes[BODY_PART_SHOE], clothes[BODY_PART_FACEITEM], clothes[BODY_PART_HAND]);
     data[3] = Vector3Float(clothes[BODY_PART_BACK], clothes[BODY_PART_HAT], clothes[BODY_PART_CHESTITEM]);
 
-    data[4] = pPlayer ? (int32)pPlayer->GetCharData().GetSkinColor(true) : (int32)m_characterData.GetSkinColor(true);
+    data[4] = pPlayer ? (int32)pPlayer->GetCharData().skinColor.GetAsUINTSwap() : (int32)m_characterData.skinColor.GetAsUINTSwap();
 
     bool isInvis = true;
 
@@ -360,21 +361,19 @@ void Player::SendCharacterState(Player* pPlayer)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SET_CHARACTER_STATE;
-    packet.netID = pPlayer ? pPlayer->GetNetID() : GetNetID();
+    packet.field_4 = pPlayer ? pPlayer->GetNetID() : GetNetID();
 
     CharacterData& charData = pPlayer ? pPlayer->GetCharData() : GetCharData();
 
-    packet.characterPunchType = charData.GetPunchType();
-    packet.buildRange = charData.GetBuildRange();
-    packet.punchRange = charData.GetPunchRange();
-    packet.characterFlags = (int32)charData.GetCharFlags();
-
-    packet.characterWaterSpeed = charData.GetWaterSpeed();
-    packet.characterSpeed = charData.GetSpeed();
-    packet.characterPunchPower = charData.GetPunchPower();
-    packet.characterAccel = charData.GetAccel();
-    packet.characterGravity = charData.GetGravity();
-    packet.characterFireDamage = charData.GetFireDamage();
+    packet.field_1 = charData.punchType;
+    packet.field_2 = charData.punchRange;
+    packet.field_3 = charData.buildRange;
+    packet.field_6 = charData.waterSpeed;
+    packet.field_7 = charData.charState;
+    packet.field_8.x = charData.speed;
+    packet.field_8.y = charData.punchPower;
+    packet.field_9.x = charData.accel;
+    packet.field_9.y = charData.gravity;
 
     SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr, m_pPeer);
 }

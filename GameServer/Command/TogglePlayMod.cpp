@@ -35,12 +35,13 @@ void TogglePlayMod::Execute(GamePlayer* pPlayer, std::vector<string>& args)
         return;
     }
 
-    if(pPlayer->GetCharData().HasPlayMod((ePlayModType)playModID)) 
+    PlayerPlayModController& modController = pPlayer->GetModController();
+    if(modController.HasPlayMod((ePlayModType)playModID)) 
     {
-        pPlayer->RemovePlayMod((ePlayModType)playModID);
+        modController.RemovePlayMod((ePlayModType)playModID);
     }
     else 
     {
-        pPlayer->AddPlayMod((ePlayModType)playModID);
+        modController.AddPlayMod((ePlayModType)playModID);
     }
 }

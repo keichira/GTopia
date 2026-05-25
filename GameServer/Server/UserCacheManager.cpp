@@ -4,6 +4,8 @@
 #include "../Context.h"
 #include "Item/ItemInfoManager.h"
 #include "Player/RoleManager.h"
+#include "../World/WorldManager.h"
+#include "../Player/Dialog/LockDialog.h"
 
 UserCacheManager::UserCacheManager()
 {
@@ -52,19 +54,19 @@ bool UserCacheManager::IsCached(uint32 userID)
 
 void UserCacheManager::FetchMetadata(uint32 playerNetID, 
                                     eCacheRequestType reqType,
-                                    const std::vector<uint32>& userIDs, 
+                                    const std::vector<int32>& userIDs, 
                                     std::array<CacheParam, 5> params, 
                                     const char* textParam)
 {
     if(m_pendingRequests.find(playerNetID) != m_pendingRequests.end())
         return;
 
-    static std::vector<uint32> missingIDs;
+    static std::vector<int32> missingIDs;
     missingIDs.clear(); 
 
-    for(uint32 id : userIDs) 
+    for(int32 id : userIDs) 
     {
-        if(id != 0 && !IsCached(id)) 
+        if(id > 0 && !IsCached(id)) 
         {
             missingIDs.push_back(id);
         }
@@ -197,42 +199,67 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
     {
         case CACHE_REQ_WORLD_LOCK_PUNCH:
         {
-            if(request.params.size() < 2)
+            OnPunchedLock(pPlayer, request);
+            break;
+        }
+
+        case CACHE_REQ_WORLD_LOCK_DIALOG:
+        {
+            if(request.params.size() < 3)
                 break;
 
-            int32 ownerID = request.params[0].GetInt32();
-            int32 itemID = request.params[1].GetInt32();
-            bool hasAccess = request.params[2].GetBool();
-
-            // but for now keep until fully finished the lock
-            // change all use worldID, tilex, tiley
-
-            UserMetadata* pUserMeta = GetMetadata(ownerID);
-            if(!pUserMeta)
-                break;
-
-            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-            if(!pItem)
-                break;
-
-            string notifyMsg = "`w" + pUserMeta->displayName + + "``'s `$" + pItem->name + "``.";
-            if(hasAccess)
-            {
-                notifyMsg += " (`wAccess granted``)";
-            }
-            else
-            {
-                notifyMsg += " (`4No access``)";
-            }
-
-            pPlayer->SendOnTalkBubble(notifyMsg, true);
-            pPlayer->PlaySFX("punch_locked.wav");
+            LockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
             break;
         }
 
         default:
             break;
     }
+}
+
+void UserCacheManager::OnPunchedLock(GamePlayer* pPlayer, const PendingRequest& request)
+{
+    if(!pPlayer || request.params.size() < 3)
+        return;
+
+    if(pPlayer->GetCurrentWorld() != request.params[0].GetInt32())
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if(!pWorld)
+        return;
+
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(request.params[1].GetInt32(), request.params[2].GetInt32());
+    if(!pTile)
+        return;
+
+    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
+    if(!pTileExtra)
+        return;
+
+    if(pTileExtra->ownerID < 1)
+        return;
+
+    UserMetadata* pUserMeta = GetMetadata(pTileExtra->ownerID);
+    if(!pUserMeta)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(pItem->type != ITEM_TYPE_LOCK)
+        return;
+
+    string notifyMsg = "`w" + pUserMeta->displayName + + "``'s `$" + pItem->name + "``.";
+    if(pTileExtra->HasAccess(pPlayer->GetUserID()))
+    {
+        notifyMsg += " (`wAccess granted``)";
+    }
+    else
+    {
+        notifyMsg += " (`4No access``)";
+    }
+
+    pPlayer->SendOnTalkBubble(notifyMsg, true);
+    pPlayer->PlaySFX("punch_locked.wav");
 }
 
 void UserCacheManager::Update()

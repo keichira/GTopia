@@ -7,7 +7,7 @@ void TileActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdate
     if(!pPlayer || !pWorld || !pPacket)
         return;
 
-    TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->tileX, pPacket->tileY);
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->field_11, pPacket->field_12);
     if(!pTile)
         return;
 

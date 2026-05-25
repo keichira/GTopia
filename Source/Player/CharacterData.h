@@ -2,10 +2,7 @@
 
 #include "../Precompiled.h"
 #include "../Math/Color.h"
-#include "PlayMod.h"
 #include "../Math/Vector2.h"
-#include "../Utils/Timer.h"
-#include "../Utils/DialogBuilder.h"
 
 #define CHARACTER_DEFAULT_FIRE_DAMAGE 1.0f // umm
 #define CHARACTER_DEFAULT_SPEED 1000.0f
@@ -14,14 +11,6 @@
 #define CHARACTER_DEFAULT_ACCEL 250.0f
 #define CHARACTER_DEFAULT_PUNCH_POWER 200.0f
 #define CHARACTER_DEFAULT_PUNCH_DAMAGE 6.0f
-
-
-struct PlayerPlayModInfo
-{
-    ePlayModType modType = PLAYMOD_TYPE_NONE;
-    Timer timer;
-    uint32 durationMS = 0;
-};
 
 enum eCharacterStateFlag
 {
@@ -65,79 +54,53 @@ class GamePlayer;
 
 class CharacterData {
 public:
-    CharacterData();
-    ~CharacterData();
+    CharacterData() { ResetToBaseStats(); }
 
 public:
-    bool HasCharState(uint32 flag) { return m_charState & flag; };
-    void SetCharState(uint32 flag) { m_charState |= flag; }
-    void RemoveCharState(uint32 flag) { m_charState &= ~flag; }
+    void ResetToBaseStats()
+    {
+        charState = 0;
+        speed = CHARACTER_DEFAULT_SPEED;
+        waterSpeed = CHARACTER_DEFAULT_WATER_SPEED;
+        gravity = CHARACTER_DEFAULT_GRAVITY;
+        accel = CHARACTER_DEFAULT_ACCEL;
+        punchPower = CHARACTER_DEFAULT_PUNCH_POWER;
+        punchDamage = CHARACTER_DEFAULT_PUNCH_DAMAGE;
+        buildRange = 128;
+        punchRange = 128;
+        punchType = 0;
+        skinColor = Color(180, 138, 120, 255);
+        avatarSize = Vector2Int(20, 30);
 
-    bool HasCharFlag(uint32 flag) { return m_charFlags & flag; };
-    void SetCharFlag(uint32 flag) { m_charFlags |= flag; }
-    void RemoveCharFlag(uint32 flag) { m_charFlags &= ~flag; }
+        needSkinUpdate = false;
+        needCharStateUpdate = false;
+    }
 
-    uint8 GetPunchType() const { return m_punchType; }
-    uint8 GetPunchRange() const { return m_punchRange; }
-    uint8 GetBuildRange() const { return m_buildRange; }
-    uint32 GetCharFlags() const { return m_charState; }
+    bool HasCharState(uint32 state) { return charState & state; };
+    void SetCharState(uint32 state) { charState |= state; }
+    void RemoveCharState(uint32 state) { charState &= ~state; }
 
-    float GetPunchPower() const { return m_punchPower; }
-    float GetPunchDamage() const { return m_punchDamage; }
-    float GetGravity() const { return m_gravity; }
-    float GetSpeed() const { return m_speed; }
-    float GetWaterSpeed() const { return m_waterSpeed; }
-    float GetAccel() const { return m_accel; }
-    float GetFireDamage() const { return m_fireDamage; }
+    bool HasCharFlag(uint32 flag) { return charFlags & flag; };
+    void SetCharFlag(uint32 flag) { charFlags |= flag; }
+    void RemoveCharFlag(uint32 flag) { charFlags &= ~flag; }
 
-    uint32 GetSkinColor(bool tint = false);
-    void GetActiveModsForDialog(DialogBuilder& db);
+public:
+    uint8 punchType;
+    uint8 punchRange;
+    uint8 buildRange;
+    float punchPower;
+    float punchDamage;
+    float gravity;
+    float speed;
+    float waterSpeed;
+    float accel;
+    float fireDamage;
+    Color skinColor;
+    uint32 charState;
+    uint32 charFlags;
 
-    bool HasPlayMod(ePlayModType modType);
-    PlayerPlayModInfo* GetPlayMod(ePlayModType modType);
-    PlayMod* AddPlayMod(ePlayModType modType);
-    PlayMod* RemovePlayMod(ePlayModType modType);
+    bool needSkinUpdate;
+    bool needCharStateUpdate;
 
-    void SetSkinColor(uint32 skinColor) { m_skinColor.SetUINTSwap(skinColor); }
-
-    bool NeededSkinUpdate() const { return m_needSkinUpdate; }
-    void SetNeedSkinUpdate(bool val) { m_needSkinUpdate = val; }
-
-    bool NeededCharStateUpdate() const { return m_needCharStateUpdate; }
-    void SetNeedCharStateUpdate(bool val) { m_needCharStateUpdate = val; }
-
-    std::vector<PlayerPlayModInfo>& GetReqUpdatePlayMods() { return m_reqUpdatePlayMods; }
-    uint32 GetActiveModCount() { return m_activePlayMods.size(); };
-
-private:
-    void RemovePlayMod(PlayerPlayModInfo* pPlayerMod);
-    void SetNeededUpdates(PlayMod* pPlayMod);
-    void GetNextPunchType();
-
-private:
-    uint8 m_punchType;
-    uint8 m_punchRange;
-    uint8 m_buildRange;
-
-    float m_punchPower;
-    float m_punchDamage;
-    float m_gravity;
-    float m_speed;
-    float m_waterSpeed;
-    float m_accel;
-    float m_fireDamage;
-
-    uint32 m_charState;
-    Color m_skinColor;
-
-    uint32 m_charFlags;
-
-    bool m_needSkinUpdate;
-    bool m_needCharStateUpdate;
-
-    Vector2Int m_avatarSize;
-
-    std::vector<PlayerPlayModInfo> m_reqUpdatePlayMods;
-    std::vector<PlayerPlayModInfo> m_staticPlayMods;
-    std::vector<ePlayModType> m_activePlayMods;
+    Vector2Int avatarSize;
 };

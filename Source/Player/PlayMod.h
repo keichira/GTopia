@@ -31,7 +31,7 @@ public:
     ePlayModType GetType() const { return m_modType; }
     uint8 GetPunchType() const { return m_punchType; }
     uint16 GetDisplayItem() const { return m_displayItem; }
-    uint32 GetCharFlags() const { return m_charState; }
+    uint32 GetCharStates() const { return m_charState; }
     uint32 GetTime() const { return m_durationTime; }
 
     uint8 GetBuildRange() const { return m_buildRange; }

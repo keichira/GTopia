@@ -54,8 +54,8 @@ public:
     void SendSetCharPacketToAll(GamePlayer* pPlayer);
     void SendClothUpdateToAll(GamePlayer* pPlayer);
     void SendParticleEffectToAll(float coordX, float coordY, uint32 particleType, float particleSize = 0, int32 delay = -1);
-    void SendTileUpdate(TileInfo* pTile);
-    void SendTileUpdate(uint16 tileX, uint16 tileY);
+    void SendTileUpdate(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
+    void SendTileUpdate(uint16 tileX, uint16 tileY, GamePlayer* pPlayer = nullptr);
     void SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles);
     void SendTileApplyDamage(TileInfo* pTile, int32 damage, int32 netID);
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);

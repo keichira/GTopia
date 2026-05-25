@@ -17,6 +17,7 @@ void WrenchSelfDialog::Request(GamePlayer* pPlayer)
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
     CharacterData& characterData = pPlayer->GetCharData();
     PlayerInventory& inventory = pPlayer->GetInventory();
+    PlayerPlayModController& modController = pPlayer->GetModController();
 
     DialogBuilder db;
     db.SetDefaultColor('o')
@@ -35,10 +36,10 @@ void WrenchSelfDialog::Request(GamePlayer* pPlayer)
     }
     db.AddButton("goals", "`$Goals & Quests``");
     
-    if(characterData.GetActiveModCount() > 0)
+    if(modController.GetActiveModCount() > 0)
     {
         db.AddTextBox("`wActive effects:``");
-        characterData.GetActiveModsForDialog(db);
+        modController.BuildActiveModsDialog(db);
     }
 
     db.AddSpacer();

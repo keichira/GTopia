@@ -22,7 +22,7 @@
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
 : Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
 m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0),
-m_progressData(this)
+m_progressData(this), m_modController(this)
 {
     RandomizeNextDBSaveTime();
 }
@@ -265,23 +265,22 @@ void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
 
 void GamePlayer::Update()
 {
-    UpdatePlayMods();
+    m_modController.Update();
 
     if(m_currentWorldID != 0) 
     {
-        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
-        if(pWorld) 
+        if(World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID)) 
         {
-            if(m_characterData.NeededCharStateUpdate()) 
+            if(m_characterData.needCharStateUpdate) 
             {
                 pWorld->SendSetCharPacketToAll(this);
-                m_characterData.SetNeedCharStateUpdate(false);
+                m_characterData.needCharStateUpdate = false;
             }
 
-            if(m_characterData.NeededSkinUpdate()) 
+            if(m_characterData.needSkinUpdate) 
             {
                 pWorld->SendSkinColorUpdateToAll(this);
-                m_characterData.SetNeedSkinUpdate(false);
+                m_characterData.needSkinUpdate = false;
             }
         }
     }
@@ -383,7 +382,7 @@ void GamePlayer::ToggleCloth(uint16 itemID)
 
         if(pItem->playModType != PLAYMOD_TYPE_NONE) 
         {
-            RemovePlayMod(pItem->playModType);
+            m_modController.RemovePlayMod(pItem->playModType);
         }
 
         PlayerInventory& playerInv = GetInventory();
@@ -417,12 +416,12 @@ void GamePlayer::ToggleCloth(uint16 itemID)
         ItemInfo* pWornItem = GetItemInfoManager()->GetItemByID(wornItem);
         if(pWornItem) 
         {
-            RemovePlayMod(pWornItem->playModType);
+            m_modController.RemovePlayMod(pWornItem->playModType);
         }
 
         if(pItem->playModType != PLAYMOD_TYPE_NONE) 
         {
-            AddPlayMod(pItem->playModType);
+            m_modController.AddPlayMod(pItem->playModType);
         }
     }
 
@@ -563,121 +562,6 @@ void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
 
     ModifyInventoryItem(itemID, -amount);
     pWorld->DropObjectOnTile(pTile, itemID, amount, dropPos - pTile->GetWorldPosCenter(), true);
-}
-
-void GamePlayer::AddPlayMod(ePlayModType modType, bool silent)
-{
-    if(modType == PLAYMOD_TYPE_NONE)
-        return;
-
-    PlayMod* pPlayMod = m_characterData.AddPlayMod(modType);
-    if(!pPlayMod)
-        return;
-
-    if(!silent) {
-        if(pPlayMod->GetTime() != 0) 
-        {
-            SendOnConsoleMessage(
-                "`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetAddMessage() + " `omod added, `$" + Time::ConvertTimeToStr(pPlayMod->GetTime() * 1000) + "`oleft)"
-            );
-        }
-        else 
-        {
-            SendOnConsoleMessage("`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetAddMessage() + " `omod added)");
-        }
-    }
-
-    UpdateNeededPlayModThings();
-}
-
-void GamePlayer::RemovePlayMod(ePlayModType modType, bool silent)
-{
-    if(modType == PLAYMOD_TYPE_NONE)
-        return;
-
-    PlayMod* pPlayMod = m_characterData.RemovePlayMod(modType);
-    if(!pPlayMod)
-        return;
-
-    if(!silent) 
-    {
-        SendOnConsoleMessage("`o" + pPlayMod->GetName() + " (`$" + pPlayMod->GetRemoveMessage() + " `omod removed)");
-    }
-
-    UpdateNeededPlayModThings();
-}
-
-void GamePlayer::UpdateNeededPlayModThings()
-{
-    if(
-        m_characterData.NeededSkinUpdate() && m_currentWorldID != 0
-    ) {
-        World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
-        if(!pWorld)
-            return;
-
-        if(m_characterData.NeededSkinUpdate()) 
-        {
-            pWorld->SendSkinColorUpdateToAll(this);
-            m_characterData.SetNeedSkinUpdate(false);
-        }
-    }
-}
-
-void GamePlayer::UpdatePlayMods()
-{
-    auto& reqUpdtMods = m_characterData.GetReqUpdatePlayMods();
-
-    for(int32 i = reqUpdtMods.size() - 1; i >= 0; --i) 
-    {
-        PlayerPlayModInfo& playMod = reqUpdtMods[i];
-        
-        if(playMod.modType == PLAYMOD_TYPE_CARRYING_A_TORCH) 
-        {
-            if(m_currentWorldID == 0)
-                continue;
-
-            if(GetInventory().GetClothByPart(BODY_PART_HAND) != ITEM_ID_HAND_TORCH) 
-            {
-                RemovePlayMod(PLAYMOD_TYPE_CARRYING_A_TORCH);
-                continue;
-            }
-
-            UpdateTorchPlayMod();
-        }
-        else if(reqUpdtMods[i].timer.GetElapsedTime() >= playMod.durationMS) 
-        {
-            RemovePlayMod(playMod.modType);
-        }
-    }
-}
-
-void GamePlayer::UpdateTorchPlayMod()
-{
-    if(RandomRangeInt(0, 250) != 18) { // is it a good idea? lol since tick based
-        return;
-    }
-
-    ModifyInventoryItem(ITEM_ID_HAND_TORCH, -1);
-
-    uint8 leftTorchCount = GetInventory().GetCountOfItem(ITEM_ID_HAND_TORCH);
-    if(leftTorchCount == 0) 
-    {
-        SendOnTalkBubble("`2My torch went out!", true);
-        return;
-    }
-
-    SendOnTalkBubble("`2My torch went out, i have " + ToString(leftTorchCount) + " more!", true);
-}
-
-void GamePlayer::SetSkinColor(uint32 skinColor)
-{
-    m_characterData.SetSkinColor(skinColor);
-
-    if(m_currentWorldID != 0) 
-    {
-        m_characterData.SetNeedSkinUpdate(true);
-    }
 }
 
 void GamePlayer::CheckLimitsForAccountCreation(bool fromDialog, const VariantVector& extraData)
@@ -827,9 +711,9 @@ void GamePlayer::SendPositionToWorldPlayers()
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_STATE;
-    packet.posX = m_worldPos.x;
-    packet.posY = m_worldPos.y;
-    packet.netID = GetNetID();
+    packet.field_8.x = m_worldPos.x;
+    packet.field_8.y = m_worldPos.y;
+    packet.field_4 = GetNetID();
 
     if(m_characterData.HasCharFlag(CHARACTER_FLAG_FACING_LEFT)) 
     {

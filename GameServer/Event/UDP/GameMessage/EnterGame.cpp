@@ -63,11 +63,11 @@ void LoadAccount(QueryTaskResult&& result)
     }
     pPlayer->SetRole(pRole);
 
-    uint32 skinColor = result.result->GetField("SkinColor", 0).GetUINT();
+    /*uint32 skinColor = result.result->GetField("SkinColor", 0).GetUINT();
     if(skinColor != 0) 
     {
         pPlayer->GetCharData().SetSkinColor(skinColor);
-    }
+    }*/
 
     pPlayer->SetFlags(result.result->GetField("Flags", 0).GetUINT());
     pPlayer->SetGems(result.result->GetField("Gems", 0).GetUINT());
@@ -116,7 +116,7 @@ void LoadAccount(QueryTaskResult&& result)
 
     pPlayer->SetGuestID(result.result->GetField("GuestID", 0).GetUINT());
 
-    for(uint8 i = 0; i < BODY_PART_SIZE; ++i) 
+    /*for(uint8 i = 0; i < BODY_PART_SIZE; ++i) 
     {
         uint16 cloth = inventory.GetClothByPart((eBodyPart)i);
 
@@ -128,7 +128,7 @@ void LoadAccount(QueryTaskResult&& result)
         if(pItem->type == ITEM_TYPE_CLOTHES && pItem->playModType != PLAYMOD_TYPE_NONE) {
             pPlayer->AddPlayMod(pItem->playModType, true);
         }
-    }
+    }*/
 
     if(loginDetail.loginMode == LOGON_MODE_WELCOME) 
     {

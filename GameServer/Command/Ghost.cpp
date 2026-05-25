@@ -21,12 +21,14 @@ void Ghost::Execute(GamePlayer* pPlayer, std::vector<string>& args)
     if(!pPlayer || args.empty() || !CheckPerm(pPlayer))
         return;
 
-    if(pPlayer->GetCharData().HasPlayMod(PLAYMOD_TYPE_GHOST)) 
+    PlayerPlayModController& modController = pPlayer->GetModController();
+
+    if(modController.HasPlayMod(PLAYMOD_TYPE_GHOST)) 
     {
-        pPlayer->RemovePlayMod(PLAYMOD_TYPE_GHOST);
+        modController.RemovePlayMod(PLAYMOD_TYPE_GHOST);
     }
     else 
     {
-        pPlayer->AddPlayMod(PLAYMOD_TYPE_GHOST);
+        modController.AddPlayMod(PLAYMOD_TYPE_GHOST);
     }
 }

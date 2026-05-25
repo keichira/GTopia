@@ -93,27 +93,27 @@ void WorldObjectManager::HandleObjectPackets(GameUpdatePacket* pGamePacket)
     if(!pGamePacket)
         return;
 
-    if(pGamePacket->worldObjectType == -3) 
+    if(pGamePacket->field_4 == -3) 
     { // modify
         ModifyItem(
-            pGamePacket->field4, 
-            pGamePacket->itemID, 
-            pGamePacket->worldObjectCount, 
-            Vector2Float(pGamePacket->posX, pGamePacket->posY), 
-            pGamePacket->worldObjectFlags
+            pGamePacket->field_5, 
+            pGamePacket->field_7, 
+            pGamePacket->field_6, 
+            Vector2Float(pGamePacket->field_8.x, pGamePacket->field_8.y), 
+            pGamePacket->field_1
         );
     }
-    else if(pGamePacket->worldObjectType == -1) 
+    else if(pGamePacket->field_4 == -1) 
     { // add
         AddItem(
-            pGamePacket->itemID,
-            (uint8)pGamePacket->worldObjectCount, 
-            Vector2Float(pGamePacket->posX, pGamePacket->posY), 
-            pGamePacket->worldObjectFlags
+            pGamePacket->field_7,
+            (uint8)pGamePacket->field_6, 
+            Vector2Float(pGamePacket->field_8.x, pGamePacket->field_8.y), 
+            pGamePacket->field_1
         );
     }
     else { // remove
-        DeleteByID(pGamePacket->worldObjectID);
+        DeleteByID(pGamePacket->field_7);
     }
 }
 

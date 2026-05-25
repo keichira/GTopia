@@ -14,7 +14,7 @@ void RefreshTributeData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packe
 
     GameUpdatePacket gamePacket;
     gamePacket.type = NET_GAME_PACKET_SEND_PLAYER_TRIBUTE_DATA;
-    gamePacket.netID = -1;
+    gamePacket.field_4 = -1;
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     gamePacket.extraDataSize = clientData->size;
 

@@ -7,7 +7,7 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     if(!pPlayer || !pWorld || !pPacket)
         return;
 
-    WorldObject* pObject = pWorld->GetObjectManager()->GetObjectByID(pPacket->worldObjectID);
+    WorldObject* pObject = pWorld->GetObjectManager()->GetObjectByID(pPacket->field_7);
     if(!pObject)
         return;
 
@@ -64,9 +64,9 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
-    packet.field4 = -1;
-    packet.netID = pPlayer->GetNetID();
-    packet.worldObjectID = pObject->objectID;
+    packet.field_5 = -1;
+    packet.field_4 = pPlayer->GetNetID();
+    packet.field_7 = pObject->objectID;
 
     pWorld->HandleTilePackets(&packet);
 

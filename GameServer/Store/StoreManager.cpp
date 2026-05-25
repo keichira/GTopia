@@ -345,7 +345,14 @@ string StoreManager::GivePurchasedItemsAndGetGivensAsStr(GamePlayer* pPlayer, co
         if(!out.empty()) out += ", ``";
         out += "``" + pItem->name;
 
-        inventory.AddItem(itemID, count, pPlayer);
+        if(pItem->id == ITEM_ID_GEMS)
+        {
+            pPlayer->ModifyGems(count, true);
+        }
+        else
+        {
+            inventory.AddItem(itemID, count, pPlayer);
+        }
     }
 
     return out;
