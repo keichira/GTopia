@@ -151,6 +151,7 @@ float TileExtraGrowth::GetGrowthPercent(TileInfo* pTile)
         pItem->growTime = 0.0001f;
     }
 
+    FinalizeGrowth(0);
     float progress = (float)growTime / pItem->growTime;
 
     if(progress > 1.0f)

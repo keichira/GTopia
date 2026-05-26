@@ -186,6 +186,11 @@ bool LoadItemData()
     pItemMgr->LoadFileHashes(hashData, true);
     pItemMgr->SaveToClientData(true, minVersion, maxVersion);
 
+    if(!pItemMgr->LoadConsumableData(GetProgramPath() + "/consumable_data.txt"))
+    {
+        LOGGER_LOG_ERROR("consumable_data.txt not found skipping");
+    }
+
     /*PlayerTribute* pPlayerTrib = GetPlayerTributeManager();
     if(!pPlayerTrib->Load(GetProgramPath() + "/player_tribute.txt")) {
         LOGGER_LOG_ERROR("Failed to load player_tribute.txt anyways skipping it");

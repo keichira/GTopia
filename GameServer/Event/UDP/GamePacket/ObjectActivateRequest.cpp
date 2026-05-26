@@ -42,7 +42,7 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     if(!pWorld->CanPlayerTravelToTile(pPlayer, pPlayerTile, pTile))
         return;
 
-    if(pItemInfo->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_MSTATE))
+    if(pItemInfo->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD))
         return;
 
     PlayerInventory& inventory = pPlayer->GetInventory();

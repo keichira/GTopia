@@ -47,7 +47,7 @@ void GiveItem::Execute(GamePlayer* pPlayer, std::vector<string>& args)
     ItemInfo* pItem = GetItemInfoManager()->GetItemByName(itemName);
     if(!pItem) 
     {
-        pPlayer->SendOnConsoleMessage("`oFailed to find given item " + itemName);
+        pPlayer->SendOnConsoleMessage("`oFailed to find the item " + itemName);
         return;
     }
 

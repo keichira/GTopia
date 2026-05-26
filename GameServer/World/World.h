@@ -77,6 +77,7 @@ public:
 
     bool IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms);
     bool PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile);
+    std::vector<GamePlayer*> GetPlayersInWorldRect(const RectFloat& rect);
 
     void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID);
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
@@ -86,6 +87,7 @@ public:
     void OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile);
     void OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile);
     void OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile);
+    void OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileInfo* pTile, ItemInfo* pItem);
 
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);

@@ -360,6 +360,11 @@ string GamePlayer::GetSpawnData(bool local)
     return spawnData;
 }
 
+RectFloat GamePlayer::GetPlayerWorldRect()
+{
+    return RectFloat(m_worldPos.x, m_worldPos.y, m_worldPos.x + 20, m_worldPos.y + 30);
+}
+
 void GamePlayer::ToggleCloth(uint16 itemID)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
@@ -375,7 +380,7 @@ void GamePlayer::ToggleCloth(uint16 itemID)
          */
         return;
 
-    uint16 wornItem = m_inventory.GetClothes()[pItem->bodyPart];
+    uint16 wornItem = m_inventory.GetClothByPart((eBodyPart)pItem->bodyPart);
     if(wornItem == pItem->id) 
     {
         m_inventory.SetClothByPart(ITEM_ID_BLANK, pItem->bodyPart);
@@ -388,7 +393,7 @@ void GamePlayer::ToggleCloth(uint16 itemID)
         PlayerInventory& playerInv = GetInventory();
 
         uint8 itemCount = playerInv.GetCountOfItem(pItem->id);
-        switch(pItem->id) 
+        switch(pItem->id)
         {
             case ITEM_ID_DIAMOND_HORN: 
             {
@@ -453,7 +458,7 @@ void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)
             ToggleCloth(itemID);
         }
     }
-    else 
+    else
     {
         m_inventory.AddItem(itemID, amount, this);
     }

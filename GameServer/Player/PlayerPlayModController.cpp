@@ -211,7 +211,7 @@ void PlayerPlayModController::BuildActiveModsDialog(DialogBuilder& db)
 
 void PlayerPlayModController::OnUpdateTorch(ActivePlayMod& mod)
 {
-    if(mod.customTickTimer.GetElapsedTime() < 500)
+    if(mod.customTickTimer.GetElapsedTime() < 1000)
         return;
 
     if(RandomRangeInt(0, 100) == 1)
@@ -223,8 +223,6 @@ void PlayerPlayModController::OnUpdateTorch(ActivePlayMod& mod)
         {
             m_pPlayer->SendOnTalkBubble("`2My torch went out!", false);
             m_pPlayer->ToggleCloth(ITEM_ID_HAND_TORCH);
-
-            RemovePlayMod(PLAYMOD_TYPE_CARRYING_A_TORCH);
         }
         else
         {

@@ -70,12 +70,18 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
         RemoveFlag(TILE_FLAG_HAS_EXTRA_DATA);
     }
 
-    if(itemID == ITEM_ID_BLANK) {
+    if(itemID == ITEM_ID_BLANK) 
+    {
         m_lastDamageTime.Reset();
         m_damage = 0;
 
         pTileMgr->ModifyKeyTile(this, true);
         m_tileData->fg = itemID;
+
+        RemoveFlag(TILE_FLAG_WAS_SPLICED);
+        RemoveFlag(TILE_FLAG_IS_ON);
+        RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
+        RemoveFlag(TILE_FLAG_FG_ALT_MODE);
         return;
     }
 

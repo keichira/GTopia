@@ -31,6 +31,38 @@ struct ItemsClientData
     uint32 hash = 0;
 };
 
+enum eConsumableType
+{
+    CONSUMABLE_TYPE_NONE = 0,
+    CONSUMABLE_TYPE_CRAFT = 1,
+
+    CONUMABLE_TYPE_SIZE = 2
+};
+
+enum eConsumableFlags
+{
+    CONSUMABLE_FLAG_NEED_TARGET = 1 << 0,
+    CONSUMABLE_FLAG_SELF_ONLY = 1 << 1,
+    CONSUMABLE_FLAG_NEED_TILE = 1 << 2,
+    CONSUMABLE_FLAG_EQUIP = 1 << 3
+};
+
+struct ConsumableInfo
+{
+    int32 itemID = 0;
+    uint8 consumableType = 0;
+    uint8 requiredAmount = 0;
+    int32 rewardItemID = 0;
+    uint8 rewardCount = 0;
+    uint32 flags = 0;
+    string successMessage;
+    string failMessage;
+
+    bool HasFlag(uint32 flag) { return flags & flag; };
+};
+
+uint32 StrToConsumableFlag(const string& str);
+
 class ItemInfoManager {
 public:
     ItemInfoManager();
@@ -47,6 +79,7 @@ public:
     bool Load(const string& filePath);
     bool LoadByItemsDat(const string& filePath);
     bool LoadWikiData(const string& filePath);
+    bool LoadConsumableData(const string& filePath);
 
     void Kill();
 
@@ -60,6 +93,7 @@ public:
     void ForceItemDataVersion(uint16 newVersion) { m_version = newVersion; }
 
     ItemInfo* GetSpliceInfo(uint16 seed1, uint16 seed2);
+    ConsumableInfo* GetConsumableInfo(uint32 itemID);
     void SetupItemExtras();
 
     ItemsClientData* GetClientData(uint8 platformType, float gameVersion);
@@ -77,6 +111,7 @@ private:
 
     std::vector<ItemInfo> m_items;
     std::unordered_map<uint32, uint32> m_spliceData;
+    std::unordered_map<uint32, ConsumableInfo> m_consumeData;
 };
 
 ItemInfoManager* GetItemInfoManager();

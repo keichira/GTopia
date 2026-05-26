@@ -2,6 +2,12 @@
 #include "Item/ItemInfoManager.h"
 #include "../../../Player/Dialog/PlayerDialog.h"
 
+/**
+ * 
+ * todo here ;-;
+ * 
+ */
+
 void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
     if(!pPlayer || !pWorld || !pPacket)
@@ -138,24 +144,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         }
     }
 
-    if(pItem->type == ITEM_TYPE_CONSUMABLE)
-        return;
-
-    if(pItem->type == ITEM_TYPE_CLOTHES)
-        return;
-
-    if(pItem->type == ITEM_TYPE_WRENCH)
-    {
-        if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
-        {
-            pPlayer->SendFakePingReply();
-            return;
-        }
-
-        PlayerDialog::Handle(pPlayer, pTile);
-        return;
-    }
-
     if(pPacket->field_7 != ITEM_ID_FIST && pTile->GetFG() != ITEM_ID_BLANK)
     {
         pPlayer->SendFakePingReply();
@@ -165,7 +153,45 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     bool tileBroken = false;
 
     if(pPacket->field_7 != ITEM_ID_FIST)
-    {
+    {   
+        if(pItem->type == ITEM_TYPE_CONSUMABLE)
+        {
+            GamePlayer* pTarget = nullptr;
+
+            auto playersInRect = pWorld->GetPlayersInWorldRect(pTile->GetRect());
+            if(!playersInRect.empty())
+            {
+                for(auto& pPlayerTarget : playersInRect)
+                {
+                    if(!pPlayerTarget)
+                        continue;
+
+                    if(pPlayerTarget == pPlayer)
+                    {
+                        pTarget = pPlayerTarget;
+                    }
+                }
+            }
+
+            pWorld->OnConsumeConsumable(pPlayer, pTarget, pTile, pItem);
+            return;
+        }
+    
+        if(pItem->type == ITEM_TYPE_CLOTHES)
+            return;
+    
+        if(pItem->type == ITEM_TYPE_WRENCH)
+        {
+            if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
+            {
+                pPlayer->SendFakePingReply();
+                return;
+            }
+    
+            PlayerDialog::Handle(pPlayer, pTile);
+            return;
+        }
+
         if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
         {
             pPlayer->SendFakePingReply();
@@ -174,6 +200,12 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
         if(inventory.GetCountOfItem(pPacket->field_7) < 1)
             return;
+
+        if(!pWorld->GetPlayersInWorldRect(pTile->GetRect()).empty())
+        {
+            pPlayer->SendFakePingReply();
+            return;
+        }
 
         if(IsJammer(pPacket->field_7) ||
             pItem->type == ITEM_TYPE_WEATHER_MACHINE ||

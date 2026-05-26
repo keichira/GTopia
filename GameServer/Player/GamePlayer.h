@@ -6,6 +6,7 @@
 #include "Player/PlayMod.h"
 #include "Database/QueryUtils.h"
 #include "Math/Random.h"
+#include "Math/Rect.h"
 #include "PlayerProgress.h"
 #include "PlayerPlayModController.h"
 
@@ -73,6 +74,7 @@ public:
 
     void SetWorldPos(float x, float y) { m_worldPos.x = x; m_worldPos.y = y; }
     Vector2Float GetWorldPos() const { return m_worldPos; }
+    RectFloat GetPlayerWorldRect();
 
     void SetRespawnPos(float x, float y) { m_respawnPos.x = x; m_respawnPos.y = y; }
     Vector2Float GetRespawnPos() const { return m_respawnPos; }

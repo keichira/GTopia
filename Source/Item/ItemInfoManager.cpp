@@ -30,6 +30,24 @@ uint16 GetMaxRequiredItemDataVersion(float a, float b, float c, float d)
     return GetSupportedItemDataVersion(maxV);
 }
 
+uint32 StrToConsumableFlag(const string& str)
+{
+    static const std::unordered_map<string, uint32> itemConsumableFlag
+    {
+        { "NEED_TARGET", CONSUMABLE_FLAG_NEED_TARGET },
+        { "SELF_ONLY", CONSUMABLE_FLAG_SELF_ONLY },
+        { "NEED_TILE", CONSUMABLE_FLAG_NEED_TILE },
+        { "EQUIP", CONSUMABLE_FLAG_EQUIP }
+    };
+
+    auto it = itemConsumableFlag.find(str);
+    if(it != itemConsumableFlag.end()) {
+        return it->second;
+    }
+
+    return 0;
+}
+
 ItemInfoManager::ItemInfoManager()
 : m_version(0)
 {
@@ -400,6 +418,67 @@ bool ItemInfoManager::LoadWikiData(const string& filePath)
     return true;
 }
 
+bool ItemInfoManager::LoadConsumableData(const string& filePath)
+{
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
+        return false;
+
+    uint32 lastItemID = 0;
+
+    for(auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
+
+        if(key == "add_consume")
+        {
+            if(!line.Require(7))
+                return false;
+
+            if(line.GetUInt(1) == 0)
+            {
+                LOGGER_LOG_ERROR("Error on line %d something wrong with itemID", line.lineNumber);
+                return false;
+            }
+
+            ConsumableInfo info;
+            info.itemID = line.GetUInt(1);
+            info.consumableType = line.GetUInt(2);
+            info.requiredAmount = line.GetUInt(3);
+            info.rewardItemID = line.GetUInt(4);
+            info.rewardCount = line.GetUInt(5);
+            info.successMessage = line.GetString(6);
+            info.failMessage = line.GetString(7);
+
+            lastItemID = info.itemID;
+            m_consumeData.insert_or_assign(info.itemID, std::move(info));
+            continue;
+        }
+
+        if(key == "set_flags")
+        {
+            if(!line.Require(1))
+                return false;
+
+            ConsumableInfo* pConfig = GetConsumableInfo(lastItemID);
+            if(!pConfig)
+            {
+                LOGGER_LOG_ERROR("Error on line %d, failed to find lastitem %d", line.lineNumber, lastItemID);
+                return false;
+            }
+
+            for(uint8 i = 1; i < line.GetArgSize(); ++i)
+            {
+                pConfig->flags |= StrToConsumableFlag(line.GetString(i));
+            }
+
+            continue;
+        }
+    }
+
+    return true;
+}
+
 void ItemInfoManager::Kill()
 {
     for(uint32 i = 0; i < MAX_SUPPORTED_ITEM_DATA_VERSION; ++i)
@@ -574,6 +653,15 @@ ItemInfo* ItemInfoManager::GetSpliceInfo(uint16 seed1, uint16 seed2)
         return nullptr;
 
     return GetItemByID(it->second);
+}
+
+ConsumableInfo* ItemInfoManager::GetConsumableInfo(uint32 itemID)
+{
+    auto it = m_consumeData.find(itemID);
+    if(it != m_consumeData.end())
+        return &it->second;
+
+    return nullptr;
 }
 
 ItemsClientData* ItemInfoManager::GetClientData(uint8 platformType, float gameVersion)

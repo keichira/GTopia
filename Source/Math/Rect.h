@@ -20,6 +20,10 @@ public:
         return true;
     }
 
+    bool Intersects(const Rect& other) const {
+        return !(right <= other.left  || left >= other.right || bottom <= other.top || top >= other.bottom);
+    }
+
     bool operator==(const Rect& other) {
         return left == other.left && top == other.top && right == other.right && bottom == other.bottom;
     }

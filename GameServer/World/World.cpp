@@ -1155,6 +1155,24 @@ bool World::PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile)
     return pMainLockExtra->HasAccess(pPlayer->GetUserID());
 }
 
+std::vector<GamePlayer*> World::GetPlayersInWorldRect(const RectFloat& rect)
+{
+    std::vector<GamePlayer*> out;
+
+    for(auto& pPlayer : m_players)
+    {
+        if(!pPlayer)
+            continue;
+
+        if(rect.Intersects(pPlayer->GetPlayerWorldRect()))
+        {
+            out.push_back(pPlayer);
+        }
+    }
+
+    return out;
+}
+
 void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
 {
     if(!pPlayer || !pTile) {
@@ -1567,6 +1585,189 @@ void World::OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile)
     if(dropGems > 0)
     {
         DropGemsOnTile(pTile, dropGems);
+    }
+}
+
+void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileInfo* pTile, ItemInfo* pItem)
+{
+    if(!pPlayer || !pItem)
+        return;
+
+    if(pItem->type != ITEM_TYPE_CONSUMABLE)
+        return;
+
+    if(TileInfo* pJammerTile = GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE))
+    {
+        pPlayer->SendOnTalkBubble("Can't use consumabled here!", true);
+        return;
+    }
+
+    ConsumableInfo* pConsumableInfo = GetItemInfoManager()->GetConsumableInfo(pItem->id);
+    if(!pConsumableInfo)
+        return;
+
+    if(pPlayer->GetInventory().GetCountOfItem(pItem->id) < 1)
+        return;
+
+    if((pConsumableInfo->HasFlag(CONSUMABLE_FLAG_NEED_TARGET) && !pTarget) ||
+        (pConsumableInfo->HasFlag(CONSUMABLE_FLAG_SELF_ONLY) && pPlayer != pTarget) ||
+        (pConsumableInfo->HasFlag(CONSUMABLE_FLAG_NEED_TILE) && !pTile)
+    ) {
+        if(!pConsumableInfo->HasFlag(CONSUMABLE_FLAG_NEED_TARGET) || pTarget)
+        {
+            if(pConsumableInfo->HasFlag(CONSUMABLE_FLAG_SELF_ONLY) && pPlayer != pTarget)
+            {
+                pPlayer->SendOnTalkBubble("You can only use that on yourself.", true);
+            }
+        }
+        else
+        {
+            pPlayer->SendOnTalkBubble("Must be used on a person.", true);
+        }
+
+        return;
+    }
+
+    if(pPlayer == pTarget && pItem->HasFlag(ITEM_FLAG_NOSELF))
+    {
+        pPlayer->SendOnTalkBubble("Use that on somebody else!", true);
+        return;
+    }
+
+    if(pConsumableInfo->requiredAmount > pPlayer->GetInventory().GetCountOfItem(pConsumableInfo->itemID) && !pTarget)
+    {
+        if(!pConsumableInfo->failMessage.empty())
+        {
+            pPlayer->SendOnTalkBubble(pConsumableInfo->failMessage, false);
+        }
+        return;
+    }
+    
+    if(pItem->id == ITEM_ID_BALANCE_MOONCAKE)
+    {
+        pPlayer->SendOnTalkBubble("Ew, it has raisins! I'm not eating that.", false);
+        return;
+    }
+    else if(pItem->id == ITEM_ID_ANCESTOR_MOONCAKE)
+    {
+        pPlayer->SendOnTalkBubble("That's like a hundred years old. No.", false);
+        return;
+    }
+
+    if(pPlayer == pTarget)
+    {
+
+    }
+
+    PlayerInventory& inventory = pPlayer->GetInventory();
+
+    if(pConsumableInfo->consumableType == CONSUMABLE_TYPE_CRAFT)
+    {
+        if(pConsumableInfo->rewardItemID == ITEM_ID_URANIUM_GLOWING_LURE)
+        {
+            if(inventory.GetClothByPart(BODY_PART_HAT) != ITEM_ID_HAZMAT_HELMET)
+            {
+                pPlayer->SendOnTalkBubble("`4You need a Hazmat Helmet or you'll end up horribly deformed!``", true);
+                return;
+            }
+
+            if(inventory.GetClothByPart(BODY_PART_SHIRT) != ITEM_ID_HAZMAT_SUIT)
+            {
+                pPlayer->SendOnTalkBubble("`4You need a Hazmat Suit or you'll end up horribly deformed!``", true);
+                return;
+            }
+
+            if(inventory.GetClothByPart(BODY_PART_PANT) != ITEM_ID_HAZMAT_PANTS)
+            {
+                pPlayer->SendOnTalkBubble("`4You need a Hazmat Pants or you'll end up horribly deformed!``", true);
+                return;
+            }
+
+            if(inventory.GetClothByPart(BODY_PART_SHOE) != ITEM_ID_HAZMAT_BOOTS)
+            {
+                pPlayer->SendOnTalkBubble("`4You need a Hazmat Boots or you'll end up horribly deformed!``", true);
+                return;
+            }
+        }
+
+        if(pConsumableInfo->rewardItemID == ITEM_ID_MEGA_PELLET_BAIT)
+        {
+            if(inventory.GetClothByPart(BODY_PART_HAT) != ITEM_ID_BUCKSKIN_HOOD)
+            {
+                pPlayer->SendOnTalkBubble("4You need to be wearing a Buckskin Hood or you'll end up frozen!`", true);
+                return;
+            }
+
+            if(inventory.GetClothByPart(BODY_PART_SHIRT) != ITEM_ID_BUCKSKIN_JACKET)
+            {
+                pPlayer->SendOnTalkBubble("4You need to be wearing a Buckskin Jacket or you'll end up frozen!`", true);
+                return;
+            }
+
+            if(inventory.GetClothByPart(BODY_PART_CHESTITEM) != ITEM_ID_WINTER_SCARF)
+            {
+                pPlayer->SendOnTalkBubble("`4You need to be wearing a Winter Scarf or you'll end up frozen!``", true);
+                return;
+            }
+
+            if(inventory.GetClothByPart(BODY_PART_PANT) != ITEM_ID_BUCKSKIN_PANTS)
+            {
+                pPlayer->SendOnTalkBubble("4You need to be wearing a Buckskin Pants or you'll end up frozen!`", true);
+                return;
+            }
+        }
+
+        uint8 fitCount = inventory.GetFitItemCount(pConsumableInfo->rewardItemID);
+        if(fitCount == 0)
+        {
+            pPlayer->SendOnTalkBubble("You need a free slot to consume this item.", false);
+            return;
+        }
+
+        pPlayer->ModifyInventoryItem(pConsumableInfo->rewardItemID, pConsumableInfo->rewardCount);
+
+        if(!pConsumableInfo->successMessage.empty())
+        {
+            pPlayer->SendOnTalkBubble(pConsumableInfo->successMessage, false);
+        }
+
+        if(pConsumableInfo->HasFlag(CONSUMABLE_FLAG_EQUIP))
+        {
+            ItemInfo* pRewardItem = GetItemInfoManager()->GetItemByID(pConsumableInfo->rewardItemID);
+            if(pRewardItem)
+            {
+                if(inventory.GetClothByPart((eBodyPart)pRewardItem->bodyPart) != pRewardItem->id)
+                {
+                    pPlayer->ToggleCloth(pRewardItem->id);
+                }
+            }
+        }
+    }
+
+    pPlayer->GiveXP(pConsumableInfo->rewardCount);
+    pPlayer->ModifyInventoryItem(pItem->id, -pConsumableInfo->requiredAmount);
+
+    if(pItem->rarity > 1 && pItem->rarity < 999 && pTile && !pTile->IsCollidable())
+    {
+        bool dropBlock = false;
+        bool dropSeed = false;
+        int32 dropGems = 0;
+        GetBlockSpawnInfo(pItem, false, dropBlock, dropSeed, dropGems);
+    
+        if(dropBlock)
+        {
+            DropObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
+        }
+    
+        if(dropSeed)
+        {
+            DropObjectOnTile(pTile, pItem->id + 1, 1, GetRandomItemDropOffset(), true);
+        }
+    
+        if(dropGems > 0)
+        {
+            DropGemsOnTile(pTile, dropGems);
+        }
     }
 }
 

@@ -1,0 +1,28 @@
+# if line starts with '#' it means its comment line
+
+# add_consume|itemID|consumableTypeID|requiredAmount|rewardItemID|rewardCount|successMsg|failMsg|
+# set_flags|flags..|
+
+# for consumableTypeID see ItemInfoManager.cpp eConsumableType
+
+add_consume|2000|1|20|1998|1|`5ZAP! When stuck together, the bones come to life!``|`6There aren't enough bones here to make anything. Get more!``|
+set_flags|EQUIP|
+
+add_consume|1212|1|25|1190|1|`5SQUISH! The fur forms into a cuddly black cat!``|`6There's just not enough fur here to make anything. Get more!``|
+set_flags|EQUIP|
+
+add_consume|1234|1|4|1206|1|`5SQUISH! You built a pair of Devil Wings!``|`6There aren't enough wings here to make anything. Get more!``|
+set_flags|EQUIP|
+
+add_consume|2288|1|100|2284|1|`5The confetti merges before your eyes into a `2Weather Machine - Party``!``|`6There's just not enough here to start a party. Get more!``|
+
+add_consume|2410|1|200|2408|1|The `2Emerald Shards`` fuse into a shiny new `2Emerald Lock``!``|`6The shards wiggle violently, but can't quite combine.``|
+
+add_consume|4426|1|200|4428|1|The `4Ruby Shards`` fuse into a shiny new `4Ruby Lock``!``|`6The shards wiggle violently, but can't quite combine.``|
+
+add_consume|2034|1|200|2035|1|`5The Comet Dust compresses down into a shining Starseed!``|`6The dust is still whirling. It needs more matter to coalesce!``
+
+add_consume|2036|1|200|2037|1|`5The Antimatter Dust compresses down into a shining Galactic Starseed!``|`6The dust is still whirling. It needs more matter to coalesce!``|
+
+add_consume|3110|1|25|1166|1|`2You crafted a Vampire Cape!``|`6You need 25 tatters to make a cape!``|
+set_flags|EQUIP|
