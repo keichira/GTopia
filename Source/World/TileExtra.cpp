@@ -21,6 +21,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_PROVIDER:
             return TILE_EXTRA_TYPE_PROVIDER;
 
+        case ITEM_TYPE_ACHIEVEMENT:
+            return TILE_EXTRA_TYPE_ACHIEVEMENT;
+
         default:
             return TILE_EXTRA_TYPE_NONE;
     }
@@ -48,8 +51,8 @@ TileExtra* CreateTileExtra(uint8 type)
         case TILE_EXTRA_TYPE_PROVIDER:
             return new TileExtra_Provider();
 
-        case TILE_EXTRA_TYPE_LAB:
-            return new TileExtra_Lab();
+        case TILE_EXTRA_TYPE_ACHIEVEMENT:
+            return new TileExtra_Achievement();
 
         case TILE_EXTRA_TYPE_HEART_MONITOR:
             return new TileExtra_HeartMonitor();
@@ -274,16 +277,16 @@ void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
     }*/
 }
 
-void TileExtra_Lab::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Achievement::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
-    memBuffer.ReadWrite(userID, write);
+    memBuffer.ReadWrite(ownerID, write);
     memBuffer.ReadWrite(achievementID, write);
 }
 
 void TileExtra_HeartMonitor::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
-    memBuffer.ReadWrite(userID, write);
+    memBuffer.ReadWrite(ownerID, write);
     memBuffer.ReadWrite(playerDisplayName, write);
 }

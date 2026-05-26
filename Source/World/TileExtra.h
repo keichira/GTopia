@@ -50,7 +50,7 @@ enum eTileExtraTypes
     TILE_EXTRA_TYPE_BULLETIN = 7,
     TILE_EXTRA_TYPE_COMPONENT = 8,
     TILE_EXTRA_TYPE_PROVIDER = 9,
-    TILE_EXTRA_TYPE_LAB = 10,
+    TILE_EXTRA_TYPE_ACHIEVEMENT = 10,
     TILE_EXTRA_TYPE_HEART_MONITOR = 11,
     TILE_EXTRA_TYPE_DONATION_BOX = 12,
     TILE_EXTRA_TYPE_TOYBOX = 13,
@@ -261,12 +261,12 @@ TILE_EXTRA_GROWTH(TileExtra_Provider, TILE_EXTRA_TYPE_PROVIDER)
     uint32 otherData = 0;
 };
 
-TILE_EXTRA(TileExtra_Lab, TILE_EXTRA_TYPE_LAB)
-    int32 userID = -1;
-    uint8 achievementID = 0;
+TILE_EXTRA(TileExtra_Achievement, TILE_EXTRA_TYPE_ACHIEVEMENT)
+    int32 ownerID = -1;
+    uint8 achievementID = 127;
 };
 
 TILE_EXTRA(TileExtra_HeartMonitor, TILE_EXTRA_TYPE_HEART_MONITOR)
-    int32 userID = -1;
+    int32 ownerID = -1;
     string playerDisplayName;
 };

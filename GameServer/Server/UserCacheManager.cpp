@@ -212,6 +212,12 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
             break;
         }
 
+        case CACHE_REQ_ACHIEVEMENT_BLOCK_PUNCH:
+        {
+            OnPunchedAchievementBlock(pPlayer, request);
+            break;
+        }
+
         default:
             break;
     }
@@ -260,6 +266,44 @@ void UserCacheManager::OnPunchedLock(GamePlayer* pPlayer, const PendingRequest& 
 
     pPlayer->SendOnTalkBubble(notifyMsg, true);
     pPlayer->PlaySFX("punch_locked.wav");
+}
+
+void UserCacheManager::OnPunchedAchievementBlock(GamePlayer* pPlayer, const PendingRequest& request)
+{
+    if(!pPlayer || request.params.size() < 3)
+        return;
+
+    if(pPlayer->GetCurrentWorld() != request.params[0].GetInt32())
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if(!pWorld)
+        return;
+
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(request.params[1].GetInt32(), request.params[2].GetInt32());
+    if(!pTile)
+        return;
+
+    TileExtra_Achievement* pTileExtra = pTile->GetExtra<TileExtra_Achievement>();
+    if(!pTileExtra)
+        return;
+
+    UserMetadata* pUserMeta = GetMetadata(pTileExtra->ownerID);
+    if(!pUserMeta)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(pItem->type != ITEM_TYPE_ACHIEVEMENT)
+        return;
+
+    AchievementInfo* pAchievement = GetAchievementManager()->GetAchievement((eAchievement)pTileExtra->achievementID);
+    if(!pAchievement)
+    {
+        pPlayer->SendOnTalkBubble("Invalid achievement.", true);
+        return;
+    }
+
+    pPlayer->SendOnTalkBubble(pAchievement->name + " earned by " + pUserMeta->name, true);
 }
 
 void UserCacheManager::Update()

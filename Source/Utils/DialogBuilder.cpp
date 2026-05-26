@@ -164,6 +164,12 @@ DialogBuilder* DialogBuilder::AddSmallText(const string& text, bool center)
     return this;
 }
 
+DialogBuilder* DialogBuilder::AddAchieveButton(const string& name, const string& desc, uint8 id)
+{
+    m_str += "add_achieve_button|" + name + "|" + desc + "|left|" + ToString(id) + "|\n";
+    return this;
+}
+
 DialogBuilder* DialogBuilder::EmbedData(const string& name, const string& value)
 {
     m_str += "embed_data|" + name + "|" + value + "\n";

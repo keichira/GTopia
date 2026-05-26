@@ -97,6 +97,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/RegisterDialog.cpp
     ${GAME_DIALOG}/DropItemDialog.cpp
     ${GAME_DIALOG}/WrenchSelfDialog.cpp
+    ${GAME_DIALOG}/AchievementBlockDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

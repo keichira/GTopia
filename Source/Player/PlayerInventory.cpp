@@ -93,6 +93,9 @@ InventoryItemInfo* PlayerInventory::GetItemByID(uint16 itemID)
 
 uint8 PlayerInventory::AddItem(uint16 itemID, uint8 count, Player* pPlayer)
 {
+    if(itemID == ITEM_ID_GEMS)
+        return 0;
+
     ItemInfo* pItemInfo = GetItemInfoManager()->GetItemByID(itemID);
     if(!pItemInfo) {
         return 0;

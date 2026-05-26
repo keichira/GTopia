@@ -3,6 +3,7 @@
 #include "Precompiled.h"
 #include "AchievementManager.h"
 #include "Memory/MemoryBuffer.h"
+#include "Utils/DialogBuilder.h"
 
 #define PLAYER_PROGRESS_VERSION 1
 
@@ -27,6 +28,8 @@ public:
     float GetAchievementProgress(eAchievement achievement);
     void UnlockAchievement(eAchievement achievement);
     void CheckAchieveAndUnlockIfPossibleByProgress(ePlayerProgress progress);
+
+    uint16 BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved);
 
 private:
     void UnlockAchievementRaw(eAchievement achievement);

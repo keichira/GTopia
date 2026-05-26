@@ -453,7 +453,7 @@ void World::SendTileUpdate(TileInfo* pTile, GamePlayer* pPlayer)
         return;
     }
 
-    Vector2Int vTilePos = pTile->GetPos();
+    Vector2Int& vTilePos = pTile->GetPos();
     SendTileUpdate(vTilePos.x, vTilePos.y, pPlayer);
 }
 
@@ -1270,12 +1270,34 @@ void World::OnPunchedLock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
         return;
 
     UserCacheManager* pCacheMgr = GetUserCacheManager();
-
     Vector2Int& vTilePos = pTile->GetPos();
 
     pCacheMgr->FetchMetadata(
         pPlayer->GetNetID(),
         CACHE_REQ_WORLD_LOCK_PUNCH,
+        { pTileExtra->ownerID },
+        { GetInstanceID(), vTilePos.x, vTilePos.y }
+    );
+}
+
+void World::OnPunchedAchievementBlock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
+{
+    if(!pPlayer || !pTile || !pItem)
+        return;
+
+    if(pItem->type != ITEM_TYPE_ACHIEVEMENT)
+        return;
+
+    TileExtra_Achievement* pTileExtra = pTile->GetExtra<TileExtra_Achievement>();
+    if(!pTileExtra)
+        return;
+
+    UserCacheManager* pCacheMgr = GetUserCacheManager();
+    Vector2Int& vTilePos = pTile->GetPos();
+
+    pCacheMgr->FetchMetadata(
+        pPlayer->GetNetID(),
+        CACHE_REQ_ACHIEVEMENT_BLOCK_PUNCH,
         { pTileExtra->ownerID },
         { GetInstanceID(), vTilePos.x, vTilePos.y }
     );

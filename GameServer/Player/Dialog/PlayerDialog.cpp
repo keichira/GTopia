@@ -5,6 +5,7 @@
 
 #include "SignDialog.h"
 #include "LockDialog.h"
+#include "AchievementBlockDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
@@ -24,5 +25,10 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if(pItem->type == ITEM_TYPE_LOCK) 
     {
         LockDialog::Request(pPlayer, pTile);
+    }
+
+    if(pItem->type == ITEM_TYPE_ACHIEVEMENT)
+    {
+        AchievementBlockDialog::Request(pPlayer, pTile, pItem);
     }
 }

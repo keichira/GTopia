@@ -142,6 +142,31 @@ void PlayerProgress::CheckAchieveAndUnlockIfPossibleByProgress(ePlayerProgress p
     }
 }
 
+uint16 PlayerProgress::BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved)
+{
+    uint32 count = 0;
+    AchievementManager* pAchiMgr = GetAchievementManager();
+
+    for(uint16 i = 0; i < ACHIEVEMENT_COUNT; ++i)
+    {
+        if(onlyAchieved && !HasAchievement((eAchievement)i))
+            continue;
+
+        AchievementInfo* pConfig = pAchiMgr->GetAchievement((eAchievement)i);
+        if(!pConfig)
+            continue;
+
+        if(GetAchievementProgress((eAchievement)i) >= 100.0f)
+        {
+            db.AddAchieveButton(pConfig->name, "Earned for " + pConfig->description, i);
+        }
+
+        count++;
+    }
+
+    return count;
+}
+
 void PlayerProgress::UnlockAchievementRaw(eAchievement achievement)
 {
     if(achievement >= ACHIEVEMENT_COUNT)

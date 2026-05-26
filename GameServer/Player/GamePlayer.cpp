@@ -285,7 +285,7 @@ void GamePlayer::Update()
         }
     }
 
-    if(m_logonStartTime.GetElapsedTime() >= 60000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) 
+    if(m_logonStartTime.GetElapsedTime() >= 180000 && (HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME))) 
     {
         LogOff(true, false, true);
         return;

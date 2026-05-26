@@ -144,6 +144,44 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         }
     }
 
+    if(pItem->type == ITEM_TYPE_CONSUMABLE)
+    {
+        GamePlayer* pTarget = nullptr;
+
+        auto playersInRect = pWorld->GetPlayersInWorldRect(pTile->GetRect());
+        if(!playersInRect.empty())
+        {
+            for(auto& pPlayerTarget : playersInRect)
+            {
+                if(!pPlayerTarget)
+                    continue;
+
+                if(pPlayerTarget == pPlayer)
+                {
+                    pTarget = pPlayerTarget;
+                }
+            }
+        }
+
+        pWorld->OnConsumeConsumable(pPlayer, pTarget, pTile, pItem);
+        return;
+    }
+
+    if(pItem->type == ITEM_TYPE_CLOTHES)
+        return;
+
+    if(pItem->type == ITEM_TYPE_WRENCH)
+    {
+        if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
+        {
+            pPlayer->SendFakePingReply();
+            return;
+        }
+
+        PlayerDialog::Handle(pPlayer, pTile);
+        return;
+    }
+
     if(pPacket->field_7 != ITEM_ID_FIST && pTile->GetFG() != ITEM_ID_BLANK)
     {
         pPlayer->SendFakePingReply();
@@ -154,44 +192,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
     if(pPacket->field_7 != ITEM_ID_FIST)
     {   
-        if(pItem->type == ITEM_TYPE_CONSUMABLE)
-        {
-            GamePlayer* pTarget = nullptr;
-
-            auto playersInRect = pWorld->GetPlayersInWorldRect(pTile->GetRect());
-            if(!playersInRect.empty())
-            {
-                for(auto& pPlayerTarget : playersInRect)
-                {
-                    if(!pPlayerTarget)
-                        continue;
-
-                    if(pPlayerTarget == pPlayer)
-                    {
-                        pTarget = pPlayerTarget;
-                    }
-                }
-            }
-
-            pWorld->OnConsumeConsumable(pPlayer, pTarget, pTile, pItem);
-            return;
-        }
-    
-        if(pItem->type == ITEM_TYPE_CLOTHES)
-            return;
-    
-        if(pItem->type == ITEM_TYPE_WRENCH)
-        {
-            if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
-            {
-                pPlayer->SendFakePingReply();
-                return;
-            }
-    
-            PlayerDialog::Handle(pPlayer, pTile);
-            return;
-        }
-
         if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
         {
             pPlayer->SendFakePingReply();
@@ -210,7 +210,8 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(IsJammer(pPacket->field_7) ||
             pItem->type == ITEM_TYPE_WEATHER_MACHINE ||
             pItem->type == ITEM_TYPE_WEATHER_SPECIAL2 ||
-            pItem->type == ITEM_TYPE_INFINITY_WEATHER_MACHINE
+            pItem->type == ITEM_TYPE_INFINITY_WEATHER_MACHINE ||
+            pItem->HasFlag(ITEM_FLAG_WORLDLOCKED)
         ) {
             TileInfo* pLockTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
 
@@ -247,6 +248,15 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         pPlayer->ModifyInventoryItem(pPacket->field_7, -1);
         pWorld->HandleTilePackets(pPacket);
 
+        if(pItem->type == ITEM_TYPE_ACHIEVEMENT)
+        {
+            TileExtra_Achievement* pAchiExtra = pTile->GetExtra<TileExtra_Achievement>();
+            if(pAchiExtra)
+            {
+                pAchiExtra->ownerID = pPlayer->GetUserID();
+            }
+        }
+
         pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
         tileBroken = true;
     }
@@ -254,6 +264,30 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     {
         if(pTile->GetDisplayedItem() == ITEM_ID_BLANK)
             return;
+
+        if(pTileItem->type == ITEM_TYPE_ACHIEVEMENT && pTile->GetHealthPercent() == 1.0f)
+        {
+            TileExtra_Achievement* pAchiExtra = pTile->GetExtra<TileExtra_Achievement>();
+            if(pAchiExtra)
+            {
+                if(pAchiExtra->achievementID == 127)
+                {
+                    pPlayer->SendOnTalkBubble("It's blank. Will no hero step up to etch it?!", true);
+                }
+                else
+                {
+                    if(pAchiExtra->achievementID > ACHIEVEMENT_COUNT || 
+                        !GetAchievementManager()->GetAchievement((eAchievement)pAchiExtra->achievementID)
+                    ) {
+                        pPlayer->SendOnTalkBubble("Invalid achievement.", true);
+                    }
+                    else
+                    {
+                        pWorld->OnPunchedAchievementBlock(pPlayer, pTile, pTileItem);
+                    }
+                }
+            }
+        }
 
         if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
             return;

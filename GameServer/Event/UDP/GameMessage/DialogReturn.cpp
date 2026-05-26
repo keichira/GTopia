@@ -7,6 +7,7 @@
 #include "../../../Player/Dialog/RenderWorldDialog.h"
 #include "../../../Player/Dialog/RegisterDialog.h"
 #include "../../../Player/Dialog/DropItemDialog.h"
+#include "../../../Player/Dialog/AchievementBlockDialog.h"
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
@@ -96,6 +97,12 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         case CompileTimeHashString("drop_item"):
         {
             DropItemDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case CompileTimeHashString("achieve_reply"):
+        {
+            AchievementBlockDialog::Handle(pPlayer, packet);
             break;
         }
     }
