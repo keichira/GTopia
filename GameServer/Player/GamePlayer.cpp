@@ -360,6 +360,11 @@ string GamePlayer::GetSpawnData(bool local)
     return spawnData;
 }
 
+Vector2Float GamePlayer::GetWorldPosCenter()
+{
+    return Vector2Float(m_worldPos.x + 16, m_worldPos.y + 16);
+}
+
 RectFloat GamePlayer::GetPlayerWorldRect()
 {
     return RectFloat(m_worldPos.x, m_worldPos.y, m_worldPos.x + 20, m_worldPos.y + 30);

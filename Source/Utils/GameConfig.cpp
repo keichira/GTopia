@@ -200,6 +200,11 @@ bool GameConfig::LoadConfig(const string& filePath)
         {
             balanceSoftCapRatio = line.GetFloat(1, 0.6f);
         }*/
+
+        if(key == "max_npc_per_world")
+        {
+            maxNpcPerWorld = line.GetUInt(1, 20);
+        }
     }
 
     return true;

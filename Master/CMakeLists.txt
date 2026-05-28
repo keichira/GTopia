@@ -32,6 +32,7 @@ set(MASTER_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/WorldDBTable.cpp
     ${SOURCE_UTILS}/GameConfig.cpp
     ${SOURCE_UTILS}/ConfigDB.cpp
+    ${SOURCE_UTILS}/Base64.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
 

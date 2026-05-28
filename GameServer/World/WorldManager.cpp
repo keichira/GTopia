@@ -197,7 +197,7 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
 
 void WorldManager::UpdateWorlds()
 {
-    if (m_lastWorldUpdateTime.GetElapsedTime() < GAME_TICK_MS)
+    if(m_lastWorldUpdateTime.GetElapsedTime() < GAME_TICK_MS)
         return;
 
     std::vector<uint32> deleteList;

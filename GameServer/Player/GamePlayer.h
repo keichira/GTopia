@@ -73,11 +73,12 @@ public:
     string GetSpawnData(bool local);
 
     void SetWorldPos(float x, float y) { m_worldPos.x = x; m_worldPos.y = y; }
-    Vector2Float GetWorldPos() const { return m_worldPos; }
+    Vector2Float& GetWorldPos() { return m_worldPos; }
+    Vector2Float GetWorldPosCenter();
     RectFloat GetPlayerWorldRect();
 
     void SetRespawnPos(float x, float y) { m_respawnPos.x = x; m_respawnPos.y = y; }
-    Vector2Float GetRespawnPos() const { return m_respawnPos; }
+    Vector2Float& GetRespawnPos() { return m_respawnPos; }
 
     Role* GetRole() const { return m_pRole; };
     void SetRole(Role* pRole) { m_pRole = pRole; }

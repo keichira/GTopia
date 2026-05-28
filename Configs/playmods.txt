@@ -12,6 +12,7 @@
 # set_items|itemIDs|
 # set_punch_range|value|
 # set_build_range|value|
+# set_char2_flags|flags...|
 
 add_playmod|290|Ninja Stealth|Silent, invisible, deadly.|You are less sneaky now.|
 set_skin_color|100,100,100,150|
@@ -23,15 +24,15 @@ set_timer|3|
 
 add_playmod|290|Ghost in the shell|Your atoms are suddenly aware of quantum tunneling.|Your body stops shimmering and returns to normal.|
 set_skin_color|255,255,255,100|
-set_char_flags|CHAR_NO_CLIP|
+set_char_flags|NO_CLIP|
 
 add_playmod|156|Double Jump|You can jump in mid-air!  It's like flying, but less.|Gravity - it's the law.|
-set_char_flags|CHAR_DOUBLE_JUMP|
+set_char_flags|DOUBLE_JUMP|
 set_items|156|350|362|678|736|1166|3112|1206|1460|1550|1574|1672|1674|1738|1784|1824|1934|1936|1938|2254|2256|2258|
 set_items|2260|2262|2264|6162|4184|3104|3114|3120|3134|3144|3576|3604|3762|3514|4820|4412|4428|4440|4442|
 
 add_playmod|1904|The One Ring|No one will take your precious!|I guess someone took your precious.|
-set_char_flags|CHAR_RENDER_EYES_ONLY|
+set_char_flags|RENDER_EYES_ONLY|
 set_items|1904|
 
 add_playmod|1782|Legendary!|You should be very very nice to your pet.|You feel lonely.|
@@ -65,3 +66,19 @@ set_items|1204|
 add_playmod|898|Putt Putt Putt|Tractors are not speedy.|You can walk faster than that thing!|
 set_speed|-100|
 set_items|898|1830|1966|
+
+add_playmod|3716|Hunting Ghosts|You fire Neutron Beams (requires Neutron Pack to work).|You're afraid of a ghost.|
+set_punch_type|69|
+set_punch_range|2|
+set_items|3716|
+
+add_playmod|3728|Slimed!|You're covered in ectoplasm!|You got cleaned up.|
+set_timer|6|
+set_speed|-150|
+set_gravity|1000|
+set_skin_color|46,205,217,255|
+
+add_playmod|3728|Mind Control!|This ghost will make you absolutely crazy!|Sanity slowly returns.|
+set_timer|6|
+set_skin_color|196,231,114,255|
+set_char2_flags|MIND_CONTROL|

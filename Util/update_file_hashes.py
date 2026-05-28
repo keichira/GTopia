@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path
 
 def hash(data: bytes) -> int:
     h = 0x55555555
@@ -43,7 +44,7 @@ if __name__ == "__main__":
         print("Usage: python update_file_hashes.py <folder_path> [output_file]")
         sys.exit(1)
 
-    base_folder = sys.argv[1]
+    base_folder = Path(sys.argv[1]).expanduser().resolve()
 
     output_file = "filehashes.txt"
     if len(sys.argv) >= 3:

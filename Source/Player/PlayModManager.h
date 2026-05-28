@@ -4,6 +4,7 @@
 #include "PlayMod.h"
 
 uint32 StrToCharacterStateFlag(const string& flag);
+uint32 StrToCharacterState2Flag(const string& flag);
 
 class PlayModManager {
 public:

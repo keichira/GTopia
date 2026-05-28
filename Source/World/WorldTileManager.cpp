@@ -156,7 +156,12 @@ void WorldTileManager::Clear(bool reInit)
     }
 }
 
-TileInfo* WorldTileManager::GetTile(int32 x, int32 y)
+TileInfo* WorldTileManager::GetTile(const Vector2Int& pos)
+{
+    return GetTile(pos.x, pos.y);
+}
+
+TileInfo *WorldTileManager::GetTile(int32 x, int32 y)
 {
     if(x < 0 || y < 0 || x >= m_size.x || y >= m_size.y) {
         return nullptr;
@@ -225,26 +230,31 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
 {
     TileInfo* pKeyTile = nullptr;
 
-    if(IsMainDoor(pTile->GetFG())) {
+    uint32 fgItem = pTile->GetFG();
+
+    if(IsMainDoor(fgItem)) {
         m_keyTiles[KEY_TILE_MAIN_DOOR] = remove ? nullptr : pTile;
     }
-    else if(pTile->GetFG() == ITEM_ID_GUARDIAN_PINEAPPLE) {
+    else if(fgItem == ITEM_ID_GUARDIAN_PINEAPPLE) {
         m_keyTiles[KEY_TILE_GUARD_PINEAPPLE] = remove ? nullptr : pTile;
     }
-    else if(IsWorldLock(pTile->GetFG())) {
+    else if(IsWorldLock(fgItem)) {
         m_keyTiles[KEY_TILE_WORLD_LOCK] = remove ? nullptr : pTile;
     }
-    else if(pTile->GetFG() == ITEM_ID_PUNCH_JAMMER) {
+    else if(fgItem == ITEM_ID_PUNCH_JAMMER) {
         m_keyTiles[KEY_TILE_PUNCH_JAMMER] = remove ? nullptr : pTile;
     }
-    else if(pTile->GetFG() == ITEM_ID_ZOMBIE_JAMMER) {
+    else if(fgItem == ITEM_ID_ZOMBIE_JAMMER) {
         m_keyTiles[KEY_TILE_ZOMBIE_JAMMER] = remove ? nullptr : pTile;
     }
-    else if(pTile->GetFG() == ITEM_ID_SIGNAL_JAMMER) {
+    else if(fgItem == ITEM_ID_SIGNAL_JAMMER) {
         m_keyTiles[KEY_TILE_SIGNAL_JAMMER] = remove ? nullptr : pTile;
     }
-    else if(pTile->GetFG() == ITEM_ID_ANTIGRAVITY_GENERATOR) {
+    else if(fgItem == ITEM_ID_ANTIGRAVITY_GENERATOR) {
         m_keyTiles[KEY_TILE_ANTIGRAVITY] = remove ? nullptr : pTile;
+    }
+    else if(fgItem == ITEM_ID_GHOST_CHARM) {
+        m_keyTiles[KEY_TILE_GHOST_CHARM] = remove ? nullptr : pTile;
     }
 }
 

@@ -75,7 +75,9 @@ public:
     void PunchTile(uint8 damage);
     bool WillBreak(uint8 damage);
     float GetHealthPercent();
+
     bool IsTree();
+    bool IsFlammable();
 
     float GetGrowthPercent();
     void FinalizeGrowth(uint32 ageMS);

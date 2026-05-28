@@ -15,10 +15,12 @@
 World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
 {
+    m_pNpcManager = new WorldNPCManager(this);
 }
 
 World::~World()
 {
+    SAFE_DELETE(m_pNpcManager);
 }
 
 bool World::InitWorld()
@@ -103,6 +105,11 @@ void World::Update()
         {
             SetState(WORLD_STATE_DELETE);
         }
+    }
+
+    if(m_players.size() > 0 && m_pNpcManager)
+    {
+        m_pNpcManager->Update();
     }
 
     if(m_worldLastSaveTime.GetElapsedTime() >= 40 * 60 * 1000) 
@@ -654,6 +661,31 @@ void World::PlaySFXForEveryone(const string& fileName, int32 delay)
     }
 }
 
+void World::SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio)
+{
+    for(auto& pWorldPlayer : m_players) {
+        if(pWorldPlayer) {
+            pWorldPlayer->SendOnPlayPositioned(audio, pPlayer);
+        }
+    }
+}
+
+void World::SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_NPC;
+    packet.field_1 = npcType;
+    packet.field_2 = npcID;
+    packet.field_3 = eventType;
+    packet.field_8 = pos;
+    packet.field_9 = dest;
+    packet.field_10 = speed;
+    packet.field_11 = val1;
+    packet.field_12 = val2;
+
+    SendGamePacketToAll(&packet);
+}
+
 void World::SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe, uint8* pExtraData)
 {
     for(auto& pWorldPlayer : m_players) {
@@ -857,6 +889,24 @@ void World::ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Floa
     packet.field_8.y = pos.y;
     packet.field_5 = pPlayer->GetNetID();
     packet.field_3 = 5;
+    packet.field_4 = 0;
+    packet.field_11 = itemID;
+    packet.field_12 = count;
+
+    SendGamePacketToAll(&packet);
+}
+
+void World::ThrowItemToPositionFromPlayer(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count)
+{
+    if(!pPlayer)
+        return;
+
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_ITEM_EFFECT;
+    packet.field_8.x = pos.x;
+    packet.field_8.y = pos.y;
+    packet.field_5 = pPlayer->GetNetID();
+    packet.field_3 = 4;
     packet.field_4 = 0;
     packet.field_11 = itemID;
     packet.field_12 = count;
@@ -1171,6 +1221,175 @@ std::vector<GamePlayer*> World::GetPlayersInWorldRect(const RectFloat& rect)
     }
 
     return out;
+}
+
+bool World::FlameUpTile(TileInfo* pTile)
+{
+    if(!pTile)
+        return false;
+
+    if(!pTile->IsFlammable())
+        return false;
+
+    TileInfo* pTopTile = GetTileManager()->GetTile(pTile->GetPos());
+    if(pTopTile)
+    {
+        ItemInfo* pTopItem = GetItemInfoManager()->GetItemByID(pTopTile->GetDisplayedItem());
+        if(!pTopItem)
+            return false;
+
+        if(pTopItem->type == ITEM_TYPE_CHECKPOINT || pTopItem->type == ITEM_TYPE_TEAM)
+            return false;
+    }
+
+    pTile->SetFlag(TILE_FLAG_ON_FIRE);
+
+    switch(pTile->GetFG())
+    {
+        case ITEM_ID_STONE_EGG:
+            pTile->SetFG(ITEM_ID_HATCHING_STONE_EGG, GetTileManager());
+            break;
+
+        case ITEM_ID_GHOST_EGG:
+            pTile->SetFG(ITEM_ID_HATCHING_GHOST_EGG, GetTileManager());
+            break;
+        
+        case ITEM_ID_WATER_EGG:
+            pTile->SetFG(ITEM_ID_HATCHING_WATER_EGG, GetTileManager());
+            break;
+
+        case ITEM_ID_VOID_EGG:
+            pTile->SetFG(ITEM_ID_HATCHING_VOID_EGG, GetTileManager());
+            break;
+
+        case ITEM_ID_EASTER_EGG:
+            pTile->SetFG(ITEM_ID_HATCHING_EASTER_EGG, GetTileManager());
+            break;
+
+        case ITEM_ID_HIGHLY_COMBUSTIBLE_BOX:
+        {
+            pTile->SetFG(ITEM_ID_COMBUSTED_BOX, GetTileManager());
+            
+            bool consumed = false;
+            auto objsInRect = GetObjectManager()->GetObjectsInRect(pTile->GetRect());
+
+            static const std::unordered_map<uint32, uint32> burnBoxReward =
+            {
+                { ITEM_ID_PICKAXE, ITEM_ID_FIRE_AX },
+                { ITEM_ID_FIREFIGHTER_PANTS_YELLOW, ITEM_ID_FIREFIGHTER_PANTS_RED },
+                { ITEM_ID_FIREFIGHTER_JACKET_YELLOW, ITEM_ID_FIREFIGHTER_JACKET_RED },
+                { ITEM_ID_FIREFIGHTER_HELMET_YELLOW, ITEM_ID_FIREFIGHTER_HELMET_RED },
+                { ITEM_ID_VAMPIRE_CAPE, ITEM_ID_FLAMING_CAPE },
+                { ITEM_ID_PET_SLIME, ITEM_ID_STRAWBERRY_SLIME },
+                { ITEM_ID_HAPPY_UNICORN_BLOCK, ITEM_ID_ANGRY_UNICORN_BLOCK },
+                { ITEM_ID_BLADE_FRAGMENT, ITEM_ID_TEMPERED_STEEL_FRAGMENT },
+                { ITEM_ID_AXE_FRAGMENT, ITEM_ID_TEMPERED_AXE_FRAGMENT },
+                { ITEM_ID_PARTY_TUNES, ITEM_ID_TEMPERED_PARTY_TUNES },
+                { ITEM_ID_LAZY_COBRA, ITEM_ID_ROASTED_COBRA },
+                { ITEM_ID_HOWLING_WOLF_EMBLEM, ITEM_ID_CHARBROILED_WOLF_EMBLEM },
+                { ITEM_ID_AQUA_CAVE_CRYSTAL, ITEM_ID_PURPLE_CAVE_CRYSTAL },
+                { ITEM_ID_DEEP_IRON_ORE, ITEM_ID_DEEP_IRON_INGOT },
+                { ITEM_ID_COW, ITEM_ID_BURNT_LEATHER },
+                { ITEM_ID_BUFFALO, ITEM_ID_BURNT_LEATHER },
+                { ITEM_ID_COW_CUBE, ITEM_ID_BURNT_LEATHER },
+                { ITEM_ID_HIGHLY_COMBUSTIBLE_BOX, ITEM_ID_COMBUSTED_BOX },
+                { ITEM_ID_STEEL_SPIKE, ITEM_ID_TEMPERED_STEEL_SPIKE },
+                { ITEM_ID_SURGICAL_SCALPEL, ITEM_ID_LIMB_CONNECTOR },
+                { ITEM_ID_SURGICAL_PINS, ITEM_ID_LIMB_CONNECTOR },
+                { ITEM_ID_SURGICAL_CLAMP, ITEM_ID_LIMB_CONNECTOR },
+                { ITEM_ID_STAR_IRON, ITEM_ID_STAR_IRON_INGOT },
+                { ITEM_ID_CHOCOLATE_BLOCK, ITEM_ID_DARK_CHOCOLATE_BLOCK },
+                { ITEM_ID_TINY_HORSIE, ITEM_ID_FLAMING_HORSE_CHUNK },
+                { ITEM_ID_TINY_APPALOOSA, ITEM_ID_FLAMING_HORSE_CHUNK },
+                { ITEM_ID_ICE_HORSE, ITEM_ID_FLAMING_HORSE_CHUNK },
+                { ITEM_ID_IRISH_SPORT_HORSIE, ITEM_ID_FLAMING_HORSE_CHUNK },
+                { ITEM_ID_WHITE_FURY, ITEM_ID_FLAMING_HORSE_CHUNK },
+                { ITEM_ID_FLAMING_HORSIE, ITEM_ID_FLAMING_HORSE_CHUNK },
+                { ITEM_ID_FLAME_TEE, ITEM_ID_ULTRA_FLAME_TEE },
+                { ITEM_ID_AMBER_BLOCK, ITEM_ID_AMBER_RESIN },
+                { ITEM_ID_DEAD_THANKSGIVING_TURKEY, ITEM_ID_ROASTED_TURKEY },
+                { ITEM_ID_OBSIDIAN, ITEM_ID_DRAGON_GLASS },
+                { ITEM_ID_MAGIC_ORE, ITEM_ID_MAGIC_INGOT },
+            };
+
+            for(auto& pObj : objsInRect)
+            {
+                if(!pObj)
+                    continue;
+ 
+                auto it = burnBoxReward.find(pObj->itemID);
+                if(it == burnBoxReward.end())
+                    continue;
+
+                consumed = true;
+
+                if(pObj->itemID == ITEM_ID_OBSIDIAN)
+                {
+                    if(pObj->count >= 20)
+                    {
+                        int32 remain = pObj->count % 20;
+                        int32 cooked = pObj->count / 20;
+
+                        pObj->itemID = it->second;
+                        pObj->count = cooked;
+                        ModifyObject(*pObj);
+
+                        if(remain > 0)
+                        {
+                            DropObjectOnTile(pTile, ITEM_ID_OBSIDIAN, remain, GetRandomItemDropOffset(), true);
+                        }
+
+                    }
+                }
+                else
+                {
+                    pObj->itemID = it->second;
+                    ModifyObject(*pObj);
+                }
+            }
+
+            if(consumed)
+            {
+                SendParticleEffectToAll(PARTICLE_EFFECT_SMOKE, pTile->GetWorldPosCenter());
+            }
+        }
+    }
+
+    SendParticleEffectToAll(PARTICLE_EFFECT_FIRESTARTER, pTile->GetWorldPosCenter());
+    return true;
+}
+
+void World::PutOutFire(TileInfo* pTile, GamePlayer* pPlayer)
+{
+    if(!pTile)
+        return;
+
+    pTile->RemoveFlag(TILE_FLAG_ON_FIRE);
+
+    if(pPlayer)
+    {
+        PlayerProgress& progressData = pPlayer->GetProgressData();
+        progressData.AddProgress(PLAYER_PROGRESS_PUT_OUT_FIRE_COUNT, 1);
+
+        if(progressData.GetProgress(PLAYER_PROGRESS_PUT_OUT_FIRE_COUNT) % 100 == 0)
+        {
+            if(pPlayer->GetInventory().GetFitItemCount(ITEM_ID_HIGHLY_COMBUSTIBLE_BOX) != 0)
+            {
+                pPlayer->ModifyInventoryItem(ITEM_ID_HIGHLY_COMBUSTIBLE_BOX, 1);
+                ThrowItemToPlayerFromPosition(pPlayer, pTile->GetWorldPosCenter(), ITEM_ID_HIGHLY_COMBUSTIBLE_BOX, 1);
+            }
+            else
+            {
+                DropObjectOnTile(pTile, ITEM_ID_HIGHLY_COMBUSTIBLE_BOX, 1, GetRandomItemDropOffset(), true);
+            }
+
+            pPlayer->SendOnTalkBubble("I'm so good at fighting fires, I rescued this `2Highly Combustible Box``!", false);
+        }
+
+        pPlayer->GiveXP(1);
+    }
+
+    SendParticleEffectToAll(PARTICLE_EFFECT_SIZZLE, pTile->GetWorldPosCenter());
 }
 
 void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
@@ -1620,8 +1839,11 @@ void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileIn
 
     if(TileInfo* pJammerTile = GetTileManager()->GetKeyTile(KEY_TILE_GUARD_PINEAPPLE))
     {
-        pPlayer->SendOnTalkBubble("Can't use consumabled here!", true);
-        return;
+        if(pJammerTile->HasFlag(TILE_FLAG_IS_ON))
+        {
+            pPlayer->SendOnTalkBubble("Can't use consumabled here!", true);
+            return;
+        }
     }
 
     ConsumableInfo* pConsumableInfo = GetItemInfoManager()->GetConsumableInfo(pItem->id);
@@ -1683,7 +1905,152 @@ void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileIn
 
     PlayerInventory& inventory = pPlayer->GetInventory();
 
-    if(pConsumableInfo->consumableType == CONSUMABLE_TYPE_CRAFT)
+    if(pConsumableInfo->consumableType == CONSUMABLE_TYPE_NONE)
+    {
+        switch(pConsumableInfo->itemID)
+        {
+            case ITEM_ID_POCKET_LIGHTER:
+            {
+                if(pTile->HasFlag(TILE_FLAG_ON_FIRE))
+                {
+                    pPlayer->SendOnTalkBubble("That block can't get any hotter!", false);
+                    return;
+                }
+
+                if(pTile->GetDisplayedItem() == ITEM_ID_BLANK)
+                {
+                    pPlayer->SendOnTalkBubble("There's nothing to burn!", false);
+                    return;
+                }
+
+                if(pTile->HasFlag(TILE_FLAG_IS_WET))
+                {
+                    pPlayer->SendOnTalkBubble("You can't burn water.", false);
+                    return;
+                }
+
+                if(!pTile->IsFlammable())
+                {
+                    pPlayer->SendOnTalkBubble("That won't burn!", false);
+                    return;
+                }
+
+                Vector2Int& vTilePos = pTile->GetPos();
+                TileInfo* pTopTile = GetTileManager()->GetTile(vTilePos.x, vTilePos.y - 1);
+                if(pTopTile)
+                {
+                    ItemInfo* pTopItem = GetItemInfoManager()->GetItemByID(pTopTile->GetDisplayedItem());
+                    if(!pTopItem)
+                        return;
+
+                    if(pTopItem->type == ITEM_TYPE_CHECKPOINT || pTopItem->type == ITEM_TYPE_TEAM)
+                    {
+                        pPlayer->SendOnTalkBubble("That'd just be rude.", false);
+                        return;
+                    }
+                }
+
+                if(!FlameUpTile(pTile))
+                    return;
+
+                SendTileUpdate(pTile);
+                SendTalkBubbleAndConsoleToAll("`4MWAHAHAHA!! FIRE FIRE FIRE``", false, pPlayer);
+                break;
+            }
+
+            case ITEM_ID_WATER_BUCKET:
+            {
+                if(pTile->HasFlag(TILE_FLAG_ON_FIRE))
+                {
+                    PutOutFire(pTile, pPlayer);
+                    SendTileUpdate(pTile);
+                    pPlayer->ModifyInventoryItem(ITEM_ID_WATER_BUCKET, -1);
+
+                    float randX = RandomRangeFloat(0, 32);
+                    float randY = RandomRangeFloat(0, 32);
+
+                    Vector2Float vWorldPos = pTile->GetWorldPos();
+                    vWorldPos.x += randX;
+                    vWorldPos.y += randY;
+
+                    ThrowItemToPositionFromPlayer(pPlayer, vWorldPos, ITEM_ID_WATER_BUCKET, 1);
+                    return;
+                }
+                
+                if(!PlayerHasAccessOnTile(pPlayer, pTile))
+                    return;
+
+                ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
+                if(!pItem)
+                    return;
+
+                if(pItem->id == ITEM_ID_MAIN_DOOR || pItem->type == ITEM_TYPE_BEDROCK)
+                    return;
+
+                bool isWetBefore = pTile->HasFlag(TILE_FLAG_IS_WET);
+
+                pTile->ToggleFlag(TILE_FLAG_IS_WET);
+                SendTileUpdate(pTile);
+
+                float randX = RandomRangeFloat(0, 32);
+                float randY = RandomRangeFloat(0, 32);
+
+                Vector2Float vWorldPos = pTile->GetWorldPos();
+                vWorldPos.x += randX;
+                vWorldPos.y += randY;
+
+                ThrowItemToPositionFromPlayer(pPlayer, vWorldPos, ITEM_ID_WATER_BUCKET, 1);
+
+                if(isWetBefore)
+                {
+                    if(RandomRangeInt(0, 100) < 75)
+                    {
+                        pPlayer->ModifyInventoryItem(ITEM_ID_WATER_BUCKET, 1);
+                    }
+                }
+                else
+                {
+                    pPlayer->ModifyInventoryItem(ITEM_ID_WATER_BUCKET, -1);
+                }
+
+                return;
+            }
+
+            case ITEM_ID_GHOST_JAR:
+            {
+                Vector2Int& vTilePos = pTile->GetPos();
+                if(!m_pNpcManager->SpawnGhostTrap(pPlayer, vTilePos.x, vTilePos.y))
+                    return;
+
+                break;
+            }
+
+            case ITEM_ID_GHOST_IN_A_JAR:
+            case ITEM_ID_MIND_GHOST_IN_A_JAR:
+            {
+                TileInfo* pGhostJammer = GetTileManager()->GetKeyTile(KEY_TILE_GHOST_CHARM);
+                if(pGhostJammer && pGhostJammer->HasFlag(TILE_FLAG_IS_ON))
+                {
+                    pPlayer->SendOnTalkBubble("Ghosts are too scared to appear in this world!", false);
+                    return;
+                }
+
+                eNPCType ghostType = NPC_TYPE_GHOST;
+                if(pConsumableInfo->itemID == ITEM_ID_MIND_GHOST_IN_A_JAR) ghostType = NPC_TYPE_MIND_CONTROL_GHOST;
+
+                Vector2Int& vTilePos = pTile->GetPos();
+                if(!m_pNpcManager->SpawnGhost(ghostType, vTilePos.x, vTilePos.y, false))
+                {
+                    pPlayer->SendOnTalkBubble("This world is haunted enough already!", false);
+                    return;
+                }
+
+                SendPlayPositionedToAll(pPlayer, "punch_glass.wav");
+                break;
+            }
+        }
+    }
+    else if(pConsumableInfo->consumableType == CONSUMABLE_TYPE_CRAFT)
     {
         if(pConsumableInfo->rewardItemID == ITEM_ID_URANIUM_GLOWING_LURE)
         {
@@ -1752,6 +2119,8 @@ void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileIn
         {
             pPlayer->SendOnTalkBubble(pConsumableInfo->successMessage, false);
         }
+
+        SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pPlayer->GetWorldPos());
 
         if(pConsumableInfo->HasFlag(CONSUMABLE_FLAG_EQUIP))
         {

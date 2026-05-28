@@ -78,4 +78,6 @@ public:
     bool isWorldBalancerEnabled = false;
     std::vector<WorldBalanceConfigSchema> balancedWorlds;
     float balanceSoftCapRatio = 0.6;
+
+    uint32 maxNpcPerWorld = 20;
 };

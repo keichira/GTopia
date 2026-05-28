@@ -15,8 +15,12 @@ enum ePlayModType
     PLAYMOD_TYPE_SPEEDY,
     PLAYMOD_TYPE_CARRYING_A_TORCH,
     PLAYMOD_TYPE_ENERGIZED_HORN,
+    PLAYMOD_TYPE_FIRE_HOSE,
     PLAYMOD_TYPE_FOCUSED_EYES,
-    PLAYMOD_TYPE_PUTT_PUTT_PUTT
+    PLAYMOD_TYPE_PUTT_PUTT_PUTT,
+    PLAYMOD_TYPE_HUNTING_GHOSTS,
+    PLAYMOD_TYPE_SLIMED,
+    PLAYMOD_TYPE_MIND_CONTROL
 };
 
 class PlayMod {
@@ -32,6 +36,7 @@ public:
     uint8 GetPunchType() const { return m_punchType; }
     uint16 GetDisplayItem() const { return m_displayItem; }
     uint32 GetCharStates() const { return m_charState; }
+    uint32 GetChar2States() const { return m_char2State; }
     uint32 GetTime() const { return m_durationTime; }
 
     uint8 GetBuildRange() const { return m_buildRange; }
@@ -61,6 +66,7 @@ private:
     uint8 m_buildRange;
 
     uint32 m_charState;
+    uint32 m_char2State;
     Color m_skinColor;
 
     uint32 m_durationTime;

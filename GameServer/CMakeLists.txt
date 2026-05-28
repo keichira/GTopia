@@ -88,6 +88,8 @@ set(GAME_FILES PRIVATE
     ${SOURCE_WORLD}/WorldObjectManager.cpp
     ${GAME_WORLD}/WorldManager.cpp
     ${GAME_WORLD}/World.cpp
+    ${GAME_WORLD}/WorldNPC.cpp
+    ${GAME_WORLD}/WorldNPCManager.cpp
 
     ${GAME_DIALOG}/PlayerDialog.cpp
     ${GAME_DIALOG}/SignDialog.cpp

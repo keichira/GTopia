@@ -10,6 +10,16 @@ public:
     Rect(T left_, T top_, T right_, T bottom_) :
         left(left_), top(top_), right(right_), bottom(bottom_) {}
 
+    void SetWidth(T newWidth) 
+    { 
+        right = left + newWidth; 
+    }
+
+    void SetHeight(T newHeight) 
+    { 
+        bottom = top + newHeight; 
+    }
+
     T Width() const { return right - left; }
     T Height() const { return bottom - top; }
 

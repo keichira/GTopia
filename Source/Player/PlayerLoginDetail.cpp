@@ -2,6 +2,7 @@
 #include "Player.h"
 #include "../Proton/ProtonUtils.h"
 #include "../IO/Log.h"
+#include "../Utils/Base64.h"
 
 bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer, bool asGameServer)
 {   
@@ -10,7 +11,7 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     string platformStr(pPlatform->value, pPlatform->size);
     if(!pPlatform || ToUInt(platformStr, platformType) != TO_INT_SUCCESS) 
     {
-        if(platformStr.find_first_of(",") != string::npos) 
+        if(platformStr.find_first_of(",") != string::npos)
         {
             if(ToUInt(Split(platformStr, ',')[0], platformType) != TO_INT_SUCCESS) 
             {
@@ -29,16 +30,14 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
         return false;
     }
 
+    auto pProto = packet.Find(CompileTimeHashString("protocol"));
+    if(!pProto || ToUInt(string(pProto->value, pProto->size), protocol) != TO_INT_SUCCESS) 
+        return false;
+
     auto pReqName = packet.Find(CompileTimeHashString("requestedName"));
     if(!pReqName)
         return false;
     requestedName = string(pReqName->value, pReqName->size);
-
-    auto pProto = packet.Find(CompileTimeHashString("protocol"));
-    if(!pProto || ToUInt(string(pProto->value, pProto->size), protocol) != TO_INT_SUCCESS) 
-    {
-        return false;
-    }
 
     auto pHash = packet.Find(CompileTimeHashString("hash"));
     if(!pHash || ToInt(string(pHash->value, pHash->size), hash) != TO_INT_SUCCESS) {

@@ -6,6 +6,7 @@
 #include "Database/Table/WorldDBTable.h"
 #include "../Player/GamePlayer.h"
 #include "Item/ItemInfoManager.h"
+#include "WorldNPCManager.h"
 #include <queue>
 
 enum eWorldState
@@ -31,6 +32,8 @@ public:
 
     void SetInstanceID(uint32 id) { m_instanceID = id; }
     uint32 GetInstanceID() const { return m_instanceID; }
+
+    WorldNPCManager* GetNPCManager() const { return m_pNpcManager; }
 
     bool InitWorld();
 
@@ -63,11 +66,14 @@ public:
     void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
     void SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
+    void SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio);
+    void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void HandleTilePackets(GameUpdatePacket* pGamePacket);
 
     void ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
+    void ThrowItemToPositionFromPlayer(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
 
     uint32 PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal);
     int32 PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
@@ -78,6 +84,9 @@ public:
     bool IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms);
     bool PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile);
     std::vector<GamePlayer*> GetPlayersInWorldRect(const RectFloat& rect);
+
+    bool FlameUpTile(TileInfo* pTile);
+    void PutOutFire(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
 
     void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID);
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
@@ -111,6 +120,8 @@ private:
 private:
     uint32 m_databaseID;
     uint32 m_instanceID;
+
+    WorldNPCManager* m_pNpcManager;
 
     eWorldState m_state;
     std::vector<GamePlayer*> m_players;

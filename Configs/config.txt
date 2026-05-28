@@ -56,3 +56,5 @@ android_supported_versions|3.02|5.45
 windows_supported_versions|3.02|5.45
 ios_supported_versions|3.02|5.45
 macos_supported_versions|3.02|5.45
+
+max_npc_per_world|40

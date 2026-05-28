@@ -32,6 +32,9 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
 {
     out.count = 0;
 
+    if(!data || size == 0)
+        return;
+
     const char* curr = data;
     const char* strEnd = data + size;
 
@@ -46,6 +49,7 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
          */
 
         const char* start = (curr < strEnd && *curr == '|') ? curr + 1 : curr;
+
         for(const char* c = start; c < strEnd; ++c) {
             if(!delim && *c == '|') {
                 delim = c;
@@ -69,7 +73,11 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
                 --valEnd;
             }
 
-            out.fields[out.count++] = TextPacketField{ hash, delim + 1, (uint16)(valEnd - (delim + 1)) };
+            usize finalSize = valEnd - (delim + 1);
+            if(finalSize > 0xFFFF)
+                continue;
+
+            out.fields[out.count++] = TextPacketField{ hash, delim + 1, (uint16)finalSize };
         }
 
         curr = (fieldEnd < strEnd) ? fieldEnd + 1 : strEnd;

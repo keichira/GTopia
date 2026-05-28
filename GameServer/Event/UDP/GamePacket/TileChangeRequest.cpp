@@ -99,13 +99,21 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         ) {
             if(pTile->HasFlag(TILE_FLAG_ON_FIRE))
             {
-                //put out fire update tile
+                pWorld->PutOutFire(pTile, pPlayer);
+                pWorld->SendTileUpdate(pTile);
             }
             else
             {
                 pPlayer->SendFakePingReply();
             }
 
+            return;
+        }
+
+        if(handItemID == ITEM_ID_NEUTRON_GUN && backItemID == ITEM_ID_NEUTRON_PACK)
+        {
+            pWorld->GetNPCManager()->OnNeutronBeam(pPlayer, pPlayer->GetWorldPosCenter(), pTile->GetWorldPosCenter());
+            pPlayer->SendFakePingReply();
             return;
         }
     }

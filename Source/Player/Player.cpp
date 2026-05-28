@@ -368,6 +368,7 @@ void Player::SendCharacterState(Player* pPlayer)
     packet.field_1 = charData.punchType;
     packet.field_2 = charData.punchRange;
     packet.field_3 = charData.buildRange;
+    packet.flags = charData.char2State;
     packet.field_6 = charData.waterSpeed;
     packet.field_7 = charData.charState;
     packet.field_8.x = charData.speed;

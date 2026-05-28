@@ -17,6 +17,7 @@ enum eKeyTile
     KEY_TILE_ZOMBIE_JAMMER,
     KEY_TILE_SIGNAL_JAMMER,
     KEY_TILE_ANTIGRAVITY,
+    KEY_TILE_GHOST_CHARM,
 
     KEY_TILE_SIZE
 };
@@ -42,9 +43,10 @@ public:
 
     void Clear(bool reInit = false);
 
-    Vector2Int GetSize() const { return m_size; }
+    Vector2Int& GetSize() { return m_size; }
     void SetSize(const Vector2Int& size) { m_size = size; }
 
+    TileInfo* GetTile(const Vector2Int& pos);
     TileInfo* GetTile(int32 x, int32 y);
     TileInfo* GetKeyTile(eKeyTile keyTile);
     TileInfo* GetTile(int32 index);

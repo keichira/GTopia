@@ -44,6 +44,9 @@ void PlayerProgress::AddProgress(ePlayerProgress progress, uint32 count)
     if(progress >= PLAYER_PROGRESS_COUNT)
         return;
 
+    if(m_progressData[progress] >= 999999999)
+        return;
+
     m_progressData[progress] += count;
     CheckAchieveAndUnlockIfPossibleByProgress(progress);
 }

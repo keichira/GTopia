@@ -21,6 +21,14 @@ ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
     if(!pConfig)
         return nullptr;
 
+    if(ActivePlayMod* pExist = GetActiveMod(type))
+    {
+        pExist->remainingMS = pConfig->GetTime() * 1000;
+        pExist->updateTimer.Reset();
+        RecalculateStats();
+        return pExist;
+    }
+
     if(pConfig->GetTime() != 0)
     {
         m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() + " `omod added, `$" + Time::ConvertTimeToStr(pConfig->GetTime() * 1000) + "`oleft)");
@@ -28,14 +36,6 @@ ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
     else
     {
         m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() + " `omod added)");
-    }
-
-    if(ActivePlayMod* pExist = GetActiveMod(type))
-    {
-        pExist->remainingMS = pConfig->GetTime() * 1000;
-        pExist->updateTimer.Reset();
-        RecalculateStats();
-        return pExist;
     }
 
     ActivePlayMod newMod;
@@ -112,6 +112,7 @@ void PlayerPlayModController::RecalculateStats()
             continue;
 
         charData.SetCharState(pConfig->GetCharStates());
+        charData.SetChar2State(pConfig->GetChar2States());
         if(pConfig->GetPunchType() > 0) 
         {
             charData.punchType = pConfig->GetPunchType();
@@ -211,8 +212,10 @@ void PlayerPlayModController::BuildActiveModsDialog(DialogBuilder& db)
 
 void PlayerPlayModController::OnUpdateTorch(ActivePlayMod& mod)
 {
-    if(mod.customTickTimer.GetElapsedTime() < 1000)
+    if(mod.customTickTimer.GetElapsedTime() < 600)
         return;
+
+    mod.customTickTimer.Reset();
 
     if(RandomRangeInt(0, 100) == 1)
     {

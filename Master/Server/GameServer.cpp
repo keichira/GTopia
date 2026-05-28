@@ -14,7 +14,6 @@ GameServer::GameServer()
 
 GameServer::~GameServer()
 {
-    Kill();
 }
 
 void GameServer::OnEventConnect(ENetEvent& event)

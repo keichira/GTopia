@@ -15,8 +15,6 @@ PlayerManager::PlayerManager()
 PlayerManager::~PlayerManager()
 {
     RemoveAllPlayers();
-    m_sessions.clear();
-    m_gamePlayers.clear();
 }
 
 PlayerSession* PlayerManager::GetSessionByID(uint32 userID)

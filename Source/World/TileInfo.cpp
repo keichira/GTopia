@@ -121,10 +121,10 @@ bool TileInfo::IsCollidable()
     if(!pItem)
         return true;
 
-    if(pItem->type == ITEM_TYPE_GEMS)
+    if(pItem->collisionType == COLLISION_IF_OFF)
         return !HasFlag(TILE_FLAG_IS_ON);
 
-    if(pItem->type == ITEM_TYPE_GATEWAY)
+    if(pItem->collisionType == COLLISION_IF_ON)
         return HasFlag(TILE_FLAG_IS_ON);
 
     return !(pItem->collisionType == COLLISION_NONE || pItem->collisionType == COLLISION_ONE_WAY);
@@ -164,7 +164,7 @@ void TileInfo::PunchTile(uint8 damage)
     m_lastDamageTime.Reset();
 
     if(
-        pItem->type == ITEM_TYPE_RACE_FLAG || pItem->type == ITEM_TYPE_SWITCHEROO ||
+        pItem->type == ITEM_TYPE_CHEST || pItem->type == ITEM_TYPE_SWITCHEROO ||
         (pItem->type == ITEM_TYPE_DEADLY_IF_ON && pItem->id != ITEM_ID_STEAM_SPIKES) ||
         pItem->type == ITEM_TYPE_BOOMBOX || pItem->type == ITEM_TYPE_BOOMBOX2
     ) {
@@ -222,6 +222,31 @@ bool TileInfo::IsTree()
         return false;
 
     return pItem->type == ITEM_TYPE_SEED;
+}
+
+bool TileInfo::IsFlammable()
+{
+    if(HasFlag(TILE_FLAG_ON_FIRE) || HasFlag(TILE_FLAG_IS_WET))
+        return false;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(GetDisplayedItem());
+    if(!pItem)
+        return false;
+
+    if(pItem->id == ITEM_ID_BLANK)
+        return false;
+
+    if(pItem->type == ITEM_TYPE_DOOR || pItem->type == ITEM_TYPE_USER_DOOR || pItem->type == ITEM_TYPE_BEDROCK || pItem->type == ITEM_TYPE_PORTAL ||
+        pItem->type == ITEM_TYPE_CHECKPOINT || pItem->type == ITEM_TYPE_SUNGATE || pItem->type == ITEM_TYPE_LOCK ||
+        pItem->type == ITEM_TYPE_TEAM || pItem->type == ITEM_TYPE_ADVENTURE_RESET
+    ) {
+        return false;
+    }
+
+    if(pItem->id == ITEM_ID_ULTRA_PINATA)
+        return false;
+
+    return true;
 }
 
 float TileInfo::GetGrowthPercent()
