@@ -44,11 +44,11 @@ void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& pa
     if(!pPlayer)
         return;
 
-    auto pTileX = packet.Find(CompileTimeHashString("tilex"));
+    auto pTileX = packet.Find("tilex"_hash);
     if(!pTileX)
         return;
 
-    auto pTileY = packet.Find(CompileTimeHashString("tiley"));
+    auto pTileY = packet.Find("tiley"_hash);
     if(!pTileY)
         return;
 
@@ -83,7 +83,7 @@ void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& pa
         return;
 
     int32 achievementID = 127;
-    auto pButtonClicked = packet.Find(CompileTimeHashString("buttonClicked"));
+    auto pButtonClicked = packet.Find("buttonClicked"_hash);
     if(pButtonClicked)
     {
         if(ToInt(string(pButtonClicked->value, pButtonClicked->size), achievementID) != TO_INT_SUCCESS)

@@ -9,7 +9,7 @@ const CommandInfo& Ghost::GetInfo()
         "Walk throught blocks",
         ROLE_PERM_COMMAND_GHOST,
         {
-            CompileTimeHashString("ghost")
+            "ghost"_hash
         }
     };
 

@@ -2,6 +2,7 @@
 
 #include "../Precompiled.h"
 #include "ItemInfo.h"
+#include "BattlePetInfo.h"
 
 #define MAX_SUPPORTED_ITEM_DATA_VERSION 26
 
@@ -80,6 +81,7 @@ public:
     bool LoadByItemsDat(const string& filePath);
     bool LoadWikiData(const string& filePath);
     bool LoadConsumableData(const string& filePath);
+    bool LoadBattlePetData(const string& filePath);
 
     void Kill();
 
@@ -94,6 +96,7 @@ public:
 
     ItemInfo* GetSpliceInfo(uint16 seed1, uint16 seed2);
     ConsumableInfo* GetConsumableInfo(uint32 itemID);
+    BattlePetInfo* GetBattlePetInfo(int32 itemID);
     void SetupItemExtras();
 
     ItemsClientData* GetClientData(uint8 platformType, float gameVersion);
@@ -112,6 +115,7 @@ private:
     std::vector<ItemInfo> m_items;
     std::unordered_map<uint32, uint32> m_spliceData;
     std::unordered_map<uint32, ConsumableInfo> m_consumeData;
+    std::unordered_map<int32, BattlePetInfo> m_battlePetData;
 };
 
 ItemInfoManager* GetItemInfoManager();

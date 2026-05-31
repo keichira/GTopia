@@ -3,7 +3,7 @@
 
 void SetSkin::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
-    auto pColor = packet.Find(CompileTimeHashString("color"));
+    auto pColor = packet.Find("color"_hash);
     if(!pColor)
         return;
 

@@ -32,6 +32,7 @@
 #include "../Command/TogglePlayMod.h"
 #include "../Command/Magic.h"
 #include "../Command/AgeWorld.h"
+#include "../Command/Emotes.h"
 
 GameServer::GameServer()
 {
@@ -86,16 +87,16 @@ void GameServer::OnEventReceive(ENetEvent& event)
                 ParsedTextPacket<8> packet;
                 ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
             
-                auto pAction = packet.Find(CompileTimeHashString("action"));
+                auto pAction = packet.Find("action"_hash);
                 if(pAction) 
                 {
                     uint32 packetType = HashString(pAction->value, pAction->size);
 
                     if(
-                        packetType == CompileTimeHashString("refresh_item_data") ||
-                        packetType == CompileTimeHashString("enter_game") ||
-                        packetType == CompileTimeHashString("refresh_player_tribute_data") ||
-                        packetType == CompileTimeHashString("quit")
+                        packetType == "refresh_item_data"_hash ||
+                        packetType == "enter_game"_hash ||
+                        packetType == "refresh_player_tribute_data"_hash ||
+                        packetType == "quit"_hash
                     ) {
                         m_messagePacket.Dispatch(packetType, pPlayer, packet);   
                     }
@@ -107,7 +108,7 @@ void GameServer::OnEventReceive(ENetEvent& event)
                 ParsedTextPacket<8> packet; // increase it for dialog_return?
                 ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
             
-                auto pAction = packet.Find(CompileTimeHashString("action"));
+                auto pAction = packet.Find("action"_hash);
                 if(pAction) 
                 {
                     uint32 packetType = HashString(pAction->value, pAction->size);
@@ -151,21 +152,21 @@ void GameServer::OnEventDisconnect(ENetEvent& event)
 
 void GameServer::RegisterEvents()
 {
-    RegisterMessagePacket<RefreshItemData>(CompileTimeHashString("refresh_item_data"));
-    RegisterMessagePacket<EnterGame>(CompileTimeHashString("enter_game"));
-    RegisterMessagePacket<RefreshTributeData>(CompileTimeHashString("refresh_player_tribute_data"));
-    RegisterMessagePacket<JoinRequest>(CompileTimeHashString("join_request"));
-    RegisterMessagePacket<Input>(CompileTimeHashString("input"));
-    RegisterMessagePacket<QuitToExit>(CompileTimeHashString("quit_to_exit"));
-    RegisterMessagePacket<DialogReturn>(CompileTimeHashString("dialog_return"));
-    RegisterMessagePacket<Trash>(CompileTimeHashString("trash"));
-    RegisterMessagePacket<GrowID>(CompileTimeHashString("growid"));
-    RegisterMessagePacket<Quit>(CompileTimeHashString("quit"));
-    RegisterMessagePacket<SetSkin>(CompileTimeHashString("setSkin"));
-    RegisterMessagePacket<Drop>(CompileTimeHashString("drop"));
-    RegisterMessagePacket<Wrench>(CompileTimeHashString("wrench"));
-    RegisterMessagePacket<Buy>(CompileTimeHashString("buy"));
-    RegisterMessagePacket<Store>(CompileTimeHashString("store"));
+    RegisterMessagePacket<RefreshItemData>("refresh_item_data"_hash);
+    RegisterMessagePacket<EnterGame>("enter_game"_hash);
+    RegisterMessagePacket<RefreshTributeData>("refresh_player_tribute_data"_hash);
+    RegisterMessagePacket<JoinRequest>("join_request"_hash);
+    RegisterMessagePacket<Input>("input"_hash);
+    RegisterMessagePacket<QuitToExit>("quit_to_exit"_hash);
+    RegisterMessagePacket<DialogReturn>("dialog_return"_hash);
+    RegisterMessagePacket<Trash>("trash"_hash);
+    RegisterMessagePacket<GrowID>("growid"_hash);
+    RegisterMessagePacket<Quit>("quit"_hash);
+    RegisterMessagePacket<SetSkin>("setSkin"_hash);
+    RegisterMessagePacket<Drop>("drop"_hash);
+    RegisterMessagePacket<Wrench>("wrench"_hash);
+    RegisterMessagePacket<Buy>("buy"_hash);
+    RegisterMessagePacket<Store>("store"_hash);
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();
@@ -173,6 +174,7 @@ void GameServer::RegisterEvents()
     RegisterCommand<TogglePlayMod>();
     RegisterCommand<Magic>();
     RegisterCommand<AgeWorld>();
+    RegisterCommand<Emotes>();
 }
 
 void GameServer::UpdateGameLogic(uint64 maxTimeMS)

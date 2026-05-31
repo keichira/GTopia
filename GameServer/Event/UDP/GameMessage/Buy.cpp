@@ -6,7 +6,7 @@ void Buy::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer)
         return;
 
-    auto pItem = packet.Find(CompileTimeHashString("item"));
+    auto pItem = packet.Find("item"_hash);
     if(!pItem)
         return;
 

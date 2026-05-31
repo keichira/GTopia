@@ -24,6 +24,15 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_ACHIEVEMENT:
             return TILE_EXTRA_TYPE_ACHIEVEMENT;
 
+        case ITEM_TYPE_BATTLE_CAGE:
+            return TILE_EXTRA_TYPE_BATTLE_CAGE;
+
+        case ITEM_TYPE_FIELD_NODE:
+            return TILE_EXTRA_TYPE_FIELD_NODE;
+
+        case ITEM_TYPE_OUIJA_BOARD:
+            return TILE_EXTRA_TYPE_OUIJA_BOARD;
+
         default:
             return TILE_EXTRA_TYPE_NONE;
     }
@@ -56,6 +65,15 @@ TileExtra* CreateTileExtra(uint8 type)
 
         case TILE_EXTRA_TYPE_HEART_MONITOR:
             return new TileExtra_HeartMonitor();
+
+        case TILE_EXTRA_TYPE_BATTLE_CAGE:
+            return new TileExtra_BattleCage();
+
+        case TILE_EXTRA_TYPE_FIELD_NODE:
+            return new TileExtra_FieldNode();
+
+        case TILE_EXTRA_TYPE_OUIJA_BOARD:
+            return new TileExtra_OuijaBoard();
 
         default:
             return nullptr;
@@ -198,7 +216,6 @@ void TileExtra_Sign::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
 void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
-
     memBuffer.ReadWrite(flags, write);
     memBuffer.ReadWrite(ownerID, write);
 
@@ -289,4 +306,49 @@ void TileExtra_HeartMonitor::Serialize(MemoryBuffer& memBuffer, bool write, bool
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(ownerID, write);
     memBuffer.ReadWrite(playerDisplayName, write);
+}
+
+void TileExtra_OuijaBoard::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWrite(playerCount, write);
+    memBuffer.ReadWriteString(ouijaType, write);
+    memBuffer.ReadWriteString(command, write);
+    
+    uint32 itemsSize = items.size();
+    memBuffer.ReadWrite(itemsSize, write);
+
+    if(!write) {
+        items.resize(itemsSize);
+    }
+
+    if(itemsSize > 0) {
+        memBuffer.ReadWriteRaw(items.data(), itemsSize * sizeof(int32), write);
+    }
+}
+
+void TileExtra_FieldNode::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWrite(expireTime, write);
+    
+    uint32 nodeSize = nodes.size();
+    memBuffer.ReadWrite(nodeSize, write);
+
+    if(!write) {
+        nodes.resize(nodeSize);
+    }
+
+    if(nodeSize > 0) {
+        memBuffer.ReadWriteRaw(nodes.data(), nodeSize * sizeof(int32), write);
+    }
+}
+
+void TileExtra_BattleCage::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWriteString(cageName, write);
+    memBuffer.ReadWrite(basePet, write);
+    memBuffer.ReadWrite(secondPet, write);
+    memBuffer.ReadWrite(thirdPet, write);
 }

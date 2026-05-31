@@ -99,6 +99,9 @@ enum eTileExtraTypes
     TILE_EXTRA_TYPE_SUPER_MUSIC = 56,
     TILE_EXTRA_TYPE_GEIGER_CHARGER = 57,
 
+    TILE_EXTRA_TYPE_FIELD_NODE = 67,
+    TILE_EXTRA_TYPE_OUIJA_BOARD = 68,
+
     TILE_EXTRA_TYPE_SIZE
 };
 
@@ -269,4 +272,23 @@ TILE_EXTRA(TileExtra_Achievement, TILE_EXTRA_TYPE_ACHIEVEMENT)
 TILE_EXTRA(TileExtra_HeartMonitor, TILE_EXTRA_TYPE_HEART_MONITOR)
     int32 ownerID = -1;
     string playerDisplayName;
+};
+
+TILE_EXTRA(TileExtra_OuijaBoard, TILE_EXTRA_TYPE_OUIJA_BOARD)
+    int32 playerCount = 0;
+    string ouijaType; // kinda weird 0 for normal 1 for boss
+    string command;
+    std::vector<int32> items;
+};
+
+TILE_EXTRA(TileExtra_FieldNode, TILE_EXTRA_TYPE_FIELD_NODE)
+    uint32 expireTime = 0;
+    std::vector<int32> nodes;
+};
+
+TILE_EXTRA(TileExtra_BattleCage, TILE_EXTRA_TYPE_BATTLE_CAGE)
+    string cageName;
+    int32 basePet = 0;
+    int32 secondPet = 0;
+    int32 thirdPet = 0;
 };

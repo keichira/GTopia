@@ -2,8 +2,10 @@
 
 #include "Precompiled.h"
 #include "Math/Vector2.h"
+#include "Utils/Timer.h"
 
 class WorldNPCManager;
+class GamePlayer;
 
 enum eNPCType
 {
@@ -41,6 +43,8 @@ public:
     bool IsGhostTrap();
     bool IsInside(WorldNPC* pNpc, float padX, float padY);
 
+    void OnGotHit(GamePlayer* pPlayer, const Vector2Float& hitPos, const Vector2Float& attackPos, WorldNPCManager* pNPCMgr);
+
 public:
     uint8 id;
     uint8 type;
@@ -49,6 +53,12 @@ public:
     float speed;
     int32 val1;
     int32 val2;
+    int32 hp;
+
+    Timer nextAttackTimer;
+    bool isInsidePowerNodes;
+    std::vector<int32> hittersNetID;
+    std::vector<Vector2Float> beams;
 
     bool lassoed;
 };

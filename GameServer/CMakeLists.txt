@@ -42,6 +42,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_ITEM}/ItemInfo.cpp
     ${SOURCE_ITEM}/ItemInfoManager.cpp
     ${SOURCE_ITEM}/ItemUtils.cpp
+    ${SOURCE_ITEM}/BattlePetInfo.cpp
 
     ${GAME_EVENT}/TCP/TCPEventHello.cpp
     ${GAME_EVENT}/TCP/TCPEventAuth.cpp
@@ -80,6 +81,7 @@ set(GAME_FILES PRIVATE
     ${GAME_COMMAND}/TogglePlayMod.cpp
     ${GAME_COMMAND}/Magic.cpp
     ${GAME_COMMAND}/AgeWorld.cpp
+    ${GAME_COMMAND}/Emotes.cpp
 
     ${SOURCE_WORLD}/TileExtra.cpp
     ${SOURCE_WORLD}/TileInfo.cpp
@@ -90,6 +92,7 @@ set(GAME_FILES PRIVATE
     ${GAME_WORLD}/World.cpp
     ${GAME_WORLD}/WorldNPC.cpp
     ${GAME_WORLD}/WorldNPCManager.cpp
+    ${GAME_WORLD}/WorldBossManager.cpp
 
     ${GAME_DIALOG}/PlayerDialog.cpp
     ${GAME_DIALOG}/SignDialog.cpp
@@ -100,6 +103,8 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/DropItemDialog.cpp
     ${GAME_DIALOG}/WrenchSelfDialog.cpp
     ${GAME_DIALOG}/AchievementBlockDialog.cpp
+    ${GAME_DIALOG}/OuijaBoardDialog.cpp
+    ${GAME_DIALOG}/BattleCageDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

@@ -5,7 +5,7 @@ void Drop::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer)
         return;
 
-    auto pItemID = packet.Find(CompileTimeHashString("itemID"));
+    auto pItemID = packet.Find("itemID"_hash);
     if(!pItemID)
         return;
 

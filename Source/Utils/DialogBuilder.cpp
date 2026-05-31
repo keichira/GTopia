@@ -154,12 +154,10 @@ DialogBuilder* DialogBuilder::AddPlayerPicker(const string& id, const string& la
 
 DialogBuilder* DialogBuilder::AddSmallText(const string& text, bool center)
 {
-    m_str += "add_small_text|";
+    m_str += "add_small_text|" + text;
 
-    if(center) m_str += "center|";
-    else m_str += "left|";
-
-    m_str += text;
+    if(center) m_str += "|center|\n";
+    else m_str += "|left|\n";
 
     return this;
 }
@@ -167,6 +165,12 @@ DialogBuilder* DialogBuilder::AddSmallText(const string& text, bool center)
 DialogBuilder* DialogBuilder::AddAchieveButton(const string& name, const string& desc, uint8 id)
 {
     m_str += "add_achieve_button|" + name + "|" + desc + "|left|" + ToString(id) + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddItemPicker(const string& id, const string& buttonText, const string& label)
+{
+    m_str += "add_item_picker|" + id + "|" + buttonText + "|" + label + "|\n";
     return this;
 }
 

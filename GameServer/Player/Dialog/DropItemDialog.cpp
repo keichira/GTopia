@@ -79,8 +79,8 @@ void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer || pPlayer->GetCurrentWorld() == 0)
         return;
 
-    auto pItemID = packet.Find(CompileTimeHashString("itemID"));
-    auto pCount = packet.Find(CompileTimeHashString("count"));
+    auto pItemID = packet.Find("itemID"_hash);
+    auto pCount = packet.Find("count"_hash);
 
     if(!pItemID || !pCount)
         return;

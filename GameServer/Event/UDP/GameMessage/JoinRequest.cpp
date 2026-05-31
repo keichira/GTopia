@@ -9,7 +9,7 @@ void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         
     pPlayer->GetLastJoinRequestTime().Reset();
 
-    auto pName = packet.Find(CompileTimeHashString("name"));
+    auto pName = packet.Find("name"_hash);
     if(!pName) 
     {
         pPlayer->SendOnFailedToEnterWorld();

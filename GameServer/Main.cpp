@@ -191,6 +191,11 @@ bool LoadItemData()
         LOGGER_LOG_ERROR("consumable_data.txt not found skipping");
     }
 
+    if(!pItemMgr->LoadBattlePetData(GetProgramPath() + "/battle_pet_data.txt"))
+    {
+        LOGGER_LOG_ERROR("battle_pet_data.txt not found skipping");
+    }
+
     /*PlayerTribute* pPlayerTrib = GetPlayerTributeManager();
     if(!pPlayerTrib->Load(GetProgramPath() + "/player_tribute.txt")) {
         LOGGER_LOG_ERROR("Failed to load player_tribute.txt anyways skipping it");

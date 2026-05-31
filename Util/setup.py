@@ -337,6 +337,7 @@ def main():
     move_file(CONFIGS_DIR / "achievements.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "store.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "consumable_data.txt", RUNTIME_DIR)
+    move_file(CONFIGS_DIR / "battle_pet_data.txt", RUNTIME_DIR)
         
     print("\nSetup finished\n")
     print(f"Your LAN IP address is `{get_local_ip()}`, if you are not running on VPS/VDS use this IP address to host")

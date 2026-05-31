@@ -10,7 +10,7 @@ const CommandInfo& AgeWorld::GetInfo()
         "Age current map",
         ROLE_PERM_MSTATE,
         {
-            CompileTimeHashString("ageworld")
+            "ageworld"_hash
         }
     };
 

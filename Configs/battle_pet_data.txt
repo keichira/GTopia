@@ -1,0 +1,7 @@
+# if line starts with '#' it means its comment line
+
+# add_pet|id|name|subName|endName|powerName|element|ability|abilityVal|cooldownSec|superPower|superPowerVal|superPowerDuration|powerParticle|hitParticle|powerSound|hitSound|
+# set_description|desc|
+
+add_pet|1190|Black Cat|kitti|kitty|Bad Luck|WATER|0|0|30|1|25|8|0|0|hiss2.wav||
+set_description|Cross the target's path, making them do -25% damage and suffer +25% damage for 8s.|

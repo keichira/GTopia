@@ -13,7 +13,7 @@ const TelnetCommandInfo& SetRole::GetInfo()
         "Set player's RoleID",
         4,
         {
-            CompileTimeHashString("setrole")
+            "setrole"_hash
         }
     };
 

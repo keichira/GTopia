@@ -6,7 +6,7 @@ void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer)
         return;
 
-    auto pLocation = packet.Find(CompileTimeHashString("location"));
+    auto pLocation = packet.Find("location"_hash);
     if(!pLocation)
         return;
 

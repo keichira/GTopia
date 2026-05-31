@@ -7,7 +7,7 @@ void Wrench::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer)
         return;
 
-    auto pNetID = packet.Find(CompileTimeHashString("netid"));
+    auto pNetID = packet.Find("netid"_hash);
     if(!pNetID)
         return;
 

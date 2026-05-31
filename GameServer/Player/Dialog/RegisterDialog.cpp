@@ -36,9 +36,9 @@ void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pPlayer || pPlayer->HasGrowID())
         return;
 
-    auto pName = packet.Find(CompileTimeHashString("logon"));
-    auto pPass = packet.Find(CompileTimeHashString("password"));
-    auto pVerifPass = packet.Find(CompileTimeHashString("verify_password"));
+    auto pName = packet.Find("logon"_hash);
+    auto pPass = packet.Find("password"_hash);
+    auto pVerifPass = packet.Find("verify_password"_hash);
 
     if(!pName || !pPass || !pVerifPass)
         return;

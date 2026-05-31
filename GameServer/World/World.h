@@ -7,6 +7,7 @@
 #include "../Player/GamePlayer.h"
 #include "Item/ItemInfoManager.h"
 #include "WorldNPCManager.h"
+#include "WorldBossManager.h"
 #include <queue>
 
 enum eWorldState
@@ -34,6 +35,7 @@ public:
     uint32 GetInstanceID() const { return m_instanceID; }
 
     WorldNPCManager* GetNPCManager() const { return m_pNpcManager; }
+    WorldBossManager* GetBossManager() const { return m_pBossManager; }
 
     bool InitWorld();
 
@@ -64,13 +66,17 @@ public:
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
     void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
     void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
+    //void SendParticleEffectV2ToAll(const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
     void SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
     void SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio);
+    void SendOnActionToAll(GamePlayer* pPlayer, const string& action);
+    void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void HandleTilePackets(GameUpdatePacket* pGamePacket);
+    void DestroyTileAndSendToAll(TileInfo* pTile);
 
     void ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
     void ThrowItemToPositionFromPlayer(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
@@ -87,6 +93,10 @@ public:
 
     bool FlameUpTile(TileInfo* pTile);
     void PutOutFire(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
+
+    bool CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command);
+    bool CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile);
+    bool TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile);
 
     void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID);
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
@@ -122,6 +132,7 @@ private:
     uint32 m_instanceID;
 
     WorldNPCManager* m_pNpcManager;
+    WorldBossManager* m_pBossManager;
 
     eWorldState m_state;
     std::vector<GamePlayer*> m_players;

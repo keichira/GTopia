@@ -8,13 +8,15 @@
 #include "../../../Player/Dialog/RegisterDialog.h"
 #include "../../../Player/Dialog/DropItemDialog.h"
 #include "../../../Player/Dialog/AchievementBlockDialog.h"
+#include "../../../Player/Dialog/OuijaBoardDialog.h"
+#include "../../../Player/Dialog/BattleCageDialog.h"
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 {
     if(!pPlayer)
         return;
 
-    auto pDialogName = packet.Find(CompileTimeHashString("dialog_name"));
+    auto pDialogName = packet.Find("dialog_name"_hash);
     if(!pDialogName || pDialogName->size > 50)
         return;
 
@@ -22,11 +24,11 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     switch(hashedDialogName) 
     {
-        case CompileTimeHashString("sign_edit"): 
+        case "sign_edit"_hash: 
         {
-            auto pTileX = packet.Find(CompileTimeHashString("tilex"));
-            auto pTileY = packet.Find(CompileTimeHashString("tiley"));
-            auto pSignText = packet.Find(CompileTimeHashString("sign_text"));
+            auto pTileX = packet.Find("tilex"_hash);
+            auto pTileY = packet.Find("tiley"_hash);
+            auto pSignText = packet.Find("sign_text"_hash);
 
             if(!pTileX || !pTileY || !pSignText)
                 return;
@@ -47,11 +49,11 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
             break;
         }
 
-        case CompileTimeHashString("trash_item"):
-        case CompileTimeHashString("trash_item2"): 
+        case "trash_item"_hash:
+        case "trash_item2"_hash: 
         {
-            auto pItemID = packet.Find(CompileTimeHashString("itemID"));
-            auto pCount = packet.Find(CompileTimeHashString("count"));
+            auto pItemID = packet.Find("itemID"_hash);
+            auto pCount = packet.Find("count"_hash);
 
             if(!pItemID || !pCount)
                 return;
@@ -64,7 +66,7 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
             if(ToInt(string(pCount->value, pCount->size), count) != TO_INT_SUCCESS)
                 return;
 
-            if(hashedDialogName == CompileTimeHashString("trash_item2")) 
+            if(hashedDialogName == "trash_item2"_hash) 
             {
                 TrashDialog::HandleUntradeable(pPlayer, itemID, count);
             }
@@ -76,33 +78,45 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
             break;
         }
 
-        case CompileTimeHashString("lock_edit"): 
+        case "lock_edit"_hash: 
         {
             LockDialog::Handle(pPlayer, packet);
             break;
         }
 
-        case CompileTimeHashString("render_reply"): 
+        case "render_reply"_hash: 
         {
             RenderWorldDialog::Handle(pPlayer);
             break;
         }
 
-        case CompileTimeHashString("growid_apply"): 
+        case "growid_apply"_hash: 
         {
             RegisterDialog::Handle(pPlayer, packet);
             break;
         }
 
-        case CompileTimeHashString("drop_item"):
+        case "drop_item"_hash:
         {
             DropItemDialog::Handle(pPlayer, packet);
             break;
         }
 
-        case CompileTimeHashString("achieve_reply"):
+        case "achieve_reply"_hash:
         {
             AchievementBlockDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "ouijaboard"_hash:
+        {
+            OuijaBoardDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "battlecage"_hash:
+        {
+            BattleCageDialog::Handle(pPlayer, packet);
             break;
         }
     }

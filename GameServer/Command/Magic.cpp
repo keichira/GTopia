@@ -12,7 +12,7 @@ const CommandInfo& Magic::GetInfo()
         "Bass da da da",
         ROLE_PERM_COMMAND_MAGIC,
         {
-            CompileTimeHashString("magic")
+            "magic"_hash
         }
     };
 

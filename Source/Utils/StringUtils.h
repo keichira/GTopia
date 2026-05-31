@@ -3,6 +3,7 @@
 #include "../Precompiled.h"
 #include "../Math/Color.h"
 
+// dont use this use "_hash" opr
 constexpr uint32 CompileTimeHashString(const char* str, uint32 h = 0x12668559)
 {
     return (str[0] == '\0') ? h
@@ -10,6 +11,20 @@ constexpr uint32 CompileTimeHashString(const char* str, uint32 h = 0x12668559)
             str + 1, 
             ( (h ^ static_cast<uint8>(str[0])) * 0x5bd1e995 ) ^ ( ((h ^ static_cast<uint8>(str[0])) * 0x5bd1e995) >> 15 )
         );
+}
+
+constexpr uint32 operator"" _hash(const char* str, usize len)
+{
+    uint32 h = 0x12668559;
+
+    for (size_t i = 0; i < len; ++i)
+    {
+        h ^= (uint8)(str[i]);
+        h *= 0x5bd1e995;
+        h ^= h >> 15;
+    }
+
+    return h;
 }
 
 uint32 HashString(const string& str);

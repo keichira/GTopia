@@ -11,7 +11,7 @@ const CommandInfo& GiveItem::GetInfo()
         "Give item to player",
         ROLE_PERM_MSTATE, // change this
         {
-            CompileTimeHashString("giveitem")
+            "giveitem"_hash
         }
     };
 

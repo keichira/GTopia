@@ -11,7 +11,7 @@ const CommandInfo& RenderWorld::GetInfo()
         "View world as image",
         ROLE_PERM_NONE,
         {
-            CompileTimeHashString("renderworld")
+            "renderworld"_hash
         }
     };
 

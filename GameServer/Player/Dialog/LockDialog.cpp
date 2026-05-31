@@ -197,8 +197,8 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(pPlayer->GetCurrentWorld() == 0)
         return;
 
-    auto pTileX = packet.Find(CompileTimeHashString("tilex"));
-    auto pTileY = packet.Find(CompileTimeHashString("tiley"));
+    auto pTileX = packet.Find("tilex"_hash);
+    auto pTileY = packet.Find("tiley"_hash);
 
     if(!pTileX || !pTileY)
         return;
@@ -246,7 +246,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     bool tileNeedsUpdate = false;
 
-    auto pIgnoreAir = packet.Find(CompileTimeHashString("checkbox_ignore"));
+    auto pIgnoreAir = packet.Find("checkbox_ignore"_hash);
     if(pIgnoreAir)
     {
         int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
@@ -261,7 +261,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     bool oldPublicFlag = pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
 
-    auto pPublic = packet.Find(CompileTimeHashString("checkbox_public"));
+    auto pPublic = packet.Find("checkbox_public"_hash);
     if(pPublic)
     {
         int32 val = pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
@@ -276,7 +276,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     if(pItem->id == ITEM_ID_BUILDERS_LOCK)
     {
-        auto pBuildOnly = packet.Find(CompileTimeHashString("checkbox_buildonly"));
+        auto pBuildOnly = packet.Find("checkbox_buildonly"_hash);
         if(pBuildOnly)
         {
             int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
@@ -289,7 +289,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
                 pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
         }
 
-        auto pLimitAdmins = packet.Find(CompileTimeHashString("checkbox_admins"));
+        auto pLimitAdmins = packet.Find("checkbox_admins"_hash);
         if(pLimitAdmins)
         {
             int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS);
@@ -314,7 +314,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     if(IsWorldLock(pItem->id)) 
     {
-        auto pDisableMusic = packet.Find(CompileTimeHashString("checkbox_disable_music"));
+        auto pDisableMusic = packet.Find("checkbox_disable_music"_hash);
         if(pDisableMusic)
         {
             int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC);
@@ -329,7 +329,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
         if(pItem->id == ITEM_ID_ROYAL_LOCK)
         {
-            auto pSilenced = packet.Find(CompileTimeHashString("checkbox_silence"));
+            auto pSilenced = packet.Find("checkbox_silence"_hash);
             if(pSilenced)
             {
                 int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE);
@@ -352,7 +352,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
                 }
             }
 
-            auto pTrail = packet.Find(CompileTimeHashString("checkbox_rainbow"));
+            auto pTrail = packet.Find("checkbox_rainbow"_hash);
             if(pTrail)
             {
                 int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL);
@@ -374,7 +374,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         pWorld->SendTileUpdate(pTile);
     }
 
-    auto pPlayerNetID = packet.Find(CompileTimeHashString("playerNetID"));
+    auto pPlayerNetID = packet.Find("playerNetID"_hash);
     if(pPlayerNetID)
     {
         uint32 targetPlayer = 0;
@@ -404,7 +404,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
     }
 
-    auto pButtonClicked = packet.Find(CompileTimeHashString("buttonClicked"));
+    auto pButtonClicked = packet.Find("buttonClicked"_hash);
     if(!pButtonClicked)
         return;
 

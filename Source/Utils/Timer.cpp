@@ -27,6 +27,16 @@ bool Timer::IsPassed()
     return GetTick() >= m_startTime;
 }
 
+uint64 Timer::GetRemainingTime()
+{
+    uint64 now = GetTick();
+
+    if(now >= m_startTime)
+        return 0;
+
+    return m_startTime - now;
+}
+
 uint64 Timer::GetElapsedTime(bool reset)
 {
     uint64 now = GetTick();

@@ -6,7 +6,8 @@
 #include "../Player/PlayerManager.h"
 
 WorldNPC::WorldNPC()
-: id(0), type(0), speed(0), val1(0), val2(0), lassoed(false)
+: id(0), type(0), speed(0), val1(0), val2(0), lassoed(false), hp(0),
+isInsidePowerNodes(false)
 {
 }
 
@@ -60,6 +61,140 @@ void WorldNPC::Update(WorldNPCManager* pNPCMgr, uint64 deltaMS)
                 pNPCMgr->SuckGhostToTrap(this, 64, 96);
             }
 
+            break;
+        }
+
+        case NPC_TYPE_BOSS_GHOST:
+        {
+            CheckGhostCanSlime(pNPCMgr);
+
+            if(hp < 1)
+            {
+                pWorld->GetBossManager()->EndBoss(id);
+                return;
+            }
+
+            if(nextAttackTimer.IsPassed())
+            {
+                val2 = (isInsidePowerNodes) ? 1000 : 0;
+                nextAttackTimer.Set(500);
+            }
+
+            if(val1 == 0)
+            {
+                float moveAngle = Atan2(dest.y - pos.y, dest.x - pos.x);
+                float distToDest = DistanceBetweenPoints(pos, dest);
+
+                if(pos == dest || (distToDest <= speed * deltaSec)) // arrived
+                {
+                    pos = dest;
+                    val1 = 1;
+                    val2 = 800;
+                    nextAttackTimer.Set(500);
+
+                    speed = RandomRangeFloat(20.0f, 50.0f);
+
+                    if(!isInsidePowerNodes)
+                    {
+                        MoveGhostRandom(pNPCMgr);
+                    }
+                    else
+                    {
+                        val2 = 1000;
+
+                        TileInfo* pClosestNode = pWorld->GetTileManager()->GetClosestPowerNodeFromWorldPos(pos);
+                        if(pClosestNode)
+                        {
+                            dest = pClosestNode->GetWorldPosCenter();
+                        }
+                        else
+                        {
+                            MoveGhostRandom(pNPCMgr);
+                        }
+                    }
+
+                    pWorld->SendNPCPacketToAll(NPC_EVENT_MOVE, id, type, pos, dest, speed, val1, val2);
+                }
+                else
+                {
+                    pos.x += Cos(moveAngle) * speed * deltaSec;
+                    pos.y += Sin(moveAngle) * speed * deltaSec;
+
+                    if((val2 == 500 && nextAttackTimer.GetRemainingTime() > 99) || !pNPCMgr->IsGhostOnBeam(this) || beams.empty())
+                    {
+                        if(isInsidePowerNodes && (val2 != 1000 || nextAttackTimer.GetRemainingTime() < 100))
+                        {
+                            val2 = 1000;
+                            nextAttackTimer.Set(500);
+                            pWorld->SendNPCPacketToAll(NPC_EVENT_MOVE, id, type, pos, dest, speed, val1, val2);
+                        }
+                    }
+                    else
+                    {
+                        val2 = 500;
+                        nextAttackTimer.Set(500);
+                        val1 = 0;
+
+                        Vector2Float avgPos;
+
+                        uint32 beamCount = beams.size();
+
+                        for(auto& beamPos : beams)
+                            avgPos += beamPos;
+
+                        avgPos /= beamCount;
+                        beams.clear();
+
+                        float scatterAngle = Atan2(avgPos.y - pos.y, avgPos.x - pos.x);
+    
+                        float scatterX = Cos(scatterAngle) * 64.0f + pos.x;
+                        dest.x = scatterX + RandomRangeFloat(-32.0f, 32.0f);
+                        
+                        float scatterY = Sin(scatterAngle) * 64.0f + pos.y;
+                        dest.y = scatterY + RandomRangeFloat(-32.0f, 32.0f);
+    
+                        Vector2Int& vWorldSize = pWorld->GetTileManager()->GetSize();
+    
+                        float maxMapX = (vWorldSize.x - 1) * 32.0f;
+                        float maxMapY = (vWorldSize.y - 1) * 32.0f;
+    
+                        dest.x = Clamp(dest.x, 0.0f, maxMapX);
+                        dest.y = Clamp(dest.y, 0.0f, maxMapY);
+    
+                        speed = beamCount * 25.0f;
+                        pWorld->SendNPCPacketToAll(NPC_EVENT_MOVE, id, type, pos, dest, speed, val1, val2);
+                    }
+                }
+            }
+            else
+            {
+                if(!isInsidePowerNodes)
+                {
+
+                }
+                else if(val2 == 1000 && nextAttackTimer.GetRemainingTime() > 99)
+                {
+                    TileInfo* pClosestNode = pWorld->GetTileManager()->GetClosestPowerNodeFromWorldPos(pos);
+                    if(pClosestNode && DistanceBetweenPoints(pClosestNode->GetWorldPos(), pos) < 32 * 5)
+                    {
+                        val2 = 800;
+                        nextAttackTimer.Set(800);
+
+                        pWorld->DestroyTileAndSendToAll(pClosestNode);
+                        pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pClosestNode->GetWorldPosCenter());
+                        isInsidePowerNodes = false;
+                    }
+                }
+                else
+                {
+                    val2 = 1000;
+                    nextAttackTimer.Reset();
+                    pWorld->SendNPCPacketToAll(NPC_EVENT_MOVE, id, type, pos, dest, speed, val1, val2);
+                }
+
+                val1 = 0;
+            }
+            
             break;
         }
 
@@ -263,18 +398,16 @@ void WorldNPC::MoveGhostRandom(WorldNPCManager* pNPCMgr)
 
     Vector2Int& vWorldSize = pWorld->GetTileManager()->GetSize();
     float maxMapX = (vWorldSize.x - 1) * 32.0f;
-
-    if(maxMapX < dest.x) dest.x = maxMapX;
+    float maxMapY = (vWorldSize.y - 1) * 32.0f;
 
     if(type == NPC_TYPE_BOSS_GHOST)
     {
-        // limit dest 5-10 tile?
+        maxMapX = (vWorldSize.x - 6) * 32.0f;
+        maxMapY = (vWorldSize.y - 6) * 32.0f;
     }
-    else
-    {
-        float maxMapY = (vWorldSize.y - 1) * 32.0f;
-        if(maxMapY < dest.y) dest.y = maxMapY;
-    }
+
+    if(maxMapX < dest.x) dest.x = maxMapX;
+    if(maxMapY < dest.y) dest.y = maxMapY;
 }
 
 void WorldNPC::CheckGhostCanSlime(WorldNPCManager* pNPCMgr)
@@ -360,7 +493,8 @@ void WorldNPC::CheckGhostCanSlime(WorldNPCManager* pNPCMgr)
 
 bool WorldNPC::IsGhost()
 {
-    return type == NPC_TYPE_GHOST || type == NPC_TYPE_MIND_CONTROL_GHOST || type == NPC_TYPE_GHOST_SHARK;
+    return type == NPC_TYPE_GHOST || type == NPC_TYPE_MIND_CONTROL_GHOST || type == NPC_TYPE_GHOST_SHARK ||
+           type == NPC_TYPE_BOSS_GHOST;
 }
 
 bool WorldNPC::IsGhostTrap()
@@ -391,4 +525,43 @@ bool WorldNPC::IsInside(WorldNPC* pNpc, float padX, float padY)
         return false;
 
     return true;
+}
+
+void WorldNPC::OnGotHit(GamePlayer* pPlayer, const Vector2Float& hitPos, const Vector2Float& attackPos, WorldNPCManager* pNPCMgr)
+{
+    if(!pPlayer || !pNPCMgr)
+        return;
+
+    World* pWorld = pNPCMgr->GetWorld();
+    if(!pWorld)
+        return;
+    
+    if(type == NPC_TYPE_BOSS_GHOST)
+    {
+        uint16 handItem = pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND);
+
+        if(handItem != ITEM_ID_NEUTRON_GUN && handItem != ITEM_ID_NEUTRON_POWER_GLOVE)
+            return;
+
+        if(pPlayer->GetInventory().GetClothByPart(BODY_PART_BACK) != ITEM_ID_NEUTRON_PACK)
+            return;
+
+        if(!isInsidePowerNodes)
+            return;
+
+        hp -= 10;
+
+        pWorld->SendConsoleMessageToAll("[Boss Ghost HP = " + ToString(hp) + "]");
+        return;
+    }
+
+    if(IsGhost() && type != NPC_TYPE_BOSS_GHOST)
+    {
+        if(pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND) == ITEM_ID_NEUTRON_POWER_GLOVE)
+        {
+            pWorld->SendNPCPacketToAll(NPC_EVENT_DIE, id, type, pos, dest, speed, val1, val2);
+            pNPCMgr->RemoveNpc(id);
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_BLACKHOLE, pos);
+        }
+    }
 }

@@ -82,3 +82,7 @@ add_playmod|3728|Mind Control!|This ghost will make you absolutely crazy!|Sanity
 set_timer|6|
 set_skin_color|196,231,114,255|
 set_char2_flags|MIND_CONTROL|
+
+add_playmod|6060|Haunted|You are Haunted! No more spirit board for you!|The ghosts have left you.|
+set_timer|180|
+set_char_flag|SHADOW_HAUNTED|

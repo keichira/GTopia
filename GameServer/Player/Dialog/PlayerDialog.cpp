@@ -6,6 +6,8 @@
 #include "SignDialog.h"
 #include "LockDialog.h"
 #include "AchievementBlockDialog.h"
+#include "OuijaBoardDialog.h"
+#include "BattleCageDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
@@ -30,5 +32,15 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if(pItem->type == ITEM_TYPE_ACHIEVEMENT)
     {
         AchievementBlockDialog::Request(pPlayer, pTile, pItem);
+    }
+
+    if(pItem->type == ITEM_TYPE_OUIJA_BOARD)
+    {
+        OuijaBoardDialog::RequestMain(pPlayer, pTile);
+    }
+
+    if(pItem->type == ITEM_TYPE_BATTLE_CAGE)
+    {
+        BattleCageDialog::Request(pPlayer, pTile, pItem);
     }
 }

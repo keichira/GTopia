@@ -45,6 +45,8 @@ public:
     void SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMS = 0, float angle = 0.0f);
     void SendOnStoreRequest(const string& storeData);
     void SendOnStorePurchaseResult(const string& resultText);
+    void SendOnAction(const string& action, Player* pPlayer = nullptr);
+    void SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip);
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);
@@ -57,6 +59,7 @@ public:
     void SetUserID(uint32 userID) { m_userID = userID; }
 
     string GetAddress() const { return m_address; }
+    const string& GetLastAction() { return m_lastAction; }
 
 #ifdef SERVER_GAME
     PlayerInventory& GetInventory() { return m_inventory; }
@@ -74,6 +77,7 @@ protected:
 
     ENetPeer* m_pPeer;
     char m_address[16];
+    string m_lastAction;
 
 #ifdef SERVER_GAME
     PlayerInventory m_inventory;

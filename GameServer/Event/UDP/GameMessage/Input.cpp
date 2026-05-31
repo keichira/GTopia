@@ -16,7 +16,7 @@ void Input::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(!pWorld)
         return;
 
-    auto pText = packet.Find(CompileTimeHashString("text"));
+    auto pText = packet.Find("text"_hash);
     if(!pText)
         return;
 

@@ -3,6 +3,8 @@
 #include "../Item/ItemInfoManager.h"
 #include "../Math/Random.h"
 #include "WorldInfo.h"
+#include "../Utils/StringUtils.h"
+#include "../Utils/GrowUtils.h"
 
 WorldTileManager::WorldTileManager()
 : m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
@@ -95,6 +97,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
                 pTile->BindTileData(&m_tempTiles[i]);
                 ModifyKeyTile(pTile, false);
                 pTile->SetPos(i % m_size.x, i / m_size.x);
+                pTile->SetMapIndex(i);
             }
 
             uint32 extraCount = 0;
@@ -152,6 +155,7 @@ void WorldTileManager::Clear(bool reInit)
         for(uint32 i = 0; i < m_tiles.size(); ++i) { 
             m_tiles[i].BindTileData(&m_tempTiles[i]);
             m_tiles[i].SetPos(i % m_size.x, i / m_size.x); 
+            m_tiles[i].SetMapIndex(i);
         }
     }
 }
@@ -255,6 +259,53 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
     }
     else if(fgItem == ITEM_ID_GHOST_CHARM) {
         m_keyTiles[KEY_TILE_GHOST_CHARM] = remove ? nullptr : pTile;
+    }
+    else if(fgItem == ITEM_ID_CONTAINMENT_FIELD_POWER_NODE)
+    {
+        if(!remove)
+        {
+            if(std::find(m_powerNodes.begin(), m_powerNodes.end(), pTile) == m_powerNodes.end())
+            {
+                m_powerNodes.push_back(pTile);
+            }
+
+            uint32 tileIdx = pTile->GetMapIndex();
+
+            for(auto& pNode : m_powerNodes)
+            {
+                if(pNode == pTile)
+                    continue;
+
+                TileExtra_FieldNode* pTileExtra = pNode->GetExtra<TileExtra_FieldNode>();
+                if(!pTileExtra)
+                    continue;
+
+                bool found = false;
+
+                for(int32 node : pTileExtra->nodes)
+                {
+                    if(node == tileIdx)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if(!found)
+                {
+                    pTileExtra->nodes.push_back(tileIdx);
+                }
+            }
+
+            if(pTile->HasFlag(TILE_FLAG_IS_ON))
+            {
+                RebuildPowerNodeGroups();
+            }
+        }
+        else
+        {
+            CheckPowerNodeToKill(pTile);
+        }
     }
 }
 
@@ -372,16 +423,16 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
 
     auto PickItem = [&](const TileMapFillVector& items, float totalChance) -> ItemInfo*
     {
-        if (totalChance <= 0.f)
+        if(totalChance <= 0.f)
             return nullptr;
 
         float roll = RandomNextFloat() * totalChance;
         float chance = 0.f;
 
-        for (const auto& entry : items)
+        for(const auto& entry : items)
         {
             chance += Max(0.0f, Min(100.0f, entry.chance));
-            if (roll <= chance)
+            if(roll <= chance)
                 return pItemManager->GetItemByID(entry.itemID);
         }
 
@@ -420,6 +471,34 @@ bool WorldTileManager::IsSameTile(TileInfo* pTile, int32 x, int32 y, bool forBac
     }
 
     return pTile->GetFG() == pTarget->GetFG();
+}
+
+TileInfo* WorldTileManager::GetTileByTypeFromRect(const RectFloat& rect, int32 itemType)
+{
+    int32 xStart = Max(0, Min(rect.left / 32, rect.right / 32));
+    int32 xEnd = Min(m_size.x, Max(rect.left / 32, rect.right / 32));
+    int32 yStart = Max(0, Min(rect.top / 32, rect.bottom / 32));
+    int32 yEnd = Min(m_size.y, Max(rect.top / 32, rect.bottom / 32));
+
+    // todo add type to TileInfo instead of this
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+
+    for(int y = yStart; y < yEnd; ++y)
+    {
+        for(int x = xStart; x < xEnd; ++x)
+        {
+            TileInfo* pTile = &m_tiles[y * m_size.x + x];
+    
+            ItemInfo* pItem = pItemMgr->GetItemByID(pTile->GetDisplayedItem());
+            if(!pItem)
+                continue;
+    
+            if(pItem->type == itemType)
+                return pTile;
+        }
+    }
+
+    return nullptr;
 }
 
 std::vector<TileInfo*> WorldTileManager::RemoveTileParentsLockedBy(TileInfo* pLockTile)
@@ -553,6 +632,253 @@ void WorldTileManager::AgeTiles(uint32 ageMS)
     {
         tile.AgeTile(ageMS);
     }
+}
+
+bool WorldTileManager::RandomizeOuijaBoardTile(TileInfo* pTile)
+{
+    if(!pTile)
+        return false;
+
+    TileExtra_OuijaBoard* pTileExtra = pTile->GetExtra<TileExtra_OuijaBoard>();
+    if(!pTileExtra)
+        return false;
+
+    bool isDarkSpiritBoard = pTile->GetFG() == ITEM_ID_DARK_SPIRIT_BOARD;
+
+    static std::vector<string> ouijaCommand =
+    {
+        "/furious",
+        "/rolleyes",
+        "/idk",
+        "/omg",
+        "/wave",
+        "dance",
+        "/love",
+        "/sleep",
+        "/fp",
+        "/fold",
+        "/yes",
+        "/no"
+    };
+    
+    if(isDarkSpiritBoard)
+    {
+        pTileExtra->playerCount = 5;
+    }
+    else
+    {
+        pTileExtra->playerCount = 2;
+    }
+    
+    auto items = GetOuijaBoardCloth(isDarkSpiritBoard);
+    if(items.empty())
+        return false;
+
+    pTileExtra->command = ouijaCommand[RandomRangeInt(0, ouijaCommand.size() - 1)];
+    pTileExtra->ouijaType = ToString(isDarkSpiritBoard);
+
+    uint32 totalAssigned = 0;
+
+    for(auto& elem : items)
+    {
+        int32 remainingPlayers = pTileExtra->playerCount - totalAssigned;
+        if(remainingPlayers < 1)
+            break;
+
+        pTileExtra->items.push_back(elem.bodyPart);
+        pTileExtra->items.push_back(elem.itemID);
+        
+        int32 minCount = (isDarkSpiritBoard) ? 1 : (pTileExtra->playerCount / 2 + 1);
+        minCount = Max(1, Min(minCount, pTileExtra->playerCount));
+
+        int32 giveCount = RandomRangeInt(minCount, remainingPlayers);
+        if(giveCount > remainingPlayers)
+        {
+            giveCount = remainingPlayers;
+        }
+
+        pTileExtra->items.push_back(giveCount);
+        totalAssigned += giveCount;
+    }
+
+    return true;
+}
+
+bool WorldTileManager::IsPowerNodeActiveInAGroup(TileInfo* pTile)
+{
+    return m_nodeToGroup.find(pTile) != m_nodeToGroup.end();
+}
+
+void WorldTileManager::CheckPowerNodeToKill(TileInfo *pTile)
+{
+    if(!pTile)
+        return;
+
+    auto it = m_nodeToGroup.find(pTile);
+    if(it == m_nodeToGroup.end())
+        return;
+
+    uint32 groupIdx = it->second;
+
+    if(groupIdx >= m_powerNodeGroups.size())
+        return;
+
+    int32 targetId = pTile->GetMapIndex();
+
+    for(auto& pNode : m_powerNodeGroups[groupIdx])
+    {
+        TileExtra_FieldNode* pTileExtra = pNode->GetExtra<TileExtra_FieldNode>();
+        if(pTileExtra)
+        {
+            auto it = std::find(pTileExtra->nodes.begin(), pTileExtra->nodes.end(), targetId);        
+            if(it != pTileExtra->nodes.end())
+            {
+                pTileExtra->nodes.erase(it);
+            }
+        }
+
+        m_nodeToGroup.erase(pNode);
+    }
+
+    m_powerNodeGroups.erase(m_powerNodeGroups.begin() + groupIdx);
+    m_nodeToGroup.clear();
+
+    for(uint32 i = 0; i < m_powerNodeGroups.size(); ++i)
+    {
+        for(auto& pNode : m_powerNodeGroups[i])
+        {
+            m_nodeToGroup[pNode] = i;
+        }
+    }
+}
+
+void WorldTileManager::RebuildPowerNodeGroups()
+{
+    m_powerNodeGroups.clear();
+    m_nodeToGroup.clear();
+    if(m_powerNodes.size() < 4)
+        return;
+
+    std::vector<std::vector<TileInfo*>> candidates;
+    candidates.reserve(m_powerNodes.size());
+
+    std::vector<std::pair<TileInfo*, float>> nearest;
+    nearest.reserve(m_powerNodes.size());
+
+    std::vector<TileInfo*> currentGroup;
+    currentGroup.reserve(4);
+
+    for(auto& pBaseTile : m_powerNodes)
+    {
+        if(!pBaseTile || !pBaseTile->HasFlag(TILE_FLAG_IS_ON) || IsPowerNodeActiveInAGroup(pBaseTile))
+            continue;
+
+        nearest.clear();
+        for(auto& pOther : m_powerNodes)
+        {
+            if(pOther == pBaseTile || !pOther || !pOther->HasFlag(TILE_FLAG_IS_ON) || IsPowerNodeActiveInAGroup(pOther))
+                continue;
+
+            float distance = DistanceBetweenPoints(pBaseTile->GetWorldPos(), pOther->GetWorldPos());
+            if(distance <= 0.0f || distance > 32.0f * 25) 
+                continue;
+
+            nearest.push_back({ pOther, distance });
+        }
+
+        if(nearest.size() < 3)
+            continue;
+
+        std::partial_sort(nearest.begin(), nearest.begin() + 3, nearest.end(), [](const auto& a, const auto& b) {
+            return a.second < b.second;
+        });
+
+        currentGroup.clear();
+        currentGroup.push_back(pBaseTile);
+        for(uint32 i = 0; i < 3; ++i)
+        {
+            currentGroup.push_back(nearest[i].first);
+        }
+
+        std::sort(currentGroup.begin(), currentGroup.end());
+        candidates.push_back(currentGroup);
+    }
+    
+    if(candidates.empty())
+        return;
+
+    std::sort(candidates.begin(), candidates.end());
+
+    for(uint32 i = 0; i < candidates.size();)
+    {
+        uint32 j = i + 1;
+        while(j < candidates.size() && candidates[i] == candidates[j])
+        {
+            j++;
+        }
+
+        uint32 groupCount = j - i;
+
+        if(groupCount == 4)
+        {
+            uint32 expireTime = Time::GetSystemTime() + 45000;
+            uint32 groupIdx = m_powerNodeGroups.size();
+            
+            for(auto& pNode : candidates[i])
+            {
+                m_nodeToGroup[pNode] = groupIdx;
+                TileExtra_FieldNode* pTileExtra = pNode->GetExtra<TileExtra_FieldNode>();
+                if(pTileExtra)
+                {
+                    pTileExtra->expireTime = expireTime;
+                }
+            }
+            m_powerNodeGroups.push_back(candidates[i]);
+        }
+
+        i = j;
+    }
+}
+
+TileInfo* WorldTileManager::GetClosestPowerNodeFromWorldPos(const Vector2Float& pos)
+{
+    TileInfo* pClosestTile = nullptr;
+    float minDistance = 9999999.0f;
+
+    for(auto& pNode : m_powerNodes)
+    {
+        float distance = DistanceBetweenPoints(pNode->GetWorldPos(), pos);
+
+        if(distance < minDistance)
+        {
+            pClosestTile = pNode;
+            minDistance = distance;
+        }
+    }
+
+    return pClosestTile;
+}
+
+bool WorldTileManager::CheckIfPointInsidePowerNodeGroups(const Vector2Float& pos)
+{
+    if(m_powerNodeGroups.empty())
+        return false;
+
+    for(auto& group : m_powerNodeGroups)
+    {
+        if(group.size() != 4)
+            continue;
+
+        Vector2Float vNodePos_1 = group[0]->GetWorldPos();
+        Vector2Float vNodePos_2 = group[1]->GetWorldPos();
+        Vector2Float vNodePos_3 = group[2]->GetWorldPos();
+        Vector2Float vNodePos_4 = group[3]->GetWorldPos();
+
+        if(IsPointInPolygon({vNodePos_1, vNodePos_2, vNodePos_3, vNodePos_4}, pos))
+            return true;
+    }
+
+    return false;
 }
 
 void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance)

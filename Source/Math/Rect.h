@@ -20,6 +20,14 @@ public:
         bottom = top + newHeight; 
     }
 
+    void InFlate(T amount)
+    {
+        left -= amount;
+        top -= amount;
+        right += amount;
+        bottom += amount;
+    }
+
     T Width() const { return right - left; }
     T Height() const { return bottom - top; }
 

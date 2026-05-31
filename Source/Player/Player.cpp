@@ -271,6 +271,32 @@ void Player::SendOnStorePurchaseResult(const string& resultText)
     SendCallFunctionPacket(data);
 }
 
+void Player::SendOnAction(const string& action, Player* pPlayer)
+{
+    VariantVector data(2);
+    data[0] = "OnAction";
+    data[1] = action;
+
+    if(!pPlayer)
+    {
+        m_lastAction = action;
+    }
+    
+    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : -1);
+}
+
+void Player::SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip)
+{
+    VariantVector data(5);
+    data[0] = "OnAddNotification";
+    data[1] = image;
+    data[2] = message;
+    data[3] = audio;
+    data[4] = (uint32)(isTip ? 1 : 0);
+
+    SendCallFunctionPacket(data);
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;

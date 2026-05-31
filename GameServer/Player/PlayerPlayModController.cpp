@@ -175,8 +175,7 @@ void PlayerPlayModController::Update()
 
         if(elapsed >= mod.remainingMS)
         {
-            m_activeMods[i] = std::move(m_activeMods.back());
-            m_activeMods.pop_back();
+            RemovePlayMod(mod.type);
             needRefresh = true;
         }
         else

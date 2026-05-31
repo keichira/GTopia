@@ -30,7 +30,7 @@ uint16 GetMaxRequiredItemDataVersion(float a, float b, float c, float d)
     return GetSupportedItemDataVersion(maxV);
 }
 
-uint32 StrToConsumableFlag(const string& str)
+uint32 StrToConsumableFlag(const string &str)
 {
     static const std::unordered_map<string, uint32> itemConsumableFlag
     {
@@ -479,6 +479,60 @@ bool ItemInfoManager::LoadConsumableData(const string& filePath)
     return true;
 }
 
+bool ItemInfoManager::LoadBattlePetData(const string& filePath)
+{
+    ConfigDB cfg;
+    if(!cfg.Load(filePath))
+        return false;
+
+    uint32 lastItemID = 0;
+
+    for(auto& line : cfg.Lines())
+    {
+        const string& key = line.GetString(0);
+
+        if(key == "add_pet")
+        {
+            if(!line.Require(12))
+                return false;
+
+            BattlePetInfo info;
+            info.itemID = line.GetUInt(1);
+            info.name = line.GetString(2);
+            info.subName = line.GetString(3);
+            info.endName = line.GetString(4);
+            info.powerName = line.GetString(5);
+            info.element = StrToItemElement(line.GetString(6));
+            info.ability = line.GetUInt(7);
+            info.abilityVal = line.GetUInt(8);
+            info.cooldownSec = line.GetUInt(9);
+            info.superAbility = line.GetUInt(10);
+            info.superAbilityVal = line.GetUInt(11);
+            info.superAbilityDurationSec = line.GetUInt(12);
+            info.powerParticle = line.GetUInt(13);
+            info.hitParticle = line.GetUInt(14);
+            info.powerSound = line.GetString(15);
+            info.hitSound = line.GetUInt(16);
+
+            lastItemID = info.itemID;
+            m_battlePetData.insert_or_assign(info.itemID, std::move(info));
+            continue;
+        }
+
+        if(key == "set_description")
+        {
+            if(BattlePetInfo* pPetInfo = GetBattlePetInfo(lastItemID))
+            {
+                pPetInfo->description = line.GetString(1);
+            }
+
+            continue;
+        }
+    }
+
+    return true;
+}
+
 void ItemInfoManager::Kill()
 {
     for(uint32 i = 0; i < MAX_SUPPORTED_ITEM_DATA_VERSION; ++i)
@@ -659,6 +713,15 @@ ConsumableInfo* ItemInfoManager::GetConsumableInfo(uint32 itemID)
 {
     auto it = m_consumeData.find(itemID);
     if(it != m_consumeData.end())
+        return &it->second;
+
+    return nullptr;
+}
+
+BattlePetInfo* ItemInfoManager::GetBattlePetInfo(int32 itemID)
+{
+    auto it = m_battlePetData.find(itemID);
+    if(it != m_battlePetData.end())
         return &it->second;
 
     return nullptr;

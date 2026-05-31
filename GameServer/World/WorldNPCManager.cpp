@@ -1,8 +1,8 @@
 #include "WorldNPCManager.h"
 #include "World.h"
-#include "../Player/GamePlayer.h"
 #include "../Context.h"
 #include "Math/Math.h"
+#include "../Player/PlayerManager.h"
 
 WorldNPCManager::WorldNPCManager(World* pWorld)
 : m_pWorld(pWorld), m_lastIndex(0), m_activeNpcCount(0)
@@ -202,8 +202,9 @@ bool WorldNPCManager::IsGhostOnBeam(WorldNPC* pGhost)
     }
 
     RectFloat ghostRect(gLeft, gTop, gRight, gBottom);
-
     int32 activeBeamCount = 0;
+
+    PlayerManager* pPlayerMgr = GetPlayerManager();
 
     for(auto& beam : m_neutronBeams)
     {
@@ -231,12 +232,19 @@ bool WorldNPCManager::IsGhostOnBeam(WorldNPC* pGhost)
             {
                 if(ghostRect.IsInside(currSamplePoint))
                 {
-                    m_lastLassoePos = currSamplePoint;
+                    m_lastBeamPos = currSamplePoint;
             
                     if(pGhost->type != NPC_TYPE_BOSS_GHOST)
                         return true;
             
                     activeBeamCount++;
+                    pGhost->beams.push_back(currSamplePoint);
+
+                    GamePlayer* pPlayer = pPlayerMgr->GetPlayerByNetID(beam.ownerNetID);
+                    if(pPlayer)
+                    {
+                        pGhost->OnGotHit(pPlayer, currSamplePoint, beam.startPos, this);
+                    }
                     break;
                 }
             

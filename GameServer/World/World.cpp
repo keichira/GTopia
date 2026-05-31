@@ -16,11 +16,13 @@ World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
 {
     m_pNpcManager = new WorldNPCManager(this);
+    m_pBossManager = new WorldBossManager(this);
 }
 
 World::~World()
 {
     SAFE_DELETE(m_pNpcManager);
+    SAFE_DELETE(m_pBossManager);
 }
 
 bool World::InitWorld()
@@ -107,9 +109,17 @@ void World::Update()
         }
     }
 
-    if(m_players.size() > 0 && m_pNpcManager)
+    if(m_players.size() > 0)
     {
-        m_pNpcManager->Update();
+        if(m_pNpcManager)
+        {
+            m_pNpcManager->Update();
+        }
+
+        if(m_pBossManager)
+        {
+            m_pBossManager->Update();
+        }
     }
 
     if(m_worldLastSaveTime.GetElapsedTime() >= 40 * 60 * 1000) 
@@ -663,9 +673,33 @@ void World::PlaySFXForEveryone(const string& fileName, int32 delay)
 
 void World::SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio)
 {
+    if(!pPlayer)
+        return;
+
     for(auto& pWorldPlayer : m_players) {
         if(pWorldPlayer) {
             pWorldPlayer->SendOnPlayPositioned(audio, pPlayer);
+        }
+    }
+}
+
+void World::SendOnActionToAll(GamePlayer* pPlayer, const string& action)
+{
+    if(!pPlayer)
+        return;
+
+    for(auto& pWorldPlayer : m_players) {
+        if(pWorldPlayer) {
+            pWorldPlayer->SendOnAction(action, pPlayer);
+        }
+    }
+}
+
+void World::SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip)
+{
+    for(auto& pWorldPlayer : m_players) {
+        if(pWorldPlayer) {
+            pWorldPlayer->SendOnAddNotification(image, message, audio, isTip);
         }
     }
 }
@@ -876,6 +910,23 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
             break;
         }
     }
+}
+
+void World::DestroyTileAndSendToAll(TileInfo* pTile)
+{
+    if(!pTile)
+        return;
+
+    GameUpdatePacket packet;
+    packet.type   = NET_GAME_PACKET_TILE_CHANGE_REQUEST;
+    packet.field_7 = ITEM_ID_FIST;
+
+    Vector2Int& vTilePos = pTile->GetPos();
+    packet.field_11 = vTilePos.x;
+    packet.field_12 = vTilePos.y;
+
+    HandleTilePackets(&packet);
+    SendGamePacketToAll(&packet);
 }
 
 void World::ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count)
@@ -1390,6 +1441,270 @@ void World::PutOutFire(TileInfo* pTile, GamePlayer* pPlayer)
     }
 
     SendParticleEffectToAll(PARTICLE_EFFECT_SIZZLE, pTile->GetWorldPosCenter());
+}
+
+bool World::CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command)
+{
+    if(!pPlayer)
+        return false;
+
+    RectFloat playerRect = pPlayer->GetPlayerWorldRect();
+    playerRect.InFlate(32 * 2);
+
+    TileInfo* pOuijaBoardTile = GetTileManager()->GetTileByTypeFromRect(playerRect, ITEM_TYPE_OUIJA_BOARD);
+    if(!pOuijaBoardTile)
+        return false;
+
+    TileExtra_OuijaBoard* pTileExtra = pOuijaBoardTile->GetExtra<TileExtra_OuijaBoard>();
+    if(!pTileExtra)
+        return false;
+
+    if(pTileExtra->items.empty() || pTileExtra->playerCount == 0)
+        return false;
+
+    if(pTileExtra->command.empty() || pTileExtra->command != command)
+        return false;
+
+    return CheckOuijaBoardCanTrigger(pPlayer, pOuijaBoardTile);
+}
+
+bool World::CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile)
+{
+    if(!pPlayer || !pTile)
+        return false;
+
+    TileExtra_OuijaBoard* pTileExtra = pTile->GetExtra<TileExtra_OuijaBoard>();
+    if(!pTileExtra)
+        return false;
+
+    if(pTileExtra->items.empty() || pTileExtra->playerCount == 0)
+        return false;
+
+    if(pTileExtra->command.empty())
+        return false;
+
+    RectFloat tileRect = pTile->GetRect();
+    tileRect.InFlate(32 * 2);
+
+    auto playersInRect = GetPlayersInWorldRect(tileRect);
+    if(playersInRect.empty())
+        return false;
+
+    uint32 nonEligibleCount = 0;
+    bool isThereHauntedPlayer = false;
+
+    for(auto& pPlayerInRect : playersInRect)
+    {
+        if(!pPlayerInRect)
+            continue;
+
+        if(pPlayerInRect == pPlayer && pPlayer->GetModController().HasPlayMod(PLAYMOD_TYPE_HAUNTED))
+        {
+            nonEligibleCount++;
+            isThereHauntedPlayer = true;
+            pPlayer->SendOnTalkBubble("You are haunted - the ghosts won't talk to you, as they think you're busy!", false);
+        }
+        else
+        {
+            if(pPlayerInRect->GetLastAction() != pTileExtra->command || pPlayerInRect->GetLastActionTime().GetElapsedTime() < 6000)
+            {
+                nonEligibleCount++;
+            }
+        }
+    }
+
+    string msg;
+
+    if(playersInRect.size() - nonEligibleCount < pTileExtra->playerCount)
+    {
+        msg += "Things are still too hazy... more of you are needed...";
+
+        if(isThereHauntedPlayer)
+        {
+            msg += " and there are haunted players among you, who are interfering with the energy.";
+        }
+    }
+
+    if(!msg.empty())
+    {
+        for(auto& pPlayerInRect : playersInRect)
+        {
+            if(pPlayerInRect)
+            {
+                pPlayerInRect->SendOnTalkBubble(msg, false);
+            }
+        }
+    }
+    else
+    {
+        return TriggerOuijaBoard(playersInRect, pTile);
+    }
+
+    return false;
+}
+
+bool World::TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile)
+{
+    if(!pTile || players.empty())
+        return false;
+
+    TileExtra_OuijaBoard* pTileExtra = pTile->GetExtra<TileExtra_OuijaBoard>();
+    if(!pTileExtra)
+        return false;
+
+    if(pTileExtra->items.empty() || pTileExtra->playerCount == 0)
+        return false;
+
+    if(pTileExtra->command.empty())
+        return false;
+
+    bool someoneWearingSpiritGuide = false;
+
+    for(auto& pPlayer : players)
+    {
+        if(!pPlayer)
+            continue;
+
+        if(pPlayer->GetInventory().GetClothByPart(BODY_PART_CHESTITEM) == ITEM_ID_SPIRIT_GUIDE)
+        {
+            someoneWearingSpiritGuide = true;
+            break;
+        }
+    }
+
+    int32 ouijaType = 0;
+    if(ToInt(pTileExtra->ouijaType, ouijaType) != TO_INT_SUCCESS)
+        return false;
+
+    uint32 boardDestroyChance = 90;
+    if(someoneWearingSpiritGuide)
+    {
+        boardDestroyChance = 60;
+    }
+
+    if(ouijaType == 0)
+    {
+        bool spawnedGhost = true;
+
+        Vector2Int& vTilePos = pTile->GetPos();
+        if(!m_pNpcManager->SpawnGhost(NPC_TYPE_GHOST, vTilePos.x, vTilePos.y, false))
+        {
+            for(auto& pPlayer : players)
+            {
+                if(pPlayer)
+                {
+                    pPlayer->SendOnTalkBubble("This world is haunted enough already!", false);
+                }
+            }
+
+            spawnedGhost = false;
+        }
+        else
+        {
+            int32 roll = RandomRangeInt(0, 5);
+
+            for(int32 i = 0; i < 3; ++i)
+            {
+                eNPCType npcType = NPC_TYPE_GHOST;
+                int32 randType = RandomRangeInt(0, 1);
+                
+                if(randType == 1)
+                {
+                    npcType = NPC_TYPE_MIND_CONTROL_GHOST;
+                }
+
+                Vector2Float pos = pTile->GetWorldPosCenter();
+
+                pos.x += RandomRangeFloat(-20.0f, 20.0f);
+                pos.y += RandomRangeFloat(-20.0f, 20.0f);
+
+                SendParticleEffectToAll(PARTICLE_EFFECT_PURPLE_SPARKLE, pos);
+            }
+
+            if(roll < 4)
+            {
+                Vector2Float vTileWorldPos = pTile->GetWorldPosCenter();
+
+                for(int32 i = 0; i < 4; ++i)
+                {
+                    eNPCType npcType = NPC_TYPE_GHOST;
+                    int32 randType = RandomRangeInt(0, 1);
+                    
+                    if(randType == 1)
+                    {
+                        npcType = NPC_TYPE_MIND_CONTROL_GHOST;
+                    }
+
+                    m_pNpcManager->SpawnGhost(npcType, vTileWorldPos.x, vTileWorldPos.y, false);
+                }
+            }
+        }
+
+        if(RandomRangeInt(0, 100) < boardDestroyChance)
+        {
+            SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pTile->GetWorldPosCenter());
+            DestroyTileAndSendToAll(pTile);
+        }
+        else
+        {
+            GetTileManager()->RandomizeOuijaBoardTile(pTile);
+        }
+
+        return spawnedGhost;
+    }
+    else
+    {
+        bool spawnedGhost = true;
+
+        Vector2Int& vTilePos = pTile->GetPos();
+        if(!m_pBossManager->StartBoss(WORLD_BOSS_TYPE_GHOST))
+        {
+            for(auto& pPlayer : players)
+            {
+                if(pPlayer)
+                {
+                    pPlayer->SendOnTalkBubble("This world is haunted enough already!", false);
+                }
+            }
+
+            spawnedGhost = false;
+        }
+        
+        if(spawnedGhost)
+        {
+            int32 roll = RandomRangeInt(0, 5);
+
+            if(roll < 4)
+            {
+                Vector2Float vTileWorldPos = pTile->GetWorldPosCenter();
+
+                for(int32 i = 0; i < 4; ++i)
+                {
+                    eNPCType npcType = NPC_TYPE_GHOST;
+                    int32 randType = RandomRangeInt(0, 1);
+                    
+                    if(randType == 1)
+                    {
+                        npcType = NPC_TYPE_MIND_CONTROL_GHOST;
+                    }
+
+                    m_pNpcManager->SpawnGhost(npcType, vTileWorldPos.x, vTileWorldPos.y, false);
+                }
+            }
+        }
+
+        if(RandomRangeInt(0, 100) < boardDestroyChance)
+        {
+            SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pTile->GetWorldPosCenter());
+            DestroyTileAndSendToAll(pTile);
+        }
+        else
+        {
+            GetTileManager()->RandomizeOuijaBoardTile(pTile);
+        }
+    }
+
+    return false;
 }
 
 void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
@@ -2035,14 +2350,38 @@ void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileIn
                     return;
                 }
 
-                eNPCType ghostType = NPC_TYPE_GHOST;
-                if(pConsumableInfo->itemID == ITEM_ID_MIND_GHOST_IN_A_JAR) ghostType = NPC_TYPE_MIND_CONTROL_GHOST;
-
-                Vector2Int& vTilePos = pTile->GetPos();
-                if(!m_pNpcManager->SpawnGhost(ghostType, vTilePos.x, vTilePos.y, false))
-                {
-                    pPlayer->SendOnTalkBubble("This world is haunted enough already!", false);
+                ItemInfo* pTileItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+                if(!pTileItem)
                     return;
+
+                if(pTileItem->type == ITEM_TYPE_FIELD_NODE && pConsumableInfo->itemID == ITEM_ID_GHOST_IN_A_JAR)
+                {
+                    if(pTile->HasFlag(TILE_FLAG_IS_ON))
+                    {
+                        pPlayer->SendOnTalkBubble("That node is already active don't waste your ghosts.", false);
+                        return;
+                    }
+
+                    pTile->SetFlag(TILE_FLAG_IS_ON);
+                    TileExtra_FieldNode* pTileExtra = pTile->GetExtra<TileExtra_FieldNode>();
+                    if(pTileExtra)
+                    {
+                        pTileExtra->expireTime = Time::GetSystemTime() + 45000;
+                    }
+
+                    SendTileUpdate(pTile);
+                }
+                else
+                {
+                    eNPCType ghostType = NPC_TYPE_GHOST;
+                    if(pConsumableInfo->itemID == ITEM_ID_MIND_GHOST_IN_A_JAR) ghostType = NPC_TYPE_MIND_CONTROL_GHOST;
+
+                    Vector2Int& vTilePos = pTile->GetPos();
+                    if(!m_pNpcManager->SpawnGhost(ghostType, vTilePos.x, vTilePos.y, false))
+                    {
+                        pPlayer->SendOnTalkBubble("This world is haunted enough already!", false);
+                        return;
+                    }
                 }
 
                 SendPlayPositionedToAll(pPlayer, "punch_glass.wav");

@@ -66,12 +66,20 @@ public:
     bool FillRectWith(const RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems);
 
     bool IsSameTile(TileInfo* pTile, int32 x, int32 y, bool forBackground);
+    TileInfo* GetTileByTypeFromRect(const RectFloat& rect, int32 itemType);
 
     std::vector<TileInfo*> RemoveTileParentsLockedBy(TileInfo* pLockTile);
     bool AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTargetTile, bool ignoreEmpty);
     bool ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty, std::vector<TileInfo*>& outTiles);
 
     void AgeTiles(uint32 ageMS);
+    bool RandomizeOuijaBoardTile(TileInfo* pTile);
+
+    bool IsPowerNodeActiveInAGroup(TileInfo* pTile);
+    void CheckPowerNodeToKill(TileInfo* pTile);
+    void RebuildPowerNodeGroups();
+    TileInfo* GetClosestPowerNodeFromWorldPos(const Vector2Float& pos);
+    bool CheckIfPointInsidePowerNodeGroups(const Vector2Float& pos);
 
 private:
     void FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
@@ -84,4 +92,8 @@ private:
 
     std::vector<TileInfo*> m_keyTiles;
     std::vector<Vector2Int> m_onFireTiles;
+
+    std::vector<TileInfo*> m_powerNodes;
+    std::vector<std::vector<TileInfo*>>  m_powerNodeGroups;
+    std::unordered_map<TileInfo*, uint32> m_nodeToGroup;
 };

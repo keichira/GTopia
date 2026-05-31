@@ -48,12 +48,13 @@ public:
 
     WorldNPC* GetNPCByID(int32 index);
     uint32 GetNPCActiveOrNotCount() const { return m_npcs.size(); }
+    uint8 GetLastAddedNPCID() const { return m_lastIndex; }
 
     void SuckGhostToTrap(WorldNPC* pTrap, float trapWidth, float trapHeight);
     bool IsGhostOnBeam(WorldNPC* pGhost);
 
     World* GetWorld() const { return m_pWorld; }
-    Vector2Float& GetLastLassoePos() { return m_lastLassoePos; }
+    Vector2Float& GetLastLassoePos() { return m_lastBeamPos; }
 
 private:
     bool Spawn(eNPCType npcType, const Vector2Float& pos, const Vector2Float& dest, int32 val1, int32 val2, float speed);
@@ -63,7 +64,7 @@ private:
     std::vector<WorldNPC> m_npcs;
 
     std::vector<NeutronBeamInfo> m_neutronBeams;
-    Vector2Float m_lastLassoePos;
+    Vector2Float m_lastBeamPos;
 
     Timer m_lastUpdateTime;
     uint32 m_lastIndex;
