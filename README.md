@@ -84,12 +84,12 @@ Once compiled, navigate to the `Runtime/` folder.
 ### 🐧 Linux.
 
 * **Start all servers:** Run `./run_servers.sh`
-* **Stop all servers:** Run `./stop_servers.sh`
+* **Stop all servers:** Run `./kill_servers.sh`
 
 ### 🪟 Windows
 
 * **Start all servers:** Double-click `run_servers.bat`
-* **Stop all servers:** Double-click `stop_servers.bat`
+* **Stop all servers:** Double-click `kill_servers.bat`
 
 ---
 
