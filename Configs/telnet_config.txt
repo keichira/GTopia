@@ -1,36 +1,23 @@
-# if line starts with '#' it means its comment line
+# =================================================================
+# GTopia Telnet File
+# =================================================================
 
-# telnet server ip
-telnet_host|LAN_IP OR WAN_IP|
-
-# telnet server port to host
+# Set LAN_IP or WAN_IP (Public IP) for VPS hosting.
+telnet_host|127.0.0.1|
 telnet_port|17999|
 
-# if only auth by password, set it to 1 otherwise it gonna block connection if ip not trusted
-# 1 or 0
+# 0 = Blocks connection if IP is not whitelisted in allow_ip
+# 1 = Password-Only Mode (Bypasses IP checking, relies ONLY on a password)
 skip_ip_check|0
 
-# adminLevels gonna follow this
-# 0 -> Non access
-# 1 -> Moderator
-# 2 -> Admin
-# 3 -> Developer
-# 4 -> Root
+# -----------------------------------------------------------------
+# RANK
+# 0 = No Access  | 1 = Moderator | 2 = Admin | 3 = Developer | 4 = Root
+# -----------------------------------------------------------------
 
-# add_account|DISPLAY_NAME|SUPER_SECRET_USER_PASS|adminLevel|
-
-# set allow_ip after add_acount because it gonna apply for that account
-# like the account can only from IP_1 or IP_2 or IP_X
-# IPs can be WAN or LAN
-# becareful for GSM if hosting telnet on WAN
-# allow_ip|IP_1|IP_2|IP_3|........
-
-# EXAMPLES
-# ur logging with password soooo
-# password should be strong, otherwise... yeah
-
+# EXAMPLES:
 # add_account|keichira|My_SuPerS3cr3t!Pass|4|
 # allow_ip|192.168.1.3|192.168.1.8|
 
-# add_account|root|woAh!donth4ckME@|4|
-# allow_ip|192.168.1.5|
+# add_account|developer_node|DevPass123!|3|
+# allow_ip|127.0.0.1|

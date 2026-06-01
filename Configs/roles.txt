@@ -1,15 +1,11 @@
-# if line starts with '#' it means its comment line
-
-
-#ROLE ID MUST BIGGER THAN 0
 #add_role|name|id|prefix|suffix|
+#ROLE ID MUST BIGGER THAN 0
+
 #set_inherits|role_ids...|
 #set_name_color|gt_color_code|
 #set_chat_color|gt_color_code|
 #set_perms|perms...|
 
-# always add new perms to end or make a new line
-# perms must be in order
 init_perms|mstate|smstate|use_item_type_mod|can_wear_any|command_ghost|command_magic|bypass_illegal_item|
 
 # command_* used to access the slash command
@@ -20,7 +16,6 @@ init_perms|mstate|smstate|use_item_type_mod|can_wear_any|command_ghost|command_m
 # can_wear_any | able to wear any items beside clothes
 # bypass_illegal_item | bypass IsIllegalItem()
 
-# default given role needs set up by id
 set_default_role|3|
 
 add_role|Developer|1|@||

@@ -32,5 +32,5 @@ struct PlayerLoginDetail
     uint32 token = 0;
     uint32 user = 0;
 
-    bool Serialize(ParsedTextPacket<25>& packet, Player* pPlayer, bool asGameServer);
+    bool Serialize(ParsedTextPacket<30>& packet, Player* pPlayer, bool asGameServer);
 };

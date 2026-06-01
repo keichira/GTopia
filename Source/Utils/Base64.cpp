@@ -26,12 +26,9 @@ bool Base64_Decode(void* pData, uint32 size, string& out)
 
     uint8* p = (uint8*)pData;
 
-    uint32 pad = 0;
-    if (p[size - 1] == '=') pad++;
-    if (p[size - 2] == '=') pad++;
-
+    int32 pad = (size > 0) && (size % 4  || p[size - 1] == '=');
     usize L = ((size + 3) / 4 - pad) * 4;
-    out.resize((size/ 4) * 3 - pad, '\0');
+    out.resize(L / 4 * 3 + pad, '\0');
 
     for(usize i = 0, j = 0; i < L; i += 4)
     {

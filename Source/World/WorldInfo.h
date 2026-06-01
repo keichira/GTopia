@@ -33,9 +33,9 @@ public:
 public:
     void Kill();
 
-    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database);
+    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, float gameVersion = 0.0f);
     void GenerateWorld(eWorldGenerationType type);
-    uint32 GetMemEstimate(bool database);
+    uint32 GetMemEstimate(bool database, float gameVersion = 0.0f);
 
     void SetName(const string& worldName) { m_name = worldName; }
     const string& GetWorlName() const { return m_name; } 

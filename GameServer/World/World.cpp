@@ -221,11 +221,12 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
         pPlayer->SetRespawnPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
     }
     
-    uint32 worldMemSize = GetMemEstimate(false);
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    uint32 worldMemSize = GetMemEstimate(false, loginDetail.gameVersion);
     uint8* pWorldData = new uint8[worldMemSize];
 
     MemoryBuffer memBuffer(pWorldData, worldMemSize);
-    Serialize(memBuffer, true, false);
+    Serialize(memBuffer, true, false, loginDetail.gameVersion);
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_MAP_DATA;
@@ -489,14 +490,14 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY, GamePlayer* pPlayer)
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
 
     MemoryBuffer memSizeBuf;
-    pTile->Serialize(memSizeBuf, true, false, this);
+    pTile->Serialize(memSizeBuf, true, false, GetWorldVersion());
 
     uint32 memSize = memSizeBuf.GetOffset();
     packet.extraDataSize = memSize;
 
     uint8* pTileData = new uint8[memSize];
     MemoryBuffer memBuffer(pTileData, memSize);
-    pTile->Serialize(memBuffer, true, false, this);
+    pTile->Serialize(memBuffer, true, false, GetWorldVersion());
 
     if(pPlayer)
     {
@@ -517,8 +518,9 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
     }
 
     MemoryBuffer memSizeBuf;
-    for(auto& pTile : tiles) {
-        pTile->Serialize(memSizeBuf, true, false, this);
+    for(auto& pTile : tiles) 
+    {
+        pTile->Serialize(memSizeBuf, true, false, GetWorldVersion());
     }
 
     uint32 memSize = tiles.size() * 2 * sizeof(int32) + memSizeBuf.GetOffset() + sizeof(int32);
@@ -530,7 +532,7 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
         memBuffer.Write((int32)vTilePos.x);
         memBuffer.Write((int32)vTilePos.y);
 
-        pTile->Serialize(memBuffer, true, false, this);
+        pTile->Serialize(memBuffer, true, false, GetWorldVersion());
     }
 
     int32 endMarker = -1;

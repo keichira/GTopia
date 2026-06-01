@@ -14,7 +14,7 @@ TileInfo::~TileInfo()
     SAFE_DELETE(m_pExtraData)
 }
 
-void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld)
+void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion)
 {
     if(!database) {
         memBuffer.ReadWrite(m_tileData->fg, write);
@@ -34,7 +34,7 @@ void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, Wor
                 return;
             }
             
-            m_pExtraData->Serialize(memBuffer, true, database, this, pWorld->GetWorldVersion());
+            m_pExtraData->Serialize(memBuffer, true, database, this, worldVersion);
         }
         else {
             ItemInfo* pItem = GetItemInfoManager()->GetItemByID(m_tileData->fg);
@@ -47,7 +47,7 @@ void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, Wor
                 m_pExtraData = CreateTileExtra(tileExtraType);     
 
                 if(m_pExtraData) {
-                    m_pExtraData->Serialize(memBuffer, false, database, this, pWorld->GetWorldVersion());
+                    m_pExtraData->Serialize(memBuffer, false, database, this, worldVersion);
                 }
             }
         }

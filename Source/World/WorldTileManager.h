@@ -38,8 +38,8 @@ public:
     ~WorldTileManager();
 
 public:
-    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld);
-    uint32 GetMemEstimate(bool database, WorldInfo* pWorld);
+    bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld, float gameVersion = 0.0f);
+    uint32 GetMemEstimate(bool database, WorldInfo* pWorld, float gameVersion);
 
     void Clear(bool reInit = false);
 

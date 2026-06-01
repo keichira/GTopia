@@ -17,14 +17,59 @@ GamePlayer::~GamePlayer()
 {
 }
 
-void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
+void GamePlayer::StartLoginRequest(ParsedTextPacket<30>& packet)
 {
     SetState(PLAYER_STATE_LOGIN_REQUEST);
 
-    if(!m_loginDetail.Serialize(packet, this, false)) {
+    if(!m_loginDetail.Serialize(packet, this, false)) 
+    {
         SendLogonFailWithLog("`4HUH?! ``Are you sure everything is alright?");
         return;
     }
+
+    GameConfig* pGameConfig = GetContext()->GetGameConfig();
+
+    float minVersion = 0.0f;
+    float maxVersion = 0.0f;
+
+    /*switch(m_loginDetail.platformType)
+    {
+        case Proton::PLATFORM_ID_WINDOWS:
+        {
+            minVersion = pGameConfig->windowsSupportedVersions[0];
+            maxVersion = pGameConfig->windowsSupportedVersions[1];
+            break;
+        }
+
+        case Proton::PLATFORM_ID_ANDROID:
+        {
+            minVersion = pGameConfig->androidSupportedVersions[0];
+            maxVersion = pGameConfig->androidSupportedVersions[1];
+            break;
+        }
+
+        case Proton::PLATFORM_ID_IOS:
+        {
+            minVersion = pGameConfig->iosSupportedVersions[0];
+            maxVersion = pGameConfig->iosSupportedVersions[1];
+            break;
+        }
+
+        case Proton::PLATFORM_ID_OSX:
+        {
+            minVersion = pGameConfig->macosSupportedVersions[0];
+            maxVersion = pGameConfig->macosSupportedVersions[1];
+            break;
+        }
+    }
+
+    printf("%f %f\n", minVersion, maxVersion);
+
+    if(m_loginDetail.gameVersion > maxVersion || m_loginDetail.gameVersion < minVersion)
+    {
+        SendLogonFailWithLog("`4Oops`o, your version is not supported");
+        return;
+    }*/
 
     LoginGetAccount();
 }
@@ -116,7 +161,7 @@ void GamePlayer::CheckAccountCB(QueryTaskResult&& result)
         pPlayer->GetUserID(),
         loginDetail.mac, loginDetail.vid,
         loginDetail.sid, loginDetail.rid, loginDetail.gid,
-        loginDetail.hash, req
+        loginDetail.hash, (loginDetail.tankIDName.empty()) ? loginDetail.requestedName : "", req
     );
 }
 
@@ -171,7 +216,7 @@ void GamePlayer::CreateAccountCB(QueryTaskResult&& result)
         pPlayer->GetUserID(),
         loginDetail.mac, loginDetail.vid,
         loginDetail.sid, loginDetail.rid, loginDetail.gid,
-        loginDetail.hash, req
+        loginDetail.hash, (loginDetail.tankIDName.empty()) ? loginDetail.requestedName : "", req
     );
 }
 

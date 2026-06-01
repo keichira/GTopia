@@ -6,7 +6,7 @@ static TableQuery sPlayerQueryTable[] =
 {
     {"SELECT ID FROM Players WHERE Name = '' AND Mac = ? AND PlatformType = ? LIMIT 1;", QUERY_FLAG_RETURN_RESULT},
     {"INSERT INTO Players (GuestName, PlatformType, GuestID, Mac, IP, CreationDate, LastSeenTime) VALUES (?, ?, ?, ?, ?, SYSDATE(), NOW());", QUERY_FLAG_RETURN_INCREMENT},
-    {"SELECT GuestID, Name, SkinColor, Gems, Flags, LastWorld, RoleID, HEX(ProgressData) AS ProgressData, HEX(Inventory) AS Inventory FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
+    {"SELECT GuestID, Name, GuestName, SkinColor, Gems, Flags, LastWorld, RoleID, HEX(ProgressData) AS ProgressData, HEX(Inventory) AS Inventory FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
     {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = UNHEX(?), SkinColor = ?, Flags = ?, LastWorld = ?, ProgressData = UNHEX(?), Gems = ? WHERE ID = ?;", QUERY_FLAG_NONE},
     {"SELECT ID FROM Players WHERE IP = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID FROM Players WHERE Name = '' AND VID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
@@ -74,4 +74,4 @@ namespace PlayerDB
 }
 
 void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred = false);
-void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, const string& rid, const string& gid, int32 hash, QueryRequest& req);
+void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, const string& rid, const string& gid, int32 hash, const string& guestName, QueryRequest& req);

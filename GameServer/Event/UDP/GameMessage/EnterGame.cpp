@@ -36,16 +36,23 @@ void LoadAccount(QueryTaskResult&& result)
     if(!pPlayer)
         return;
 
-    if(!result.result) 
+    if(!result.result)
     {
         pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
         return;
     }
 
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
-    if(!loginDetail.tankIDName.empty()) 
+    string growIDName = result.result->GetField("Name", 0).GetString();
+    if(growIDName.empty())
     {
-        loginDetail.tankIDName = result.result->GetField("Name", 0).GetString();
+        loginDetail.requestedName = result.result->GetField("GuestName", 0).GetString();
+        loginDetail.tankIDName = "";
+        loginDetail.tankIDPass = "";
+    }
+    else
+    {
+        loginDetail.tankIDName = growIDName;
     }
 
     uint32 roleID = result.result->GetField("RoleID", 0).GetUINT();
@@ -136,7 +143,16 @@ void LoadAccount(QueryTaskResult&& result)
     }
 
     pPlayer->SendGems(true);
-    pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
+    
+    if(loginDetail.protocol > 200)
+    {
+        pPlayer->SendSetHasGrowID(true);
+    }
+    else
+    {
+        pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
+    }
+
     pPlayer->SendInventoryPacket();
 
     uint32 worldID = result.result->GetField("LastWorld", 0).GetUINT();

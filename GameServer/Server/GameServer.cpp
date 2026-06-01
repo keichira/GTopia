@@ -74,9 +74,9 @@ void GameServer::OnEventReceive(ENetEvent& event)
         {
             LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(event.packet));
 
-            if(pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST)) 
+            if(pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
             {
-                ParsedTextPacket<25> packet;
+                ParsedTextPacket<30> packet;
                 ParseTextPacket(GetTextFromEnetPacket(event.packet), event.packet->dataLength - 4, packet);
 
                 pPlayer->StartLoginRequest(packet);

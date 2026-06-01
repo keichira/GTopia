@@ -101,7 +101,7 @@ uint32 GamePlayer::GetPlayerNextLevelXP()
     return 50 * ((GetPlayerLevel() + 1) * (GetPlayerLevel() + 1) + 2);
 }
 
-void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
+void GamePlayer::StartLoginRequest(ParsedTextPacket<30>& packet)
 {
     if(!HasState(PLAYER_STATE_LOGIN_REQUEST))
         return;
@@ -111,8 +111,52 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<25>& packet)
     if(!m_loginDetail.Serialize(packet, this, true)) 
     {
         SendLogonFailWithLog("`4HUH?! ``Are you sure everything is alright?");
+        LogOff(true, false, true);
         return;
     }
+
+    /*GameConfig* pGameConfig = GetContext()->GetGameConfig();
+
+    float minVersion = 0.0f;
+    float maxVersion = 0.0f;
+
+    switch(m_loginDetail.platformType)
+    {
+        case Proton::PLATFORM_ID_WINDOWS:
+        {
+            minVersion = pGameConfig->windowsSupportedVersions[0];
+            maxVersion = pGameConfig->windowsSupportedVersions[1];
+            break;
+        }
+
+        case Proton::PLATFORM_ID_ANDROID:
+        {
+            minVersion = pGameConfig->androidSupportedVersions[0];
+            maxVersion = pGameConfig->androidSupportedVersions[1];
+            break;
+        }
+
+        case Proton::PLATFORM_ID_IOS:
+        {
+            minVersion = pGameConfig->iosSupportedVersions[0];
+            maxVersion = pGameConfig->iosSupportedVersions[1];
+            break;
+        }
+
+        case Proton::PLATFORM_ID_OSX:
+        {
+            minVersion = pGameConfig->macosSupportedVersions[0];
+            maxVersion = pGameConfig->macosSupportedVersions[1];
+            break;
+        }
+    }
+
+    if(m_loginDetail.gameVersion > maxVersion || m_loginDetail.gameVersion < minVersion)
+    {
+        SendLogonFailWithLog("`4Oops`o, your version v`5" + ToString(m_loginDetail.gameVersion) + "`o is not supported. Supported versions are v`5" + ToString(minVersion) + "`o-v`5" + ToString(maxVersion) + "`o.");
+        LogOff(true, false, true);
+        return;
+    }*/
 
     m_userID = m_loginDetail.user;
     GetMasterBroadway()->SendCheckSessionPacket(GetNetID(), m_loginDetail.user, m_loginDetail.token, GetContext()->GetID());
@@ -153,12 +197,19 @@ void GamePlayer::TransferToGame()
     settings += "|enableInventoryTab=1";
 
     auto itemData = GetItemInfoManager()->GetClientData(m_loginDetail.platformType, m_loginDetail.gameVersion);
-    auto tributeData = GetPlayerTributeManager()->GetClientData(m_loginDetail.protocol);
+    if(!itemData)
+    {
+        SendLogonFailWithLog("`4Oops`o, something went wrong please re-login.");
+        LOGGER_LOG_ERROR("Failed to get client data platform: %d, gameversion: %f", m_loginDetail.platformType, m_loginDetail.gameVersion);
+        return;
+    }
+
     GameConfig* pGameConfig = GetContext()->GetGameConfig();
 
     RemoveState(PLAYER_STATE_LOGIN_REQUEST);
     SetState(PLAYER_STATE_ENTERING_GAME);
-    SendWelcomePacket(itemData->hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, tributeData->hash);
+
+    SendWelcomePacket(itemData->hash, pGameConfig->cdnServer, pGameConfig->cdnPath, settings, 0);
 }
 
 void GamePlayer::HandleRenderWorld(VariantVector&& result)

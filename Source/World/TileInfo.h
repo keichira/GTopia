@@ -45,7 +45,7 @@ public:
     ~TileInfo();
 
 public:
-    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld);
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion);
 
     void SetFG(uint16 itemID, WorldTileManager* pTileMgr);
     void SetBG(uint16 itemID);
@@ -97,6 +97,8 @@ public:
     
         return static_cast<T*>(m_pExtraData);
     }
+
+    bool HasExtra() { return m_pExtraData != nullptr; }
 
 private:
     TempTileData* m_tileData;

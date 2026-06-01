@@ -19,7 +19,7 @@ bool IsValidWorldName(const string& worldName)
 }
 
 WorldInfo::WorldInfo()
-: m_version(10), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
+: m_version(14), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
 {
     m_pTileMgr = new WorldTileManager();
     m_pObjMgr = new WorldObjectManager();
@@ -36,7 +36,7 @@ void WorldInfo::Kill()
     SAFE_DELETE(m_pObjMgr);
 }
 
-bool WorldInfo::Serialize(MemoryBuffer &memBuffer, bool write, bool database)
+bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, float gameVersion)
 {
     memBuffer.ReadWrite(m_version, write);
     memBuffer.ReadWrite(m_flags, write);
@@ -75,11 +75,11 @@ void WorldInfo::GenerateWorld(eWorldGenerationType type)
     }
 }
 
-uint32 WorldInfo::GetMemEstimate(bool database)
+uint32 WorldInfo::GetMemEstimate(bool database, float gameVersion)
 {
     uint32 memSize = 0;
-    memSize += sizeof(m_version) + sizeof(m_flags) + 2 + m_name.size();
-    memSize += m_pTileMgr->GetMemEstimate(database, this);
+    memSize += sizeof(uint16) + sizeof(m_flags) + 2 + m_name.size();
+    memSize += m_pTileMgr->GetMemEstimate(database, this, gameVersion);
     memSize += m_pObjMgr->GetMemEstimate();
     memSize += sizeof(m_defaultWeather) + sizeof(m_currentWeather);
 

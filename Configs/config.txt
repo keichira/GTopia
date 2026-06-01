@@ -1,60 +1,47 @@
-# if line starts with '#' it means its comment line
+# =================================================================
+# GTopia Config File
+# If line starts with '#' its comment line
+# =================================================================
 
-# configs to connect database
-# host user pass databaseName port
+# Database connection details
+# Format: database_info|HOST|USER|PASSWORD|DB_NAME|PORT|
+database_info|localhost|root||gtopia|3306|
 
-# if you auto imported tables from setup script my_database_name SHOULD match the given database name when generating SQL tables
+# Content Delivery Network (CDN) settings for assets
+# Format: cdn_server|URL|PATH|
+cdn_server|ubistatic-a.akamaihd.net|0098/0190520268/cache/|
 
-database_info|localhost|root|my_db_password|my_database_name|3306|
-
-# static server using while sending OnSuperMain
-# cdnURL cdnPATH(SLASH REQUIRED)
-cdn_server|127.0.0.1|cache/|
-
-# world renderer assets(rttex, font) path NO SLASH AT END
+# Absolute directory paths for World Renderer
 renderer_static_path|
-
-# world renderer save path for results NO SLASH AT END
 renderer_save_path|
 
-# game worlds save path NO SLASH AT END
+# Absolute directory path where game worlds binary data will be saved
 world_save_path|
 
-# X people can login at once others gonna kicked
+# Rate Limiting settings
 max_logins_at_once|20
-
-# only X accounts can be created
 max_accounts_per_ip|5
 max_accounts_per_gid|5
 max_accounts_per_vid|5
 max_accounts_per_sid|5
 max_accounts_per_mac|5
-
-# max player count in a world
 world_max_player_count|70
+max_npc_per_world|40
 
-# 0 for only accept default enet command
-# 1 for only accept growtopia's enet command
-# 3 for accept both
-# used for growtopia's new enet protocol 
-# type2 not working for newer clients
+# Network & Protocol Layer Configurations
+# 0 = Default ENet, 1 = Growtopia ENet, 3 = Hybrid Support (Recommended)
 enet_income_cmd_type|3
 
-# make it 1 to enable telnet server you need telnet_config.txt
-enable_telnet_server|0
-
-# make 0 to disable, if disabled it gonna choose item data version range from X_min_version to X_max_version
-# WARNING! auto choose from range is very experimental!
-
+# If disabled it gonna choose item data version auto based on player's version (EXPERIMENTAL)
+# 0 = Disabled, (0, 26] = Item Data Version
 force_item_data_version|5
 
-# SUPPORTING MINIMUM VERSION 3.02 BECAUSE OF ZLIB COMPRESS!!!!!
-# need to find a solution for it to support older than 3.02
-# there is a way but it gonna cause high memory usage
+# Supported Game Client Versions (Minimum 3.02 because of ZLib)
+android_supported_versions|3.02|5.48
+windows_supported_versions|3.02|5.48
+ios_supported_versions|3.02|5.48
+macos_supported_versions|3.02|5.48
 
-android_supported_versions|3.02|5.45
-windows_supported_versions|3.02|5.45
-ios_supported_versions|3.02|5.45
-macos_supported_versions|3.02|5.45
-
-max_npc_per_world|40
+# Admin Telnet Server For Master
+# 1 = Enabled, 0 = Disabled
+enable_telnet_server|0

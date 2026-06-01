@@ -1,5 +1,3 @@
-# if line starts with '#' it means its comment line
-
 # add_playmod|displayItemID|name|addMessage|removeMessage|
 # set_audio|audoFile|
 # set_char_flags|flags...|
@@ -12,7 +10,6 @@
 # set_items|itemIDs|
 # set_punch_range|value|
 # set_build_range|value|
-# set_char2_flags|flags...|
 
 add_playmod|290|Ninja Stealth|Silent, invisible, deadly.|You are less sneaky now.|
 set_skin_color|100,100,100,150|
@@ -32,7 +29,7 @@ set_items|156|350|362|678|736|1166|3112|1206|1460|1550|1574|1672|1674|1738|1784|
 set_items|2260|2262|2264|6162|4184|3104|3114|3120|3134|3144|3576|3604|3762|3514|4820|4412|4428|4440|4442|
 
 add_playmod|1904|The One Ring|No one will take your precious!|I guess someone took your precious.|
-set_char_flags|RENDER_EYES_ONLY|
+set_char_flags|INVISIBLE|
 set_items|1904|
 
 add_playmod|1782|Legendary!|You should be very very nice to your pet.|You feel lonely.|

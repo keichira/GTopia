@@ -36,6 +36,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_UTILS}/DialogBuilder.cpp
     ${SOURCE_UTILS}/ConfigDB.cpp
     ${SOURCE_UTILS}/GrowUtils.cpp
+    ${SOURCE_UTILS}/Base64.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
 

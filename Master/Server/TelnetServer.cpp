@@ -108,7 +108,7 @@ void TelnetServer::Update()
 
     for(auto& [_, pNetClient] : m_clients) {
         if(!pNetClient) {
-            return;
+            continue;
         }
 
         if(
@@ -186,10 +186,8 @@ void TelnetServer::OnClientReveice(NetClient* pClient)
                     inputBuffer.pop_back();
                 }
     
-                if(!inputBuffer.empty()) {
-                    HandleCommand(pNetClient, inputBuffer);
-                    inputBuffer.clear();
-                }
+                HandleCommand(pNetClient, inputBuffer);
+                inputBuffer.clear();
                 continue;
             }
     
@@ -200,8 +198,8 @@ void TelnetServer::OnClientReveice(NetClient* pClient)
                 continue;
             }
     
-            if(c >= 32 && c <= 126) {
-                pNetClient->GetInputBuffer().push_back(c);
+            if((unsigned char)c >= 32 && (unsigned char)c <= 126) {
+                pNetClient->GetInputBuffer().push_back((unsigned char)c);
             }
         }
     }
@@ -398,7 +396,7 @@ void TelnetServer::ApplyRateLimit(const string& ip)
 
 void TelnetServer::HandleCommand(TelnetClient* pNetClient, const string& command)
 {
-    if(!pNetClient || command.empty() || command.size() > 150) {
+    if(!pNetClient) {
         return;
     }
 
@@ -407,6 +405,9 @@ void TelnetServer::HandleCommand(TelnetClient* pNetClient, const string& command
         return;
     }
     pNetClient->GetLastActionTime().Reset();
+
+    if(command.empty() || command.size() > 100)
+        return;
 
     if(pNetClient->IsBusy()) {
         pNetClient->SendMessage("Currently theres ongoing situation please wait it to be completed.", true);
@@ -417,7 +418,7 @@ void TelnetServer::HandleCommand(TelnetClient* pNetClient, const string& command
         if(pNetClient->GetPassTryCount() > 4) {
             ApplyRateLimit(pNetClient->GetIP());
             RemoveClient(pNetClient->GetNetID());
-            LOGGER_LOG_WARN("[Telnet] Client IP: %s, failed to login because of incorrect password, closing connection", pNetClient->GetIP());
+            LOGGER_LOG_WARN("[Telnet] Client IP: %s, failed to login because of incorrect password, closing connection", pNetClient->GetIP().c_str());
             return;
         }
 
@@ -469,12 +470,13 @@ void TelnetServer::ExecuteCommand(TelnetClient* pNetClient, std::vector<string>&
         return;
     }
 
-    if(pNetClient->GetAdminLevel() == 0) {
+    if(pNetClient->GetAdminLevel() == 0 || args.empty()) {
         pNetClient->SendMessage("Unknown command.", true);
+        return;
     }
-    
-    if(args.empty()) {
-        pNetClient->SendMessage("Unknown command.", true);
+
+    if(args[0].size() < 2 || args[0][0] != '/') { 
+        pNetClient->SendMessage("Unknown command. Commands must start with '/'", true);
         return;
     }
 

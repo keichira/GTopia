@@ -1,7 +1,9 @@
 .vscode/*
-Runtime/*
 Build/build_*/*
-HTTPServer/static/*
 ThirdParty/blend2d/*
 Test/*
 Util/__pycache__/
+
+Runtime/*
+!Runtime/*.bat
+!Runtime/*.sh

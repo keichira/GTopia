@@ -5,42 +5,45 @@ import shutil
 import platform
 import subprocess
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 import socket
-from update_file_hashes import generate_file_hashes
-from generate_item_data import generate_item_txt_from_dat
-from generate_wiki_data import fetch_wiki_and_write
 
-ROOT = Path.cwd()
+def print_success(msg): print(f"✅ {msg}")
+def print_error(msg): print(f"❌ {msg}")
+def print_warn(msg): print(f"⚠️ {msg}")
+def print_info(msg): print(f"ℹ️ {msg}")
+
+try:
+    from update_file_hashes import generate_file_hashes
+    from generate_item_data import generate_item_txt_from_dat
+    from generate_wiki_data import fetch_wiki_and_write
+except ImportError as e:
+    print_error(f"Required helper script missing or broken: {e}")
+    print_info("Please ensure you cloned the repository completely.")
+    sys.exit(1)
+
+ROOT = Path(__file__).resolve().parent
 CERT_DIR = (ROOT / ".." / "HTTPServer").resolve()
 RUNTIME_DIR = (ROOT / ".." / "Runtime").resolve()
 CONFIGS_DIR = (ROOT / ".." / "Configs").resolve()
 
 MKCERT_VERSION = "v1.4.4"
 MKCERT_BASE = f"https://github.com/FiloSottile/mkcert/releases/download/{MKCERT_VERSION}"
-
-MYSQL_PATHS = [
-    r"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe",
-    r"C:\Program Files (x86)\MySQL\MySQL Server 8.0\bin\mysql.exe",
-]
-SQL_FILE = os.path.join(ROOT, "..", "Configs", "gtopia.sql")
+SQL_FILE = (ROOT / ".." / "Configs" / "gtopia.sql").resolve()
     
-def run(cmd, check=True):
-    return subprocess.run(cmd, shell=isinstance(cmd, str), check=check)
-
 def run_silent(cmd):
     return subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def download_file(url, path: Path):
     try:
-        print(f"Downloading: {url}")
+        print_info(f"Downloading: {url}")
         urllib.request.urlretrieve(url, path)
         return True
 
     except Exception as e:
-        print(f"Download failed: {e}")
-
-    return False
+        print_error(f"Download failed: {e}")
+        return False
 
 def get_mkcert_url():
     sys = platform.system().lower()
@@ -63,119 +66,102 @@ def get_mkcert_url():
     raise Exception(f"Unsupported platform: {sys}-{arch}")
 
 def move_file(src, dst_dir):
-    if not os.path.exists(src):
-        print(f"❌ File not found: {src}")
+    src = Path(src)
+    if not src.exists():
+        print_error(f"File not found: {src.name}")
         return False
 
-    dst = dst_dir / src.name
+    dst_dir = Path(dst_dir)
     dst_dir.mkdir(parents=True, exist_ok=True)
+    dst = dst_dir / src.name
 
     if dst.exists():
-        print(f"⚠️ Skipped (already exists): {dst}")
+        print_warn(f"Skipped (already exists): {dst.name}")
         return False
 
-    shutil.move(src, dst)
-    print(f"✅ Moved: {src} -> {dst}")
-    return True
-
-def move_certificates():
-    os.makedirs(CERT_DIR, exist_ok=True)
-
-    for f in glob.glob("*.pem"):
-        try:
-            base = os.path.basename(f)
-
-            if "-key" in base:
-                dest_name = "key.pem"
-            else:
-                dest_name = "cert.pem"
-
-            dest = os.path.join(CERT_DIR, dest_name)
-
-            if os.path.exists(dest):
-                os.remove(dest)
-
-            shutil.move(f, dest)
-            print(f"✅ Moved: {base} -> {dest_name}")
-
-        except Exception as e:
-            print(f"❌ Failed moving {f}: {e}")
-
-def download_mkcert():
-    print("Downloading mkcert for certificate generation...")
-
-    exe_name = "mkcert.exe" if platform.system() == "Windows" else "mkcert"
-    mkcert_path = os.path.join(ROOT, exe_name)
-
-    if not os.path.exists(mkcert_path):
-        ok = download_file(get_mkcert_url(), mkcert_path)
-        if not ok:
-            raise Exception("mkcert download failed")
-
-        if platform.system() != "Windows":
-            os.chmod(mkcert_path, 0o755)
-
-    print("mkcert installed generating certificates...")
-    run_silent([f"{mkcert_path}", "-install"])
-    run_silent([f"{mkcert_path}", "*.growtopia1.com", "*.growtopia2.com"])
-    print("Generated certificates")
-    move_certificates()
-
-def open_install_page(url):
-    print("\nOpening web page...")
-
     try:
-        import webbrowser
-        webbrowser.open(url)
-    except:
-        print("Please open manually:", url)
+        shutil.move(str(src), str(dst))
+        print_success(f"Moved: {src.name} -> {dst_dir.name}/")
+        return True
+    except Exception as e:
+        print_error(f"Failed to move {src.name}: {e}")
+        return False
+    
+def get_clean_input(prompt_text, default=None):
+    suffix = f" [{default}]" if default else ""
+    user_input = input(f"{prompt_text}{suffix}: ").strip()
+    
+    #drag
+    user_input = user_input.strip('"').strip("'")
+    
+    if not user_input and default is not None:
+        return default
+    return user_input
+
+def get_valid_path(prompt_text, is_file=False, is_dir=False):
+    while True:
+        path_str = get_clean_input(prompt_text)
+        if not path_str:
+            print_warn("Path cannot be empty.")
+            continue
+            
+        path = Path(path_str).expanduser().resolve()
+        
+        if is_file and not path.is_file():
+            print_error(f"Target is not a valid file or doesn't exist: {path}")
+            ans = input("👉 Type 'S' to skip this step, or press Enter to try again: ").strip().lower()
+            if ans == 's': return None
+            continue
+            
+        if is_dir and not path.is_dir():
+            print_error(f"Target is not a valid directory or doesn't exist: {path}")
+            ans = input("👉 Type 'S' to skip this step, or press Enter to try again: ").strip().lower()
+            if ans == 's': return None
+            continue
+            
+        return path
 
 def check_cmake():
-    print("Checking CMake")
+    print_info("Checking CMake installation...")
 
     if not shutil.which("cmake"):
-        print("❌ CMake not found")
-        
-        if platform.system() == "Windows":
-            print("Install: https://cmake.org/download/")
-            ans = input("\n👉 Do you want to open installer page now? [y/N]: ").strip().lower()
+        print_error("CMake was not found on your system PATH.")
 
-            if ans == "y":
-                open_install_page("https://cmake.org/download/")
+        if platform.system() == "Windows":
+            print_info("Please install CMake from: https://cmake.org/download/")
+            print_warn("CRITICAL: Remember to check 'Add CMake to the system PATH' during installation!")
         else:
-            print("\nInstall CMake using your package manager:")
-            print("Ubuntu/Debian: sudo apt install cmake")
+            print_info("Install via your package manager:\nUbuntu/Debian: sudo apt install cmake")
         sys.exit(1)
 
-    print("✅ CMake OK")
+    print_success("CMake is ready.")
 
 def check_mysql():
-    print("Checking MySQL")
-
+    print_info("Checking MySQL installation...")
+    
     if platform.system() == "Windows":
-        for path in MYSQL_PATHS:
-            if os.path.exists(path):
-                print("✅ MySQL OK")
-                return path
+        possible_patterns = [
+            r"C:\Program Files\MySQL\MySQL Server *\bin\mysql.exe",
+            r"C:\Program Files (x86)\MySQL\MySQL Server *\bin\mysql.exe"
+        ]
+        for pattern in possible_patterns:
+            matches = glob.glob(pattern)
+            if matches:
+                detected_path = matches[-1]
+                print_success(f"MySQL detected automatically at: {detected_path}")
+                return detected_path
 
     mysql = shutil.which("mysql")
-
     if mysql:
-        print("✅ MySQL OK")
+        print_success(f"MySQL detected on system PATH: {mysql}")
         return mysql
 
-    print("❌ MySQL not found")
+    print_error("MySQL client executable could not be found.")
     if platform.system() == "Windows":
-        print("Install: https://dev.mysql.com/downloads/installer/ (not web version)")
-        print("Make sure 'MySQL Server' + 'Add to PATH' is enabled")
-
-        ans = input("\n👉 Do you want to open installer page now? [y/N]: ").strip().lower()
-
-        if ans == "y":
-            open_install_page("https://dev.mysql.com/downloads/installer/")
+        print_info("Download: https://dev.mysql.com/downloads/installer/")
+        print_warn("Ensure 'MySQL Server' is checked and added to system PATH variables.")
     else:
-        print("\nInstall MySQL using your package manager:")
-        print("Ubuntu/Debian: sudo apt install mysql-client libmysql-dev")
+        print_info("Install via package manager:\nUbuntu/Debian: sudo apt install mysql-client libmysql-dev")
     sys.exit(1)
 
 def run_mysql(mysql_client, args, sql):
@@ -187,164 +173,273 @@ def run_mysql(mysql_client, args, sql):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-    
     except Exception as e:
-        print(f"❌ MySQL command failed: {e}")
+        print_error(f"MySQL bridge crash: {e}")
         return None
 
-def sql_create_database(mysql_client, db_name, user, password):
-    print(f"Creating database {db_name} if not exists...")
-    sql = f"CREATE DATABASE IF NOT EXISTS {db_name};"
-
-    result = run_mysql(
-        mysql_client,
-        ["-u", user, f"-p{password}"],
-        sql
-    )
-
-    if result and result.returncode == 0:
-        print(f"✅ Database {db_name} ready")
-        return True
-    
-    print(f"❌ Failed to create database {db_name}")
-    return False
-
-def sql_import_tables(mysql_client, db_name, user, password):
-    print("Importing SQL file...")
-
-    if not os.path.exists(SQL_FILE):
-        print(f"❌ SQL file not found: {SQL_FILE}")
-        return False
-
-    with open(SQL_FILE, "r", encoding="utf-8") as f:
-        sql = f.read()
-
-    result = run_mysql(
-        mysql_client,
-        ["-u", user, f"-p{password}", db_name],
-        sql
-    )
-
-    if result:
-        print(f"✅ Imported SQL tables to {db_name}")
-        return True
-
-    print(f"❌ Failed to import SQL tables to {db_name}")
-    return False
-
 def sql_wizard(mysql_client):
-    db_name = input("Database name [gtopia]: ").strip() or "gtopia"
-    user = input("MySQL user [root]: ").strip() or "root"
-    password = input("MySQL password []: ").strip()
+    print("\n--- MySQL Configuration Database Wizard ---")
     
-    print("\n--- Starting SQL Setup ---")
-    if not sql_create_database(mysql_client, db_name, user, password):
-        return False
-    
-    if not sql_import_tables(mysql_client, db_name, user, password):
-        return False
-    
-    return True
+    while True:
+        db_name = get_clean_input("Database name to use/create", default="gtopia")
+        user = get_clean_input("MySQL username", default="root")
+        password = get_clean_input("MySQL password", default="")
+        
+        print_info(f"Connecting to MySQL and preparing database '{db_name}'...")
+        
+        sql = f"CREATE DATABASE IF NOT EXISTS {db_name};"
+        result = run_mysql(mysql_client, ["-u", user, f"-p{password}"], sql)
+        
+        if not result or result.returncode != 0:
+            err_msg = result.stderr if result else "Unknown process error"
+            print_error(f"Failed to connect or create database. MySQL Error:\n{err_msg}")
 
+            retry = get_clean_input("👉 Would you like to re-enter your credentials? [Y/n]", default="y").lower()
+            if retry == 'y':
+                continue
+            return False
+            
+        print_success(f"Database '{db_name}' validated safely.")
+        
+        if not SQL_FILE.exists():
+            print_error(f"SQL file missing at: {SQL_FILE}")
+            return False
+            
+        with open(SQL_FILE, "r", encoding="utf-8") as f:
+            sql_data = f.read()
+            
+        print_info("Importing SQL tables...")
+        import_res = run_mysql(mysql_client, ["-u", user, f"-p{password}", db_name], sql_data)
+        
+        if import_res and import_res.returncode == 0:
+            print_success(f"Successfully integrated all tables into '{db_name}'.")
+            return True
+        else:
+            print_error(f"Table scheme import failed: {import_res.stderr if import_res else 'Process communication error'}")
+            return False
+        
 def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    ip = s.getsockname()[0]
-    s.close()
-    return ip
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return ""
 
-def file_hashes_wizard():
-    print("\n--- Starting file hash generation ---")
+def download_mkcert():
+    print_info("Initializing local environment trusted SSL generation...")
+    exe_name = "mkcert.exe" if platform.system() == "Windows" else "mkcert"
+    mkcert_path = ROOT / exe_name
 
-    print("\nWhat is static folder path?: The folder that contains 'audio', 'interface', 'game' folders")
-    print("Used for generating file hashes for items.dat\n")
+    if not mkcert_path.exists():
+        if not download_file(get_mkcert_url(), mkcert_path):
+            print_error("Failed to automatically grab mkcert deployment asset.")
+            return
+        if platform.system() != "Windows":
+            os.chmod(str(mkcert_path), 0o755)
 
-    folder_path = input("Static folder path: ").strip()
-    path = Path(folder_path).expanduser().resolve()
+    print_info("Generating root certificates (You might see an UAC prompt)...")
+    run_silent([str(mkcert_path), "-install"])
+    run_silent([str(mkcert_path), "*.growtopia1.com", "*.growtopia2.com"])
+    
+    CERT_DIR.mkdir(parents=True, exist_ok=True)
+    for f in glob.glob("*.pem"):
+        base = os.path.basename(f)
+        dest_name = "key.pem" if "-key" in base else "cert.pem"
+        dest_path = CERT_DIR / dest_name
 
-    print("Generating filehashes.txt this might took a bit")
-    generate_file_hashes(path)
+        if dest_path.exists():
+            os.remove(dest_path)
 
-def item_txt_wizard():
-    print("\n--- Starting item data generation ---")
+        shutil.move(f, str(dest_path))
+        print_success(f"Deployed local cert asset: {dest_name}")
 
-    folder_path = input("items.dat file path: ").strip()
-    path = Path(folder_path).expanduser().resolve()
+def get_latest_growtopia_cdn():
+    url = "https://growtopiagame.com/Growtopia-Installer.exe"
 
-    print("Generating items.txt this might took a bit")
-    generate_item_txt_from_dat(0, path)
+    req = urllib.request.Request(url)
+    opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
 
-def wiki_data_wizard():
-    print("\n--- Starting wiki data generation ---")
+    try:
+        res = opener.open(req)
+        final_url = res.geturl()
+    except Exception as e:
+        print_error(f"Connection error while getting latest cdn {e}")
+        return ""
 
-    print("\nWiki data used for getting splice recipes, descriptions and elements")
-    print("If items.dat version is greater or equals to 22 or 23 you don't have to generate wiki_data.txt, since theres no usage for item elements\n")
+    if "akamaihd.net" not in final_url:
+        return ""
 
-    folder_path = input("items.dat file path: ").strip()
-    path = Path(folder_path).expanduser().resolve()
+    parsed = urlparse(final_url)
+    gt_host = parsed.hostname    
+    gt_pathname = parsed.path.replace("GrowtopiaInstaller.exe", "")
 
-    print("Generating wiki_data.txt this might took a bit")
-    fetch_wiki_and_write(0, path)
+    return f"{gt_host}{gt_pathname}cache/"
+
+def edit_configuration_files(db_name, user, password, local_ip, latest_cdn):
+    print("\n--------------------------------------------------")
+    print("       Automated Configuration Editor            ")
+    print("--------------------------------------------------")
+    
+    ans = get_clean_input("👉 Do you want to automatically edit your config files? [Y/n]", default="y").lower()
+    if ans != "y":
+        print_info("Skipping auto-edit. You will need to edit .txt files manually.")
+        return
+
+    config_path = RUNTIME_DIR / "config.txt"
+    telnet_path = RUNTIME_DIR / "telnet_config.txt"
+    servers_path = RUNTIME_DIR / "servers.txt"
+    http_path = (ROOT / ".." / "HTTPServer" / "main.go").resolve()
+
+    print("\nSelect your hosting environment:")
+    print("1) Local PC / LAN")
+    print("2) VPS / VDS)")
+    choice = get_clean_input("Select option [1-2]", default="1")
+
+    target_wan_ip = local_ip if local_ip else "127.0.0.1"
+    target_lan_ip = local_ip if local_ip else "127.0.0.1"
+
+    if choice == "2":
+        target_wan_ip = get_clean_input("Enter your Public VPS/VDS IP address")
+        target_lan_ip = local_ip
+
+    print_info("Applying updates to runtime files...")
+
+    if config_path.exists():
+        with open(config_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith("database_info|"):
+                lines[i] = f"database_info|localhost|{user}|{password}|{db_name}|3306|\n"
+
+            elif line.startswith("cdn_server|") and latest_cdn:
+                if "/" in latest_cdn:
+                    parts = latest_cdn.split("/", 1)
+                    cdn_host = parts[0]
+                    cdn_path = parts[1]
+                    lines[i] = f"cdn_server|{cdn_host}|{cdn_path}|\n"
+
+            elif line.startswith("world_save_path|"):
+                (RUNTIME_DIR / "worlds").mkdir(parents=True, exist_ok=True)
+                lines[i] = f"world_save_path|{str(RUNTIME_DIR / 'worlds')}|\n"
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+
+        print_success("config.txt -> Updated database and CDN links.")
+
+    if servers_path.exists():
+        with open(servers_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith("set_master|"):
+                lines[i] = f"set_master|{target_lan_ip}|{target_wan_ip}|\n"
+
+            elif line.startswith("add_server|"):
+                lines[i] = f"add_server|{target_lan_ip}|{target_wan_ip}|1|\n"
+
+        with open(servers_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        print_success("servers.txt -> Updated servers.")
+
+    if telnet_path.exists():
+        with open(telnet_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.startswith("telnet_host|"):
+                lines[i] = f"telnet_host|{target_lan_ip}|\n"
+
+        with open(telnet_path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        print_success("telnet_config.txt -> Updated admin server.")
+
+    if http_path.exists():
+        with open(http_path, "r", encoding="utf-8") as f:
+            http_lines = f.readlines()
+            
+        for i, line in enumerate(http_lines):
+            if line.strip().startswith('const SERVER_IP ='):
+                http_lines[i] = f'const SERVER_IP = "{target_wan_ip}"\n'
+                
+        with open(http_path, "w", encoding="utf-8") as f:
+            f.writelines(http_lines)
+        print_success("main.go -> Updated SERVER_IP.")
+
+    print_success("All configurations edited successfully!\n")
 
 def main():
-    check_cmake()
-    print("----------\n")
+    print("==========================================")
+    print("      GTopia Private Server Setup Wizard   ")
+    print("==========================================")
+    print_info("Discord server: https://discord.gg/5XjTQm3kRh\n")
 
+    check_cmake()
     mysql_client = check_mysql()
 
-    ans = input("\n👉 Do you want to import SQL tables? [y/N]: ").strip().lower()
-    if ans == "y":
-        result = sql_wizard(mysql_client)
-        if not result:
-            print("❌ Failed to import SQL tables, skipping...")
-    print("----------\n")
+    db_name, db_user, db_pass = "gtopia", "root", ""
 
-    ans = input("\n👉 Do you want to create SSL Certificates? [y/N]: ").strip().lower()
-    if ans == "y":
+    if get_clean_input("\n👉 Do you want to import SQL tables? [Y/n]", default="y").lower() == "y":
+        sql_wizard(mysql_client)
+
+    if get_clean_input("\n👉 Do you want to create local SSL Certificates for HTTPS server? (It needed for 3.90+ versions) [Y/n]", default="y").lower() == "y":
         download_mkcert()
-    print("----------\n")
 
-    os.makedirs(RUNTIME_DIR, exist_ok=True)
+    RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
-    ans = input("\n👉 Do you want to generate file hashes? [y/N]: ").strip().lower()
-    if ans == "y":
-        file_hashes_wizard()
-        print("----------\n")
-        move_file(ROOT / "filehashes.txt", RUNTIME_DIR)
-    else:
-        print("Okay! you can generate by using update_file_hashes.py later\n")
+    if get_clean_input("\n👉 Do you want to generate file hashes? (Skip if not using custom CDN) [y/N]", default="n").lower() == "y":
+        print_info("\nEnter the static folder containing 'audio', 'interface', 'game' subdirectories.")
+        static_path = get_valid_path("Enter Static folder path", is_dir=True)
+        if static_path:
+            print_info("Processing file hashes, it might take a bit...")
+            generate_file_hashes(static_path)
+            move_file(ROOT / "filehashes.txt", RUNTIME_DIR)
 
-    ans = input("\n👉 Do you want to generate items.txt [y/N]: ").strip().lower()
-    if ans == "y":
-        item_txt_wizard()
-        print("----------\n")
-        move_file(ROOT / "items.txt", RUNTIME_DIR)
-    else:
-        print("Okay! you can generate by using generate_item_data.py later\n")
+    if get_clean_input("\n👉 Do you want to generate items.txt from your items.dat? (Required) [Y/n]", default="y").lower() == "y":
+        dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
+        if dat_path:
+            print_info("Processing items...")
+            generate_item_txt_from_dat(0, dat_path)
+            move_file(ROOT / "items.txt", RUNTIME_DIR)
 
-    ans = input("\n👉 Do you want to generate wiki_data.txt [y/N]: ").strip().lower()
-    if ans == "y":
-        wiki_data_wizard()
-        print("----------\n")
-        move_file(ROOT / "wiki_data.txt", RUNTIME_DIR)
-    else:
-        print("Okay! you can generate by using generate_wiki_data.py later\n")
+    if get_clean_input("\n👉 Do you want to generate wiki_data.txt? (Description/Splice information) [y/N]", default="n").lower() == "y":
+        wiki_dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
+        if wiki_dat_path:
+            print_info("Processing wiki data, it might take a bit...")
+            fetch_wiki_and_write(0, wiki_dat_path)
+            move_file(ROOT / "wiki_data.txt", RUNTIME_DIR)
 
-    move_file(CONFIGS_DIR / "config.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "playmods.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "roles.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "telnet_config.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "servers.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "achievements.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "store.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "consumable_data.txt", RUNTIME_DIR)
-    move_file(CONFIGS_DIR / "battle_pet_data.txt", RUNTIME_DIR)
+    print("\n--- Moving default configurations ---")
+    config_files = [
+        "config.txt", "playmods.txt", "roles.txt", "telnet_config.txt", 
+        "servers.txt", "achievements.txt", "store.txt", "consumable_data.txt", "battle_pet_data.txt"
+    ]
+    for config in config_files:
+        move_file(CONFIGS_DIR / config, RUNTIME_DIR)
+
     (RUNTIME_DIR / "logs").mkdir(parents=True, exist_ok=True)
-        
-    print("\nSetup finished\n")
-    print(f"Your LAN IP address is `{get_local_ip()}`, if you are not running on VPS/VDS use this IP address to host")
-    print("Shown LAN IP address might be wrong if you are using proxy, run `ifconfig` or `ipconfig` to see all interfaces\n")
-    print("\nNow navigate to Runtime folder and edit configs")
+
+    print_info("Getting latest Growtopia CDN...")
+    latest_cdn = get_latest_growtopia_cdn()
+
+    edit_configuration_files(db_name, db_user, db_pass, get_local_ip(), latest_cdn)
+
+    print("\n==========================================")
+    print("          SETUP COMPLETED SUCCESSFULLY    ")
+    print("==========================================\n")
+    print_info(f"Your detected Local LAN IP is: {get_local_ip()}")
+    print_warn("Shown LAN IP address might be wrong if you are using proxy, run `ifconfig` or `ipconfig` to see all interfaces")
+    print_warn("If you are running on a remote VPS/VDS, use your public server IP instead.\n")
+
+    if latest_cdn:
+        print_info(f"Latest Growtopia CDN: {latest_cdn}")
+
+    print_success("Navigate to the 'Runtime' folder and customize your configurations.\n")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print_error("\nSetup cancelled by user.")
+        sys.exit(0)

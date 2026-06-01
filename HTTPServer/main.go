@@ -15,7 +15,7 @@ import (
 )
 
 const SERVER_IP = ""
-const LOGIN_URL = ""
+const LOGIN_URL = "g-topia-login.vercel.app"
 const MAINTENANCE_MESSAGE = "`#Maintenance"
 
 /**
@@ -33,6 +33,11 @@ func encryptData(data []byte, key int) []byte {
 	}
 
 	return result
+}
+
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func loginHandler(res http.ResponseWriter, req *http.Request) {
@@ -99,8 +104,6 @@ func loginHandler(res http.ResponseWriter, req *http.Request) {
 
 	serverData := "server|" + SERVER_IP + "\nport|18000\ntype2|0\n#maint|" + MAINTENANCE_MESSAGE + "\nloginurl|" + LOGIN_URL + "\nmeta|" + meta + "\nRTENDMARKERBS1001"
 	res.Write([]byte(serverData))
-
-	fmt.Println(serverData + "\n")
 }
 
 func cacheHandler(res http.ResponseWriter, req *http.Request) {
@@ -160,10 +163,8 @@ func main() {
 	}
 
 	if LOGIN_URL == "" {
-		fmt.Println("WARNING: LOGIN_URL is empty, if not using newer versions it doesnt matter!")
+		fmt.Println("WARNING: LOGIN_URL is empty, if not using newer versions it doesnt matter.")
 	}
-
-	fmt.Println("Started HTTP + HTTPS Server")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", serverHandler)
@@ -174,11 +175,24 @@ func main() {
 		Handler: mux,
 	}
 
+	go func() {
+		log.Println("HTTP server running on :80")
+		log.Fatal(httpServer.ListenAndServe())
+	}()
+
 	httpsServer := &http.Server{
 		Addr:    ":443",
 		Handler: mux,
 	}
 
-	go httpServer.ListenAndServe()
-	log.Fatal(httpsServer.ListenAndServeTLS("cert.pem", "key.pem"))
+	if fileExists("cert.pem") && fileExists("key.pem") {
+		go func() {
+			log.Println("HTTPS server starting on :443")
+			log.Fatal(httpsServer.ListenAndServeTLS("cert.pem", "key.pem"))
+		}()
+	} else {
+		log.Println("TLS certs not found, HTTPS not started")
+	}
+
+	select {}
 }

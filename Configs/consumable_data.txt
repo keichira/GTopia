@@ -1,6 +1,6 @@
 # if line starts with '#' it means its comment line
 
-# add_consume|itemID|consumableTypeID|requiredAmount|rewardItemID|rewardCount|successMsg|failMsg|
+# add_consume|id|consumableTypeID|requiredAmount|rewardItemID|rewardCount|successMsg|failMsg|
 # set_flags|flags..|
 
 # for consumableTypeID see ItemInfoManager.cpp eConsumableType

@@ -1,76 +1,103 @@
-# Growtopia Private Server
-Cross-platform Growtopia private server with sub-server support
+# GTopia
 
-New Discord server for development: https://discord.gg/5XjTQm3kRh
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-green.svg)](#)
+[![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
-## Clone
-Clone the repo : ``git clone --recurse-submodules https://github.com/keichira/GTopia.git``<br>
-*if you don't want to run **WorldRenderer** remove ``--recurse-submodules``*
+A cross-platform **Growtopia private server** featuring sub-server support.
 
-## Setup
-Project requires (will be asked in setup script)
+> 📢 **Join our community!** For development updates, support, and discussions, join our **[Discord Server](https://discord.gg/5XjTQm3kRh)**.
 
+---
+
+## 🌟 Features
+
+*   **Cross-Platform:** Full compatibility with both Linux and Windows environments.
+*   **Sub-Server Support:** Split your game instances across sub-servers.
+*   **Telnet Management:** Built-in telnet interface for remote server administration.
+*   **Multi-version** supports 3.02+ and latest versions
+*   **World Renderer Support:** Submodule inclusion for world map rendering.
+
+---
+
+## 🧩 Architecture
+
+### 🧠 Master Server
+The Master Server is responsible for managing all Servers and handling player login requests. It acts as the central coordinator and routes players to Game Servers.
+
+### 🎮 Game Server
+Game Servers handle actual gameplay logic. They only communicate with the Master Server and do not accept direct external connections from clients.
+
+### 🖼️ World Renderer
+World Renderers are responsible for visualizing the game world received from the Master Server. They only communicate with the Master Server and do not handle gameplay or client logic.
+
+---
+
+## 🛠️ Prerequisites
+
+Before cloning and building, ensure you have the following environment dependencies installed based on your Operating System.
+
+### 🐧 Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install -y build-essential cmake python3 mysql-client libmysql-dev go
+```
+
+### 🪟 Windows
 - [CMake](https://cmake.org/download/)
-- [MySQL Community](https://dev.mysql.com/downloads/installer/)<br>
+- [MySQL Community Server](https://dev.mysql.com/downloads/installer/)
+- [Python 3](https://www.python.org/downloads/) – Used for scripts and automation
+- [Go](https://go.dev/dl/) – Used for HTTP/S server
 
-#### Linux
-*Go to **Build** folder* and run
-```
-chmod +x setup_linux.sh
-./setup_linux.sh
-```
+---
 
-#### Windows
-*Go to **Build** folder* and run
-```
-setup_win.bat
+## 🚀 Getting Started
+### Clone the Repository
+```bash
+git clone https://github.com/keichira/GTopia.git
+cd GTopia
 ```
 
-## Configure
-After running setup navigate to **Runtime** folder and edit given fields below. You can use given LAN IP from setup script for host or VPS/VDS (given more info in setup)
+## ⚙️ Setup & Build System
 
-- config.txt (examples given in config.txt)
-```
-database_info|
-world_save_path|
-cdn_server|
-```
+This project uses pre-configured scripts for setup and compilation.  
+All builds are managed through platform-specific scripts.
 
-- servers.txt (examples given in servers.txt)
-```
-set_master|
-add_server|
-```
+* All build and setup scripts are located inside the `Build/` directory.
 
-- telnet_config.txt (examples given in telnet_config.txt)
-```
-telnet_host|
-```
+### 🔨 Interactive Setup Scripts
 
-- items.txt <br>
-Game servers are not working with raw items.dat you have to generate it into txt format, you can use generate_item_data script to generate it (it will be asked in setup script)
-<br>
+- `setup_win.bat` → Installs/configures requires on Windows
+- `setup_linux.sh` → Installs/configures requires on Linux
 
-- wiki_data.txt <br>
-This file contains splice data, description and elements (if your items.dat contains splice data or descriptions you don't have to generate it since no usage of item elements for now), you can use generate_wiki_data script to generate it (it will be asked in setup script)
+### 🛠️ Compile Scripts
 
-## Compile
-- *Scripts are gonna ask you what you want to build*<br>
+- `compile_win.bat` → Builds selected project on Windows
+- `compile_linux.sh` → Builds selected project on Linux
 
-#### Linux
-*Go to **Build** folder* and run
-```
-chmod +x compile_linux.sh
-./compile_linux.sh
-```
+---
 
-#### Windows
-*Go to **Build** folder* and run
-```
-compile_linux.bat
-```
+## 🏃‍♂️ Running the Servers
+Once compiled, navigate to the `Runtime/` folder.
 
-# Note
-This tool is for educational purposes only. The author is not responsible for any misuse. Use at your own risk.
-<hr>
+> ⚠️ Because the HTTP server binds to privileged ports (80/443), you **must** execute the launcher with root/administrative privileges
+
+### 🐧 Linux.
+
+* **Start all servers:** Run `./run_servers.sh`
+* **Stop all servers:** Run `./stop_servers.sh`
+
+### 🪟 Windows
+
+* **Start all servers:** Double-click `run_servers.bat`
+* **Stop all servers:** Double-click `stop_servers.bat`
+
+---
+
+## Note
+> The `Runtime/` directory is guarded by whitelist rules via `.gitignore`. Your localized configs (`config.txt`, `servers.txt`, logs) will never be accidentally leaked to the repository. Only the automation launchers (`.sh`, `.bat`) are committed.
+
+**This project is for educational purposes only. The author is not responsible for any misuse. Use at your own risk.**
+
+---
+
 <a href="https://github.com/keichira/GTopia">GTopia</a> is made by <a href="https://github.com/keichira">keichira</a>

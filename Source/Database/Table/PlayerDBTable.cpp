@@ -178,7 +178,9 @@ void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
     DatabaseExec(pPool, query.query, req, query.flags);
 }
 
-void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, const string& rid, const string& gid, int32 hash, QueryRequest& req)
+void DatabasePlayerIdentifierExec(
+    DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, 
+    const string& rid, const string& gid, int32 hash, const string& guestName, QueryRequest& req)
 {
     string query = "UPDATE Players SET ";
 
@@ -205,6 +207,11 @@ void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const stri
     if(!gid.empty()) {
         query += "GID = UNHEX(MD5(?)), ";
         req.AddData(gid);
+    }
+
+    if(!guestName.empty()) {
+        query += "GuestName = ?,";
+        req.AddData(guestName);
     }
 
     query += "Hash = ? WHERE ID = ?;";

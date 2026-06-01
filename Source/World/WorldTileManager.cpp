@@ -18,7 +18,7 @@ WorldTileManager::~WorldTileManager()
     Clear();
 }
 
-bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld)
+bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld, float gameVersion)
 {
     memBuffer.ReadWrite(m_size, write);
 
@@ -32,6 +32,14 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     if(!write) {
         m_tiles.resize(totalTiles);
         m_tempTiles.resize(totalTiles);
+    }
+
+    if(write && !database && gameVersion >= 3.31f)
+    {
+        uint32 val1 = 0;
+        uint8 val2 = 0;
+        memBuffer.ReadWrite(val1, write);
+        memBuffer.ReadWrite(val2, write);
     }
 
     if(write) {
@@ -51,7 +59,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
 
                 extraCount++;
                 memBuffer.Write(i);
-                pTile->Serialize(memBuffer, true, true, pWorld);
+                pTile->Serialize(memBuffer, true, true, pWorld->GetWorldVersion());
             }
 
             uint32 end = memBuffer.GetOffset();
@@ -77,7 +85,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
                     memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * batchCount);
                 }
 
-                pTile->Serialize(memBuffer, true, false, pWorld);
+                pTile->Serialize(memBuffer, true, false, pWorld->GetWorldVersion());
                 batchStartIdx = i + 1;
             }
     
@@ -108,12 +116,12 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
                 memBuffer.Read(tileIdx);
 
                 if(tileIdx >= m_tiles.size()) {
-                    LOGGER_LOG_ERROR("Tile extra corrupted while reading %s idx:%d tilesize:%d", pWorld->GetWorlName().c_str(), tileIdx, m_tiles.size());
+                    LOGGER_LOG_ERROR("Tile extra corrupted while reading %s idx:%d tilesize:%d", pWorld->GetWorldVersion(), tileIdx, m_tiles.size());
                     return false;
                 }
 
                 TileInfo* pTile = &m_tiles[tileIdx];
-                pTile->Serialize(memBuffer, false, true, pWorld);
+                pTile->Serialize(memBuffer, false, true, pWorld->GetWorldVersion());
             }
         }
         else {
@@ -131,11 +139,11 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
     return true;
 }
 
-uint32 WorldTileManager::GetMemEstimate(bool database, WorldInfo* pWorld)
+uint32 WorldTileManager::GetMemEstimate(bool database, WorldInfo* pWorld, float gameVersion)
 {
     MemoryBuffer memSize;
 
-    Serialize(memSize, true, database, pWorld);
+    Serialize(memSize, true, database, pWorld, gameVersion);
     return memSize.GetOffset();
 }
 

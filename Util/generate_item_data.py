@@ -446,7 +446,7 @@ def generate_item_txt_from_dat(serialize_until: int = 0, file_path: str = "items
                 item_str += f"{ItemVisualEffectToStr(p_item.visual_effect)}|"
                 item_str += f"{ItemStorageTypeToStr(p_item.storage)}|"
                 item_str += f"{ItemCollisionTypeToStr(p_item.collision_type)}|"
-                item_str += f"{p_item.hp // 6}|{p_item.restore_time}|1|\n"
+                item_str += f"{p_item.hp // 6}|{p_item.restore_time}|1|{p_item.texture_hash}|\n"
 
             if p_item.flags != 0:
                 flag_list = []
@@ -508,8 +508,8 @@ def generate_item_txt_from_dat(serialize_until: int = 0, file_path: str = "items
 
                 item_str += "set_fx_flags|" + "|".join(fx) + "|\n"
 
-            if p_item.extra_string or p_item.anim_ms != 200:
-                item_str += f"set_extra|{p_item.extra_string}|{p_item.anim_ms}|\n"
+            if p_item.extra_string or p_item.anim_ms != 200 or p_item.extra_string_hash > 0:
+                item_str += f"set_extra|{p_item.extra_string}|{p_item.anim_ms}|{p_item.extra_string_hash}|\n"
 
             if p_item.config_name:
                 item_str += f"set_config_name|{p_item.config_name}|\n"

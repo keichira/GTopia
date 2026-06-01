@@ -51,7 +51,7 @@ void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(name.find(" ") != string::npos) error = "`4Oops!``  Your `$GrowID`` name can't have spaces in it.";
     else if(name.find("`") != string::npos) error = "`4Oops!`` You can't use color codes in your `$GrowID``.";
     else if(pass != verifPass) error = "`4Oops!``  Passwords don't match.  Try again.";
-    else if(pass.size() < 3 || pass.size() > 18) error = "`4Oops!``  Your password must be between `$3`` and `$12`` characters long.";
+    else if(pass.size() < 3 || pass.size() > 18) error = "`4Oops!``  Your password must be between `$3`` and `$18`` characters long.";
     else if(name.size() < 3 || name.size() > 12) error = "`4Oops!``  Your `wGrowID`` must be between `$3`` and `$12`` characters long.";
     
     if(!error.empty()) 

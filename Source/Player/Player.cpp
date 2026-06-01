@@ -217,7 +217,7 @@ void Player::SendSetHasGrowID(bool active, const string& tankIDName, const strin
 
 void Player::SendSetHasGrowID(bool active)
 {
-    SendSetHasGrowID(active, m_loginDetail.tankIDName, m_loginDetail.tankIDPass);
+    SendSetHasGrowID(active, m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName, m_loginDetail.tankIDPass);
 }
 
 void Player::SendOnSetBux(uint32 gemCount, bool skipAnim, bool isSupporter, bool isSuperSupporter)

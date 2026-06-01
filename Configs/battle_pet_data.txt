@@ -5,3 +5,17 @@
 
 add_pet|1190|Black Cat|kitti|kitty|Bad Luck|WATER|0|0|30|1|25|8|0|0|hiss2.wav||
 set_description|Cross the target's path, making them do -25% damage and suffer +25% damage for 8s.|
+
+add_pet|1252|Virus|virus|viro|Infect|WATER|0|0|0|0|0|0|0|0|bubble_boil.wav||
+set_description|Infect the target for 6 `1Water`` damage per second lasting 7s.|
+
+add_pet|1394|Polar Bear|bear|ursa|Maul|WATER|0|0|0|0|0|0|0|0|splash.wav|droar.wav|
+
+add_pet|870|Calf|calf|moo|Tramper|EARTH|0|0|30|1|25|8|0|0|punch_organic.wav||
+
+add_pet|1742|Puppy|puppi|pup|Pounce|EARTH|0|0|30|1|25|8|0|0|punch_organic.wav|swoosh.wav|
+set_description|Leap to strike!|
+
+add_pet|878|Piglet|piggi|piggy|Wallow|EARTH|0|0|30|1|25|8|0|0|squish.wav||
+set_description|Wallow in the mud, healing yourself.|
+

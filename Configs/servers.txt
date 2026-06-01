@@ -1,43 +1,28 @@
-# if line starts with '#' it means its comment line
+# =================================================================
+# GTopia Servers File
+# =================================================================
 
-# servers should be in order
-# set_master|lan|wan|
-# add_server|lan|wan|server_count|
-# add_renderer|lan|wan|server_count|
-
-# if you want to host it on local (wan = lan)
-# you can get lan in cmd (ifconfig or ipconfig)
-
-# MASTER SERVER ID ALWAYS 0
-
-# server gonna host on port tcp_start + server_id
+# Ports (Port = Start Port + Server ID)
 tcp_start|18500
-
-# server gonna host on port udp_start + server_id
 udp_start|18000
 
-# YOU SHOULD EDIT `CHANGE HERE` TO HOST_IP
-# like LAN IP or VPS/VDS IP
+# set_master|INTERNAL_LAN_IP|EXTERNAL_WAN_IP|
+# add_server|INTERNAL_LAN_IP|EXTERNAL_WAN_IP|COUNT|
+# add_renderer|INTERNAL_LAN_IP|EXTERNAL_WAN_IP|COUNT|
 
-# if you are gonna host it on local it should be 
-# set_master|LAN IP|LAN IP|
-# add_server|LAN IP|LAN IP|1|
+# LOCALHOST/LAN EXAMPLE:
+#    If hosting on your own PC, both IPs must be your LAN IP (e.g., 192.168.1.5)
+#    set_master|192.168.1.5|192.168.1.5|
+#    add_server|192.168.1.5|192.168.1.5|1|
+#
+# VPS / VDS / PRODUCTION EXAMPLE:
+#    If hosting on a virtual server
+#    and WAN is your public Server VPS IP.
+#    set_master|192.168.1.5|95.211.4.12|
+#    add_server|92.168.1.5|95.211.4.12|1|
 
-# if you are gonna host it on vps/vds it should be 
-# set_master|LAN IP|VPS/VDS IP|
-# add_server|LAN IP|VPS/VDS IP|1|
+# Master Server configuration (Must be on top)
+set_master|127.0.0.1|127.0.0.1|
 
-# set_master SHOULD ON TOP!
-set_master|CHANGE HERE|CHANGE HERE|
-
-# YOU CAN SKIP THIS PART
-# what does number mean at end?: it gonna register X amount servers to master
-# if you wan to host on diffirent servers just modify host_ip
-# example add_server|x.x.x.1|x.x.x.1|5| it gonna register 5 server for x.x.x.1 address
-# example add_server|x.x.x.2|x.x.x.2|5| it gonna register 5 server for x.x.x.2 address
-# YOU CAN SKIP THIS PART
-
-# you can edit it with your LAN or VPS/VDS IP
-
-add_server|CHANGE HERE|CHANGE HERE|1|
-# add_renderer|CHANGE HERE|CHANGE HERE|1|
+# Registering sub-servers to Master
+add_server|127.0.0.1|127.0.0.1|1|

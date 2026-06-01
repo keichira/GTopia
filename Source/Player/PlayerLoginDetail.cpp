@@ -4,7 +4,7 @@
 #include "../IO/Log.h"
 #include "../Utils/Base64.h"
 
-bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer, bool asGameServer)
+bool PlayerLoginDetail::Serialize(ParsedTextPacket<30>& packet, Player* pPlayer, bool asGameServer)
 {   
     // platformID,is64bit,hardcoded?
     auto pPlatform = packet.Find("platformID"_hash);
@@ -34,37 +34,89 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<25>& packet, Player* pPlayer,
     if(!pProto || ToUInt(string(pProto->value, pProto->size), protocol) != TO_INT_SUCCESS) 
         return false;
 
-    auto pReqName = packet.Find("requestedName"_hash);
-    if(!pReqName)
-        return false;
-    requestedName = string(pReqName->value, pReqName->size);
+    if(!asGameServer && protocol > 200)
+    {
+        auto pLToken = packet.Find("ltoken"_hash);
+        if(!pLToken)
+            return false;
+
+        if(pLToken->size < 100)
+            return false;
+
+        string payload;
+        if(!Base64_Decode((void*)pLToken->value, pLToken->size, payload))
+            return false;
+
+        if(payload.empty())
+            return false;
+
+        usize loginInfoPos = payload.find("loginInfo=");
+        usize growIDPos = payload.find("&growID=");
+        usize passwordPos = payload.find("&password=");
+
+        if(loginInfoPos == string::npos || growIDPos == string::npos || passwordPos == string::npos)
+            return false;
+
+        usize loginInfoStart = loginInfoPos + 10;
+        string loginInfo = payload.substr(loginInfoStart, growIDPos - loginInfoStart);
+    
+        if(loginInfo.empty())
+            return false;
+
+        usize growIDStart = growIDPos + 8;
+        usize passwordStart = passwordPos + 10;
+
+        tankIDPass = payload.substr(passwordStart);
+
+        if(!tankIDPass.empty()) 
+        {
+            tankIDName = payload.substr(growIDStart, passwordPos - growIDStart);
+            if(tankIDName.empty())
+                return false;
+        } 
+        else 
+        {
+            requestedName = payload.substr(growIDStart, passwordPos - growIDStart);
+            tankIDPass = "";
+        }
+
+        ParseTextPacket(loginInfo.data(), loginInfo.size(), packet);
+    }
+
+    if(protocol <= 200)
+    {
+        auto pReqName = packet.Find("requestedName"_hash);
+        if(!pReqName)
+            return false;
+        requestedName = string(pReqName->value, pReqName->size);
+    
+        auto pTankIDName = packet.Find("tankIDName"_hash);
+        auto pTankIDPass = packet.Find("tankIDPass"_hash);
+    
+        if((pTankIDName && !pTankIDPass) || (!pTankIDName && pTankIDPass)) {
+            return false;
+        }
+    
+        if(pTankIDName) {
+            tankIDName = string(pTankIDName->value, pTankIDName->size);
+    
+            if(tankIDName.empty()) {
+                return false;
+            }
+        }
+    
+        if(pTankIDPass) {
+            tankIDPass = string(pTankIDPass->value, pTankIDPass->size);
+    
+            if(tankIDPass.empty()) {
+                return false;
+            }
+        }
+    }
 
     auto pHash = packet.Find("hash"_hash);
     if(!pHash || ToInt(string(pHash->value, pHash->size), hash) != TO_INT_SUCCESS) {
         return false;
-    }
-
-    auto pTankIDName = packet.Find("tankIDName"_hash);
-    auto pTankIDPass = packet.Find("tankIDPass"_hash);
-
-    if((pTankIDName && !pTankIDPass) || (!pTankIDName && pTankIDPass)) {
-        return false;
-    }
-
-    if(pTankIDName) {
-        tankIDName = string(pTankIDName->value, pTankIDName->size);
-
-        if(tankIDName.empty()) {
-            return false;
-        }
-    }
-
-    if(pTankIDPass) {
-        tankIDPass = string(pTankIDPass->value, pTankIDPass->size);
-
-        if(tankIDPass.empty()) {
-            return false;
-        }
     }
 
     auto pRid = packet.Find("rid"_hash);

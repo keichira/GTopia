@@ -144,30 +144,39 @@ bool LoadItemData()
     }
     pItemMgr->SetupItemExtras();
 
-    File fileHashes;
-    if(!fileHashes.Open(GetProgramPath() + "/filehashes.txt")) {
-        LOGGER_LOG_ERROR("Failed to load filehashes.txt");
-        return false;
+    bool usingGTCDN = pGameConfig->cdnServer.find("ubistatic-a.akamaihd.net") != string::npos;
+    if(usingGTCDN)
+    {
+        LOGGER_LOG_WARN("Detected ubistatic-a.akamaihd.net skipping filehashes.txt");
     }
-
-    uint32 fileSize = fileHashes.GetSize();
-    string fileData(fileSize, '\0');
-
-    if(fileHashes.Read(fileData.data(), fileSize) != fileSize) {
-        fileHashes.Close();
-        return false;
-    }
-    auto lines = Split(fileData, '\n');
-    fileHashes.Close();
 
     std::unordered_map<string, uint32> hashData;
-    for(auto& line : lines) {
-        if(line.empty()) {
-            continue;
+    if(!usingGTCDN)
+    {
+        File fileHashes;
+        if(!fileHashes.Open(GetProgramPath() + "/filehashes.txt")) {
+            LOGGER_LOG_ERROR("Failed to load filehashes.txt");
+            return false;
         }
-
-        auto args = Split(line, '|');
-        hashData.insert_or_assign(args[0], ToUInt(args[1]));
+    
+        uint32 fileSize = fileHashes.GetSize();
+        string fileData(fileSize, '\0');
+    
+        if(fileHashes.Read(fileData.data(), fileSize) != fileSize) {
+            fileHashes.Close();
+            return false;
+        }
+        auto lines = Split(fileData, '\n');
+        fileHashes.Close();
+    
+        for(auto& line : lines) {
+            if(line.empty()) {
+                continue;
+            }
+    
+            auto args = Split(line, '|');
+            hashData.insert_or_assign(args[0], ToUInt(args[1]));
+        }
     }
 
     uint32 minVersion = GetMinRequiredItemDataVersion(
@@ -180,10 +189,16 @@ bool LoadItemData()
         pGameConfig->iosSupportedVersions[1], pGameConfig->macosSupportedVersions[1]
     );
 
-    pItemMgr->LoadFileHashes(hashData, false);
+    if(!usingGTCDN)
+    {
+        pItemMgr->LoadFileHashes(hashData, false);
+    }
     pItemMgr->SaveToClientData(false, minVersion, maxVersion);
 
-    pItemMgr->LoadFileHashes(hashData, true);
+    if(!usingGTCDN)
+    {
+        pItemMgr->LoadFileHashes(hashData, true);
+    }
     pItemMgr->SaveToClientData(true, minVersion, maxVersion);
 
     if(!pItemMgr->LoadConsumableData(GetProgramPath() + "/consumable_data.txt"))
