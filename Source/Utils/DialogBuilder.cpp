@@ -154,7 +154,7 @@ DialogBuilder* DialogBuilder::AddPlayerPicker(const string& id, const string& la
 
 DialogBuilder* DialogBuilder::AddSmallText(const string& text, bool center)
 {
-    m_str += "add_small_text|" + text;
+    m_str += "add_smalltext|" + text;
 
     if(center) m_str += "|center|\n";
     else m_str += "|left|\n";

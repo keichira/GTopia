@@ -202,14 +202,14 @@ enum eTileVisualEffect
 
 enum eBodyPart 
 {
-    BODY_PART_HAIR = 0,
+    BODY_PART_HAT = 0,
     BODY_PART_SHIRT = 1,
     BODY_PART_PANT = 2,
     BODY_PART_SHOE = 3,
     BODY_PART_FACEITEM = 4,
     BODY_PART_HAND = 5,
     BODY_PART_BACK = 6,
-    BODY_PART_HAT = 7,
+    BODY_PART_HAIR = 7,
     BODY_PART_CHESTITEM = 8,
 
     BODY_PART_SIZE

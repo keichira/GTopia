@@ -62,12 +62,13 @@ def get_mkcert_url():
 
     raise Exception(f"Unsupported platform: {sys}-{arch}")
 
-def move_file(src, dst):
+def move_file(src, dst_dir):
     if not os.path.exists(src):
         print(f"❌ File not found: {src}")
         return False
 
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    dst = dst_dir / src.name
+    dst_dir.mkdir(parents=True, exist_ok=True)
 
     if dst.exists():
         print(f"⚠️ Skipped (already exists): {dst}")
@@ -338,6 +339,7 @@ def main():
     move_file(CONFIGS_DIR / "store.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "consumable_data.txt", RUNTIME_DIR)
     move_file(CONFIGS_DIR / "battle_pet_data.txt", RUNTIME_DIR)
+    (RUNTIME_DIR / "logs").mkdir(parents=True, exist_ok=True)
         
     print("\nSetup finished\n")
     print(f"Your LAN IP address is `{get_local_ip()}`, if you are not running on VPS/VDS use this IP address to host")

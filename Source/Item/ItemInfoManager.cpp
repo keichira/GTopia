@@ -512,7 +512,7 @@ bool ItemInfoManager::LoadBattlePetData(const string& filePath)
             info.powerParticle = line.GetUInt(13);
             info.hitParticle = line.GetUInt(14);
             info.powerSound = line.GetString(15);
-            info.hitSound = line.GetUInt(16);
+            info.hitSound = line.GetString(16);
 
             lastItemID = info.itemID;
             m_battlePetData.insert_or_assign(info.itemID, std::move(info));

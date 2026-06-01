@@ -30,6 +30,7 @@ public:
     void CheckAchieveAndUnlockIfPossibleByProgress(ePlayerProgress progress);
 
     uint16 BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved);
+    string GetBattlePetName(int32 slot);
 
 private:
     void UnlockAchievementRaw(eAchievement achievement);

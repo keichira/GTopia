@@ -8,6 +8,7 @@
 #include "Item/ItemInfoManager.h"
 #include "WorldNPCManager.h"
 #include "WorldBossManager.h"
+#include "PetBattleManager.h"
 #include <queue>
 
 enum eWorldState
@@ -73,6 +74,7 @@ public:
     void SendOnActionToAll(GamePlayer* pPlayer, const string& action);
     void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2);
+    void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void HandleTilePackets(GameUpdatePacket* pGamePacket);

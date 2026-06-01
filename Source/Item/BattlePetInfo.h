@@ -10,6 +10,8 @@ enum eBattlePetAbility
     PET_ABILITY_REVIVE
 };
 
+string GetFullBattlePetName(int32 basePet, int32 pet2, int32 pet3);
+
 class BattlePetInfo {
 public:
     BattlePetInfo();

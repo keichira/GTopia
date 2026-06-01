@@ -87,6 +87,9 @@ public:
 
     void ToggleCloth(uint16 itemID);
 
+    void ToggleBattlePetLeash(bool forceFirstSlot);
+    int32 GetActiveBattlePetSlot() const { return m_activeBattlePetSlot; }
+
     void ModifyInventoryItem(uint16 itemID, int16 amount);
     void TrashItem(uint16 itemID, uint16 amount);
     void DropItem(uint16 itemID, uint16 amount, bool openDialog);
@@ -122,6 +125,7 @@ private:
     uint32 m_currentWorldID;
     uint32 m_flags;
     int32 m_gems;
+    uint8 m_activeBattlePetSlot;
 
     PlayerProgress m_progressData;
     PlayerPlayModController m_modController;

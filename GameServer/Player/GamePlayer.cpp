@@ -22,7 +22,7 @@
 GamePlayer::GamePlayer(ENetPeer* pPeer) 
 : Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
 m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0),
-m_progressData(this), m_modController(this)
+m_progressData(this), m_modController(this), m_activeBattlePetSlot(0)
 {
     RandomizeNextDBSaveTime();
 }
@@ -83,7 +83,7 @@ void GamePlayer::GiveXP(uint32 amount)
         }
 
         pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_LEVELUP, m_worldPos);
-        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName(false) + " `wis now level " + ToString(playerNewLevel) + "!", true, this);
+        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName(false) + " `wis now level " + ToString(playerNewLevel) + "!", false, this);
     }
 }
 
@@ -418,13 +418,19 @@ void GamePlayer::ToggleCloth(uint16 itemID)
                 ModifyInventoryItem(ITEM_ID_DIAMOND_HORN, itemCount);
                 break;
             }
+
+            case ITEM_ID_BATTLE_LEASH:
+            {
+                ToggleBattlePetLeash(false);
+                break;
+            }
         }
     }
     else {
         m_inventory.SetClothByPart(pItem->id, pItem->bodyPart);
 
         ItemInfo* pWornItem = GetItemInfoManager()->GetItemByID(wornItem);
-        if(pWornItem) 
+        if(pWornItem)
         {
             m_modController.RemovePlayMod(pWornItem->playModType);
         }
@@ -440,6 +446,38 @@ void GamePlayer::ToggleCloth(uint16 itemID)
         World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
         pWorld->SendClothUpdateToAll(this);
     }
+}
+
+void GamePlayer::ToggleBattlePetLeash(bool forceFirstSlot)
+{
+    if(!forceFirstSlot)
+    {
+        m_activeBattlePetSlot = 1 - m_activeBattlePetSlot;
+    }
+
+    if(m_activeBattlePetSlot == 1)
+    {
+        if(m_progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) == 0)
+        {
+            m_activeBattlePetSlot = 0;
+        }
+    }
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
+        return;
+
+    int32 petID = 0;
+    if(m_activeBattlePetSlot == 0)
+    {
+        petID = m_progressData.GetProgress(PLAYER_PROGRESS_PET_1_0);
+    }
+    else
+    {
+        petID = m_progressData.GetProgress(PLAYER_PROGRESS_PET_2_0);
+    }
+
+    pWorld->SendBattlePetPacketToAll(PET_EVENT_EQUIP, GetNetID(), petID);
 }
 
 void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)

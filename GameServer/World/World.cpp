@@ -246,6 +246,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
 
     string playerDisplayName = pPlayer->GetDisplayName(true);
     string joinNotifyOtherMsg = "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
+    pPlayer->ToggleBattlePetLeash(false);
 
     for(auto& pWorldPlayer : m_players) 
     {
@@ -716,6 +717,24 @@ void World::SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, 
     packet.field_10 = speed;
     packet.field_11 = val1;
     packet.field_12 = val2;
+
+    SendGamePacketToAll(&packet);
+}
+
+void World::SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_PET_BATTLE;
+    packet.field_3 = eventType;
+    packet.field_4 = netID;
+    packet.field_12 = petID;
+
+    /**
+     * field_5
+     * field_10
+     * field_11
+     * field_7
+     */
 
     SendGamePacketToAll(&packet);
 }

@@ -1,5 +1,6 @@
 #include "BattlePetInfo.h"
 #include "../Utils/StringUtils.h"
+#include "ItemInfoManager.h"
 
 BattlePetInfo::BattlePetInfo()
 {
@@ -78,4 +79,27 @@ string BattlePetInfo::GetDescribedPower()
     }
 
     return out;
+}
+
+string GetFullBattlePetName(int32 basePet, int32 pet2, int32 pet3)
+{
+    BattlePetInfo* pBasePet = GetItemInfoManager()->GetBattlePetInfo(basePet);
+    if(!pBasePet)
+        return "???";
+
+    string name = pBasePet->subName;
+
+    BattlePetInfo* pSecondPet = GetItemInfoManager()->GetBattlePetInfo(pet2);
+    if(!pSecondPet)
+        return "???";
+
+    name += pSecondPet->subName;
+
+    BattlePetInfo* pThirdPet = GetItemInfoManager()->GetBattlePetInfo(pet3);
+    if(!pThirdPet)
+        return "???";
+
+    name += pThirdPet->endName;
+
+    return name;
 }

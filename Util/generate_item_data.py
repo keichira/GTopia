@@ -355,14 +355,14 @@ ITEM_TYPE_STR = [
 ]
 
 ITEM_BODY_PART_STR = [
-    "HAIR",
+    "HAT",
     "SHIRT",
     "PANT",
     "SHOE",
     "FACEITEM",
     "HAND",
     "BACK",
-    "HAT",
+    "HAIR",
     "CHESTITEM",
 ]
 

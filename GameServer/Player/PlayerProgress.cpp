@@ -3,6 +3,7 @@
 #include "Math/Math.h"
 #include "GamePlayer.h"
 #include "../World/WorldManager.h"
+#include "Item/ItemInfoManager.h"
 
 PlayerProgress::PlayerProgress(GamePlayer* pPlayer)
 : m_pPlayer(pPlayer), m_version(PLAYER_PROGRESS_VERSION)
@@ -168,6 +169,16 @@ uint16 PlayerProgress::BuildAchievementsDialog(DialogBuilder& db, bool onlyAchie
     }
 
     return count;
+}
+
+string PlayerProgress::GetBattlePetName(int32 slot)
+{
+    int32 slotStart = PLAYER_PROGRESS_PET_1_0 + 3 * slot;
+
+    if(slotStart + 2 >= PLAYER_PROGRESS_COUNT)
+        return "???";
+
+    return GetFullBattlePetName(m_progressData[slotStart], m_progressData[slotStart + 1], m_progressData[slotStart + 2]);
 }
 
 void PlayerProgress::UnlockAchievementRaw(eAchievement achievement)

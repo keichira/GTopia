@@ -1,8 +1,11 @@
 #pragma once
 
 #include "../Precompiled.h"
-#include <math.h>
+#include <cmath>
 #include "Vector2.h"
+
+#undef M_PI
+static const float M_PI = 3.14159265358979323846264338327950288f;
 
 template<typename T, typename U>
 inline T Min(T lhs, U rhs) { return lhs < rhs ? lhs : rhs; }
