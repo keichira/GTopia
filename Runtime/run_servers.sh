@@ -1,20 +1,19 @@
 #!/bin/bash
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Plase run this script with 'sudo ./run_servers.sh'"
+  echo "Please run this script with 'sudo ./run_servers.sh'"
   exit 1
 fi
 
 if [ -f "servers.txt" ]; then
-    GAME_SERVER_COUNT=$(grep "^server_count|" servers.txt | cut -d'|' -f2)
+    GAME_SERVER_COUNT=$(awk -F'|' '/^[[:space:]]*add_server\|/ {sum += $4} END {print sum}' servers.txt)
 else
     GAME_SERVER_COUNT=1
 fi
 
-if [ -z "$GAME_SERVER_COUNT" ]; then
+if [ -z "$GAME_SERVER_COUNT" ] || [ "$GAME_SERVER_COUNT" -eq 0 ]; then
     GAME_SERVER_COUNT=1
 fi
-
 echo "Detected Game Server Count from config: $GAME_SERVER_COUNT"
 
 echo "Launching HTTPS Server..."

@@ -55,7 +55,7 @@ void ServerBase::Update()
 void ServerBase::SetENetIncomeCmdType(uint8 type)
 {
     if(type == 1) m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_DEFAULT);
-    if(type == 2) m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_GT_PROTOCOL);
+    else if(type == 2) m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_GT_PROTOCOL);
     else m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_BOTH);
 }
 

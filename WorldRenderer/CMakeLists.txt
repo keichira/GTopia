@@ -27,6 +27,7 @@ set(WORLD_RENDERER_FILES PRIVATE
     ${SOURCE_ITEM}/ItemInfo.cpp
     ${SOURCE_ITEM}/ItemInfoManager.cpp
     ${SOURCE_ITEM}/ItemUtils.cpp
+    ${SOURCE_ITEM}/BattlePetInfo.cpp
 
     ${SOURCE_NETWORK}/NetClient.cpp
     ${SOURCE_NETWORK}/NetSocket.cpp
@@ -42,6 +43,7 @@ set(WORLD_RENDERER_FILES PRIVATE
     ${SOURCE_UTILS}/GameConfig.cpp
     ${SOURCE_UTILS}/ZLibUtils.cpp
     ${SOURCE_UTILS}/ConfigDB.cpp
+    ${SOURCE_UTILS}/GrowUtils.cpp
     ${SOURCE_PROTON}/ProtonUtils.cpp
 
     ${WORLD_RENDERER_ROOT}/MasterBroadway.cpp

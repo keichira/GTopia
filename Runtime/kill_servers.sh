@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [ "$EUID" -ne 0 ]; then
-  echo "Plase run this script with 'sudo ./kill_servers.sh'"
+  echo "Please run this script with 'sudo ./kill_servers.sh'"
   exit 1
 fi
 
