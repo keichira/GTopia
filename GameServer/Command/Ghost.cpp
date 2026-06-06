@@ -7,7 +7,7 @@ const CommandInfo& Ghost::GetInfo()
     {
         "/ghost",
         "Walk throught blocks",
-        ROLE_PERM_COMMAND_GHOST,
+        "command.ghost"_hash,
         {
             "ghost"_hash
         }

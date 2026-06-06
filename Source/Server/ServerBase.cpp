@@ -3,6 +3,7 @@
 #include "../IO/Log.h"
 
 ServerBase::ServerBase()
+: m_lastConnectionID(0)
 {
 }
 
@@ -11,15 +12,15 @@ ServerBase::~ServerBase()
     Kill();
 }
 
-void ServerBase::OnEventConnect(ENetEvent& event)
+void ServerBase::OnEventConnect(NetworkEvent& event)
 {
 }
 
-void ServerBase::OnEventReceive(ENetEvent& event)
+void ServerBase::OnEventReceive(NetworkEvent& event)
 {
 }
 
-void ServerBase::OnEventDisconnect(ENetEvent& event)
+void ServerBase::OnEventDisconnect(NetworkEvent& event)
 {
 }
 
@@ -30,7 +31,8 @@ void ServerBase::RegisterEvents()
 bool ServerBase::Init(const string& host, uint16 port)
 {
     m_pENetServer = new ENetServer();
-    if(!m_pENetServer->Init(host, port)) {
+    if(!m_pENetServer->Init(host, port)) 
+    {
         return false;
     }
 
@@ -45,11 +47,7 @@ void ServerBase::Kill()
 
 void ServerBase::Update()
 {
-    if(!m_pENetServer) {
-        return;
-    }
-
-    m_pENetServer->Update();
+    
 }
 
 void ServerBase::SetENetIncomeCmdType(uint8 type)
@@ -61,28 +59,28 @@ void ServerBase::SetENetIncomeCmdType(uint8 type)
 
 void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
 {
-    if(!m_pENetServer) {
-        return;
-    }
-
     Timer startTime;
-    ENetEvent event;
+    NetworkEvent netEvent;
 
-    while(m_pENetServer->GetEvents().try_dequeue(event)) {
-        switch(event.type) {
-            case ENET_EVENT_TYPE_CONNECT: {
-                OnEventConnect(event);
+    while(m_networkQueue.try_dequeue(netEvent)) 
+    {
+        switch(netEvent.type) 
+        {
+            case ENET_EVENT_TYPE_CONNECT: 
+            {
+                OnEventConnect(netEvent);
                 break;
             }
 
-            case ENET_EVENT_TYPE_RECEIVE: {
-                OnEventReceive(event);
-                enet_packet_destroy(event.packet);
+            case ENET_EVENT_TYPE_RECEIVE: 
+            {
+                OnEventReceive(netEvent);
                 break;
             }
 
-            case ENET_EVENT_TYPE_DISCONNECT: {
-                OnEventDisconnect(event);
+            case ENET_EVENT_TYPE_DISCONNECT: 
+            {
+                OnEventDisconnect(netEvent);
                 break;
             }
 
@@ -90,7 +88,8 @@ void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
                 break;
         }
 
-        if(startTime.GetElapsedTime() >= maxTimeMS) {
+        if(startTime.GetElapsedTime() >= maxTimeMS) 
+        {
             break;
         }
     }

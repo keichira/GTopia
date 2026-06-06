@@ -70,7 +70,7 @@ uint8 Proton::ConvertVariantType(eVariantTypes type)
 	return 0;
 }
 
-uint8 *Proton::SerializeToMem(VariantVector &varVector, uint32 *pSizeOut, uint8 *pDest)
+uint8 *Proton::SerializeToMem(const VariantVector &varVector, uint32 *pSizeOut, uint8 *pDest)
 {
     int varsUsed = 0;
 	int memNeeded = 0;
@@ -147,4 +147,33 @@ uint8 *Proton::SerializeToMem(VariantVector &varVector, uint32 *pSizeOut, uint8 
 
 	*pSizeOut = totalSize;
 	return pDest;
+}
+
+uint32 Proton::GetMemEstiamte(const VariantVector &varVector)
+{
+    int varsUsed = 0;
+	int memNeeded = 0;
+
+	int tempSize;
+
+	for (int i=0; i < varVector.size(); ++i)
+	{
+		if (varVector[i].GetType() == VARIANT_TYPE_STRING)
+		{
+			tempSize = (int)varVector[i].GetString().size()+4; //the 4 is for an int showing how long the string will be when writing
+		} 
+		else
+		{
+			tempSize = varVector[i].GetSize();
+		}
+
+		if (tempSize > 0)
+		{
+			varsUsed++;
+			memNeeded += tempSize;
+		}
+
+	}
+
+	return memNeeded + 1 + (varsUsed*2);
 }

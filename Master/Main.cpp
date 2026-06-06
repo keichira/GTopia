@@ -43,15 +43,36 @@ void EventThreadFunc()
     TelnetServer* pTelnetServer = GetTelnetServer();
     Context* pContext = GetContext();
 
-    while(pContext->IsRunning()) {
-        
-        if(!pContext->IsShutting())
-        {
-            pGameServer->Update();
+    uint64 lastCalculateTime = Time::GetSystemTime();
+    uint64 totalWorkTime = 0;
+
+    while(pContext->IsRunning())
+    {
+        uint64 currentTime = Time::GetSystemTime();
+
+        uint32 elapsedMs = (uint32)(currentTime - lastCalculateTime);
+        if (elapsedMs >= 1000) {
+            uint32 permille = (uint32)((totalWorkTime * 1000) / elapsedMs);
+
+            if(permille > 1000)
+            {
+                permille = 1000;
+            }
+
+            pContext->GetPerfStats().netCpuPermille = permille;
+
+            totalWorkTime = 0;
+            lastCalculateTime = currentTime;
         }
 
+        uint64 workStart = Time::GetSystemTime();
+        
+        pGameServer->Update();
         pServerMgr->Update(false);
-        pTelnetServer->Update();
+        pTelnetServer->Update(); // todo here handle on gameloop
+
+        uint64 workEnd = Time::GetSystemTime();
+        totalWorkTime += (workEnd - workStart);
 
         SleepMS(1);
     }
@@ -93,9 +114,16 @@ void RunGameLoop()
     uint64 tickDurSum = 0;
     uint32 tickCount = 0;
 
+    uint32 intervalMaxTickMs = 0;
+    uint32 intervalMaxLagSpikeMs = 0;
+    
+    uint64 totalWorkTimeInInterval = 0;
+    uint64 loopIterStart = now;
+
     while(pContext->IsRunning())
     {
-        now = Time::GetSystemTime();
+        loopIterStart = Time::GetSystemTime();
+        now = loopIterStart;
         uint32 loops = 0;
 
         pServerMgr->UpdateTCPLogic(NETWORK_BUDGET_MS);
@@ -111,21 +139,20 @@ void RunGameLoop()
         {
             uint64 tickStart = Time::GetSystemTime();
 
-            if(!pContext->IsShutting())
-            {
-                pGameServer->UpdateGameLogic(GAME_TICK_MS);
-            }
-            pServerMgr->UpdateServers();
+            pGameServer->UpdateGameLogic(GAME_TICK_MS);
 
             uint64 tickEnd = Time::GetSystemTime();
-            uint64 tickDur = tickEnd - tickStart;
+            uint32 tickDur = (uint32)(tickEnd - tickStart);
 
             tickDurSum += tickDur;
             ++tickCount;
 
-            ContextPerfStats& perf = pContext->GetPerfStats();
-            perf.maxTickMs = Max(perf.maxTickMs, tickDur);
-            perf.lagSpikeMs = (tickDur > GAME_TICK_MS) ? (tickDur - GAME_TICK_MS) : 0;
+            intervalMaxTickMs = Max(intervalMaxTickMs, tickDur);
+            if(tickDur > GAME_TICK_MS)
+            {
+                uint32 currentSpike = tickDur - GAME_TICK_MS;
+                intervalMaxLagSpikeMs = Max(intervalMaxLagSpikeMs, currentSpike);
+            }
 
             nextTick += GAME_TICK_MS;
             ++loops;
@@ -137,26 +164,43 @@ void RunGameLoop()
             nextTick = now + GAME_TICK_MS;
         }
 
+        uint64 loopIterEnd = Time::GetSystemTime();
+        totalWorkTimeInInterval += (loopIterEnd - loopIterStart);
+
         if(now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
         {
             ContextPerfStats& perf = pContext->GetPerfStats();
+            uint32 elapsedIntervalMs = (uint32)(now - lastPerfUpdateTime);
 
             if(tickCount > 0)
             {
                 perf.avgTickMs = (uint32)(tickDurSum / tickCount);
             }
+            else
+            {
+                perf.avgTickMs = 0;
+            }
 
-            perf.cpuPermille = (perf.avgTickMs * 1000) / GAME_TICK_MS;
-            perf.lastUpdateTime.Reset(now);
+            perf.maxTickMs = intervalMaxTickMs;
+            perf.lagSpikeMs = intervalMaxLagSpikeMs;
+
+            perf.cpuPermille = (uint32)((totalWorkTimeInInterval * 1000) / elapsedIntervalMs);
+            if(perf.cpuPermille > 1000)
+            {
+                perf.cpuPermille = 1000;
+            }
 
             tickDurSum = 0;
             tickCount = 0;
+            intervalMaxTickMs = 0;
+            intervalMaxLagSpikeMs = 0;
+            totalWorkTimeInInterval = 0;
             lastPerfUpdateTime = now;
         }
 
-        if(nextTick - now > 0)
+        if(nextTick > now)
         {
-            SleepMS(nextTick - now);
+            SleepMS((uint32)(nextTick - now));
         }
     }
 }
@@ -261,6 +305,14 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_INFO("Not starting telnet server its disabled in config");
     }
+
+    gNetBurstConfig.threshold.heavyQueueSize = pGameConfig->netThreshold.heavyQueueSize;
+    gNetBurstConfig.threshold.panicQueueSize = pGameConfig->netThreshold.panicQueueSize;
+    gNetBurstConfig.threshold.heavyCpuPermille = pGameConfig->netThreshold.heavyCpuPermille;
+    gNetBurstConfig.threshold.panicCpuPermille = pGameConfig->netThreshold.panicBurst;
+    gNetBurstConfig.normalBurst = pGameConfig->netThreshold.normalBurst;
+    gNetBurstConfig.heavyBurst = pGameConfig->netThreshold.heavyBurst;
+    gNetBurstConfig.panicBurst = pGameConfig->netThreshold.panicBurst;
 
     std::thread dbThread(DatabaseThreadFunc);
     std::thread eventThread(EventThreadFunc);

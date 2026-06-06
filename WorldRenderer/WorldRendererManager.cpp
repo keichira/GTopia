@@ -7,10 +7,12 @@
 
 WorldRendererManager::WorldRendererManager()
 {
+    m_pRenderer = new WorldRenderer();
 }
 
 WorldRendererManager::~WorldRendererManager()
 {
+    SAFE_DELETE(m_pRenderer);
 }
 
 void WorldRendererManager::Update()
@@ -47,8 +49,7 @@ void WorldRendererManager::Update()
     }
 
     uint64 timeLoad = Time::GetSystemTime();
-    WorldRenderer renderWorld;
-    if(!renderWorld.LoadWorld(renderInfo.worldID)) {
+    if(!m_pRenderer->LoadWorld(renderInfo.worldID)) {
         LOGGER_LOG_ERROR("Failed to load world %d, skipping", renderInfo.worldID);
         pMasterBroadway->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
         return;   
@@ -56,14 +57,14 @@ void WorldRendererManager::Update()
     uint64 timeLoadEnd = Time::GetSystemTime();
 
     uint64 timeDraw = Time::GetSystemTime();
-    renderWorld.Draw();
-    uint64 timeDrawEnd = Time::GetSystemTime(); 
+    m_pRenderer->Draw();
+    uint64 timeDrawEnd = Time::GetSystemTime();
 
     pMasterBroadway->SendWorldRenderResult(true, renderInfo.userID, renderInfo.worldID);
 
     uint64 finalLoadTime = timeLoadEnd - timeLoad;
     uint64 finalDRawTime = timeDrawEnd - timeDraw;
-    LOGGER_LOG_INFO("Rendered world %d requested: %d loadTime: %dms, drawTime: %dms, total %dms", renderInfo.worldID, renderInfo.userID, finalLoadTime, finalDRawTime, finalLoadTime + finalDRawTime );
+    LOGGER_LOG_INFO("Rendered world %d requestedUser: %d loadTime: %dms, drawTime: %dms, total %dms", renderInfo.worldID, renderInfo.userID, finalLoadTime, finalDRawTime, finalLoadTime + finalDRawTime );
 }
 
 void WorldRendererManager::AddTask(uint32 userID, uint32 worldID)

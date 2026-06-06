@@ -105,7 +105,7 @@ void DatabaseWorker::Update()
 
 void DatabaseWorker::AddTask(QueryTaskRequest&& taskReq)
 {
-    m_taskQueue.enqueue(taskReq);
+    m_taskQueue.enqueue(std::move(taskReq));
 }
 
 void DatabaseWorker::SetupPreparedParams(VariantVector& params, bool bulk, uint32 startPos)
@@ -154,6 +154,7 @@ bool DatabaseWorker::BuildRawQueryParams(string& query, const VariantVector& par
     uint32 paramIndex = 0;
 
     string res;
+    res.reserve(query.size() + 120);
 
     for(uint32 i = 0; i < query.size(); ++i) {
         if(query[i] == '?') {
@@ -182,6 +183,7 @@ void DatabaseWorker::MakeFailedTaskAndAdd(QueryTaskRequest& taskReq, QueryTaskRe
     taskRes.extraData = std::move(taskReq.extraData);
     taskRes.status = status;
     taskRes.ownerID = taskReq.ownerID;
+    taskRes.callback = taskReq.callback;
 
     m_pDbPool->AddResult(std::move(taskRes));
 }

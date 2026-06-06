@@ -66,6 +66,7 @@ void LoadAccount(QueryTaskResult&& result)
     {
         pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong while setting you up, please re-connect");
         LOGGER_LOG_WARN("Failed to set player role %d for user %d", roleID, pPlayer->GetUserID());
+        pPlayer->LogOff(true, false, true);
         return;
     }
     pPlayer->SetRole(pRole);

@@ -11,7 +11,7 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     if(!pObject)
         return;
 
-    if(IsIllegalItem(pObject->itemID) && !pPlayer->GetRole()->HasPerm(ROLE_PERM_BYPASS_ILLEGAl_ITEM))
+    if(IsIllegalItem(pObject->itemID) && !pPlayer->GetRole()->HasPerm("bypass.item_mod"_hash))
         return;
 
     ItemInfo* pItemInfo = GetItemInfoManager()->GetItemByID(pObject->itemID);
@@ -42,7 +42,7 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     if(!pWorld->CanPlayerTravelToTile(pPlayer, pPlayerTile, pTile))
         return;
 
-    if(pItemInfo->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD))
+    if(pItemInfo->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm("bypass.item_mod"_hash))
         return;
 
     PlayerInventory& inventory = pPlayer->GetInventory();

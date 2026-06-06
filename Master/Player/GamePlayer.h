@@ -12,7 +12,7 @@ enum ePlayerState
 
 class GamePlayer : public Player {
 public:
-    GamePlayer(ENetPeer* pPeer);
+    GamePlayer();
     ~GamePlayer();
 
 public:

@@ -17,17 +17,25 @@ MasterBroadway::~MasterBroadway()
 
 void MasterBroadway::OnClientConnect(NetClient* pClient)
 {
-    if(m_pNetClient && pClient) {
+    if(!pClient)
+        return;
+
+    if(m_pNetClient && m_pNetClient != pClient) 
+    {
         pClient->status = SOCKET_CLIENT_CLOSE;
+        return;
     }
-    else if(!m_pNetClient && pClient) {
-        m_pNetClient = pClient;
-    }
+
+    m_pNetClient = pClient;
 }
 
 void MasterBroadway::OnClientDisconnect(NetClient* pClient)
 {
-    if(pClient && m_pNetClient && (m_pNetClient == pClient)) {
+    if(!pClient)
+        return;
+
+    if(m_pNetClient == pClient)
+    {
         m_pNetClient = nullptr;
     }
 }

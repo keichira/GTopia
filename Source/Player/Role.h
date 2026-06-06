@@ -2,21 +2,6 @@
 
 #include "../Precompiled.h"
 
-enum eRolePerm
-{
-    ROLE_PERM_NONE, // everyone has it actually for commands
-
-    ROLE_PERM_MSTATE,
-    ROLE_PERM_SMSTATE,
-    ROLE_PERM_USE_ITEM_TYPE_MOD,
-    ROLE_PERM_CAN_WEAR_ANY,
-    ROLE_PERM_COMMAND_GHOST,
-    ROLE_PERM_COMMAND_MAGIC,
-    ROLE_PERM_BYPASS_ILLEGAl_ITEM,
-
-    ROLE_PERM_SIZE
-};
-
 enum eRoleResolve
 {
     ROLE_RESOLVE_NONE,
@@ -40,10 +25,11 @@ public:
     char GetNameColor() const { return m_nameColor; }
     char GetChatColor() const { return m_chatColor; }
 
-    bool HasPerm(eRolePerm perm);
+    void FinalizePermissions();
+    bool HasPerm(uint32 perm) const;
 
 private:
-    void AddPerm(eRolePerm perm);
+    void AddPerm(uint32 perm);
 
 private:
     string m_name;

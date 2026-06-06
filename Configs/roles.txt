@@ -6,31 +6,21 @@
 #set_chat_color|gt_color_code|
 #set_perms|perms...|
 
-init_perms|mstate|smstate|use_item_type_mod|can_wear_any|command_ghost|command_magic|bypass_illegal_item|
-
-# command_* used to access the slash command
-
-# mstate | used for zooming
-# smstate | long build & punch range
-# use_item_type_mod | able to use items with flagged ITEM_FLAG_MOD
-# can_wear_any | able to wear any items beside clothes
-# bypass_illegal_item | bypass IsIllegalItem()
-
 set_default_role|3|
 
 add_role|Developer|1|@||
 set_name_color|6|
 set_chat_color|#|
 set_inherits|2|
-set_perms|smstate|
+set_perms|state.smod|command.toggleplaymod|command.giveitem|
 
 add_role|Moderator|2|@||
 set_name_color|#|
 set_chat_color|1|
 set_inherits|3|
-set_perms|mstate|command_ghost|command_magic|use_item_type_mod|
+set_perms|state.mod|command.ghost|command.magic|command.ageworld|bypass_item.mod|
 
 add_role|Default|3|||
 set_name_color|w|
 set_chat_color|w|
-#set_perms||
+set_perms|command.renderworld|

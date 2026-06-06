@@ -34,7 +34,7 @@ GamePlayer* PlayerManager::IsPlayerAlreadyOn(GamePlayer* pNewPlayer)
         if(!pPlayer || pPlayer == pNewPlayer) 
             continue;
 
-        if(pNewPlayer->GetUserID() == pPlayer->GetUserID() && !pPlayer->HasState(PLAYER_STATE_DELETE))
+        if(pNewPlayer->GetUserID() == pPlayer->GetUserID())
             return pPlayer;
     }
 
@@ -128,9 +128,13 @@ void PlayerManager::UpdatePlayers()
     for(auto& pPlayer : m_pendingDelete) 
     {
         if(!GetPlayerByNetID(pPlayer->GetNetID()))
+        {
+            SAFE_DELETE(pPlayer);
             continue;
+        }
 
         m_gamePlayers.erase(pPlayer->GetNetID());
+        SAFE_DELETE(pPlayer);
     }
 
     m_pendingDelete.clear();

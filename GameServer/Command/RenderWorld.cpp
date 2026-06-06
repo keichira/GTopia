@@ -9,7 +9,7 @@ const CommandInfo& RenderWorld::GetInfo()
     {
         "/renderworld",
         "View world as image",
-        ROLE_PERM_NONE,
+        "command.renderworld"_hash,
         {
             "renderworld"_hash
         }

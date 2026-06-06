@@ -49,17 +49,12 @@ void ENetServer::Kill()
     enet_deinitialize();
 }
 
-void ENetServer::Update()
+bool ENetServer::Update(ENetEvent* pEvent)
 {
-    if(!m_pHost) {
-        return;
-    }
+    if(!m_pHost || !pEvent)
+        return false;
 
-    ENetEvent event;
-    while(enet_host_service(m_pHost, &event, 0) > 0) 
-    {
-        m_eventQueue.enqueue(std::move(event));
-    }
+    return enet_host_service(m_pHost, pEvent, 0) > 0;
 }
 
 void ENetServer::SetENetIncomeCmdType(ENetHostIncomeCommandType type)

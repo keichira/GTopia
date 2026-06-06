@@ -10,7 +10,7 @@ const CommandInfo& Magic::GetInfo()
     {
         "/magic",
         "Bass da da da",
-        ROLE_PERM_COMMAND_MAGIC,
+        "command.magic"_hash,
         {
             "magic"_hash
         }

@@ -39,6 +39,8 @@ set(GAME_FILES PRIVATE
     ${SOURCE_UTILS}/Base64.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
+    ${SOURCE_PACKET}/PacketPool.cpp
+    ${SOURCE_PACKET}/VariantPacket.cpp
 
     ${SOURCE_ITEM}/ItemInfo.cpp
     ${SOURCE_ITEM}/ItemInfoManager.cpp

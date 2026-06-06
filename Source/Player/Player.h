@@ -9,16 +9,15 @@
 #include "ParticleEffect.h"
 #include <enet/enet.h>
 
-
 enum ePlayerLogonMode
 {
     LOGON_MODE_WELCOME = 1,
     LOGON_MODE_TRANSFER = 2
 };
 
-class Player : public NetEntity {
+class Player {
 public:
-    Player(ENetPeer* pPeer);
+    Player();
     virtual ~Player();
 
 public:
@@ -50,10 +49,11 @@ public:
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);
-    void SendCallFunctionPacket(VariantVector& data, int32 netID = -1, int32 delay = -1);
+
+    void SetNetID(uint32 netID) { m_netID = netID; };
+    uint32 GetNetID() const { return m_netID; }
 
     PlayerLoginDetail& GetLoginDetail() { return m_loginDetail; }
-    ENetPeer* GetPeer() { return m_pPeer; }
 
     uint32 GetUserID() const { return m_userID; }
     void SetUserID(uint32 userID) { m_userID = userID; }
@@ -73,9 +73,9 @@ public:
 
 protected:
     uint32 m_userID;
+    uint32 m_netID;
     PlayerLoginDetail m_loginDetail;
 
-    ENetPeer* m_pPeer;
     char m_address[16];
     string m_lastAction;
 

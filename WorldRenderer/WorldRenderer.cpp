@@ -9,16 +9,21 @@
 #include "WeatherRenderer.h"
 
 WorldRenderer::WorldRenderer()
+: m_cachedWidth(0), m_cachedHeight(0)
 {
+    m_pWorld = new WorldInfo();
 }
 
 WorldRenderer::~WorldRenderer()
 {
+    SAFE_DELETE(m_pWorld);
 }
 
 bool WorldRenderer::LoadWorld(uint32 worldID)
 {
     string path = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(worldID) + ".bin";
+
+    SAFE_DELETE(m_pWorld);
 
     File file;
     if(!file.Open(path)) {
@@ -34,8 +39,10 @@ bool WorldRenderer::LoadWorld(uint32 worldID)
         return false;
     }
 
+    m_pWorld = new WorldInfo();
+
     MemoryBuffer memBuffer(pData, fileSize);
-    m_world.Serialize(memBuffer, false, true);
+    m_pWorld->Serialize(memBuffer, false, true);
     SAFE_DELETE_ARRAY(pData);
     file.Close();
 
@@ -44,20 +51,34 @@ bool WorldRenderer::LoadWorld(uint32 worldID)
 
 void WorldRenderer::Draw()
 {
+    if(!m_pWorld)
+        return;
+
     m_renderer.SetThreadCount(2);
 
-    WorldTileManager* pTileMgr = m_world.GetTileManager();
-
+    WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
     uint32 worldWidth = pTileMgr->GetSize().x;
     uint32 worldHeight = pTileMgr->GetSize().y;
 
-    m_renderer.Init(worldWidth * 16, worldHeight * 16);
+    uint32 targetWidth = worldWidth * 16;
+    uint32 targetHeight = worldHeight * 16;
+
+    if(m_cachedWidth != targetWidth || m_cachedHeight != targetHeight) 
+    {
+        m_renderer.Init(targetWidth, targetHeight);
+        m_cachedWidth = targetWidth;
+        m_cachedHeight = targetHeight;
+    }
+
+    m_renderer.Clear();
 
     DrawWeather();
     ComputeVisibleBG();
 
-    for(int32 y = 0; y < worldHeight; ++y) {
-        for(int32 x = 0; x < worldWidth; ++x) {
+    for(int32 y = 0; y < worldHeight; ++y) 
+    {
+        for(int32 x = 0; x < worldWidth; ++x) 
+        {
     
             TileInfo* pTile = pTileMgr->GetTile(x, y);
             if(!pTile)
@@ -65,11 +86,13 @@ void WorldRenderer::Draw()
     
             int32 idx = y * worldWidth + x;
     
-            if(pTile->GetBG() != ITEM_ID_BLANK && m_visibleBG[idx]) {
+            if(pTile->GetBG() != ITEM_ID_BLANK && m_visibleBG[idx]) 
+            {
                 DrawTile(pTile, pTile->GetBG());
             }
     
-            if(pTile->GetFG() != ITEM_ID_BLANK) {
+            if(pTile->GetFG() != ITEM_ID_BLANK) 
+            {
                 DrawTile(pTile, pTile->GetFG());
             }
         }
@@ -79,8 +102,9 @@ void WorldRenderer::Draw()
     m_renderer.DrawRect(bedrockRect, BLRgba32(0, 0, 0, 150));
 
     BLFont* pFont = GetResourceManager()->GetFont(FONT_TYPE_CENTURY_GOTHIC_BOLD);
-    if(pFont) {
-        string worldName = "`#Visit `0\"" + m_world.GetWorlName() + "\" `#in";
+    if(pFont)
+    {
+        string worldName = "`#Visit `0\"" + m_pWorld->GetWorlName() + "\" `#in";
 
         float textWidth = m_renderer.GetTextWidth(pFont, worldName, 32);
         float textHeight = m_renderer.GetTextHeight(pFont, 32);
@@ -88,13 +112,13 @@ void WorldRenderer::Draw()
         m_renderer.DrawGTText(pFont, BLPoint{m_renderer.GetSurfaceWitdh() - textWidth * 0.9f, m_renderer.GetSurfaceHeight() - textHeight - 16*3}, worldName, 32);
     }
 
-    m_renderer.WriteToFile(GetContext()->GetGameConfig()->rendererSavePath + "/" + m_world.GetWorlName() + ".png");
-    m_world.Kill();
+    m_renderer.WriteToFile(GetContext()->GetGameConfig()->rendererSavePath + "/" + m_pWorld->GetWorlName() + ".png");
+    SAFE_DELETE(m_pWorld)
 }
 
 void WorldRenderer::ComputeVisibleBG()
 {
-    WorldTileManager* pTileMgr = m_world.GetTileManager();
+    WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
     uint32 worldWidth = pTileMgr->GetSize().x;
     uint32 worldHeight = pTileMgr->GetSize().y;
 
@@ -113,8 +137,7 @@ void WorldRenderer::ComputeVisibleBG()
                 continue;
             }
 
-            if(
-                IsFGTransparent(pTile->GetFG()) ||
+            if(IsFGTransparent(pTile->GetFG()) ||
                 ((worldHeight - y) >= 6 && pTile->GetFG() == ITEM_ID_BEDROCK)
             ) {
                 for(auto& n : neighbors) {
@@ -135,7 +158,7 @@ void WorldRenderer::DrawWeather()
 {
     WeatherRenderer weatherRenderer(m_renderer);
 
-    switch(m_world.GetCurrentWeather()) {
+    switch(m_pWorld->GetCurrentWeather()) {
         case WEATHER_TYPE_SUNSET: {
             weatherRenderer.DrawSunset();
             break;
@@ -189,7 +212,7 @@ Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
     uint8 coordY = pItem->textureY;
 
     Vector2Int tilePos = pTile->GetPos();
-    WorldTileManager* pTileMgr = m_world.GetTileManager();
+    WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
 
     Vector2Int worldSize = pTileMgr->GetSize();
 
@@ -199,34 +222,34 @@ Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
         case STORAGE_SMART_EDGE: {
             bool topLeft = 
                 (tilePos.x > 0 && tilePos.y > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x - 1, tilePos.y - 1 , isBackground) : false;
-
+        
             bool midLeft = 
                 (tilePos.x > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x - 1, tilePos.y, isBackground) : false;
             
             bool botLeft = 
                 (tilePos.x > 0 && tilePos.y < worldSize.y - 1) ? pTileMgr->IsSameTile(pTile, tilePos.x - 1, tilePos.y + 1, isBackground) : false;
-
+        
             bool bottom = 
                 (tilePos.y < worldSize.y - 1) ?  pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y + 1, isBackground) : false;
-
+        
             bool bottomRight = 
                 (tilePos.x < worldSize.x - 1 && tilePos.y < worldSize.y - 1) ? pTileMgr->IsSameTile(pTile, tilePos.x + 1, tilePos.y + 1, isBackground) : false; 
-
+        
             bool midRight = 
                 (tilePos.x < worldSize.x - 1) ? pTileMgr->IsSameTile(pTile, tilePos.x + 1, tilePos.y, isBackground) : false; 
-
+        
             bool topRight = 
                 (tilePos.x < worldSize.x - 1 && tilePos.y > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x + 1, tilePos.y - 1, isBackground) : false; 
-
+        
             bool top = 
                 (tilePos.y > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y - 1, isBackground) : false; 
-
+        
             uint8 mask = (topLeft << 0) | (top << 1) | (topRight << 2) |
                         (midRight << 3) | (bottomRight << 4) | (bottom << 5) |
                         (botLeft << 6) | (midLeft << 7);
-
+        
             int32 lutVisual = sWorldTileSmartEdgeLut[mask];
-
+        
             coordX += lutVisual % 8;
             coordY += lutVisual / 8;
             break;
@@ -245,38 +268,112 @@ Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
             break;
         }
 
-        case STORAGE_SMART_CLING: {
-            TileInfo* pTop = pTileMgr->GetTile(tilePos.x, tilePos.y + 1);
-            TileInfo* pLeft = pTileMgr->GetTile(tilePos.x - 1, tilePos.y);
-            TileInfo* pRight = pTileMgr->GetTile(tilePos.x + 1, tilePos.y);
-            TileInfo* pBottom = pTileMgr->GetTile(tilePos.x + 1, tilePos.y + 1); 
-            
+        case STORAGE_SMART_EDGE_DIAGON: {
+            bool isFlipped = (pTile->HasFlag(TILE_FLAG_FLIPPED_X));
+        
+            int32 diag1X = 0, diag1Y = 0;
+            int32 diag2X = 0, diag2Y = 0;
+        
+            if(!isFlipped) 
+            {
+                diag1X = tilePos.x - 1; diag1Y = tilePos.y + 1;
+                diag2X = tilePos.x + 1; diag2Y = tilePos.y - 1;
+            } 
+            else 
+            {
+                diag1X = tilePos.x + 1; diag1Y = tilePos.y + 1;
+                diag2X = tilePos.x - 1; diag2Y = tilePos.y - 1;
+            }
+        
+            auto checkDiagonal = [&](int32 tx, int32 ty) -> bool {
+                if(tx < 0 || tx >= worldSize.x || ty < 0 || ty >= worldSize.y)
+                    return true;
+        
+                TileInfo* pTarget = pTileMgr->GetTile(tx, ty);
+                if(!pTarget) 
+                    return true;
+        
+                uint16 currentID = isBackground ? pTile->GetBG() : pTile->GetFG();
+                uint16 targetID  = isBackground ? pTarget->GetBG() : pTarget->GetFG();
+        
+                if(targetID != ITEM_ID_BLANK && pTarget->HasFlag(TILE_FLAG_GLUED)) 
+                {
+                    if(!isBackground && (targetID & 1) == 0) 
+                    {
+                        return true;
+                    }
+                    if(isBackground) 
+                    {
+                        return true;
+                    }
+                }
+        
+                if(targetID == currentID) {
+                    return pTarget->HasFlag(TILE_FLAG_FLIPPED_X) == isFlipped;
+                }
+        
+                return false;
+            };
+        
+            bool bVar2 = checkDiagonal(diag1X, diag1Y);
+            bool bVar3 = checkDiagonal(diag2X, diag2Y);
+
+            static const uint8 diagonalLut[2][2] = {
+                { 3, 0 },
+                { 2, 1 }
+            };
+        
+            int32 lutVisual = diagonalLut[bVar2][bVar3];
+        
+            coordX += lutVisual % 8;
+            coordY += lutVisual / 8;
             break;
         }
 
         case STORAGE_SMART_EDGE_OUTER: {
-            bool top = 
-                (tilePos.y > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y - 1, isBackground) : false;
-
-            bool left = 
-                (tilePos.x > 0) ? pTileMgr->IsSameTile(pTile, tilePos.x - 1, tilePos.y, isBackground) : false;
-
-            bool right = 
-                (tilePos.x < worldSize.x - 1) ? pTileMgr->IsSameTile(pTile, tilePos.x + 1, tilePos.y, isBackground) : false;
-
-            bool bottom = 
-                (tilePos.y < worldSize.y - 1) ? pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y + 1, isBackground) : false; 
-
-            uint8 mask = (top << 0) | (left << 1) | (right << 2) | (bottom << 3);
+            uint16 currentID = isBackground ? pTile->GetBG() : pTile->GetFG();
+        
+            auto checkOuterConnection = [&](int32 tx, int32 ty, int32 direction) -> bool {
+                if(tx < 0 || tx >= worldSize.x || ty < 0 || ty >= worldSize.y)
+                    return true;
+        
+                TileInfo* pTarget = pTileMgr->GetTile(tx, ty);
+                if(!pTarget) 
+                    return true;
+        
+                if(isBackground) {
+                    uint16 targetBG = pTarget->GetFG();
+                    
+                    if(targetBG == ITEM_ID_BLANK || !pTarget->HasFlag(TILE_FLAG_GLUED))
+                        return false;
+        
+                    if(currentID == ITEM_ID_WEEPING_WILLOW_BRANCH) 
+                        return (targetBG == ITEM_ID_WEEPING_WILLOW);
+        
+                    return (targetBG == currentID);
+                } 
+                else 
+                {
+                    int32 checkType = (direction == 0 || direction == 2) ? 0 : ((direction == 1) ? 1 : 2);
+                    return (pTarget->GetFG() == currentID); 
+                }
+            };
+        
+            bool right = checkOuterConnection(tilePos.x + 1, tilePos.y,     0);
+            bool bottom = checkOuterConnection(tilePos.x,     tilePos.y + 1, 1);
+            bool left = checkOuterConnection(tilePos.x - 1, tilePos.y,     0);
+            bool top = checkOuterConnection(tilePos.x,     tilePos.y - 1, 2);
+        
+            uint8 mask = (right << 0) | (bottom << 1) | (left << 2) | (top << 3);
             int32 lutVisual = sWorldTileSmartEdgeOuterLut[mask];
-
+        
             coordX += lutVisual % 8;
             coordY += lutVisual / 8;
             break;
         }
 
         case STORAGE_SMART_EDGE_VERT: {
-            bool top = pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y + 1, isBackground);
+            bool top = pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y - 1, isBackground);
             bool bottom = pTileMgr->IsSameTile(pTile, tilePos.x, tilePos.y + 1, isBackground);
 
             if(top) {
@@ -289,7 +386,8 @@ Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
         }
     }
 
-    if(pTile->HasFlag(TILE_FLAG_IS_ON)) {
+    if(pTile->HasFlag(TILE_FLAG_IS_ON)) 
+    {
         coordX += 1;
     }
 

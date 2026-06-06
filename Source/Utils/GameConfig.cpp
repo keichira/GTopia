@@ -45,16 +45,14 @@ bool GameConfig::LoadConfig(const string& filePath)
     
         if(key == "renderer_static_path")
         {
-            if(line.Require(1))
-                rendererStaticPath = line.GetString(1);
+            rendererStaticPath = line.GetString(1);
     
             continue;
         }
     
         if(key == "renderer_save_path")
         {
-            if(line.Require(1))
-                rendererSavePath = line.GetString(1);
+            rendererSavePath = line.GetString(1);
     
             continue;
         }
@@ -204,6 +202,31 @@ bool GameConfig::LoadConfig(const string& filePath)
         if(key == "max_npc_per_world")
         {
             maxNpcPerWorld = line.GetUInt(1, 20);
+        }
+
+        if(key == "net_panic_queue")
+        {
+            netThreshold.panicQueueSize = line.GetUInt(1);
+        }
+
+        if(key == "net_panic_permille")
+        {
+            netThreshold.panicCpuPermille = line.GetUInt(1);
+        }
+
+        if(key == "net_normal_burst")
+        {
+            netThreshold.normalBurst = line.GetUInt(1);
+        }
+
+        if(key == "net_heavy_burst")
+        {
+            netThreshold.heavyBurst = line.GetUInt(1);
+        }
+
+        if(key == "net_panic_burst")
+        {
+            netThreshold.panicBurst = line.GetUInt(1);
         }
     }
 

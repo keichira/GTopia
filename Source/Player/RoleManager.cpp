@@ -25,15 +25,6 @@ bool RoleManager::Load(const string& filePath)
     {
         const string& key = line.GetString(0);
 
-        if(key == "init_perms")
-        {
-            for(uint16 i = 1; i < line.GetArgSize(); ++i)
-            {
-                const string& permKey = line.GetString(i);
-                m_permList[permKey] = (eRolePerm)(m_permList.size() + 1);
-            }
-        }
-
         if(key == "set_default_role")
         {
             if(!line.Require(1))
@@ -60,7 +51,7 @@ bool RoleManager::Load(const string& filePath)
             pRole->m_prefix = line.GetString(3);
             pRole->m_suffix = line.GetString(4);
 
-            pRole->AddPerm(ROLE_PERM_NONE);
+            pRole->m_finalPerms.push_back(0);
 
             pLastRole = pRole;
             m_roles.insert_or_assign(pRole->GetID(), pRole);
@@ -102,14 +93,11 @@ bool RoleManager::Load(const string& filePath)
 
             for(uint32 i = 1; i < line.GetArgSize(); ++i)
             {
-                eRolePerm perm;
-                if(!GetRolePermFromString(line.GetString(i), perm))
-                {
-                    LOGGER_LOG_WARN("Unknown permission %s for %d", line.GetString(i).c_str(), pLastRole->GetID());
+                string permStr = line.GetString(i);
+                if(permStr.empty()) 
                     continue;
-                }
 
-                pLastRole->AddPerm(perm);
+                pLastRole->AddPerm(HashString(permStr));
             }
         }
     }
@@ -125,41 +113,31 @@ bool RoleManager::Load(const string& filePath)
 
 bool RoleManager::ResolveRole(Role* pRole)
 {
-    if(!pRole) {
+    if(!pRole) 
         return false;
-    }
 
-    if(pRole->m_state == ROLE_RESOLVE_DONE) {
+    if(pRole->m_state == ROLE_RESOLVE_DONE) 
         return true;
-    }
 
-    if(pRole->m_state == ROLE_RESOLVE_PROCESSING) {
+    if(pRole->m_state == ROLE_RESOLVE_PROCESSING) 
         return false;
-    }
 
     pRole->m_state = ROLE_RESOLVE_PROCESSING;
     pRole->m_finalPerms = pRole->m_basePerms;
 
-    for(uint32 parentID : pRole->m_inherits) {
+    for(uint32 parentID : pRole->m_inherits) 
+    {
         Role* pParent = GetRole(parentID);
-        if(!pParent) {
-            LOGGER_LOG_WARN("Non exists role %d in inherits, parent %d", parentID, pRole->GetID());
+        if(!pParent) 
             continue;
-        }
 
-        if(!ResolveRole(pParent)) {
+        if(!ResolveRole(pParent)) 
             return false;
-        }
 
-        if(pParent->m_finalPerms.size() > pRole->m_finalPerms.size()) {
-            pRole->m_finalPerms.resize(pParent->m_finalPerms.size(), 0);
-        }
-
-        for(uint32 i = 0; i < pParent->m_finalPerms.size(); ++i) {
-            pRole->m_finalPerms[i] |= pParent->m_finalPerms[i];
-        }
+        pRole->m_finalPerms.insert(pRole->m_finalPerms.end(), pParent->m_finalPerms.begin(), pParent->m_finalPerms.end());
     }
 
+    pRole->FinalizePermissions();
     pRole->m_state = ROLE_RESOLVE_DONE;
     return true;
 }
@@ -181,20 +159,6 @@ Role* RoleManager::GetRole(int32 id)
     }
 
     return it->second;
-}
-
-bool RoleManager::GetRolePermFromString(const string& permStr, eRolePerm& permOut)
-{
-    if(permStr.empty())
-        return false;
-
-    auto it = m_permList.find(permStr);
-    if(it == m_permList.end()) {
-        return false;
-    }
-
-    permOut = it->second;
-    return true;
 }
 
 RoleManager* GetRoleManager() { return RoleManager::GetInstance(); }

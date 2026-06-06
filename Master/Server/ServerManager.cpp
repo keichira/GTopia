@@ -211,7 +211,7 @@ void ServerManager::SendAuthPacket(ServerInfo* pServer, bool succeed)
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, const string& worldName)
+void ServerManager::SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, uint32 databaseID)
 {
     if(!pServer || !pServer->pClient) {
         return;
@@ -223,7 +223,7 @@ void ServerManager::SendRenderResult(ServerInfo* pServer, int32 result, uint32 p
     data[1] = TCP_RENDER_RESULT;
     data[2] = result;
     data[3] = playerUserID;
-    data[4] = worldName;
+    data[4] = databaseID;
 
     pServer->pClient->Send(data);
 }
@@ -356,7 +356,7 @@ void ServerManager::RemoveServer(uint16 serverID)
         return;
     }
 
-    if (pServer->pClient)
+    if(pServer->pClient)
     {
         pServer->pClient->data = nullptr;
         pServer->pClient->status = SOCKET_CLIENT_CLOSE;

@@ -62,7 +62,7 @@ public:
     void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& serverIP, uint16 serverPort);
     void SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID, uint32 databaseID);
     void SendAuthPacket(ServerInfo* pServer, bool succeed);
-    void SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, const string& worldName);
+    void SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, uint32 databaseID);
     void SendRenderRequest(ServerInfo* pServer, uint32 playerUserID, uint32 worldID);
     void SendHeartBeat(ServerInfo* pServer, uint32 totalPlayer);
     void SendCommandSetRole(ServerInfo* pServer, uint32 userID, uint32 roleID);

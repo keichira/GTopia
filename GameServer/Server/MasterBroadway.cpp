@@ -133,7 +133,7 @@ void MasterBroadway::SendCheckSessionPacket(int32 netID, uint32 userID, uint32 t
     m_pNetClient->Send(data);
 }
 
-void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldID)
+void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldInstanceID)
 {
     if(!m_pNetClient)
         return;
@@ -142,7 +142,7 @@ void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldID)
     data[0] = TCP_PACKET_RENDER_WORLD;
     data[1] = TCP_RENDER_REQUEST;
     data[2] = userID;
-    data[3] = worldID;
+    data[3] = worldInstanceID;
 
     m_pNetClient->Send(data);
 }

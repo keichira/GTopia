@@ -8,7 +8,7 @@ const CommandInfo& Emotes::GetInfo()
     {
         "",
         "",
-        ROLE_PERM_NONE,
+        0,
         {
             "dance"_hash,
             "dance2"_hash,

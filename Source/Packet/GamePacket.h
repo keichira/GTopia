@@ -3,6 +3,7 @@
 #include "../Precompiled.h"
 #include "../Utils/Variant.h"
 #include "../IO/Log.h"
+#include "VariantPacket.h"
 
 enum eTCPPacketType
 {

@@ -16,11 +16,13 @@
  * 
  */
 
+bool firstCallShutdown = false;
+
 #include <signal.h>
 void SignalStop(int32 signum) 
 { 
     LOGGER_LOG_WARN("Received signal %d", signum);
-    GetContext()->Stop();
+    GetContext()->Shutdown();
 }
 
 bool ReadArgs(int argc, char const* argv[]) 
@@ -52,12 +54,9 @@ void EventThreadFunc() {
     while(GetContext()->IsRunning()) {
         GetMasterBroadway()->Update(true);
 
-        SleepMS(10);
+        SleepMS(5);
     }
 }
-
-#include "Utils/ZLibUtils.h"
-#include "IO/File.h"
 
 int main(int argc, char const* argv[])
 {
@@ -96,6 +95,11 @@ int main(int argc, char const* argv[])
     ResourceManager* pResMgr = GetResourceManager();
     pResMgr->SetResourcePath(pGameConfig->rendererStaticPath);
 
+    if(!GetItemInfoManager()->Load(GetProgramPath() + "/items.txt")) {
+        LOGGER_LOG_ERROR("Failed to load items.txt");
+        return 0;
+    }
+
     auto renderServerInfo = pGameConfig->servers[1];
     if(!GetMasterBroadway()->Init(renderServerInfo.lanIP, renderServerInfo.tcpPort, 0)) {
         LOGGER_LOG_ERROR("Failed to initialize netsocket on %s:%d", renderServerInfo.lanIP.c_str(), renderServerInfo.tcpPort);
@@ -120,24 +124,26 @@ int main(int argc, char const* argv[])
 
     LOGGER_LOG_INFO("Connected to master server");
 
-    if(!GetItemInfoManager()->Load(GetProgramPath() + "/items.txt")) {
-        LOGGER_LOG_ERROR("Failed to load items.txt");
-        return 0;
-    }
-
     GetMasterBroadway()->SendHelloPacket();
     WorldRendererManager* pRenderMgr = GetWorldRendererManager();
     MasterBroadway* pMasterBroadway = GetMasterBroadway();
+    Context* pContext = GetContext();
 
     std::thread eventThrad(EventThreadFunc);
 
-    while(GetContext()->IsRunning()) {
+    while(pContext->IsRunning()) 
+    {
+        if(pContext->IsShutting() && !firstCallShutdown)
+        {
+            firstCallShutdown = true;
+            pMasterBroadway->SendServerKillPacket();
+            pContext->Stop();
+        }
+
         pMasterBroadway->UpdateTCPLogic(15);
         pRenderMgr->Update();
         SleepMS(50);
     }
-
-    GetMasterBroadway()->SendServerKillPacket();
 
     LOGGER_LOG_WARN("Killing renderer server");
     if(eventThrad.joinable()) eventThrad.join();

@@ -6,9 +6,9 @@ const CommandInfo& TogglePlayMod::GetInfo()
 {
     static CommandInfo info =
     {
-        "/toggleplaymod",
+        "/toggleplaymod <playmodID>",
         "Toggle playmods",
-        ROLE_PERM_SMSTATE,
+        "command.toggleplaymod"_hash,
         {
             "toggleplaymod"_hash
         }

@@ -3,10 +3,9 @@
 #include "Proton/ProtonUtils.h"
 #include "../Utils/Timer.h"
 
-Player::Player(ENetPeer* pPeer)
-: NetEntity(ENTITY_TYPE_PLAYER), m_pPeer(pPeer)
+Player::Player()
+: m_netID(0), m_userID(0)
 {
-    enet_address_get_host_ip(&pPeer->address, m_address, sizeof(m_address));
 }
 
 Player::~Player()
@@ -15,286 +14,224 @@ Player::~Player()
 
 void Player::SendHelloPacket()
 {
-    if(!m_pPeer) {
-        return;
-    }
-
-    SendENetPacket(NET_MESSAGE_SERVER_HELLO, "", m_pPeer);
+    SendUDPPacket(GetNetID(), NET_MESSAGE_SERVER_HELLO, "");
 }
 
 void Player::SendLogonFailWithLog(const string& message)
 {
-    if(!message.empty()) {
+    if(!message.empty()) 
+    {
         string logAction = "action|log\nmsg|" + message + "\n";
-        SendENetPacket(NET_MESSAGE_GAME_MESSAGE, logAction.c_str(), m_pPeer);
+        SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, logAction.c_str());
     }
-    SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logon_fail\n", m_pPeer);
+    SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, "action|logon_fail\n");
 }
 
 void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings, uint32 tributeHash)
 {
-    VariantVector data;
-    if(m_loginDetail.protocol < 93) {
-        data = VariantVector(6);
-    }
-    else {
-        data = VariantVector(7);
-    }
-    
-    string osmHeader;
-    if(m_loginDetail.gameVersion <= 2.982) {
-        if(m_loginDetail.gameVersion <= 2.479) {
-            if(m_loginDetail.gameVersion <= 2.459) {
-                if(2.449 < m_loginDetail.gameVersion) {
-                    osmHeader = "OnSuperMainStartAcceptLogonFB211131d";
-                }
-            }
-            else {
-                osmHeader = "OnSuperMainStartAcceptLogonFB211131dd";
-            }
-        }
-        else {
-            osmHeader = "OnSuperMainStartAcceptLogonFB211131ddf";
-        }
-    }
-    else {
-        osmHeader = "OnSuperMainStartAcceptLogonHrdxs47254722215a";
-    }
-
-    data[0] = osmHeader;
-    data[1] = itemsDatHash;
-    data[2] = cdnServer;
-    data[3] = cdnPath;
-    data[4] = "";
-    data[5] = settings;
-    
-    if(m_loginDetail.protocol > 93) 
-    {
-        data[6] = tributeHash;
-    }
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnWelcomePacket(
+            m_loginDetail.protocol, m_loginDetail.gameVersion,
+            itemsDatHash, cdnServer, cdnPath, settings, tributeHash
+        )
+    );
 }
 
 void Player::SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode)
 {
-    VariantVector data(6);
-    data[0] = "OnSendToServer";
-    data[1] = (uint32)port;
-    data[2] = token;
-    data[3] = userID;
-    data[4] = serverIP + "||";
-    data[5] = logonMode;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSendToServer(
+            port, token, userID, serverIP, logonMode
+        )
+    );
 }
 
 void Player::SendOnConsoleMessage(const string& message)
 {
-    VariantVector data(2);
-    data[0] = "OnConsoleMessage";
-    data[1] = message;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnConsoleMessage(message)
+    );
 }
 
 void Player::SendOnRequestWorldSelectMenu(const string& worldMenu)
 {
-    VariantVector data(2);
-    data[0] = "OnRequestWorldSelectMenu";
-    data[1] = worldMenu;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnRequestWorldSelectMenu(worldMenu)
+    );
 }
 
 void Player::SendOnFailedToEnterWorld()
 {
-    VariantVector data(1);
-    data[0] = "OnFailedToEnterWorld";
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnFailedToEnterWorld()
+    );
 }
 
 void Player::SendOnSpawn(const string& spawnData)
 {
-    VariantVector data(2);
-    data[0] = "OnSpawn";
-    data[1] = spawnData;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSpawn(spawnData)
+    );
 }
 
 void Player::SendOnChangeSkin(uint32 skinColor, Player* pPlayer)
 {
-    VariantVector data(2);
-    data[0] = "OnChangeSkin";
-    data[1] = skinColor;
-
-    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnChangeSkin(skinColor),
+        pPlayer ? pPlayer->GetNetID() : GetNetID()
+    );
 }
 
 void Player::SendOnTalkBubble(const string& message, bool stackMessages, Player* pPlayer)
 {
-
     /**
      * check growmojis, player_chat= in here
      */
+    uint32 talkerNetID = pPlayer ? (uint32)pPlayer->GetNetID() : (uint32)GetNetID();
 
-    VariantVector data(5);
-    data[0] = "OnTalkBubble";
-    data[1] = pPlayer ? (uint32)pPlayer->GetNetID() : (uint32)GetNetID();
-    data[2] = message;
-    data[3] = (uint32)0; // 2 for green box
-    data[4] = stackMessages ? (uint32)1 : (uint32)0;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnTalkBubble(talkerNetID, message, stackMessages)
+    );
 }
 
 void Player::SendOnSetCurrentWeather(int32 weatherID)
 {
-    VariantVector data(2);
-    data[0] = "OnSetCurrentWeather";
-    data[1] = weatherID;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSetCurrentWeather(weatherID)
+    );
 }
 
 void Player::SendOnRemove(int32 netID)
 {
-    VariantVector data(2);
-    data[0] = "OnRemove";
-    data[1] = "netID|" + ToString(netID) + "\n";
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnRemove(netID)
+    );
 }
 
 void Player::SendOnDialogRequest(const string& dialogData)
 {
-    VariantVector data(2);
-    data[0] = "OnDialogRequest";
-    data[1] = dialogData;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnDialogRequest(dialogData)
+    );
 }
 
 void Player::SendOnTextOverlay(const string& message)
 {
-    VariantVector data(2);
-    data[0] = "OnTextOverlay";
-    data[1] = message;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnTextOverlay(message)
+    );
 }
 
 void Player::SendOnPlayPositioned(const string& fileName, Player* pPlayer)
 {
-    VariantVector data(2);
-    data[0] = "OnPlayPositioned";
-    data[1] = "audio/" + fileName;
-
-    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnPlayPositioned(fileName),
+        pPlayer ? pPlayer->GetNetID() : GetNetID()
+    );
 }
 
 void Player::SendOnNameChanged(const string& name, Player* pPlayer)
 {
-    VariantVector data(2);
-    data[0] = "OnNameChanged";
-    data[1] = name;
-
-    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnNameChanged(name),
+        pPlayer ? pPlayer->GetNetID() : GetNetID()
+    );
 }
 
 void Player::SendSetHasGrowID(bool active, const string& tankIDName, const string& tankIDPass)
 {
-    VariantVector data(4);
-    data[0] = "SetHasGrowID";
-    data[1] = active ? 1 : 0;
-    data[2] = tankIDName;
-    data[3] = tankIDPass;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::SetHasGrowID(active, tankIDName, tankIDPass)
+    );
 }
 
 void Player::SendSetHasGrowID(bool active)
 {
-    SendSetHasGrowID(active, m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName, m_loginDetail.tankIDPass);
+    SendSetHasGrowID(
+        active, 
+        m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName, 
+        m_loginDetail.tankIDPass
+    );
 }
 
 void Player::SendOnSetBux(uint32 gemCount, bool skipAnim, bool isSupporter, bool isSuperSupporter)
 {
-    VariantVector data(5);
-    data[0] = "OnSetBux";
-    data[1] = gemCount;
-    data[2] = skipAnim ? 1 : 0;
-    data[3] = isSupporter ? 1 : 0;
-    data[4] = Vector3Float(Time::GetSecondsFromMidnight(), isSuperSupporter ? 1 : 0, 0);
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSetBux(gemCount, skipAnim, isSupporter, isSuperSupporter, Time::GetSecondsFromMidnight())
+    );
 }
 
 void Player::SendOnDataConfig(bool isMod, bool isSMod, Player* pPlayer)
 {
-    VariantVector data(3);
-    data[0] = "OnDataConfig";
-    data[1] = isMod ? 1 : 0;
-    data[2] = isSMod ? 1 : 0;
-
-    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnDataConfig(isMod, isSMod),
+        pPlayer ? pPlayer->GetNetID() : GetNetID()
+    );
 }
 
 void Player::SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
 {
-    VariantVector data(4);
-    data[0] = "OnParticleEffect";
-    data[1] = (int32)effectType;
-    data[2] = pos;
-    data[3] = angle;
-
-    SendCallFunctionPacket(data, -1, delayMs);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnParticleEffect((int32)effectType, pos, angle),
+        -1, 
+        delayMs
+    );
 }
 
 void Player::SendOnStoreRequest(const string &storeData)
 {
-    VariantVector data(2);
-    data[0] = "OnStoreRequest";
-    data[1] = storeData;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnStoreRequest(storeData)
+    );
 }
 
 void Player::SendOnStorePurchaseResult(const string& resultText)
 {
-    VariantVector data(2);
-    data[0] = "OnStorePurchaseResult";
-    data[1] = resultText;
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnStorePurchaseResult(resultText)
+    );
 }
 
 void Player::SendOnAction(const string& action, Player* pPlayer)
 {
-    VariantVector data(2);
-    data[0] = "OnAction";
-    data[1] = action;
-
     if(!pPlayer)
     {
         m_lastAction = action;
     }
     
-    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : -1);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnAction(action),
+        pPlayer ? pPlayer->GetNetID() : -1
+    );
 }
 
 void Player::SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip)
 {
-    VariantVector data(5);
-    data[0] = "OnAddNotification";
-    data[1] = image;
-    data[2] = message;
-    data[3] = audio;
-    data[4] = (uint32)(isTip ? 1 : 0);
-
-    SendCallFunctionPacket(data);
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnAddNotification(image, message, audio, isTip)
+    );
 }
 
 void Player::SendFakePingReply()
@@ -302,42 +239,18 @@ void Player::SendFakePingReply()
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_PING_REPLY;
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr, m_pPeer);
+    SendUDPPacketRaw(GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr);
 }
 
 void Player::PlaySFX(const string& fileName, int32 delay)
 {
     string packet = "action|play_sfx\nfile|audio/" + fileName + "\ndelayMS|" + ToString(delay) + "\n";
-    SendENetPacket(NET_MESSAGE_GAME_MESSAGE, packet.c_str(), m_pPeer);
-}
-
-void Player::SendCallFunctionPacket(VariantVector& data, int32 netID, int32 delay)
-{
-    if(!m_pPeer) {
-        return;
-    }
-
-    GameUpdatePacket gamePacket;
-    gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
-    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    gamePacket.field_4 = netID;
-    gamePacket.field_7 = delay;
-
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(data, &size, nullptr);
-    gamePacket.extraDataSize = size;
-
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), pData, m_pPeer);
-    SAFE_DELETE_ARRAY(pData);
+    SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, packet.c_str(), packet.size());
 }
 
 #ifdef SERVER_GAME
 void Player::SendInventoryPacket()
 {
-    if(!m_pPeer) {
-        return;
-    }
-
     GameUpdatePacket gamePacket;
     gamePacket.type = NET_GAME_PACKET_SEND_INVENTORY_STATE;
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
@@ -350,7 +263,7 @@ void Player::SendInventoryPacket()
 
     m_inventory.Serialize(memBuffer, true, false);
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), pData, m_pPeer);
+    SendUDPPacketRaw(GetNetID(), NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), pData);
     SAFE_DELETE_ARRAY(pData);
 }
 
@@ -380,7 +293,7 @@ void Player::SendOnSetClothing(Player* pPlayer)
     }
 
     int32 netID = pPlayer ? pPlayer->GetNetID() : GetNetID();
-    SendCallFunctionPacket(data, netID);
+    SendCallFunctionPacket(GetNetID(), data, netID);
 }
 
 void Player::SendCharacterState(Player* pPlayer)
@@ -402,15 +315,15 @@ void Player::SendCharacterState(Player* pPlayer)
     packet.field_9.x = charData.accel;
     packet.field_9.y = charData.gravity;
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr, m_pPeer);
+    SendUDPPacketRaw(GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr);
 }
 
 void Player::SendOnSetPos(float x, float y, Player* pPlayer)
 {
-    VariantVector data(2);
-    data[0] = "OnSetPos";
-    data[1] = Vector2Float(x, y);
-
-    SendCallFunctionPacket(data, pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSetPos(x, y),
+        pPlayer ? pPlayer->GetNetID() : -1
+    );
 }
 #endif

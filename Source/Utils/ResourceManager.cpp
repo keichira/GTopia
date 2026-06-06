@@ -16,59 +16,55 @@ ResourceManager::~ResourceManager()
 
 BLImage* ResourceManager::LoadTileSheet(const string& path)
 {
-    if(path.empty()) {
+    if(path.empty()) 
         return nullptr;
-    }
 
     string fullPath = m_path + "/" + path;
 
     BLImage* pExistImg = IsTileSheetExists(path);
-    if(pExistImg) {
+    if(pExistImg) 
         return pExistImg;
-    }
 
-    if(GetFileExtension(path) == "rttex") {
+    if(GetFileExtension(path) == "rttex") 
+    {
         File file;
-        if(!file.Open(fullPath)) {
+        if(!file.Open(fullPath)) 
             return nullptr;
-        }
     
         uint32 fileSize = file.GetSize();
         uint8* pData = new uint8[fileSize];
     
-        if(file.Read(pData, fileSize) != fileSize) {
+        if(file.Read(pData, fileSize) != fileSize) 
+        {
             SAFE_DELETE_ARRAY(pData);
             file.Close();
             return nullptr;
         }
     
         MemoryBuffer memBuffer(pData, fileSize);
-    
         Proton::rtpack_header rtPackHeader;
         memBuffer.Read(rtPackHeader);
     
-        Proton::rttex_header rtTexHeader;
-    
         if(rtPackHeader.compressionType == 1) {
             uint8* pDecomp = zLibInflateToMemory(pData + memBuffer.GetOffset(), rtPackHeader.compressedSize, rtPackHeader.decompressedSize);
+
             if(!pDecomp) {
                 SAFE_DELETE_ARRAY(pData);
                 file.Close();
                 return nullptr;
             }
-    
+
             SAFE_DELETE_ARRAY(pData);
             pData = pDecomp;
             memBuffer = MemoryBuffer(pDecomp, rtPackHeader.decompressedSize);
         }
     
+        Proton::rttex_header rtTexHeader;
         memBuffer.Read(rtTexHeader);
     
         BLImage* pImg = new BLImage(rtTexHeader.width, rtTexHeader.height, BL_FORMAT_PRGB32);
         BLImageData imgData;
         pImg->get_data(&imgData);
-    
-        int32 format = rtTexHeader.format;
     
         Proton::rttex_mip_header texMip;
         memBuffer.Read(texMip);
@@ -88,7 +84,8 @@ BLImage* ResourceManager::LoadTileSheet(const string& path)
     }
 
     BLImage* pImg = new BLImage();
-    if(pImg->read_from_file(fullPath.c_str()) != BL_SUCCESS) {
+    if(pImg->read_from_file(fullPath.c_str()) != BL_SUCCESS) 
+    {
         SAFE_DELETE(pImg);
         return nullptr;
     }
@@ -110,19 +107,15 @@ BLImage* ResourceManager::IsTileSheetExists(const string& path)
 BLImage* ResourceManager::GetItemTileSheet(uint32 itemID)
 {
     auto it = m_itemTileSheets.find(itemID);
-    if(it != m_itemTileSheets.end()) {
+    if(it != m_itemTileSheets.end())
         return it->second;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     string path = pItem ? ("game/" + pItem->textureFile) : "game/tiles_page1.rttex";
 
-    BLImage* pImg = LoadTileSheet(path);
-    if(!pImg && path != "game/tiles_page1.rttex") {
-        pImg = LoadTileSheet("game/tiles_page1.rttex");
-    }
-
-    if(pImg) {
+    BLImage* pImg = GetTileSheet(path);    
+    if(pImg) 
+    {
         m_itemTileSheets[itemID] = pImg;
     }
 
@@ -146,19 +139,13 @@ void ResourceManager::Kill()
 
 BLImage* ResourceManager::GetTileSheet(const string& tileSheet)
 {
-    auto it = m_tileSheets.find(tileSheet);
-    if(it != m_tileSheets.end()) {
-        return it->second;
-    }
+    BLImage* pImg = IsTileSheetExists(tileSheet);
+    if(pImg) return pImg;
 
-    BLImage* pImg = LoadTileSheet(tileSheet);
-    if(!pImg) {
-        pImg = GetTileSheet("game/tiles_page1.rttex");
-        if(!pImg) {
-            return nullptr;
-        }
-
-        return pImg;
+    pImg = LoadTileSheet(tileSheet);
+    if(!pImg && tileSheet != "game/tiles_page1.rttex") 
+    {
+        return GetTileSheet("game/tiles_page1.rttex");
     }
 
     return pImg;
@@ -196,26 +183,50 @@ BLFont* ResourceManager::GetFont(uint16 fontID)
 
 void ResourceManager::FlipVerticalWithPremultiply(uint8* pPixelData, int32 width, int32 height, bool premultiply)
 {
-    uint32 rowBytes = width * 4; // uhh
+    uint32 rowBytes = width * 4;
 
-   for (int32 y = 0; y < height / 2; ++y)
-   {
-       uint8* top = pPixelData + y * rowBytes;
-       uint8* bottom = pPixelData + (height - 1 - y) * rowBytes;
-   
-       for (int32 x = 0; x < width; ++x)
-       {
-           uint8* t = top + x * 4;
-           uint8* b = bottom + x * 4;
-   
-           for (int i = 0; i < 4; ++i) {
-            std::swap(t[i], b[i]);
-           }
-   
-           std::swap(t[0], t[2]);
-           std::swap(b[0], b[2]);
-       }
-   }
+    for(int32 y = 0; y < height / 2; ++y)
+    {
+        uint8* top = pPixelData + y * rowBytes;
+        uint8* bottom = pPixelData + (height - 1 - y) * rowBytes;
+    
+        for(int32 x = 0; x < width; ++x)
+        {
+            uint8* t = top + x * 4;
+            uint8* b = bottom + x * 4;
+    
+            for(int32 i = 0; i < 4; ++i) 
+            {
+                std::swap(t[i], b[i]);
+            }
+        }
+    }
+
+    for(int32 y = 0; y < height; ++y)
+    {
+        uint8* row = pPixelData + y * rowBytes;
+        for(int32 x = 0; x < width; ++x)
+        {
+            uint8* pixel = row + x * 4;
+
+            std::swap(pixel[0], pixel[2]); 
+
+            if (premultiply) {
+                uint8 alpha = pixel[3];
+
+                if(alpha == 0) {
+                    pixel[0] = 0; 
+                    pixel[1] = 0;
+                    pixel[2] = 0;
+                } 
+                else if(alpha < 255) {
+                    pixel[0] = (pixel[0] * alpha + 127) / 255;
+                    pixel[1] = (pixel[1] * alpha + 127) / 255;
+                    pixel[2] = (pixel[2] * alpha + 127) / 255;
+                }
+            }
+        }
+    }
 }
 
 ResourceManager* GetResourceManager() { return ResourceManager::GetInstance(); }

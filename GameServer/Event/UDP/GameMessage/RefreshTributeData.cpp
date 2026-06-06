@@ -18,5 +18,5 @@ void RefreshTributeData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packe
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     gamePacket.extraDataSize = clientData->size;
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData->pData, pPlayer->GetPeer());
+    //SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData->pData, pPlayer->GetPeer());
 }

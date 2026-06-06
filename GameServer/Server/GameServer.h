@@ -12,18 +12,20 @@ public:
     ~GameServer();
 
 public:
-    static GameServer* GetInstance() {
+    static GameServer* GetInstance() 
+    {
         static GameServer instance;
         return &instance;
     }
 
 public:
-    void OnEventConnect(ENetEvent& event) override;
-    void OnEventReceive(ENetEvent& event) override;
-    void OnEventDisconnect(ENetEvent& event) override;
+    void OnEventConnect(NetworkEvent& event) override;
+    void OnEventReceive(NetworkEvent& event) override;
+    void OnEventDisconnect(NetworkEvent& event) override;
     void RegisterEvents() override;
     void Kill() override;
     void UpdateGameLogic(uint64 maxTimeMS) override;
+    void Update() override;
 
 public:
     void ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args);

@@ -137,7 +137,7 @@ func cacheHandler(res http.ResponseWriter, req *http.Request) {
 
 	fileExt := strings.ToLower(filepath.Ext(resolvedPath))
 
-	if fileExt != ".rttex" && fileExt != ".ogg" && fileExt != ".mp3" && fileExt != ".wav" {
+	if fileExt != ".rttex" && fileExt != ".ogg" && fileExt != ".mp3" && fileExt != ".wav" && fileExt != ".xml" && fileExt != ".yaml" && fileExt != ".rcss" && fileExt != ".rml" {
 		fmt.Printf("Trying to get not accepted file! %v\n", resolvedPath)
 		res.WriteHeader(http.StatusNotFound)
 		return

@@ -8,28 +8,22 @@ Role::Role()
 {
 }
 
-void Role::AddPerm(eRolePerm perm)
+void Role::AddPerm(uint32 permHash)
 {
-    uint32 permIdx = (uint32)(perm);
-    uint32 blockIdx = permIdx / 32;
-    uint32 bitIdx = permIdx % 32;
-
-    if(blockIdx >= m_basePerms.size()) {
-        m_basePerms.resize(blockIdx + 1, 0);
-    }
-
-    m_basePerms[blockIdx] |= (1 << bitIdx);
+    m_basePerms.push_back(permHash);
 }
 
-bool Role::HasPerm(eRolePerm perm)
+void Role::FinalizePermissions()
 {
-    uint32 permIdx = static_cast<uint32>(perm);
-    uint32 blockIdx = permIdx / 32;
-    uint32 bitIdx = permIdx % 32;
+    std::sort(m_finalPerms.begin(), m_finalPerms.end());
 
-    if(blockIdx >= m_finalPerms.size()) {
-        return false;
-    }
+    auto it = std::unique(m_finalPerms.begin(), m_finalPerms.end());
+    m_finalPerms.erase(it, m_finalPerms.end());
+    
+    m_finalPerms.shrink_to_fit();
+}
 
-    return (m_finalPerms[blockIdx] & (1 << bitIdx));
+bool Role::HasPerm(uint32 permHash) const
+{
+    return std::binary_search(m_finalPerms.begin(), m_finalPerms.end(), permHash);
 }

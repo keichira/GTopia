@@ -31,9 +31,10 @@ public:
 
     World* GetWorldByInstanceID(uint32 worldID);
     World* GetWorldByName(const string& worldName);
+    World* GetWorldByDatabaseID(uint32 databaseID);
     void AddWorld(World* pWorld);
 
-    void OnHandleGamePacket(ENetEvent& event);
+    void OnHandleGamePacket(NetworkEvent& event);
     void SaveAllToDatabase();
 
     uint32 GetWorldCount() { return m_worlds.size(); }

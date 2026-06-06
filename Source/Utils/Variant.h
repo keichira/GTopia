@@ -32,7 +32,9 @@ public:
     Variant(const int32 rhs) { *this = rhs; }
     Variant(const uint32 rhs) { *this = rhs; }
     Variant(const bool rhs) { *this = rhs; }
+    Variant(const char* rhs) { *this = rhs; }
     Variant(const string& rhs) { *this = rhs; }
+    Variant(const float rhs) { *this = rhs; }
     Variant(const Vector2Int& rhs) { *this = rhs; }
     Variant(const Vector2Float& rhs) { *this = rhs; }
 

@@ -8,7 +8,7 @@ const CommandInfo& AgeWorld::GetInfo()
     {
         "/ageworld <ageMin>",
         "Age current map",
-        ROLE_PERM_MSTATE,
+        "command.ageworld"_hash,
         {
             "ageworld"_hash
         }

@@ -26,8 +26,10 @@ private:
     bool IsFGTransparent(uint16 itemID);
 
 private:
-    WorldInfo m_world;
+    WorldInfo* m_pWorld;
     std::vector<uint8> m_visibleBG;
 
+    uint32 m_cachedWidth;
+    uint32 m_cachedHeight;
     Renderer2D m_renderer;
 };

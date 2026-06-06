@@ -10,8 +10,33 @@ struct ContextPerfStats
     uint32 maxTickMs = 0;
     uint32 cpuPermille = 0;
     uint32 lagSpikeMs = 0;
-    Timer lastUpdateTime;
+
+    uint32 netCpuPermille = 0;
 };
+
+struct NetThreshold
+{
+    uint32 heavyQueueSize = 0;
+    uint32 panicQueueSize = 0;
+
+    uint32 heavyCpuPermille = 0;
+    uint32 panicCpuPermille = 0;
+};
+
+struct NetBurstConfig
+{
+    NetThreshold threshold;
+
+    uint32 normalBurst = 0;
+    uint32 heavyBurst = 0;
+    uint32 panicBurst = 0;
+
+    uint32 maxPacketsPerSecond = 0;
+};
+
+extern NetBurstConfig gNetBurstConfig;
+
+void EvaluateNetHealth(usize queueSize, uint32 currentCpuPermille, uint32& outBurstLimit, bool& outIsPanic);
 
 class ContextBase {
 public:

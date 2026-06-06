@@ -23,5 +23,5 @@ void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     gamePacket.extraDataSize = clientData->compressSize;
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData->pItemData, pPlayer->GetPeer());
+    SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData->pItemData);
 }

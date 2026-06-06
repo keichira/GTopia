@@ -27,7 +27,7 @@ public:
     void SendHelloPacket();
     void SendAuthPacket(const string& authKey);
     void SendCheckSessionPacket(int32 netID, uint32 userID, uint32 token, uint16 serverID);
-    void SendRenderWorldRequest(uint32 userID, uint32 worldID);
+    void SendRenderWorldRequest(uint32 userID, uint32 worldInstanceID);
     void SendWorldInitResult(bool succeed, uint32 worldInstanceID);
     void SendPlayerWorldJoin(uint32 playerUserID, const string& worldName);
     void SendHeartBeat();

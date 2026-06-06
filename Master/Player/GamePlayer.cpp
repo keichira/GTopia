@@ -8,8 +8,8 @@
 #include "Proton/ProtonUtils.h"
 #include "PlayerManager.h"
 
-GamePlayer::GamePlayer(ENetPeer* pPeer)
-: Player(pPeer), m_state(PLAYER_STATE_IDLE)
+GamePlayer::GamePlayer()
+: m_state(PLAYER_STATE_IDLE)
 {
 }
 

@@ -11,6 +11,11 @@
 #include "PetBattleManager.h"
 #include <queue>
 
+/**
+ * todo packets
+ * we are wasting for nothing, allocating same thing again and again
+ */
+
 enum eWorldState
 {
     WORLD_STATE_LOADING,

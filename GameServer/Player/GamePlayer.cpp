@@ -19,8 +19,8 @@
 #include "Math/Math.h"
 #include "Utils/GrowUtils.h"
 
-GamePlayer::GamePlayer(ENetPeer* pPeer) 
-: Player(pPeer), m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
+GamePlayer::GamePlayer() 
+: m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
 m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0),
 m_progressData(this), m_modController(this), m_activeBattlePetSlot(0)
 {
@@ -215,18 +215,23 @@ void GamePlayer::TransferToGame()
 void GamePlayer::HandleRenderWorld(VariantVector&& result)
 {
     if(!HasState(PLAYER_STATE_RENDERING_WORLD)) 
-    {
         return;
-    }
 
     int32 renderResult = result[2].GetINT();
 
     if(renderResult == TCP_RESULT_OK) 
     {
-        string worldName = result[4].GetString();
-        SendOnConsoleMessage("`oYour world \"`#" + worldName + "`o\" has been rendered!");
-
-        RenderWorldDialog::OnRendered(this, worldName);
+        World* pWorld = GetWorldManager()->GetWorldByDatabaseID(result[4].GetUINT());
+        if(!pWorld)
+        {
+            SendOnConsoleMessage("`oYour world \"`4<UNKNOWN>`o\" has been rendered!");
+            RenderWorldDialog::OnRendered(this, "`4<UNKNOWN>");
+        }
+        else
+        {
+            SendOnConsoleMessage("`oYour world \"`#" + pWorld->GetWorlName() + "`o\" has been rendered!");
+            RenderWorldDialog::OnRendered(this, pWorld->GetWorlName());
+        }
     }
     else 
     {
@@ -258,9 +263,19 @@ void GamePlayer::SaveToDatabase()
         }
     }
 
+    uint32 roleID = GetRoleManager()->GetDefaultRoleID();
+    if(m_pRole)
+    {
+        roleID = m_pRole->GetID();
+    }
+    else
+    {
+        LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting default role %d", GetRawName(), GetUserID(), roleID);
+    }
+
     QueryRequest req = PlayerDB::Save(
         m_userID,
-        m_pRole->GetID(),
+        roleID,
         ToHex(pInvData, invMemSize),
         0, //m_characterData.GetSkinColor(),
         m_flags,
@@ -299,15 +314,15 @@ void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
             }
         }
 
-        if(forceDelete && m_pPeer->state != ENET_PEER_STATE_DISCONNECTED) 
+        if(forceDelete) 
         {
-            SendENetPacket(NET_MESSAGE_GAME_MESSAGE, "action|logoff\n", m_pPeer);
-            enet_peer_disconnect(m_pPeer, 0);
+            SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, "action|logoff\n");
+            SendUDPDisconnectPacket(GetNetID());
         }
 
         SetState(PLAYER_STATE_DELETE);
         
-        if(endSession) 
+        if(endSession) // todo here
         {
             GetMasterBroadway()->SendEndPlayerSession(m_userID);
         }
@@ -398,9 +413,9 @@ string GamePlayer::GetSpawnData(bool local)
     spawnData += "country|" + m_loginDetail.country + "\n";
     spawnData += "invis|0\n"; // todo
     spawnData += "mstate|";
-    spawnData += m_pRole->HasPerm(ROLE_PERM_MSTATE) ? "1\n" : "0\n";
+    spawnData += m_pRole->HasPerm("state.mod"_hash) ? "1\n" : "0\n";
     spawnData += "smstate|" ;
-    spawnData += m_pRole->HasPerm(ROLE_PERM_SMSTATE) ? "1\n" : "0\n";
+    spawnData += m_pRole->HasPerm("state.smod"_hash) ? "1\n" : "0\n";
     spawnData += "onlineID|\n";
 
     if(local) 
@@ -427,7 +442,7 @@ void GamePlayer::ToggleCloth(uint16 itemID)
     if(!pItem || pItem->bodyPart > BODY_PART_SIZE)
         return;
 
-    if((pItem->type != ITEM_TYPE_CLOTHES && pItem->type != ITEM_TYPE_ARTIFACT) && !m_pRole->HasPerm(ROLE_PERM_CAN_WEAR_ANY))
+    if((pItem->type != ITEM_TYPE_CLOTHES && pItem->type != ITEM_TYPE_ARTIFACT))
         return;
 
     if(pItem->type == ITEM_TYPE_ARTIFACT)
@@ -537,10 +552,10 @@ void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)
     if(!pItem || amount == 0)
         return;
 
-    if(amount > 0 && IsIllegalItem(itemID) && !m_pRole->HasPerm(ROLE_PERM_BYPASS_ILLEGAl_ITEM))
+    if(amount > 0 && IsIllegalItem(itemID) && !m_pRole->HasPerm("bypass.item_illegal"_hash))
         return;
 
-    if(amount > 0 && pItem->HasFlag(ITEM_FLAG_MOD) && !m_pRole->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD))
+    if(amount > 0 && pItem->HasFlag(ITEM_FLAG_MOD) && !m_pRole->HasPerm("bypass.item_mod"_hash))
         return;
 
     if(amount < 0) 

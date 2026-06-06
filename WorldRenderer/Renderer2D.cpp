@@ -202,9 +202,19 @@ void Renderer2D::DrawGTText(BLFont* pFont, const BLPoint& origin, const std::str
     }
 }
 
+void Renderer2D::Begin()
+{
+    BLContextCreateInfo createInfo{};
+    if(m_threadCount > 0) {
+        createInfo.thread_count = m_threadCount;
+    }
+
+    m_context = BLContext(m_surface, createInfo);
+}
+
 bool Renderer2D::WriteToFile(const string& path)
 {
-    End();
+    m_context.flush(BL_CONTEXT_FLUSH_SYNC);
     return m_surface.write_to_file(path.c_str()) == BL_SUCCESS;
 }
 

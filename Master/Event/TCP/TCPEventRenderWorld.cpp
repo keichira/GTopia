@@ -5,7 +5,7 @@
 
 void TCPEventRenderWorldData::FromVariant(VariantVector& varVec, bool forResult)
 {
-    if(varVec.size() < 2) {
+    if(varVec.size() < 4) {
         return;
     }
 
@@ -39,11 +39,16 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
 
     eventData.FromVariant(data, subType == TCP_RENDER_RESULT);
 
-    string worldName;
-    WorldSession* pWorld = GetWorldManager()->GetWorldByInstanceID(eventData.worldID);
-    if(pWorld) 
+    WorldSession* pWorld = nullptr;
+    if(subType == TCP_RENDER_REQUEST) 
     {
-        worldName = pWorld->worldName;
+        pWorld = GetWorldManager()->GetWorldByInstanceID(eventData.worldID);
+
+        if(!pWorld)
+        {
+            GetServerManager()->SendRenderResult(pServer, TCP_RESULT_FAIL, eventData.userID, eventData.worldID);
+            return;
+        }
     }
 
     switch(subType) 
@@ -51,13 +56,13 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
         case TCP_RENDER_REQUEST: 
         {
             ServerInfo* pRenderServer = GetServerManager()->GetBestRenderServer();
-            if(!pRenderServer) 
+            if(!pRenderServer)
             {
-                GetServerManager()->SendRenderResult(pServer, TCP_RESULT_FAIL, eventData.userID, worldName);
+                GetServerManager()->SendRenderResult(pServer, TCP_RESULT_FAIL, eventData.userID, eventData.worldID);
                 return;
             }
 
-            GetServerManager()->SendRenderRequest(pRenderServer, eventData.userID, eventData.worldID);
+            GetServerManager()->SendRenderRequest(pRenderServer, eventData.userID, pWorld->databaseID);
             break;
         }
 
@@ -67,7 +72,11 @@ void TCPEventRenderWorld::Execute(NetClient* pClient, VariantVector& data)
             if(!pPlayer)
                 return;
 
-            GetServerManager()->SendRenderResult(pServer, eventData.result, eventData.userID, worldName);
+            ServerInfo* pPlayerServer = GetServerManager()->GetServerByID(pPlayer->serverID);
+            if(!pPlayerServer)
+                return;
+
+            GetServerManager()->SendRenderResult(pPlayerServer, eventData.result, eventData.userID, eventData.worldID);
             break;
         }
     }

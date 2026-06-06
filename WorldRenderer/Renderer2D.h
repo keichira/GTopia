@@ -19,7 +19,9 @@ public:
 
     void DrawGTText(BLFont* pFont, const BLPoint& origin, const string& text, float size = 16.0f);
 
+    void Begin();
     void End() { m_context.end(); }
+    void Clear() { m_context.clear_all(); }
     bool WriteToFile(const string& path);
 
     float GetTextWidth(BLFont* pFont, const string& text, float size);

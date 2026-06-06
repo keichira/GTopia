@@ -36,6 +36,17 @@ struct WorldBalanceConfigSchema
     bool keepExactId = false;
 };
 
+struct NetThresholdConfigSchema
+{
+    uint32 heavyQueueSize = 0;
+    uint32 panicQueueSize = 0;
+    uint32 heavyCpuPermille = 0;
+    uint32 panicCpuPermille = 0;
+    uint32 normalBurst = 0;
+    uint32 heavyBurst = 0;
+    uint32 panicBurst = 0;
+};
+
 class GameConfig {
 public:
     GameConfig();
@@ -80,4 +91,5 @@ public:
     float balanceSoftCapRatio = 0.6;
 
     uint32 maxNpcPerWorld = 20;
+    NetThresholdConfigSchema netThreshold;
 };

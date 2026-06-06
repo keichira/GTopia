@@ -89,5 +89,6 @@ namespace Proton
     
     uint32 HashString(const char *str, int32 len);
     uint8 ConvertVariantType(eVariantTypes type);
-    uint8 *SerializeToMem(VariantVector &varVector, uint32 *pSizeOut, uint8 *pDest);
+    uint8 *SerializeToMem(const VariantVector &varVector, uint32 *pSizeOut, uint8 *pDest);
+	uint32 GetMemEstiamte(const VariantVector& varVector);
 }

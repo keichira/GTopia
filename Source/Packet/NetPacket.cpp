@@ -1,9 +1,159 @@
 #include "NetPacket.h"
+#include "../Proton/ProtonUtils.h"
 
-#include "../IO/File.h"
-#include "../IO/Log.h"
+moodycamel::ConcurrentQueue<NetworkEvent> gPacketOutgoingQueue;
 
-bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData, ENetPeer* pPeer)
+void SendUDPPacketRaw(uint32 netID, eMessagePacketType msgType, void* pData, uint32 dataSize, uint8* pExtraData)
+{
+    if(msgType == NET_MESSAGE_GAME_PACKET && ((GameUpdatePacket*)pData)->HasFlag(GAME_PACKET_FLAG_EXTENDED_DATA)) 
+    {
+        if(!pExtraData)
+            return;
+
+        uint32 totalSize = dataSize + 5 + ((GameUpdatePacket*)pData)->extraDataSize;
+
+        PooledPacket* pPoolPacket = gPacketPool.Acquire(totalSize, true);
+        if(!pPoolPacket) 
+            return;
+
+        NetworkEvent netEvent;
+        netEvent.netID = netID;
+        netEvent.pPacket = pPoolPacket;
+        netEvent.pPacket->dataLength = totalSize;
+
+        uint8* pCur = pPoolPacket->payload;
+    
+        std::memcpy(pCur, &msgType, 4); pCur += 4;
+        std::memcpy(pCur, pData, dataSize); pCur += dataSize;
+        std::memcpy(pCur, pExtraData, ((GameUpdatePacket*)pData)->extraDataSize);
+
+        gPacketOutgoingQueue.enqueue(std::move(netEvent));
+    }
+    else 
+    {
+        uint32 totalSize = dataSize + 5;
+
+        PooledPacket* pPoolPacket = gPacketPool.Acquire(totalSize, true);
+        if(!pPoolPacket) 
+            return;
+
+        NetworkEvent netEvent;
+        netEvent.netID = netID;
+        netEvent.pPacket = pPoolPacket;
+        netEvent.pPacket->dataLength = totalSize;
+
+        uint8* pCur = pPoolPacket->payload;
+    
+        std::memcpy(pCur, &msgType, 4); pCur += 4;
+        std::memcpy(pCur, pData, dataSize); pCur += dataSize;
+
+        gPacketOutgoingQueue.enqueue(std::move(netEvent));
+    }
+}
+
+void SendUDPPacket(uint32 netID, eMessagePacketType messageType, const char* message, uint32 dataSize)
+{
+    if(!message)
+        return;
+
+    if(dataSize == 0)
+    {
+        dataSize = strlen(message);
+    }
+
+    uint32 totalSize = dataSize + 5;
+
+    PooledPacket* pPoolPacket = gPacketPool.Acquire(totalSize, true);
+    if(!pPoolPacket) 
+        return;
+
+    NetworkEvent netEvent;
+    netEvent.netID = netID;
+    netEvent.pPacket = pPoolPacket;
+    netEvent.pPacket->dataLength = totalSize;
+
+    uint8* pCur = pPoolPacket->payload;
+
+    std::memcpy(pCur, &messageType, 4); pCur += 4;
+    std::memcpy(pCur, message, dataSize); pCur += dataSize;
+    gPacketOutgoingQueue.enqueue(std::move(netEvent));
+}
+
+void SendUDPDisconnectPacket(uint32 netID)
+{
+    NetworkEvent netEvent;
+    netEvent.netID = netID;
+    netEvent.shouldDisconnect = true;
+
+    gPacketOutgoingQueue.enqueue(std::move(netEvent));
+}
+
+void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32 netID, int32 delay)
+{
+    if(data.empty())
+        return;
+
+    uint32 extraSize = Proton::GetMemEstiamte(data);
+    uint32 totalSize = sizeof(GameUpdatePacket) + 5 + extraSize;
+
+    PooledPacket* pPoolPacket = gPacketPool.Acquire(totalSize, true);
+    if(!pPoolPacket) 
+        return;
+
+    pPoolPacket->dataLength = totalSize;
+
+    GameUpdatePacket gamePacket;
+    gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
+    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
+    gamePacket.field_4 = netID;
+    gamePacket.field_7 = delay;
+    gamePacket.extraDataSize = extraSize;
+
+    uint8* pCur = pPoolPacket->payload;
+    uint32 msgType = NET_MESSAGE_GAME_PACKET;
+    
+    std::memcpy(pCur, &msgType, 4); pCur += 4;
+    std::memcpy(pCur, &gamePacket, sizeof(GameUpdatePacket)); pCur += sizeof(GameUpdatePacket);
+
+    uint32 writtenSize = 0;
+    Proton::SerializeToMem(data, &writtenSize, pCur);
+
+    NetworkEvent netEvent{ ENET_EVENT_TYPE_RECEIVE, senderNetID, pPoolPacket };
+    gPacketOutgoingQueue.enqueue(std::move(netEvent));
+}
+
+void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID, int32 delay)
+{
+    if(!pExtraData || extraSize == 0)
+        return;
+
+    uint32 totalSize = sizeof(GameUpdatePacket) + 5 + extraSize;
+
+    PooledPacket* pPoolPacket = gPacketPool.Acquire(totalSize, true);
+    if(!pPoolPacket) 
+        return;
+
+    pPoolPacket->dataLength = totalSize;
+
+    GameUpdatePacket gamePacket;
+    gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
+    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
+    gamePacket.field_4 = netID;
+    gamePacket.field_7 = delay;
+    gamePacket.extraDataSize = extraSize;
+
+    uint8* pCur = pPoolPacket->payload;
+    uint32 msgType = NET_MESSAGE_GAME_PACKET;
+    
+    std::memcpy(pCur, &msgType, 4); pCur += 4;
+    std::memcpy(pCur, &gamePacket, sizeof(GameUpdatePacket)); pCur += sizeof(GameUpdatePacket);
+    std::memcpy(pCur, pExtraData, extraSize);
+
+    NetworkEvent netEvent{ ENET_EVENT_TYPE_RECEIVE, senderNetID, pPoolPacket };
+    gPacketOutgoingQueue.enqueue(std::move(netEvent));
+}
+
+/*bool SendENetPacketRaw(eMessagePacketType messageType, void *pData, uint32 dataSize, uint8 *pExtraData, ENetPeer *pPeer)
 {
     if(!pPeer) {
         return false;
@@ -53,51 +203,47 @@ bool SendENetPacket(eMessagePacketType messageType, const char *message, ENetPee
     }
 
     return true;
-}
+}*/
 
-const char* GetTextFromEnetPacket(ENetPacket* pPacket)
+const char* GetTextFromEnetPacket(uint8* pData, uint32 dataLength)
 {
-    if(!pPacket || pPacket->dataLength < 4) {
+    if(!pData || dataLength < 4)
         return "";
-    }
 
-    if (pPacket->data[pPacket->dataLength - 1] != 0)
-        pPacket->data[pPacket->dataLength - 1] = 0;
+    if(pData[dataLength - 1] != 0)
+        pData[dataLength - 1] = 0;
 
-    return (const char*)pPacket->data + 4;
+    return (const char*)pData + 4;
 }
 
-uint32 GetMessageTypeFromEnetPacket(ENetPacket* pPacket)
+uint32 GetMessageTypeFromEnetPacket(uint8* pData, uint32 dataLength)
 {
-    if(pPacket->dataLength < 4) {
+    if(dataLength < 4)
         return 0;
-    }
 
-    return *(uint32*)pPacket->data;
+    return *(uint32*)pData;
 }
 
-GameUpdatePacket* GetGamePacketFromEnetPacket(ENetPacket* pPacket)
+GameUpdatePacket* GetGamePacketFromEnetPacket(uint8* pData, uint32 dataLength)
 {
-    if(pPacket->dataLength < sizeof(GameUpdatePacket)) {
+    if(dataLength < sizeof(GameUpdatePacket))
         return nullptr;
-    }
 
-    GameUpdatePacket* pGamePacket = (GameUpdatePacket*)(pPacket->data + 4);
-    if(!(pGamePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA)) {
+    GameUpdatePacket* pGamePacket = (GameUpdatePacket*)(pData + 4);
+    if(!(pGamePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA)) 
+    {
         pGamePacket->extraDataSize = 0;
     }
-    else if(pPacket->dataLength < pGamePacket->extraDataSize + sizeof(pGamePacket)) {
+    else if(dataLength < pGamePacket->extraDataSize + sizeof(pGamePacket))
         return nullptr;
-    }
     
     return pGamePacket;
 }
 
 uint8* GetExtendedDataFromGamePacket(GameUpdatePacket* pUpdatePacket)
 {
-    if(!(pUpdatePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA)) {
+    if(!(pUpdatePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA))
         return nullptr;
-    }
 
     return (uint8*)pUpdatePacket + sizeof(GameUpdatePacket);
 }

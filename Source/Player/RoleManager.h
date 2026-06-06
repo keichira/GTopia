@@ -24,11 +24,7 @@ public:
     int32 GetDefaultRoleID() const { return m_defaultRoleID; }
 
 private:
-    bool GetRolePermFromString(const string& permStr, eRolePerm& permOut);
-
-private:
     std::unordered_map<int32, Role*> m_roles;  
-    std::unordered_map<string, eRolePerm> m_permList;
     int32 m_defaultRoleID;
 };
 

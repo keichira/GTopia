@@ -35,6 +35,8 @@ set(MASTER_FILES PRIVATE
     ${SOURCE_UTILS}/Base64.cpp
 
     ${SOURCE_PACKET}/NetPacket.cpp
+    ${SOURCE_PACKET}/PacketPool.cpp
+    ${SOURCE_PACKET}/VariantPacket.cpp
 
     ${MASTER_EVENT}/TCP/TCPEventHello.cpp
     ${MASTER_EVENT}/TCP/TCPEventAuth.cpp

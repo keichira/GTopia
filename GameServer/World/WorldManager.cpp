@@ -271,6 +271,20 @@ World* WorldManager::GetWorldByName(const string& worldName)
     return GetWorldByInstanceID(it->second);
 }
 
+World* WorldManager::GetWorldByDatabaseID(uint32 databaseID)
+{
+    for(auto& [_, pWorld] : m_worlds)
+    {
+        if(!pWorld)
+            continue;
+
+        if(pWorld->GetDatabaseID() == databaseID)
+            return pWorld;
+    }
+
+    return nullptr;
+}
+
 World* WorldManager::GetWorldByInstanceID(uint32 instanceID)
 {
     if(instanceID == 0)
@@ -316,25 +330,31 @@ void WorldManager::OnPlayerJoinRequest(GamePlayer* pPlayer, World* pWorld)
     pWorld->AddPlayer(pPlayer, true);
 }
 
-void WorldManager::OnHandleGamePacket(ENetEvent& event)
+void WorldManager::OnHandleGamePacket(NetworkEvent& event)
 {
-    GameUpdatePacket* pGamePacket = GetGamePacketFromEnetPacket(event.packet);
-    if(!pGamePacket) {
+    if(!event.pPacket)
+        return;
+
+    GameUpdatePacket* pGamePacket = GetGamePacketFromEnetPacket(event.pPacket->payload, event.pPacket->dataLength);
+    if(!pGamePacket) 
+    {
+        gPacketPool.Release(event.pPacket);
         return;
     }
 
-    GamePlayer* pPlayer = (GamePlayer*)event.peer->data;
-    if(event.peer != pPlayer->GetPeer()) {
-        return;
-    }
-
-    if(!pPlayer->HasState(PLAYER_STATE_IN_GAME)) {
+    GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(event.netID);
+    if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_IN_GAME))
+    {
+        gPacketPool.Release(event.pPacket);
         return;
     }
 
     World* pWorld = GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if(!pWorld)
+    {
+        gPacketPool.Release(event.pPacket);
         return;
+    }
 
     if(pGamePacket->type != NET_GAME_PACKET_NPC && pGamePacket->type != NET_GAME_PACKET_PING_REPLY 
         && pGamePacket->type != NET_GAME_PACKET_PING_REQUEST && pGamePacket->type != NET_GAME_PACKET_SET_ICON_STATE
@@ -343,6 +363,7 @@ void WorldManager::OnHandleGamePacket(ENetEvent& event)
     }
 
     m_packetEvents.Dispatch((eGamePacketType)pGamePacket->type, pPlayer, pWorld, pGamePacket);
+    gPacketPool.Release(event.pPacket);
 }
 
 void WorldManager::SaveAllToDatabase()

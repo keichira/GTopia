@@ -300,7 +300,7 @@ void PlayerInventory::UpdateInventory(Player* pPlayer, uint16 itemID, uint8 coun
         packet.field_2 = count;
     }
 
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr, pPlayer->GetPeer());
+    SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr);
 }
 
 void PlayerInventory::RemoveFromQuickSlots(uint16 itemID)

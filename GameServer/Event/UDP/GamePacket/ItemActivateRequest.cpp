@@ -31,7 +31,7 @@ void ItemActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdate
         return;
     }
 
-    if(pItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm(ROLE_PERM_USE_ITEM_TYPE_MOD)) 
+    if(pItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm("bypass.item_mod"_hash)) 
     {
         LOGGER_LOG_WARN("Player %s (ID: %d) tried to use mod flagged item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->field_7);
         return;

@@ -27,7 +27,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     if(!pItem)
         return;
 
-    if(pItem->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm(ROLE_PERM_MSTATE))
+    if(pItem->HasFlag(ITEM_FLAG_MOD) && !pRole->HasPerm("bypass.item_mod"_hash))
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(pPacket->field_11, pPacket->field_12);
@@ -118,7 +118,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         }
     }
 
-    if(pTile->GetFG() == ITEM_ID_RUNE_CARVED_DOOR && !pRole->HasPerm(ROLE_PERM_MSTATE))
+    if(pTile->GetFG() == ITEM_ID_RUNE_CARVED_DOOR && !pRole->HasPerm("bypass.item_mod"_hash))
     {
         pPlayer->SendFakePingReply();
         return;
@@ -300,7 +300,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
             return;
 
-        if(pTileItem->HasFlag(ITEM_FLAG_SMOD) && !pRole->HasPerm(ROLE_PERM_SMSTATE))
+        if(pTileItem->HasFlag(ITEM_FLAG_SMOD) && !pRole->HasPerm("bypass.item_mod"_hash))
             return;
 
         float tileHealthPercentBefore = pTile->GetHealthPercent();

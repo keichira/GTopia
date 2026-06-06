@@ -20,6 +20,7 @@ public:
 
 public:
     static eEntityType GetType(uint64 id) { return eEntityType(id >> 56); }
+    static uint32 GenerateID();
 
 public:
     uint32 GetNetID() const { return uint32(m_entityID & 0xFFFFFFFFULL); }

@@ -15,10 +15,11 @@ public:
     }
 
 public:
-    void OnEventConnect(ENetEvent& event) override;
-    void OnEventReceive(ENetEvent& event) override;
-    void OnEventDisconnect(ENetEvent& event) override;
+    void OnEventConnect(NetworkEvent& event) override;
+    void OnEventReceive(NetworkEvent& event) override;
+    void OnEventDisconnect(NetworkEvent& event) override;
     void Kill() override;
+    void Update() override;
 };
 
 GameServer* GetGameServer();

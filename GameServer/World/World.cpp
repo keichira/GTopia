@@ -233,7 +233,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     packet.field_4 = -1;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.extraDataSize = worldMemSize;
-    SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData, pPlayer->GetPeer());
+    SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData);
     SAFE_DELETE_ARRAY(pWorldData);
 
     pPlayer->SendOnSpawn(pPlayer->GetSpawnData(true));
@@ -307,9 +307,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
         TileExtra_Lock* pExtra = pWorldLock->GetExtra<TileExtra_Lock>();
         if(pExtra) 
         {
-            /**
-             * InactivityManager! :)
-             */
+            
         }
     }
 }
@@ -385,7 +383,7 @@ void World::SendSkinColorUpdateToAll(GamePlayer* pPlayer)
     uint32 skinColor = pPlayer->GetModController().GetSkinColor();
     for(auto& pWorldPlayer: m_players) 
     {
-        if(pWorldPlayer) 
+        if(pWorldPlayer)
         {
             pWorldPlayer->SendOnChangeSkin(skinColor, pPlayer);
         }
@@ -417,12 +415,18 @@ void World::SendNameChangeToAll(GamePlayer* pPlayer)
         return;
     }
 
-    string playerName = pPlayer->GetDisplayName(true);
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendOnNameChanged(playerName, pPlayer);
-        }
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnNameChanged(pPlayer->GetDisplayName(true)), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
     }
+
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::SendSetCharPacketToAll(GamePlayer* pPlayer)
@@ -499,15 +503,7 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY, GamePlayer* pPlayer)
     MemoryBuffer memBuffer(pTileData, memSize);
     pTile->Serialize(memBuffer, true, false, GetWorldVersion());
 
-    if(pPlayer)
-    {
-        SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pTileData, pPlayer->GetPeer());
-    }
-    else
-    {
-        SendGamePacketToAll(&packet, nullptr, pTileData);
-    }
-
+    SendGamePacketToAll(&packet, nullptr, pTileData);
     SAFE_DELETE_ARRAY(pTileData);
 }
 
@@ -610,32 +606,44 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
 
 void World::SendPlayerDataConfigToAll(GamePlayer* pPlayer)
 {
-    if(!pPlayer) {
+    if(!pPlayer)
         return;
-    }
 
     Role* pRole = pPlayer->GetRole();
-    if(!pRole) {
+    if(!pRole)
         return;
+
+    bool hasMState = pRole->HasPerm("state.mod"_hash);
+    bool hasSmState = pRole->HasPerm("state.smod"_hash);
+
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnDataConfig(hasMState, hasSmState), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
     }
 
-    bool hasMState = pRole->HasPerm(ROLE_PERM_MSTATE);
-    bool hasSmState = pRole->HasPerm(ROLE_PERM_SMSTATE);
-
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendOnDataConfig(hasMState, hasSmState, pPlayer);
-        }
-    }
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
 {
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendOnParticleEffect(effectType, pos, delayMs, angle);
-        }
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnParticleEffect(effectType, pos, angle), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, -1, delayMs);
     }
+
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer)
@@ -679,11 +687,18 @@ void World::SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio)
     if(!pPlayer)
         return;
 
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendOnPlayPositioned(audio, pPlayer);
-        }
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnPlayPositioned(audio), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
     }
+
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::SendOnActionToAll(GamePlayer* pPlayer, const string& action)
@@ -691,11 +706,18 @@ void World::SendOnActionToAll(GamePlayer* pPlayer, const string& action)
     if(!pPlayer)
         return;
 
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendOnAction(action, pPlayer);
-        }
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnAction(action), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
     }
+
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip)
@@ -749,18 +771,25 @@ void World::SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe
                 continue;
             }
 
-            SendENetPacketRaw(NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket), pExtraData, pWorldPlayer->GetPeer());
+            SendUDPPacketRaw(pWorldPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket), pExtraData);
         }
     }
 }
 
 void World::SendCurrentWeatherToAll()
 {
-    for(auto& pWorldPlayer : m_players) {
-        if(pWorldPlayer) {
-            pWorldPlayer->SendOnSetCurrentWeather(GetCurrentWeather());
-        }
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnSetCurrentWeather(GetCurrentWeather()), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size);
     }
+
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
