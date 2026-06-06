@@ -4,7 +4,7 @@
 #include "../IO/Log.h"
 #include "../Utils/Base64.h"
 
-bool PlayerLoginDetail::Serialize(ParsedTextPacket<30>& packet, Player* pPlayer, bool asGameServer)
+bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer, bool asGameServer)
 {   
     // platformID,is64bit,hardcoded?
     auto pPlatform = packet.Find("platformID"_hash);

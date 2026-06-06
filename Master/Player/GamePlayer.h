@@ -19,7 +19,7 @@ public:
     void SetState(ePlayerState state) { m_state = state; }
     ePlayerState GetState() const { return m_state; }
 
-    void StartLoginRequest(ParsedTextPacket<30>& packet);
+    void StartLoginRequest(ParsedTextPacket<35>& packet);
     void LoginGetAccount();
 
     static void CheckAccountCB(QueryTaskResult&& result);

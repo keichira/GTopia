@@ -103,6 +103,12 @@ void PlayerManager::UpdatePlayers()
         if(!pPlayer)
             continue;
 
+        if(pPlayer->HasState(PLAYER_STATE_DELETE)) 
+        {
+            m_pendingDelete.push_back(pPlayer);
+            continue;
+        }
+
         if(!pPlayer->HasState(PLAYER_STATE_IN_GAME)) 
         {
             // ?
@@ -117,11 +123,6 @@ void PlayerManager::UpdatePlayers()
             {
                 pPlayer->SaveToDatabase();
             }
-        }
-
-        if(pPlayer->HasState(PLAYER_STATE_DELETE)) 
-        {
-            m_pendingDelete.push_back(pPlayer);
         }
     }
 
@@ -145,7 +146,7 @@ void PlayerManager::SaveAllToDatabase()
 {
     for(auto& [_, pPlayer] : m_gamePlayers) 
     {
-        if(!pPlayer)
+        if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_IN_GAME))
             continue;
 
         pPlayer->SaveToDatabase();

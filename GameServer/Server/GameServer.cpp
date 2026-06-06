@@ -88,7 +88,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
 
             if(pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
             {
-                ParsedTextPacket<30> packet;
+                ParsedTextPacket<35> packet;
                 ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
 
                 pPlayer->StartLoginRequest(packet);
@@ -155,7 +155,7 @@ void GameServer::OnEventDisconnect(NetworkEvent& event)
         return;
     }
 
-    pPlayer->LogOff(true, true, true);
+    pPlayer->LogOff(true, true, true, false);
     GetPlayerManager()->RemovePlayer(pPlayer->GetNetID());
 
     if(event.pPacket) 

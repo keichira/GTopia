@@ -403,7 +403,7 @@ def main():
             generate_item_txt_from_dat(0, dat_path)
             move_file(ROOT / "items.txt", RUNTIME_DIR)
 
-    if get_clean_input("\n👉 Do you want to generate wiki_data.txt? (Description/Splice information) [y/N]", default="n").lower() == "y":
+    if get_clean_input("\n👉 Do you want to generate wiki_data.txt? (Description/Splice information) (Not required) [y/N]", default="n").lower() == "y":
         wiki_dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
         if wiki_dat_path:
             print_info("Processing wiki data, it might take a bit...")

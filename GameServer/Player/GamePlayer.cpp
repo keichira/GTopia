@@ -101,7 +101,7 @@ uint32 GamePlayer::GetPlayerNextLevelXP()
     return 50 * ((GetPlayerLevel() + 1) * (GetPlayerLevel() + 1) + 2);
 }
 
-void GamePlayer::StartLoginRequest(ParsedTextPacket<30>& packet)
+void GamePlayer::StartLoginRequest(ParsedTextPacket<35>& packet)
 {
     if(!HasState(PLAYER_STATE_LOGIN_REQUEST))
         return;
@@ -190,7 +190,7 @@ void GamePlayer::HandleCheckSession(VariantVector&& result)
 void GamePlayer::TransferToGame()
 {
     string settings;
-    settings += "proto=144"; /** search it what it effects in client */
+    settings += "proto=144";
     settings += "|server_tick=" + ToString(Time::GetSystemTime());
     settings += "|choosemusic=audio/mp3/about_theme.mp3";
     settings += "|usingStoreNavigation=1";
@@ -290,7 +290,7 @@ void GamePlayer::SaveToDatabase()
     SAFE_DELETE_ARRAY(pInvData);
 }
 
-void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
+void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession, bool sendNetworkPackets)
 {
     if(forceDelete) 
     {
@@ -314,7 +314,7 @@ void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession)
             }
         }
 
-        if(forceDelete) 
+        if(forceDelete && sendNetworkPackets) 
         {
             SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, "action|logoff\n");
             SendUDPDisconnectPacket(GetNetID());

@@ -51,14 +51,14 @@ public:
     uint32 GetPlayerLevel();
     uint32 GetPlayerNextLevelXP();
 
-    void StartLoginRequest(ParsedTextPacket<30>& packet);
+    void StartLoginRequest(ParsedTextPacket<35>& packet);
     void HandleCheckSession(VariantVector&& result);
     void TransferToGame();
 
     void HandleRenderWorld(VariantVector&& result);
 
     void SaveToDatabase();
-    void LogOff(bool forceDelete, bool saveToDb, bool endSession);
+    void LogOff(bool forceDelete, bool saveToDb, bool endSession, bool sendNetworkPackets = true);
 
     void Update();
 
