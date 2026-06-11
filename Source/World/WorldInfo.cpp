@@ -42,14 +42,26 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
     memBuffer.ReadWrite(m_flags, write);
     memBuffer.ReadWriteString(m_name, write);
 
-    if(!m_pTileMgr->Serialize(memBuffer, write, database, this)) {
+    if(!m_pTileMgr->Serialize(memBuffer, write, database, this, gameVersion)) {
         return false;
+    }
+
+    if(!database && write && gameVersion >= 5.40f) // 5.40 is not the actual value lazy to dig for it
+    {
+        uint32 unk = 0;
+        memBuffer.ReadWrite(unk, write);
+        memBuffer.ReadWrite(unk, write);
+        memBuffer.ReadWrite(unk, write);
     }
 
     m_pObjMgr->Serialize(memBuffer, write, database);
     
+    uint16 unused = 0;
     memBuffer.ReadWrite(m_defaultWeather, write);
+    memBuffer.ReadWrite(unused, write);
     memBuffer.ReadWrite(m_currentWeather, write);
+    memBuffer.ReadWrite(unused, write);
+    memBuffer.ReadWrite(unused, write);
     return true;
 }
 

@@ -76,7 +76,7 @@ func loginHandler(res http.ResponseWriter, req *http.Request) {
 	}
 
 	platform, platformErr := strconv.Atoi(platformStr)
-	if platformErr != nil || platform < 0 || platform > 10 {
+	if platformErr != nil || platform < 0 || platform > 15 {
 		fmt.Printf("Failed to parse platform %v\n", platformStr)
 		res.WriteHeader(http.StatusBadRequest)
 		return

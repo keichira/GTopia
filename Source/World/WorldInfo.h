@@ -58,6 +58,6 @@ private:
     WorldTileManager* m_pTileMgr;
     WorldObjectManager* m_pObjMgr;
 
-    uint32 m_defaultWeather; // both uint16 but yea shushh
-    uint32 m_currentWeather;
+    uint16 m_defaultWeather;
+    uint16 m_currentWeather;
 };
