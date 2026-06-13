@@ -15,6 +15,7 @@ A cross-platform **Growtopia private server** featuring sub-server support.
 *   **Sub-Server Support:** Split your game instances across sub-servers.
 *   **Telnet Management:** Built-in telnet interface for remote server administration.
 *   **Multi-version** supports 3.02+ and latest versions
+*   **Cross-Version Play:** Supports both legacy and latest clients at the same time.
 *   **World Renderer Support:** Submodule inclusion for world map rendering.
 
 ---

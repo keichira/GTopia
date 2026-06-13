@@ -156,6 +156,19 @@ void LoadAccount(QueryTaskResult&& result)
 
     pPlayer->SendInventoryPacket();
 
+    if(loginDetail.gameVersion >= 5.47)
+    {
+        for(int32 i = 0; i < FEATURE_FLAG_COUNT; ++i)
+        {
+            if(i != FEATURE_FLAG_HOME_WORLD_TUTORIAL && i != FEATURE_FLAG_WRENCH_TUTORIAL)
+            {
+                pPlayer->EnableFeature((eClientFeatureFlag)(i));
+            }
+        }
+
+        pPlayer->SendOnSetFeatureEnableFlags();
+    }
+
     uint32 worldID = result.result->GetField("LastWorld", 0).GetUINT();
 
     if(worldID != 0 && loginDetail.loginMode == LOGON_MODE_WELCOME) 

@@ -2,10 +2,12 @@
 #include "../Packet/NetPacket.h"
 #include "Proton/ProtonUtils.h"
 #include "../Utils/Timer.h"
+#include "../Utils/Base64.h"
 
 Player::Player()
 : m_netID(0), m_userID(0)
 {
+    ResetFeatures();
 }
 
 Player::~Player()
@@ -234,6 +236,14 @@ void Player::SendOnAddNotification(const string& image, const string& message, c
     );
 }
 
+void Player::SendOnSetFeatureEnableFlags()
+{
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSetFeatureEnableFlags(BuildFeaturesBase64String())
+    );
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;
@@ -246,6 +256,63 @@ void Player::PlaySFX(const string& fileName, int32 delay)
 {
     string packet = "action|play_sfx\nfile|audio/" + fileName + "\ndelayMS|" + ToString(delay) + "\n";
     SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, packet.c_str(), packet.size());
+}
+
+void Player::ResetFeatures()
+{
+    for(int8 i = 0; i < FEATURE_FLAG_COUNT; ++i)
+    {
+        m_activeFeatures[i] = 0;
+    }
+}
+
+void Player::EnableFeature(eClientFeatureFlag flag)
+{
+    if(flag < FEATURE_FLAG_COUNT)
+    {
+        m_activeFeatures[flag] = 1;
+    }
+}
+
+void Player::DisableFeature(eClientFeatureFlag flag)
+{
+    if(flag < FEATURE_FLAG_COUNT)
+    {
+        m_activeFeatures[flag] = 0;
+    }
+}
+
+bool Player::IsFeatureEnabled(eClientFeatureFlag flag)
+{
+    if(flag < FEATURE_FLAG_COUNT)
+        return m_activeFeatures[flag] == 1;
+
+    return false;
+}
+
+string Player::BuildFeaturesBase64String()
+{
+    uint8 rawPacket[FEATURE_FLAG_COUNT + 1];
+    uint32 activeCount = 0;
+
+    for(uint8 i = 1; i < FEATURE_FLAG_COUNT; ++i)
+    {
+        if(m_activeFeatures[i] == 1)
+        {
+            rawPacket[activeCount + 1] = i;
+            activeCount++;
+        }
+    }
+
+    rawPacket[0] = activeCount;
+    
+    string featureStr;
+    if(!Base64_Encode(rawPacket, activeCount + 1, featureStr))
+    {
+        LOGGER_LOG_ERROR("Base64_Encode error in Player::BuildFeaturesBase64String activeCount: %d", activeCount);
+    }
+
+    return featureStr;
 }
 
 #ifdef SERVER_GAME

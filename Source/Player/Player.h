@@ -15,6 +15,29 @@ enum ePlayerLogonMode
     LOGON_MODE_TRANSFER = 2
 };
 
+enum eClientFeatureFlag
+{
+    FEATURE_FLAG_NONE,
+    FEATURE_FLAG_PROFILE_HUD,
+    FEATURE_FLAG_STORE,
+    FEATURE_FLAG_PIGGY_BANK,
+    FEATURE_FLAG_WARDROBE,
+    FEATURE_FLAG_HOME_WORLD_TUTORIAL,
+    FEATURE_FLAG_REMOVE_TUTORIAL,
+    FEATURE_FLAG_WRENCH_TUTORIAL,
+    FEATURE_FLAG_DUNGEONUI,
+    FEATURE_FLAG_COMMUNITY_BUTTON,
+    FEATURE_FLAG_MAILBOX_AUCTION,
+    FEATURE_FLAG_CLASH,
+    FEATURE_FLAG_LIFE_GOALS,
+    FEATURE_FLAG_DAILY_CHALLANGE,
+    FEATURE_FLAG_DAILY_QUEST,
+    FEATURE_FLAG_EPIC_QUESTS,
+    FEATURE_FLAG_BIWEEKLY_QUESTS,
+    FEATURE_FLAG_EVENT_BUTTON,
+    FEATURE_FLAG_COUNT
+};
+
 class Player {
 public:
     Player();
@@ -46,6 +69,7 @@ public:
     void SendOnStorePurchaseResult(const string& resultText);
     void SendOnAction(const string& action, Player* pPlayer = nullptr);
     void SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip);
+    void SendOnSetFeatureEnableFlags();
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);
@@ -60,6 +84,12 @@ public:
 
     string GetAddress() const { return m_address; }
     const string& GetLastAction() { return m_lastAction; }
+
+    void ResetFeatures();
+    void EnableFeature(eClientFeatureFlag flag);
+    void DisableFeature(eClientFeatureFlag flag);
+    bool IsFeatureEnabled(eClientFeatureFlag flag);
+    string BuildFeaturesBase64String();
 
 #ifdef SERVER_GAME
     PlayerInventory& GetInventory() { return m_inventory; }
@@ -78,6 +108,7 @@ protected:
 
     char m_address[16];
     string m_lastAction;
+    uint8 m_activeFeatures[FEATURE_FLAG_COUNT];
 
 #ifdef SERVER_GAME
     PlayerInventory m_inventory;

@@ -61,7 +61,9 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
     memBuffer.ReadWrite(unused, write);
     memBuffer.ReadWrite(m_currentWeather, write);
     memBuffer.ReadWrite(unused, write);
-    memBuffer.ReadWrite(unused, write);
+
+    uint32 unused2 = 0;
+    memBuffer.ReadWrite(unused2, write);
     return true;
 }
 

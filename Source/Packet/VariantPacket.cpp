@@ -136,6 +136,11 @@ namespace VariantPacket {
         return { "OnParticleEffect", effectType, pos, angle };
     }
 
+    VariantVector OnSetFeatureEnableFlags(const string& str)
+    {
+        return { "OnSetFeatureEnableFlags", str };
+    }
+
     VariantVector OnStoreRequest(const string& storeData) {
         return { "OnStoreRequest", storeData };
     }
