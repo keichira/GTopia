@@ -174,6 +174,22 @@ DialogBuilder* DialogBuilder::AddItemPicker(const string& id, const string& butt
     return this;
 }
 
+DialogBuilder* DialogBuilder::AddLabelWithIconButton(string buttonID, string label, uint32 itemID, bool big, bool center)
+{
+    m_str += "add_label_with_icon_button|";
+
+    if(big) m_str += "big|";
+    else m_str += "small|";
+
+    m_str += label;
+
+    if(center) m_str += "|center|";
+    else m_str += "|left|";
+
+    m_str += ToString(itemID) + "|" + buttonID + "|\n";
+    return this;
+}
+
 DialogBuilder* DialogBuilder::EmbedData(const string& name, const string& value)
 {
     m_str += "embed_data|" + name + "|" + value + "\n";

@@ -39,7 +39,7 @@ public:
 
     uint32 ReadWriteString(string& data, bool write)
     {
-        if (write) {
+        if(write) {
             return WriteStringRaw(data);
         }
         else {

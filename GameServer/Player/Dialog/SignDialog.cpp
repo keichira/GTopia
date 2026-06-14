@@ -70,6 +70,9 @@ void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
         return;
     }
 
+    if(pSignText->size == 0)
+        return;
+
     if(pSignText->size > 128)
     {
         pPlayer->SendOnTalkBubble("That text is too long!", false);

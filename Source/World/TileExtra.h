@@ -4,6 +4,7 @@
 #include "../Memory/MemoryBuffer.h"
 #include "Utils/Timer.h"
 #include "../Item/ItemInfoManager.h"
+#include <deque>
 
 class TileExtra;
 class TileExtraGrowth;
@@ -328,4 +329,32 @@ TILE_EXTRA(TileExtra_PetTrainer, TILE_EXTRA_TYPE_PET_TRAINER)
     uint32 unk = 0;
     std::vector<int32> pets;
     string unk2 = 0;
+};
+
+struct TileMailboxLetter
+{
+    uint32 userID = 0;
+    string message;
+};
+
+TILE_EXTRA(TileExtra_Mailbox, TILE_EXTRA_TYPE_MAILBOX)
+    /**
+     * normally gt serializes Variants into first string
+     * var[0] = userID
+     * var[1] = msg
+     * but we gonna hold it on deque to not serialize/deserialize everytime
+     */
+
+    std::deque<TileMailboxLetter> letters;
+
+    bool HasLetterFromID(uint32 userID)
+    {
+        for(auto& letter : letters)
+        {
+            if(letter.userID == userID)
+                return true;
+        }
+
+        return false;
+    }
 };

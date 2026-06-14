@@ -36,6 +36,7 @@ public:
     DialogBuilder* AddSmallText(const string& text, bool center = false);
     DialogBuilder* AddAchieveButton(const string& name, const string& desc, uint8 id);
     DialogBuilder* AddItemPicker(const string& id, const string& buttonText, const string& label);
+    DialogBuilder* AddLabelWithIconButton(string buttonID, string label, uint32 itemID, bool big = false, bool center = false);
 
     DialogBuilder* EmbedData(const string& name, const string& value);
 

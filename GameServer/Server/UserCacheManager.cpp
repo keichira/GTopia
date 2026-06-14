@@ -6,6 +6,7 @@
 #include "Player/RoleManager.h"
 #include "../World/WorldManager.h"
 #include "../Player/Dialog/LockDialog.h"
+#include "../Player/Dialog/MailboxBlockDialog.h"
 
 UserCacheManager::UserCacheManager()
 {
@@ -216,6 +217,14 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
         {
             OnPunchedAchievementBlock(pPlayer, request);
             break;
+        }
+
+        case CACHE_REQ_MAILBOX_BLOCK:
+        {
+            if(request.params.size() < 3)
+                break;
+
+            MailboxBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
         }
 
         default:

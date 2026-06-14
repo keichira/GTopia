@@ -11,6 +11,7 @@
 #include "../../../Player/Dialog/OuijaBoardDialog.h"
 #include "../../../Player/Dialog/BattleCageDialog.h"
 #include "../../../Player/Dialog/XenoniteDialog.h"
+#include "../../../Player/Dialog/MailboxBlockDialog.h"
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
@@ -105,6 +106,13 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
         case "xenonite_edit"_hash:
         {
             XenoniteDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "mailbox_edit"_hash:
+        {
+            MailboxBlockDialog::Handle(pPlayer, packet);
+            break;
         }
     }
 }

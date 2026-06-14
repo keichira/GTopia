@@ -23,7 +23,8 @@ void XenoniteDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pIt
     Vector2Int& vTilePos = pTile->GetPos();
 
     DialogBuilder db;
-    db.AddLabelWithIcon(pItem->name, pItem->id, true)
+    db.SetDefaultColor('o')
+    ->AddLabelWithIcon(pItem->name, pItem->id, true)
     ->EmbedData("tilex", vTilePos.x)
     ->EmbedData("tiley", vTilePos.y);
 
