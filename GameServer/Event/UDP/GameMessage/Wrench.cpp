@@ -2,7 +2,7 @@
 #include "Utils/StringUtils.h"
 #include "../../../Player/Dialog/WrenchSelfDialog.h"
 
-void Wrench::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void Wrench::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
@@ -12,7 +12,7 @@ void Wrench::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
 
     uint32 netID = 0;
-    if(ToUInt(string(pNetID->value, pNetID->size), netID) != TO_INT_SUCCESS)
+    if(pNetID->GetUInt(netID) != TO_INT_SUCCESS)
         return;
 
     if(pPlayer->GetNetID() == netID)

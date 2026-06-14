@@ -8,6 +8,7 @@
 #include "AchievementBlockDialog.h"
 #include "OuijaBoardDialog.h"
 #include "BattleCageDialog.h"
+#include "XenoniteDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
@@ -42,5 +43,10 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if(pItem->type == ITEM_TYPE_BATTLE_CAGE)
     {
         BattleCageDialog::Request(pPlayer, pTile, pItem);
+    }
+
+    if(pItem->type == ITEM_TYPE_XENONITE)
+    {
+        XenoniteDialog::Request(pPlayer, pTile, pItem);
     }
 }

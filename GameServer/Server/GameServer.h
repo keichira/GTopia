@@ -37,7 +37,7 @@ private:
     {
         m_messagePacket.Register(
             eventHash,
-            Delegate<GamePlayer*, ParsedTextPacket<8>&>::Create<&T::Execute>()
+            Delegate<GamePlayer*, ParsedTextPacket<40>&>::Create<&T::Execute>()
         );
     }
 
@@ -53,7 +53,7 @@ private:
     }
 
 private:
-    EventDispatcher<uint32, GamePlayer*, ParsedTextPacket<8>&> m_messagePacket;
+    EventDispatcher<uint32, GamePlayer*, ParsedTextPacket<40>&> m_messagePacket;
     EventDispatcher<uint32, GamePlayer*, std::vector<string>&> m_commands;
 
     Timer m_playersLastUpdateTime;

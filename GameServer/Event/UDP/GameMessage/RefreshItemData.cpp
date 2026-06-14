@@ -3,11 +3,12 @@
 #include "Item/ItemInfoManager.h"
 #include "IO/Log.h"
 
-void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     pPlayer->SendOnConsoleMessage("One moment updating item data...");
 
-    ItemsClientData* clientData = GetItemInfoManager()->GetClientData(pPlayer->GetLoginDetail().platformType, pPlayer->GetLoginDetail().gameVersion);
+    PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    ItemsClientData* clientData = GetItemInfoManager()->GetClientData(loginDetail.platformType, loginDetail.gameVersion);
     if(!clientData->pItemData) 
     {
         pPlayer->SendOnConsoleMessage("Someting went wrong while sending updates");
@@ -23,5 +24,5 @@ void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     gamePacket.extraDataSize = clientData->compressSize;
 
-    SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), clientData->pItemData);
+    SendUDPItemDataPacket(pPlayer->GetNetID(), loginDetail.platformType, loginDetail.gameVersion, &gamePacket);
 }

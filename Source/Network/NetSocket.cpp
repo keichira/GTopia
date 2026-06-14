@@ -47,6 +47,22 @@ string GetIPFromSocket(socket_t socket)
 #endif
 }
 
+int GetIPStringFromHost(uint32 host, char* buffer, uint32 bufferSize)
+{
+    if(!buffer || bufferSize < 16) 
+        return -1;
+
+    struct in_addr addr;
+    addr.s_addr = host;
+
+    if(inet_ntop(AF_INET, &addr, buffer, bufferSize) != nullptr)
+    {
+        return 0;
+    }
+
+    return -1;
+}
+
 NetSocket::NetSocket()
 : m_socket(SOCKET_INVALID), m_lastConnID(0)
 {

@@ -30,38 +30,55 @@ void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void SignDialog::Handle(GamePlayer* pPlayer, const string& text, int32 tileX, int32 tileY)
+void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
-    if(!pPlayer || pPlayer->GetCurrentWorld() == 0)
+    if(!pPlayer)
         return;
 
-    string written = text;
-    RemoveExtraWhiteSpaces(written);
-
-    if(written.size() > 128) 
-    {
-        pPlayer->SendOnTalkBubble("That text is too long!", false);
+    auto pTileX = packet.Find("tilex"_hash);
+    if(!pTileX)
         return;
-    }
+
+    auto pTileY = packet.Find("tiley"_hash);
+    if(!pTileY)
+        return;
+
+    auto pSignText = packet.Find("sign_text"_hash);
+    if(!pSignText)
+        return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if(!pWorld)
         return;
 
-    TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
-    if(!pTile) 
-    {
-        pPlayer->SendOnTalkBubble("Huh? The sign is gone!", false);
+    int32 tileX = 0;
+    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
         return;
-    }
+
+    int32 tileY = 0;
+    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+        return;
+
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
+    if(!pTile)
+        return;
 
     TileExtra_Sign* pTileExtra = pTile->GetExtra<TileExtra_Sign>();
-    if(!pTileExtra) 
+    if(!pTileExtra)
     {
         pPlayer->SendOnTalkBubble("Huh? The sign is gone!", false);
         return;
     }
 
-    pTileExtra->text = written;
+    if(pSignText->size > 128)
+    {
+        pPlayer->SendOnTalkBubble("That text is too long!", false);
+        return;
+    }
+
+    string text = pSignText->GetString();
+    RemoveExtraWhiteSpaces(text);
+
+    pTileExtra->text = text;
     pWorld->SendTileUpdate(tileX, tileY);
 }

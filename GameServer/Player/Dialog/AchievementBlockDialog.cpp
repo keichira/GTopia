@@ -39,7 +39,7 @@ void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemI
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
@@ -57,11 +57,11 @@ void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& pa
         return;
 
     int32 tileX = 0;
-    if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS)
+    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
         return;
 
     int32 tileY = 0;
-    if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS)
+    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
@@ -83,14 +83,13 @@ void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& pa
         return;
 
     int32 achievementID = 127;
-    auto pButtonClicked = packet.Find("buttonClicked"_hash);
-    if(pButtonClicked)
+    if(auto pButtonClicked = packet.Find("buttonClicked"_hash))
     {
-        if(ToInt(string(pButtonClicked->value, pButtonClicked->size), achievementID) != TO_INT_SUCCESS)
+        if(pButtonClicked->GetInt(achievementID) != TO_INT_SUCCESS)
             return;
     }
 
-    if(achievementID != 127 && achievementID > ACHIEVEMENT_COUNT && !pPlayer->GetProgressData().HasAchievement((eAchievement)achievementID))
+    if(achievementID != 127 && achievementID < 0 && achievementID > ACHIEVEMENT_COUNT && !pPlayer->GetProgressData().HasAchievement((eAchievement)achievementID))
         return;
 
     string message = "Block etched.";

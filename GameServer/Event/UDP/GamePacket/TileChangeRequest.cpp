@@ -235,6 +235,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             || (pPacket->field_7 == ITEM_ID_ZOMBIE_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_ZOMBIE_JAMMER))
             || (pPacket->field_7 == ITEM_ID_SIGNAL_JAMMER && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_SIGNAL_JAMMER))
             || (pPacket->field_7 == ITEM_ID_ANTIGRAVITY_GENERATOR && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_ANTIGRAVITY))
+            || (pPacket->field_7 == ITEM_ID_XENONITE_CRYSTAL && pWorld->GetTileManager()->GetKeyTile(KEY_TILE_XENONITE))
         ) {
             pPlayer->SendFakePingReply();
             pPlayer->SendOnTalkBubble("This world already has a " + pItem->name + " somewhere on it, installing two would be dangerous!", true);
@@ -263,6 +264,11 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             {
                 pAchiExtra->ownerID = pPlayer->GetUserID();
             }
+        }
+
+        if(pItem->type == ITEM_TYPE_XENONITE)
+        {
+            pWorld->ToggleXenoniteCrystal(true);
         }
 
         pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
@@ -410,6 +416,11 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(tileBroken && IsWorldLock(pTileItem->id))
         {
             pWorld->SendNameChangeToAll(pPlayer);
+        }
+
+        if(tileBroken && pItem->type == ITEM_TYPE_XENONITE)
+        {
+            pWorld->ToggleXenoniteCrystal(false);
         }
     }
 

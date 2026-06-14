@@ -2,7 +2,7 @@
 #include "IO/Log.h"
 #include "../../../World/WorldManager.h"
 
-void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(pPlayer->GetLastJoinRequestTime().GetElapsedTime() <= 800)
         return;
@@ -16,6 +16,5 @@ void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
     }
 
-    string worldName(pName->value, pName->size);
-    GetWorldManager()->PlayerJoinRequest(pPlayer, worldName);
+    GetWorldManager()->PlayerJoinRequest(pPlayer, pName->GetString());
 }

@@ -101,6 +101,8 @@ public:
     bool FlameUpTile(TileInfo* pTile);
     void PutOutFire(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
 
+    void ToggleXenoniteCrystal(bool enable);
+
     bool CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command);
     bool CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile);
     bool TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile);

@@ -1,7 +1,7 @@
 #include "Store.h"
 #include "../../../Store/StoreManager.h"
 
-void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
@@ -13,10 +13,8 @@ void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(pLocation->size > 50)
         return;
 
-    string location(pLocation->value, pLocation->size);
-
     StoreManager* pStoreMgr = GetStoreManager();
-    StoreEntry* pStoreEntry = pStoreMgr->GetStoreEntryByCode(location);
+    StoreEntry* pStoreEntry = pStoreMgr->GetStoreEntryByCode(pLocation->GetString());
 
     if(!pStoreEntry)
     {

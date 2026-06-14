@@ -108,6 +108,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/AchievementBlockDialog.cpp
     ${GAME_DIALOG}/OuijaBoardDialog.cpp
     ${GAME_DIALOG}/BattleCageDialog.cpp
+    ${GAME_DIALOG}/XenoniteDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

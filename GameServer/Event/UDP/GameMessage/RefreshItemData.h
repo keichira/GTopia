@@ -4,5 +4,5 @@
 
 class RefreshItemData {
 public:
-    static void Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet);
+    static void Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet);
 };

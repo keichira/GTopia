@@ -19,5 +19,5 @@ public:
     static void RequestMain(GamePlayer* pPlayer, TileInfo* pTile);
     static void RequestItemInfo(GamePlayer* pPlayer, TileInfo* pTile, int32 itemIndex, eOuijaItemInfoType type);
     static void RequestCommand(GamePlayer* pPlayer, TileInfo* pTile);
-    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet);
+    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet);
 };

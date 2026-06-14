@@ -38,4 +38,5 @@ namespace VariantPacket {
     VariantVector OnPlayPositioned(const string& fileName);
     VariantVector OnParticleEffect(int32 effectType, const Vector2Float& pos, float angle);
     VariantVector OnSetFeatureEnableFlags(const string& str);
+    VariantVector OnSetFreezeState(uint32 state);
 }

@@ -192,27 +192,29 @@ void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, in
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(pPlayer->GetCurrentWorld() == 0)
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
+    if(!pTileX)
+        return;
+
     auto pTileY = packet.Find("tiley"_hash);
-
-    if(!pTileX || !pTileY)
-        return;
-
-    int32 tileX = 0;
-    if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS)
-        return;
-
-    int32 tileY = 0;
-    if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS)
+    if(!pTileY)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if(!pWorld)
+        return;
+
+    int32 tileX = 0;
+    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
+        return;
+
+    int32 tileY = 0;
+    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
@@ -246,60 +248,48 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     bool tileNeedsUpdate = false;
 
-    auto pIgnoreAir = packet.Find("checkbox_ignore"_hash);
-    if(pIgnoreAir)
+    if(auto pIgnoreAir = packet.Find("checkbox_ignore"_hash))
     {
-        int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
-        if(ToInt(string(pIgnoreAir->value, pIgnoreAir->size), val) != TO_INT_SUCCESS)
+        bool val;
+        if(pIgnoreAir->GetBool(val) != TO_INT_SUCCESS) 
             return;
-
-        if(val == 1)
-            pTileExtra->SetFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
-        else 
-            pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
+        
+        val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY) 
+            : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
     }
 
     bool oldPublicFlag = pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
 
-    auto pPublic = packet.Find("checkbox_public"_hash);
-    if(pPublic)
+    if(auto pPublic = packet.Find("checkbox_public"_hash))
     {
-        int32 val = pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
-        if(ToInt(string(pPublic->value, pPublic->size), val) != TO_INT_SUCCESS)
+        bool val;
+        if(pPublic->GetBool(val) != TO_INT_SUCCESS) 
             return;
-
-        if(val == 1)
-            pTile->SetFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
-        else 
-            pTile->RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
+        
+        val ? pTile->SetFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC) 
+            : pTile->RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
     }
 
     if(pItem->id == ITEM_ID_BUILDERS_LOCK)
     {
-        auto pBuildOnly = packet.Find("checkbox_buildonly"_hash);
-        if(pBuildOnly)
+        if(auto pBuildOnly = packet.Find("checkbox_buildonly"_hash))
         {
-            int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
-            if(ToInt(string(pBuildOnly->value, pBuildOnly->size), val) != TO_INT_SUCCESS)
+            bool val;
+            if(pBuildOnly->GetBool(val) != TO_INT_SUCCESS) 
                 return;
-    
-            if(val == 1)
-                pTileExtra->SetFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
-            else 
-                pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
+            
+            val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_BUILD_ONLY) 
+                : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
         }
 
-        auto pLimitAdmins = packet.Find("checkbox_admins"_hash);
-        if(pLimitAdmins)
+        if(auto pLimitAdmins = packet.Find("checkbox_admins"_hash))
         {
-            int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS);
-            if(ToInt(string(pLimitAdmins->value, pLimitAdmins->size), val) != TO_INT_SUCCESS)
+            bool val;
+            if(pLimitAdmins->GetBool(val) != TO_INT_SUCCESS) 
                 return;
-    
-            if(val == 1)
-                pTileExtra->SetFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS);
-            else 
-                pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS);
+            
+            val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS) 
+                : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS);
         }
     }
 
@@ -314,29 +304,25 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
     if(IsWorldLock(pItem->id)) 
     {
-        auto pDisableMusic = packet.Find("checkbox_disable_music"_hash);
-        if(pDisableMusic)
+        if(auto pDisableMusic = packet.Find("checkbox_disable_music"_hash))
         {
-            int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC);
-            if(ToInt(string(pDisableMusic->value, pDisableMusic->size), val) != TO_INT_SUCCESS)
+            bool val;
+            if(pDisableMusic->GetBool(val) != TO_INT_SUCCESS) 
                 return;
-    
-            if(val == 1)
-                pTileExtra->SetFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC);
-            else 
-                pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC);
+            
+            val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC) 
+                : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC);
         }
 
         if(pItem->id == ITEM_ID_ROYAL_LOCK)
         {
-            auto pSilenced = packet.Find("checkbox_silence"_hash);
-            if(pSilenced)
+            if(auto pSilenced = packet.Find("checkbox_silence"_hash))
             {
-                int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE);
-                if(ToInt(string(pSilenced->value, pSilenced->size), val) != TO_INT_SUCCESS)
+                bool val;
+                if(pSilenced->GetBool(val) != TO_INT_SUCCESS) 
                     return;
         
-                if(val == 1)
+                if(val)
                 {
                     pTileExtra->SetFlag(TILE_EXTRA_LOCK_SILENCE);
                     pWorld->SendTalkBubbleAndConsoleToAll(
@@ -352,17 +338,14 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
                 }
             }
 
-            auto pTrail = packet.Find("checkbox_rainbow"_hash);
-            if(pTrail)
+            if(auto pTrail = packet.Find("checkbox_rainbow"_hash))
             {
-                int32 val = pTileExtra->HasFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL);
-                if(ToInt(string(pTrail->value, pTrail->size), val) != TO_INT_SUCCESS)
+                bool val;
+                if(pTrail->GetBool(val) != TO_INT_SUCCESS) 
                     return;
         
-                if(val == 1)
-                    pTileExtra->SetFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL);
-                else 
-                    pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL);
+                val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL) 
+                    : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL);
             }
 
             tileNeedsUpdate = true;
@@ -374,11 +357,10 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         pWorld->SendTileUpdate(pTile);
     }
 
-    auto pPlayerNetID = packet.Find("playerNetID"_hash);
-    if(pPlayerNetID)
+    if(auto pPlayerNetID = packet.Find("playerNetID"_hash))
     {
         uint32 targetPlayer = 0;
-        if(ToUInt(string(pPlayerNetID->value, pPlayerNetID->size), targetPlayer) != TO_INT_SUCCESS)
+        if(pPlayerNetID->GetUInt(targetPlayer) != TO_INT_SUCCESS)
             return;
 
         GamePlayer* pTarget = GetPlayerManager()->GetPlayerByNetID(targetPlayer);
@@ -390,13 +372,13 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
 
         if(pTileExtra->HasAccess(targetPlayer))
         {
-            pPlayer->SendOnTalkBubble(pPlayer->GetRawName() + " already has access to the lock", false);
+            pPlayer->SendOnTalkBubble(pTarget->GetRawName() + " already has access to the lock", false);
             return;
         }
 
         if(pTileExtra->GetTotalAccessedCount() > 25)
         {
-            pPlayer->SendOnTalkBubble(pPlayer->GetRawName() + " can't be added, the lock is full!", false);
+            pPlayer->SendOnTalkBubble("Unable to add, the lock is full!", false);
             return;
         }
 
@@ -411,9 +393,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(pButtonClicked->size == 0 || pButtonClicked->size > 20)
         return;
 
-    string clickedButton(pButtonClicked->value, pButtonClicked->size);
-    if(clickedButton.empty())
-        return;
+    std::string_view clickedButton = pButtonClicked->GetStringView();
 
     if(clickedButton == "recalcLock" && !IsWorldLock(pItem->id))
     {

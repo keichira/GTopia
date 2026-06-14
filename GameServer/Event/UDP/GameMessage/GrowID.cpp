@@ -3,7 +3,7 @@
 #include "Database/Table/PlayerDBTable.h"
 #include "../../../Context.h"
 
-void GrowID::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void GrowID::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer || pPlayer->HasGrowID())
         return;

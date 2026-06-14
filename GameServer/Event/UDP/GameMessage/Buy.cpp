@@ -1,7 +1,7 @@
 #include "Buy.h"
 #include "../../../Store/StoreManager.h"
 
-void Buy::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void Buy::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
@@ -13,10 +13,9 @@ void Buy::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     if(pItem->size > 50)
         return;
 
-    string incomeItem(pItem->value, pItem->size);
     StoreManager* pStoreMgr = GetStoreManager();
 
-    StoreEntry* pStoreEntry = pStoreMgr->GetStoreEntryByCode(incomeItem);
+    StoreEntry* pStoreEntry = pStoreMgr->GetStoreEntryByCode(pItem->GetString());
     if(!pStoreEntry)
         return;
 

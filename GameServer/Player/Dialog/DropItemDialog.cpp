@@ -30,7 +30,7 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
 
     bool showWarning = false;
 
-    /*TileInfo* pLockTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
+    TileInfo* pLockTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
     if(!pLockTile)
     {
         showWarning = true;
@@ -68,13 +68,13 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
                 db.AddTextBox("If trading, use the trade system instead of dropping items!");
                 break;
         }
-    }*/
+    }
 
     db.EndDialog("drop_item", "OK", "Cancel");
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer || pPlayer->GetCurrentWorld() == 0)
         return;
@@ -90,13 +90,12 @@ void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
 
     uint32 itemID = 0;
-    if(ToUInt(string(pItemID->value, pItemID->size), itemID) != TO_INT_SUCCESS)
+    if(pItemID->GetUInt(itemID) != TO_INT_SUCCESS)
         return;
 
     int32 count = 0;
-    if(ToInt(string(pCount->value, pCount->size), count) != TO_INT_SUCCESS)
+    if(pCount->GetInt(count) != TO_INT_SUCCESS)
         return;
-
 
     if(count == 0)
         return;

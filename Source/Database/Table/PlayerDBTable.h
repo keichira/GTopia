@@ -49,19 +49,19 @@ enum ePlayerDBQuery
 namespace PlayerDB
 {
     QueryRequest GetByMac(const string& mac, uint8 platformType, uint32 ownerID = 0);
-    QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, const string& ip, uint32 ownerID = 0);
+    QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, std::string_view ip, uint32 ownerID = 0);
     QueryRequest GetData(uint32 userID, uint32 ownerID = 0);
     QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 lastWorld, string progressData, int32 gems = 0, uint32 ownerID = 0);
-    QueryRequest CountByIP(const string& ip, uint32 ownerID = 0);
+    QueryRequest CountByIP(std::string_view ip, uint32 ownerID = 0);
 
     QueryRequest GetByVID(const string& vid, uint8 platformType, uint32 ownerID = 0);
     QueryRequest GetByGID(const string& gid, uint8 platformType, uint32 ownerID = 0);
     QueryRequest GetByHash(int32 hash, uint8 platformType, uint32 ownerID = 0);
 
-    QueryRequest CountByGidMacIP(const string& gid, const string& mac, const string& ip, uint32 ownerID = 0);
-    QueryRequest CountByVidMacIP(const string& vid, const string& mac, const string& ip, uint32 ownerID = 0);
-    QueryRequest CountBySidMacIP(const string& sid, const string& mac, const string& ip, uint32 ownerID = 0);
-    QueryRequest CountByMacIP(const string& mac, const string& ip, uint32 ownerID = 0);
+    QueryRequest CountByGidMacIP(const string& gid, const string& mac, std::string_view ip, uint32 ownerID = 0);
+    QueryRequest CountByVidMacIP(const string& vid, const string& mac, std::string_view ip, uint32 ownerID = 0);
+    QueryRequest CountBySidMacIP(const string& sid, const string& mac, std::string_view ip, uint32 ownerID = 0);
+    QueryRequest CountByMacIP(const string& mac, std::string_view ip, uint32 ownerID = 0);
 
     QueryRequest GrowIDExists(const string& growID, uint32 ownerID = 0);
     QueryRequest GrowIDCreate(uint32 userID, const string& name, const string& pass, uint32 ownerID = 0);

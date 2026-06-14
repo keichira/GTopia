@@ -1,6 +1,6 @@
 #include "Quit.h"
 
-void Quit::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void Quit::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;

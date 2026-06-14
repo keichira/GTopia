@@ -24,8 +24,14 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_ACHIEVEMENT:
             return TILE_EXTRA_TYPE_ACHIEVEMENT;
 
+        case ITEM_TYPE_XENONITE:
+            return TILE_EXTRA_TYPE_XENONITE;
+
         case ITEM_TYPE_BATTLE_CAGE:
             return TILE_EXTRA_TYPE_BATTLE_CAGE;
+
+        case ITEM_TYPE_PET_TRAINER:
+            return TILE_EXTRA_TYPE_PET_TRAINER;
 
         case ITEM_TYPE_FIELD_NODE:
             return TILE_EXTRA_TYPE_FIELD_NODE;
@@ -66,8 +72,14 @@ TileExtra* CreateTileExtra(uint8 type)
         case TILE_EXTRA_TYPE_HEART_MONITOR:
             return new TileExtra_HeartMonitor();
 
+        case TILE_EXTRA_TYPE_XENONITE:
+            return new TileExtra_Xenonite();
+
         case TILE_EXTRA_TYPE_BATTLE_CAGE:
             return new TileExtra_BattleCage();
+
+        case ITEM_TYPE_PET_TRAINER:
+            return new TileExtra_PetTrainer();
 
         case TILE_EXTRA_TYPE_FIELD_NODE:
             return new TileExtra_FieldNode();
@@ -308,6 +320,13 @@ void TileExtra_HeartMonitor::Serialize(MemoryBuffer& memBuffer, bool write, bool
     memBuffer.ReadWrite(playerDisplayName, write);
 }
 
+void TileExtra_Xenonite::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWrite(flags, write);
+    memBuffer.ReadWrite(flags2, write);
+}
+
 void TileExtra_OuijaBoard::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
@@ -351,4 +370,30 @@ void TileExtra_BattleCage::Serialize(MemoryBuffer& memBuffer, bool write, bool d
     memBuffer.ReadWrite(basePet, write);
     memBuffer.ReadWrite(secondPet, write);
     memBuffer.ReadWrite(thirdPet, write);
+}
+
+void TileExtra_PetTrainer::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWriteString(trainerName, write);
+
+    uint32 petSize = pets.size();
+    memBuffer.ReadWrite(petSize, write);
+
+    if(!write) 
+    {
+        pets.resize(petSize);
+    }
+
+    memBuffer.ReadWrite(unk, write);
+
+    if(petSize > 0) 
+    {
+        memBuffer.ReadWriteRaw(pets.data(), petSize * sizeof(int32), write);
+    }
+
+    if(worldVersion > 23)
+    {
+        memBuffer.ReadWriteString(unk2, write);
+    }
 }

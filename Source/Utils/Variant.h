@@ -37,6 +37,7 @@ public:
     Variant(const float rhs) { *this = rhs; }
     Variant(const Vector2Int& rhs) { *this = rhs; }
     Variant(const Vector2Float& rhs) { *this = rhs; }
+    Variant(std::string_view rhs) { *this = rhs; }
 
 public:
     void operator=(const int32 rhs) 
@@ -73,6 +74,12 @@ public:
     {
         m_type = VARIANT_TYPE_STRING;
         m_str = rhs ? rhs : "";
+    }
+
+    void operator=(std::string_view rhs)
+    {
+        m_type = VARIANT_TYPE_STRING;
+        m_str = rhs; 
     }
 
     void operator=(const Vector2Int& rhs)

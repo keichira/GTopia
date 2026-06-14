@@ -10,8 +10,9 @@
 #include "../../../Player/Dialog/AchievementBlockDialog.h"
 #include "../../../Player/Dialog/OuijaBoardDialog.h"
 #include "../../../Player/Dialog/BattleCageDialog.h"
+#include "../../../Player/Dialog/XenoniteDialog.h"
 
-void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
@@ -26,26 +27,7 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     {
         case "sign_edit"_hash: 
         {
-            auto pTileX = packet.Find("tilex"_hash);
-            auto pTileY = packet.Find("tiley"_hash);
-            auto pSignText = packet.Find("sign_text"_hash);
-
-            if(!pTileX || !pTileY || !pSignText)
-                return;
-
-            // we need int converter that supports non null term
-            // idk if its good ways to convert it to a str
-            // really we need it??
-
-            int32 tileX = 0;
-            if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS)
-                return;
-
-            int32 tileY = 0;
-            if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS)
-                return;
-
-            SignDialog::Handle(pPlayer, string(pSignText->value, pSignText->size), tileX, tileY);
+            SignDialog::Handle(pPlayer, packet);
             break;
         }
 
@@ -118,6 +100,11 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         {
             BattleCageDialog::Handle(pPlayer, packet);
             break;
+        }
+
+        case "xenonite_edit"_hash:
+        {
+            XenoniteDialog::Handle(pPlayer, packet);
         }
     }
 }

@@ -8,5 +8,5 @@ class LockDialog {
 public:
     static void Request(GamePlayer* pPlayer, TileInfo* pTile);
     static void HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, int32 tileX, int32 tileY);
-    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet);
+    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet);
 };

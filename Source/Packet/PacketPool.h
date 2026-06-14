@@ -7,21 +7,22 @@ struct PooledPacket
 {
     uint32 dataLength = 0;
     uint8* payload;
-
     uint32 maxBufferSize = 0;
-    bool isDynamic = false;
 };
 
 struct PacketPoolConfig
 {
-    uint32 loginPoolSize = 0;
-    uint32 loginPacketSize = 0;
+    uint32 smallPoolSize = 0;
+    uint32 smallPacketSize = 0;
 
-    uint32 textPoolSize = 0;
-    uint32 textPacketSize = 0;
+    uint32 medPoolSize = 0;
+    uint32 medPacketSize = 0;
 
-    uint32 gamePoolSize = 0;
-    uint32 gamePacketSize = 0;
+    uint32 largePoolSize = 0;
+    uint32 largePacketSize = 0;
+
+    uint32 hugePoolSize = 0;
+    uint32 hugePacketSize = 0;
 };
 
 class PacketPool {
@@ -32,20 +33,23 @@ public:
 public:
     void Init(PacketPoolConfig& config);
 
-    PooledPacket* Acquire(uint32 size, bool allowDynamic);
+    PooledPacket* Acquire(uint32 size);
     void Release(PooledPacket* pPacket);
+    bool IsHugeSlotAvailable();
 
 private:
     PacketPoolConfig m_config;
     std::vector<PooledPacket> m_packetNodes;
 
-    std::vector<uint8> m_loginBuffer;
-    std::vector<uint8> m_textBuffer;
-    std::vector<uint8> m_gameBuffer;
+    std::vector<uint8> m_smallBuffer;
+    std::vector<uint8> m_medBuffer;
+    std::vector<uint8> m_largeBuffer;
+    std::vector<uint8> m_hugeBuffer;
 
-    moodycamel::ConcurrentQueue<PooledPacket*> m_loginPool;
-    moodycamel::ConcurrentQueue<PooledPacket*> m_textPool;
-    moodycamel::ConcurrentQueue<PooledPacket*> m_gamePool;
+    moodycamel::ConcurrentQueue<PooledPacket*> m_smallPool;
+    moodycamel::ConcurrentQueue<PooledPacket*> m_medPool;
+    moodycamel::ConcurrentQueue<PooledPacket*> m_largePool;
+    moodycamel::ConcurrentQueue<PooledPacket*> m_hugePool;
 };
 
 extern PacketPool gPacketPool;

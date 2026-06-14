@@ -7,5 +7,5 @@ class InventoryItemInfo;
 class DropItemDialog {
 public:
     static void Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem);
-    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet);
+    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet);
 };

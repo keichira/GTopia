@@ -9,7 +9,7 @@ QueryRequest PlayerDB::GetByMac(const string& mac, uint8 platformType, uint32 ow
     return req;
 }
 
-QueryRequest PlayerDB::Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, const string& ip, uint32 ownerID)
+QueryRequest PlayerDB::Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(guestName, platformType, guestID, mac, ip);
@@ -36,7 +36,7 @@ QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventor
     return req;
 }
 
-QueryRequest PlayerDB::CountByIP(const string& ip, uint32 ownerID)
+QueryRequest PlayerDB::CountByIP(std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(ip);
@@ -72,7 +72,7 @@ QueryRequest PlayerDB::GetByHash(int32 hash, uint8 platformType, uint32 ownerID)
     return req;
 }
 
-QueryRequest PlayerDB::CountByGidMacIP(const string& gid, const string& mac, const string& ip, uint32 ownerID)
+QueryRequest PlayerDB::CountByGidMacIP(const string& gid, const string& mac, std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(gid, mac, ip);
@@ -81,7 +81,7 @@ QueryRequest PlayerDB::CountByGidMacIP(const string& gid, const string& mac, con
     return req;
 }
 
-QueryRequest PlayerDB::CountByVidMacIP(const string& vid, const string& mac, const string& ip, uint32 ownerID)
+QueryRequest PlayerDB::CountByVidMacIP(const string& vid, const string& mac, std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(vid, mac, ip);
@@ -90,7 +90,7 @@ QueryRequest PlayerDB::CountByVidMacIP(const string& vid, const string& mac, con
     return req;
 }
 
-QueryRequest PlayerDB::CountBySidMacIP(const string& sid, const string& mac, const string& ip, uint32 ownerID)
+QueryRequest PlayerDB::CountBySidMacIP(const string& sid, const string& mac, std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(sid, mac, ip);
@@ -99,7 +99,7 @@ QueryRequest PlayerDB::CountBySidMacIP(const string& sid, const string& mac, con
     return req;
 }
 
-QueryRequest PlayerDB::CountByMacIP(const string& mac, const string& ip, uint32 ownerID)
+QueryRequest PlayerDB::CountByMacIP(const string& mac, std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(mac, ip);

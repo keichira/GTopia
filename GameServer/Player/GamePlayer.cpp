@@ -292,7 +292,7 @@ void GamePlayer::SaveToDatabase()
 
 void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession, bool sendNetworkPackets)
 {
-    if(forceDelete) 
+    if(forceDelete)
     {
         SetState(PLAYER_STATE_DELETE);
     }
@@ -337,7 +337,7 @@ void GamePlayer::Update()
     {
         if(World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID)) 
         {
-            if(m_characterData.needCharStateUpdate) 
+            if(m_characterData.needCharStateUpdate)
             {
                 pWorld->SendSetCharPacketToAll(this);
                 m_characterData.needCharStateUpdate = false;

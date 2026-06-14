@@ -12,7 +12,9 @@ struct NetworkEvent
     uint32 netID = 0;
     PooledPacket* pPacket = nullptr;
     uint32 host = 0;
+
     bool shouldDisconnect = false;
+    bool isItemData = false;
 };
 
 extern moodycamel::ConcurrentQueue<NetworkEvent> gPacketOutgoingQueue;
@@ -21,13 +23,14 @@ void SendUDPPacketRaw(uint32 netID, eMessagePacketType msgType, void* pData, uin
 void SendUDPPacket(uint32 netID, eMessagePacketType messageType, const char* message, uint32 dataSize = 0);
 void SendUDPDisconnectPacket(uint32 netID);
 
+void SendUDPItemDataPacket(uint32 netID, float gameVersion, uint32 platformType, GameUpdatePacket* pGamePacket);
 void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32 netID = -1, int32 delay = -1);
 void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID = -1, int32 delay = -1);
 
-//bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData, ENetPeer* pPeer);
-//bool SendENetPacket(eMessagePacketType messageType, const char* message, ENetPeer* pPeer);
+bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData, ENetPeer* pPeer);
+bool SendENetPacket(eMessagePacketType messageType, const char* message, ENetPeer* pPeer);
 
 const char* GetTextFromEnetPacket(uint8* pData, uint32 dataLength);
 uint32 GetMessageTypeFromEnetPacket(uint8* pData, uint32 dataLength);
-GameUpdatePacket* GetGamePacketFromEnetPacket(uint8* pData, uint32 dataLength);
+GameUpdatePacket* GetGamePacketFromEnetPacket(uint8* pData, uint32 dataLength, bool checkExtra = true);
 uint8* GetExtendedDataFromGamePacket(GameUpdatePacket* pUpdatePacket);

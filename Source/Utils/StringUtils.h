@@ -69,9 +69,11 @@ enum eToIntResult
 
 eToIntResult ToInt(const string& str, int32& out, int32 base = 10);
 eToIntResult ToInt(const char* str, int32& out, int32 base = 10);
+eToIntResult ToInt(const char* str, uint32 size, int32& out);
 
 eToIntResult ToUInt(const string& str, uint32& out, int32 base = 10);
 eToIntResult ToUInt(const char* str, uint32& out, int32 base = 10);
+eToIntResult ToUInt(const char* str, uint32 size, uint32& out);
 
 int32 ToInt(const string& str);
 int32 ToInt(const char* str);

@@ -131,7 +131,7 @@ void GamePlayer::CheckAccountCB(QueryTaskResult&& result)
 
         if(!pID || pID->GetUINT() < 1) {
             pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
-            LOGGER_LOG_WARN("Got player but rows are null or id is not valid %s", pPlayer->GetAddress().c_str());
+            LOGGER_LOG_WARN("Got player but rows are null or id is not valid %s", pPlayer->GetAddress());
             return;
         }
 
@@ -174,7 +174,7 @@ void GamePlayer::CheckCountOfIPCB(QueryTaskResult&& result)
     }
 
     if(result.result->GetRowCount() > GetContext()->GetGameConfig()->maxAccountsPerIP) {
-        pPlayer->SendLogonFailWithLog("``Too many accounts created from this IP address (" + pPlayer->GetAddress() + "). `4Unable to create new account for guest.");
+        pPlayer->SendLogonFailWithLog("``Too many accounts created from this IP address (" + string(pPlayer->GetAddress()) + "). `4Unable to create new account for guest.");
         return;
     }
 
@@ -251,7 +251,7 @@ void GamePlayer::SendToGame()
     session.serverID = pServer->serverID;
     session.userID = m_userID;
     session.loginToken = RandomRangeInt(100000, 9999999);
-    session.ip = m_address;
+    session.ip = string(GetAddress());
 
     GetPlayerManager()->CreateSession(session);
     SendOnSendToServer(pServer->port, session.loginToken, m_userID, pServer->wanIP, LOGON_MODE_WELCOME);

@@ -115,6 +115,23 @@ enum eTileExtraFlags
     TILE_EXTRA_LOCK_RAINBOW_TRAIL = 1 << 7,
     TILE_EXTRA_LOCK_LIMIT_ADMINS = 1 << 7,
 
+    TILE_EXTRA_XENO_F_DOUBLE_JUMP = 1 << 0,
+    TILE_EXTRA_XENO_B_DOUBLE_JUMP = 1 << 1,
+    TILE_EXTRA_XENO_F_HIGH_JUMP = 1 << 2,
+    TILE_EXTRA_XENO_B_HIGH_JUMP = 1 << 3,
+    TILE_EXTRA_XENO_F_STRONG_PUNCH = 1 << 4,
+    TILE_EXTRA_XENO_B_STRONG_PUNCH = 1 << 5,
+    TILE_EXTRA_XENO_F_SPEED = 1 << 6,
+    TILE_EXTRA_XENO_B_SPEED = 1 << 7,
+
+    TILE_EXTRA_XENO_F_HEAT_RESIST = 1 << 0,
+    TILE_EXTRA_XENO_B_HEAT_RESIST = 1 << 1,
+    TILE_EXTRA_XENO_F_LONG_PUNCH = 1 << 2,
+    TILE_EXTRA_XENO_B_LONG_PUNCH = 1 << 3,
+    TILE_EXTRA_XENO_B_POWERUPS = 1 << 4,
+    TILE_EXTRA_XENO_F_LONG_BUILD = 1 << 5,
+    TILE_EXTRA_XENO_B_LONG_BUILD = 1 << 6,
+
     TILE_EXTRA_CAMERA_SHOW_LEAVES = 1 << 0,
     TILE_EXTRA_CAMERA_SHOW_DROPS = 1 << 1,
     TILE_EXTRA_CAMERA_SHOW_VENDINGS = 1 << 2,
@@ -274,6 +291,19 @@ TILE_EXTRA(TileExtra_HeartMonitor, TILE_EXTRA_TYPE_HEART_MONITOR)
     string playerDisplayName;
 };
 
+TILE_EXTRA(TileExtra_Xenonite, TILE_EXTRA_TYPE_XENONITE)
+    uint8 flags = 0;
+    uint32 flags2 = 0;
+
+    void SetFlag(uint8 flag) { flags |= flag; }
+    void RemoveFlag(uint8 flag) { flags &= ~flag; }
+    bool HasFlag(uint8 flag) { return flags & flag; };
+
+    void SetFlag2(uint32 flag) { flags2 |= flag; }
+    void RemoveFlag2(uint32 flag) { flags2 &= ~flag; }
+    bool HasFlag2(uint32 flag) { return flags2 & flag; };
+};
+
 TILE_EXTRA(TileExtra_OuijaBoard, TILE_EXTRA_TYPE_OUIJA_BOARD)
     int32 playerCount = 0;
     string ouijaType; // kinda weird 0 for normal 1 for boss
@@ -291,4 +321,11 @@ TILE_EXTRA(TileExtra_BattleCage, TILE_EXTRA_TYPE_BATTLE_CAGE)
     int32 basePet = 0;
     int32 secondPet = 0;
     int32 thirdPet = 0;
+};
+
+TILE_EXTRA(TileExtra_PetTrainer, TILE_EXTRA_TYPE_PET_TRAINER)
+    string trainerName;
+    uint32 unk = 0;
+    std::vector<int32> pets;
+    string unk2 = 0;
 };

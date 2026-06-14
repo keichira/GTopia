@@ -236,6 +236,11 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData);
     SAFE_DELETE_ARRAY(pWorldData);
 
+    if(GetTileManager()->GetKeyTile(KEY_TILE_XENONITE))
+    {
+        pPlayer->GetModController().AddPlayMod(PLAYMOD_TYPE_XENONITE);
+    }
+
     pPlayer->SendOnSpawn(pPlayer->GetSpawnData(true));
     pPlayer->SendOnSetClothing();
     pPlayer->SendCharacterState();
@@ -322,11 +327,15 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
     for(uint16 i = 0; i < m_players.size(); ++i) 
     {
         GamePlayer* pWorldPlayer = m_players[i];
-
         pWorldPlayer->SendOnRemove(pPlayer->GetNetID());
 
         if(pWorldPlayer == pPlayer) {
             playerIdx = i;
+        }
+        else
+        {
+            pWorldPlayer->SendOnTalkBubble("<" + pPlayer->GetDisplayName(true) + "`` left. `w " + ToString(GetPlayerCount() - 1) + "`` others here>``", false, pPlayer);
+            pWorldPlayer->PlaySFX("door_shut.wav");
         }
     }
 
@@ -335,6 +344,7 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         m_players[playerIdx] = m_players.back();
         m_players.pop_back();
 
+        pPlayer->GetModController().RemovePlayMod(PLAYMOD_TYPE_XENONITE);
         pPlayer->SetCurrentWorld(0);
 
         if(hardLeave)
@@ -1491,6 +1501,37 @@ void World::PutOutFire(TileInfo* pTile, GamePlayer* pPlayer)
     }
 
     SendParticleEffectToAll(PARTICLE_EFFECT_SIZZLE, pTile->GetWorldPosCenter());
+}
+
+void World::ToggleXenoniteCrystal(bool enable)
+{
+    for(auto& pPlayer : m_players)
+    {
+        if(!pPlayer)
+            continue;
+
+        PlayerPlayModController& modController = pPlayer->GetModController();
+        bool hasPlayMod = modController.HasPlayMod(PLAYMOD_TYPE_XENONITE);
+
+        if(enable)
+        {
+            if(!hasPlayMod)
+            {
+                modController.AddPlayMod(PLAYMOD_TYPE_XENONITE);
+            }
+            else
+            {
+                pPlayer->GetCharData().needCharStateUpdate = true;
+            }
+        }
+        else
+        {
+            if(hasPlayMod)
+            {
+                modController.RemovePlayMod(PLAYMOD_TYPE_XENONITE);
+            }
+        }
+    }
 }
 
 bool World::CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command)

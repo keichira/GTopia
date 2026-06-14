@@ -141,6 +141,11 @@ namespace VariantPacket {
         return { "OnSetFeatureEnableFlags", str };
     }
 
+    VariantVector OnSetFreezeState(uint32 state)
+    {
+        return { "OnSetFreezeState", state };
+    }
+
     VariantVector OnStoreRequest(const string& storeData) {
         return { "OnStoreRequest", storeData };
     }

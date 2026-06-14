@@ -154,11 +154,10 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
-
     auto pTileX = packet.Find("tilex"_hash);
     if(!pTileX)
         return;
@@ -172,11 +171,11 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
 
     int32 tileX = 0;
-    if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS)
+    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
         return;
 
     int32 tileY = 0;
-    if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS)
+    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
@@ -346,7 +345,7 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
     }
     else
     {
-        if(pButtonClicked->size < 1 || pButtonClicked->size > 25)
+        if(pButtonClicked->size == 0 || pButtonClicked->size > 25)
             return;
 
         uint32 buttonClickedHash = HashString(pButtonClicked->value, pButtonClicked->size);

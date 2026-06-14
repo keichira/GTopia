@@ -8,6 +8,8 @@ Player::Player()
 : m_netID(0), m_userID(0)
 {
     ResetFeatures();
+    m_freezeState = PLAYER_FREEZE_STATE_NONE;
+    SetAddress("0.0.0.0");
 }
 
 Player::~Player()
@@ -244,6 +246,16 @@ void Player::SendOnSetFeatureEnableFlags()
     );
 }
 
+void Player::SendOnSetFreezeState(ePlayerFreezeState state, uint32 delayMS)
+{
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnSetFreezeState(state), -1, delayMS
+    );
+
+    m_freezeState = state;
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;
@@ -256,6 +268,15 @@ void Player::PlaySFX(const string& fileName, int32 delay)
 {
     string packet = "action|play_sfx\nfile|audio/" + fileName + "\ndelayMS|" + ToString(delay) + "\n";
     SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, packet.c_str(), packet.size());
+}
+
+void Player::SetAddress(const char* address)
+{
+    if(!address) 
+        return;
+
+    std::strncpy(m_address, address, sizeof(m_address) - 1);
+    m_address[sizeof(m_address) - 1] = '\0';
 }
 
 void Player::ResetFeatures()

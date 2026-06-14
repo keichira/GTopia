@@ -3,7 +3,7 @@
 #include "Player/PlayerTribute.h"
 #include "IO/Log.h"
 
-void RefreshTributeData::Execute(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void RefreshTributeData::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     PlayerTributeClientData* clientData = GetPlayerTributeManager()->GetClientData(pPlayer->GetLoginDetail().protocol);
     if(!clientData->pData) 

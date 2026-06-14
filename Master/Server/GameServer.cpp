@@ -8,17 +8,30 @@
 #include "../Context.h"
 #include "../Player/PlayerManager.h"
 
+static const uint32 SMALL_PACKET_SIZE = 0;
+static const uint32 MED_PACKET_SIZE   = 800;
+static const uint32 LARGE_PACKET_SIZE = 0;
+static const uint32 HUGE_PACKET_SIZE  = 0;
+
+static const uint32 SMALL_PACKET_COUNT = 0;
+static const uint32 MED_PACKET_COUNT   = 256;
+static const uint32 LARGE_PACKET_COUNT = 0;
+static const uint32 HUGE_PACKET_COUNT  = 0;
+
 GameServer::GameServer()
 {
-    PacketPoolConfig cfg; //todo
-    cfg.gamePacketSize = 0;
-    cfg.gamePoolSize = 0;
+    PacketPoolConfig cfg;
+    cfg.smallPacketSize = SMALL_PACKET_SIZE;
+    cfg.smallPoolSize = SMALL_PACKET_COUNT;
 
-    cfg.loginPacketSize = 800;
-    cfg.loginPoolSize = 300;
-    
-    cfg.textPacketSize = 150;
-    cfg.textPoolSize = 300;
+    cfg.medPacketSize = MED_PACKET_SIZE;
+    cfg.medPoolSize = MED_PACKET_COUNT;
+
+    cfg.largePacketSize = LARGE_PACKET_SIZE;
+    cfg.largePoolSize = LARGE_PACKET_COUNT;
+
+    cfg.hugePacketSize = HUGE_PACKET_SIZE;
+    cfg.hugePoolSize = HUGE_PACKET_COUNT;
 
     gPacketPool.Init(cfg);
 }
@@ -33,6 +46,16 @@ void GameServer::OnEventConnect(NetworkEvent& event)
     pPlayer->SetNetID(event.netID);
 
     GetPlayerManager()->AddPlayer(pPlayer);
+
+    char ipBuffer[16] = { 0 };
+    if(GetIPStringFromHost(event.host, ipBuffer, sizeof(ipBuffer)) == 0)
+    {
+        pPlayer->SetAddress(ipBuffer);
+    }
+    else
+    {
+        pPlayer->SetAddress("0.0.0.0");
+    }
 
     pPlayer->SetState(PLAYER_STATE_LOGIN_REQUEST);
     pPlayer->SendHelloPacket();
@@ -142,10 +165,7 @@ void GameServer::Update()
         auto it = m_connectionMap.find(outEvent.netID);
         if(it == m_connectionMap.end() || !it->second) 
         {
-            if(outEvent.pPacket)
-            {
-                gPacketPool.Release(outEvent.pPacket);
-            }
+            if(outEvent.pPacket) gPacketPool.Release(outEvent.pPacket);
             continue;
         }
 
@@ -211,9 +231,18 @@ void GameServer::Update()
                 uint32 packetLen = inEvent.packet->dataLength;
                 uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
 
-                PooledPacket* pPacket = gPacketPool.Acquire(packetLen, false);
+                PooledPacket* pPacket = gPacketPool.Acquire(packetLen);
                 if(!pPacket)
+                {
+                    enet_packet_destroy(inEvent.packet);
                     continue;
+                }
+
+                if((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
 
                 pPacket->dataLength = packetLen;
                 memcpy(pPacket->payload, inEvent.packet->data, packetLen);

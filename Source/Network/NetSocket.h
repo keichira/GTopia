@@ -24,6 +24,7 @@
 bool MakeSocketNonBlocking(socket_t fd);
 void CloseSocket(socket_t fd);
 string GetIPFromSocket(socket_t socket);
+int GetIPStringFromHost(uint32 host, char* buffer, uint32 bufferSize);
 
 enum eSocketEventType
 {

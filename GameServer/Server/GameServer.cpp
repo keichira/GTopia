@@ -9,6 +9,7 @@
 #include "Player/RoleManager.h"
 #include "../Context.h"
 #include "UserCacheManager.h"
+#include "MasterBroadway.h"
 
 #include "../Event/UDP/GameMessage/RefreshItemData.h"
 #include "../Event/UDP/GameMessage/EnterGame.h"
@@ -34,17 +35,30 @@
 #include "../Command/AgeWorld.h"
 #include "../Command/Emotes.h"
 
+static const uint32 SMALL_PACKET_SIZE = 80;
+static const uint32 MED_PACKET_SIZE   = 800;
+static const uint32 LARGE_PACKET_SIZE = 1500;
+static const uint32 HUGE_PACKET_SIZE  = 400 * 1024;
+
+static const uint32 SMALL_PACKET_COUNT = 5000;
+static const uint32 MED_PACKET_COUNT   = 256;
+static const uint32 LARGE_PACKET_COUNT = 128;
+static const uint32 HUGE_PACKET_COUNT  = 10;
+
 GameServer::GameServer()
 {
-    PacketPoolConfig cfg; // todo
-    cfg.gamePacketSize = 100;
-    cfg.gamePoolSize = 10000;
+    PacketPoolConfig cfg;
+    cfg.smallPacketSize = SMALL_PACKET_SIZE;
+    cfg.smallPoolSize = SMALL_PACKET_COUNT;
 
-    cfg.loginPacketSize = 800;
-    cfg.loginPoolSize = 50;
-    
-    cfg.textPacketSize = 400;
-    cfg.textPoolSize = 5000;
+    cfg.medPacketSize = MED_PACKET_SIZE;
+    cfg.medPoolSize = MED_PACKET_COUNT;
+
+    cfg.largePacketSize = LARGE_PACKET_SIZE;
+    cfg.largePoolSize = LARGE_PACKET_COUNT;
+
+    cfg.hugePacketSize = HUGE_PACKET_SIZE;
+    cfg.hugePoolSize = HUGE_PACKET_COUNT;
 
     gPacketPool.Init(cfg);
 }
@@ -59,6 +73,16 @@ void GameServer::OnEventConnect(NetworkEvent& event)
     pPlayer->SetNetID(event.netID);
 
     GetPlayerManager()->AddPlayer(pPlayer);
+
+    char ipBuffer[16] = { 0 };
+    if(GetIPStringFromHost(event.host, ipBuffer, sizeof(ipBuffer)) == 0)
+    {
+        pPlayer->SetAddress(ipBuffer);
+    }
+    else
+    {
+        pPlayer->SetAddress("0.0.0.0");
+    }
 
     pPlayer->SetState(PLAYER_STATE_LOGIN_REQUEST);
     pPlayer->SendHelloPacket();
@@ -95,7 +119,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             }
             else if(pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) 
             {
-                ParsedTextPacket<8> packet;
+                ParsedTextPacket<40> packet;
                 ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
             
                 auto pAction = packet.Find("action"_hash);
@@ -114,11 +138,11 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             }
             else if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) 
             {
-                ParsedTextPacket<8> packet; // increase it for dialog_return?
+                ParsedTextPacket<40> packet;
                 ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
             
                 auto pAction = packet.Find("action"_hash);
-                if(pAction) 
+                if(pAction)
                 {
                     uint32 packetType = HashString(pAction->value, pAction->size);
                     m_messagePacket.Dispatch(packetType, pPlayer, packet);
@@ -239,22 +263,48 @@ void GameServer::Update()
         if(outEvent.shouldDisconnect)
         {
             enet_peer_disconnect(it->second, 0);
-
             m_connectionMap.erase(it);
             
-            if(outEvent.pPacket) 
+            if(outEvent.pPacket)
             {
                 gPacketPool.Release(outEvent.pPacket);
             }
             continue;
         }
 
-        if(outEvent.pPacket)
+        if(!outEvent.pPacket)
+            continue;
+
+        ENetPacket* pEnetPacket = nullptr;
+
+        if(outEvent.isItemData)
         {
-            ENetPacket* pEnetPacket = enet_packet_create(outEvent.pPacket->payload, outEvent.pPacket->dataLength, ENET_PACKET_FLAG_RELIABLE);
-            enet_peer_send(it->second, 0, pEnetPacket);
-            gPacketPool.Release(outEvent.pPacket);
+            GameUpdatePacket* pGamePacket = GetGamePacketFromEnetPacket(outEvent.pPacket->payload, outEvent.pPacket->dataLength, false);
+            if(!pGamePacket || pGamePacket->type != NET_GAME_PACKET_SEND_ITEM_DATABASE_DATA)
+                continue;
+
+            ItemsClientData* pClientData = GetItemInfoManager()->GetClientData(pGamePacket->field_11, pGamePacket->field_10);
+            if(!pClientData || (pClientData && !pClientData->pItemData))
+                continue;
+
+            pGamePacket->field_10 = 0;
+            pGamePacket->field_11 = 0;
+            
+            pEnetPacket = enet_packet_create(nullptr, outEvent.pPacket->dataLength + pClientData->compressSize, ENET_PACKET_FLAG_RELIABLE);
+            memcpy(pEnetPacket->data, outEvent.pPacket->payload, outEvent.pPacket->dataLength);
+            memcpy(pEnetPacket->data + outEvent.pPacket->dataLength - 1, pClientData->pItemData, pGamePacket->extraDataSize);
         }
+        else
+        {
+            pEnetPacket = enet_packet_create(outEvent.pPacket->payload, outEvent.pPacket->dataLength, ENET_PACKET_FLAG_RELIABLE);
+        }
+
+        if(pEnetPacket)
+        {
+            enet_peer_send(it->second, 0, pEnetPacket);
+        }
+
+        gPacketPool.Release(outEvent.pPacket);
     }
 
     if(pContext->IsShutting())
@@ -301,11 +351,26 @@ void GameServer::Update()
                 uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
 
                 if(msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET && msgType != NET_MESSAGE_GENERIC_TEXT)
+                {
+                    enet_packet_destroy(inEvent.packet);
                     continue;
+                }
 
                 // we can add more checks based on type
 
-                PooledPacket* pPacket = gPacketPool.Acquire(packetLen, false);
+                if(msgType == NET_MESSAGE_GAME_PACKET && packetLen > SMALL_PACKET_SIZE)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                if((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                PooledPacket* pPacket = gPacketPool.Acquire(packetLen);
                 if(!pPacket)
                 {
                     enet_packet_destroy(inEvent.packet);

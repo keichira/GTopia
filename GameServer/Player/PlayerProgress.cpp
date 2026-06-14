@@ -181,6 +181,17 @@ string PlayerProgress::GetBattlePetName(int32 slot)
     return GetFullBattlePetName(m_progressData[slotStart], m_progressData[slotStart + 1], m_progressData[slotStart + 2]);
 }
 
+bool PlayerProgress::IsBattleLeashFull()
+{
+    for(int32 i = PLAYER_PROGRESS_PET_1_0; i < PLAYER_PROGRESS_PET_2_2 + 1; ++i)
+    {
+        if(m_progressData[i] == ITEM_ID_BLANK)
+            return false;
+    }
+
+    return true;
+}
+
 void PlayerProgress::UnlockAchievementRaw(eAchievement achievement)
 {
     if(achievement >= ACHIEVEMENT_COUNT)

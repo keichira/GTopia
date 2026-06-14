@@ -38,6 +38,13 @@ enum eClientFeatureFlag
     FEATURE_FLAG_COUNT
 };
 
+enum ePlayerFreezeState
+{
+    PLAYER_FREEZE_STATE_NONE, // can move
+    PLAYER_FREEZE_STATE_FROZEN, // frozen
+    PLAYER_FREEZE_STATE_FROZEN_BUT_GRAVITY // frozen but physics works (like respawn ig)
+};
+
 class Player {
 public:
     Player();
@@ -70,6 +77,7 @@ public:
     void SendOnAction(const string& action, Player* pPlayer = nullptr);
     void SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip);
     void SendOnSetFeatureEnableFlags();
+    void SendOnSetFreezeState(ePlayerFreezeState state, uint32 delayMS);
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);
@@ -82,7 +90,8 @@ public:
     uint32 GetUserID() const { return m_userID; }
     void SetUserID(uint32 userID) { m_userID = userID; }
 
-    string GetAddress() const { return m_address; }
+    std::string_view GetAddress() { return m_address; }
+    void SetAddress(const char* address);
     const string& GetLastAction() { return m_lastAction; }
 
     void ResetFeatures();
@@ -105,6 +114,7 @@ protected:
     uint32 m_userID;
     uint32 m_netID;
     PlayerLoginDetail m_loginDetail;
+    ePlayerFreezeState m_freezeState;
 
     char m_address[16];
     string m_lastAction;

@@ -268,6 +268,9 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
     else if(fgItem == ITEM_ID_GHOST_CHARM) {
         m_keyTiles[KEY_TILE_GHOST_CHARM] = remove ? nullptr : pTile;
     }
+    else if(fgItem == ITEM_ID_XENONITE_CRYSTAL) {
+        m_keyTiles[KEY_TILE_XENONITE] = remove ? nullptr : pTile;
+    }
     else if(fgItem == ITEM_ID_CONTAINMENT_FIELD_POWER_NODE)
     {
         if(!remove)

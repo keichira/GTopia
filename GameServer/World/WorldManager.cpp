@@ -140,6 +140,13 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
     if(!pPlayer || pPlayer->IsJoiningWorld())
         return;
 
+    if(!gPacketPool.IsHugeSlotAvailable())
+    {
+        pPlayer->SendOnFailedToEnterWorld();
+        pPlayer->SendOnConsoleMessage("Sorry, map traffic is heavy, please retry in a second.");
+        return;
+    }
+
     string targetWorldName = ToUpper(worldName);
     RemoveGTColorCodes(targetWorldName);
 

@@ -286,6 +286,44 @@ eToIntResult ToInt(const char* str, int32& out, int32 base)
     return TO_INT_SUCCESS;
 }
 
+eToIntResult ToInt(const char* str, uint32 size, int32& out)
+{
+    if(!str || size == 0)
+        return TO_INT_FAIL;
+
+    uint32 i = 0;
+    bool neg = false;
+
+    if (str[0] == '-')
+    {
+        neg = true;
+        i = 1;
+        if(size == 1) 
+            return TO_INT_FAIL;
+    }
+
+    uint64 result = 0; 
+
+    for(; i < size; ++i)
+    {
+        char c = str[i];
+
+        if(c < '0' || c > '9')
+            return TO_INT_FAIL;
+
+        result = result * 10 + (c - '0');
+
+        if(!neg && result > INT32_MAX)
+            return TO_INT_OVERFLOW;
+        
+        if(neg && result > (uint64)(INT32_MAX) + 1)
+            return TO_INT_OVERFLOW;
+    }
+
+    out = neg ? -(int32)(result) : (int32)(result);
+    return TO_INT_SUCCESS;
+}
+
 eToIntResult ToUInt(const string& str, uint32& out, int32 base)
 {
     return ToUInt(str.c_str(), out, base);
@@ -314,6 +352,30 @@ eToIntResult ToUInt(const char* str, uint32& out, int32 base)
     }
 
     out = (uint32)val;
+    return TO_INT_SUCCESS;
+}
+
+eToIntResult ToUInt(const char* str, uint32 size, uint32& out)
+{
+    if(!str || size == 0)
+        return TO_INT_FAIL;
+
+    uint64 result = 0;
+
+    for(uint32 i = 0; i < size; ++i)
+    {
+        char c = str[i];
+
+        if(c < '0' || c > '9')
+            return TO_INT_FAIL;
+
+        result = result * 10 + ((uint32)(c - '0'));
+
+        if(result > UINT32_MAX)
+            return TO_INT_OVERFLOW;
+    }
+
+    out = (uint32)(result);
     return TO_INT_SUCCESS;
 }
 

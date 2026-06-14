@@ -310,13 +310,13 @@ void OuijaBoardDialog::RequestCommand(GamePlayer* pPlayer, TileInfo* pTile)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void OuijaBoardDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
+void OuijaBoardDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
 {
     if(!pPlayer)
         return;
 
     auto pButtonClicked = packet.Find("buttonClicked"_hash);
-    if(!pButtonClicked || (pButtonClicked && pButtonClicked->size < 1))
+    if(!pButtonClicked || (pButtonClicked && pButtonClicked->size == 0))
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
@@ -332,11 +332,11 @@ void OuijaBoardDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<8>& packet)
         return;
 
     int32 tileX = 0;
-    if(ToInt(string(pTileX->value, pTileX->size), tileX) != TO_INT_SUCCESS)
+    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
         return;
 
     int32 tileY = 0;
-    if(ToInt(string(pTileY->value, pTileY->size), tileY) != TO_INT_SUCCESS)
+    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);

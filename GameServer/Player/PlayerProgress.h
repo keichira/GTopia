@@ -31,6 +31,7 @@ public:
 
     uint16 BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved);
     string GetBattlePetName(int32 slot);
+    bool IsBattleLeashFull();
 
 private:
     void UnlockAchievementRaw(eAchievement achievement);
