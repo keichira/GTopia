@@ -2,6 +2,7 @@
 #include "../Utils/Timer.h"
 #include "DatabasePool.h"
 #include "../Utils/StringUtils.h"
+#include "../IO/Log.h"
 
 DatabaseWorker::DatabaseWorker()
 : m_pDatabaseMgr(nullptr), m_pPrepParam(nullptr)
@@ -24,6 +25,8 @@ bool DatabaseWorker::Init(DatabasePool* pDbPool, const DatabaseConnectConfig& co
 
     m_pDbPool = pDbPool;
     m_pPrepParam = new PreparedParam(PREPARED_PARAM_MAX_SIZE);
+
+    m_config = config;
     return true;
 }
 
@@ -36,6 +39,22 @@ void DatabaseWorker::Kill()
 void DatabaseWorker::Update()
 {
     if(!m_pDatabaseMgr) {
+        return;
+    }
+
+    if(!m_pDatabaseMgr->IsConnected())
+    {
+        if(m_lastConnTime.GetElapsedTime() > 2000)
+        {
+            m_lastConnTime.Reset();
+            LOGGER_LOG_WARN("Database is offline. Trying to reconnect...");
+
+            if(m_pDatabaseMgr->Init(m_config))
+            {
+                LOGGER_LOG_INFO("Database reconnected successfully!");
+            }
+        }
+
         return;
     }
 
@@ -67,8 +86,8 @@ void DatabaseWorker::Update()
                     // what should we do wtf
                 }
 
-                for(uint32 i = 0; i < querySize; ++i) {
-                    SetupPreparedParams(taskReq.data, true, 1 + (i - 1)*(taskReq.data[0].GetUINT()));
+                for(int32 i = 0; i < querySize; ++i) {
+                    SetupPreparedParams(taskReq.data, true, 1 + (i - 1) * (taskReq.data[0].GetUINT()));
                     m_pDatabaseMgr->QueryBulk(m_pPrepParam->GetBinds().data());
                 }
                 break;

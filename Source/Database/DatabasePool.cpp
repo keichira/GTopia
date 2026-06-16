@@ -61,24 +61,6 @@ bool DatabasePool::GetResult(QueryTaskResult& taskRes)
     return m_taskQueue.try_dequeue(taskRes);
 }
 
-bool DatabasePool::IsConnectionLost(uint8 workerIdx)
-{
-    return false;
-    
-    /**
-     * todo
-     */
-
-    if(workerIdx >= m_workers.size()) {
-        return true;
-    }
-
-    DatabaseWorker* pWorker = m_workers[workerIdx];
-    if(!pWorker) {
-        return true;
-    }
-}
-
 void DatabasePool::AddResult(QueryTaskResult&& taskRes)
 {
     m_taskQueue.enqueue(std::move(taskRes));

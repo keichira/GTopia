@@ -33,9 +33,16 @@ void ForceSaveEverything()
     GetMasterBroadway()->SendServerKillPacket();
     GetGameServer()->ForceSaveEverything();
 
-    QueryRequest req;
-    req.callback = [](QueryTaskResult&&) { GetContext()->Stop(); };
-    DatabaseExec(GetContext()->GetDatabasePool(), "", req, QUERY_FLAG_NONE);
+    if(!GetContext()->GetDatabasePool()->GetWorker(0)->IsConnected())
+    {
+        GetContext()->Stop();
+    }
+    else
+    {
+        QueryRequest req;
+        req.callback = [](QueryTaskResult&&) { GetContext()->Stop(); };
+        DatabaseExec(GetContext()->GetDatabasePool(), "", req, QUERY_FLAG_NONE);
+    }
 }
 
 bool ReadArgs(int argc, char const* argv[]) 
@@ -81,7 +88,8 @@ void DatabaseThreadFunc()
             logTimer.Reset();
         }
 
-        SleepMS(1);
+        if(pWorker->GetQueueSize() == 0)
+            SleepMS(2);
     }
 }
 

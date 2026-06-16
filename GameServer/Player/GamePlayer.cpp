@@ -243,6 +243,9 @@ void GamePlayer::HandleRenderWorld(VariantVector&& result)
 
 void GamePlayer::SaveToDatabase()
 {
+    if(!GetContext()->GetDatabasePool()->GetWorker(0)->IsConnected())
+        return;
+
     uint32 invMemSize = m_inventory.GetMemEstimate(true);
     uint8* pInvData = new uint8[invMemSize];
     MemoryBuffer invMemBuffer(pInvData, invMemSize);

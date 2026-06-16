@@ -46,6 +46,7 @@ public:
     bool InitWorld();
 
     static void SaveToDatabaseCB(QueryTaskResult&& result);
+    static void SaveToFile(World* pWorld);
     void SaveToDatabase();
     void Update();
 

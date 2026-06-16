@@ -375,6 +375,9 @@ void WorldManager::OnHandleGamePacket(NetworkEvent& event)
 
 void WorldManager::SaveAllToDatabase()
 {
+    if(!GetContext()->GetDatabasePool()->GetWorker(0)->IsConnected())
+        return;
+
     for(auto& [_, pWorld] : m_worlds)
     {
         if(!pWorld)

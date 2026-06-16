@@ -31,9 +31,11 @@ public:
     bool QueryBulk(MYSQL_BIND* pBind); /** if Query() called there would be a problem */
 
     uint64 GetLastInsertID();
-
     string EscapeString(const string& value);
+
     void PrintError();
+    bool IsConnected() const { return m_pConnection != nullptr; }
+
     DatabaseResult* GetResults();
 
 private:

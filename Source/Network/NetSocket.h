@@ -3,6 +3,9 @@
 #ifdef _WIN32
     #include <winsock2.h>
     #include <ws2tcpip.h>
+
+    #define pollfd WSAPOLLFD
+    #define sys_poll(fds, nfds, timeout) WSAPoll(fds, nfds, timeout)
 #else
     #include <sys/socket.h>
     #include <netinet/in.h>
@@ -11,6 +14,9 @@
     #include <fcntl.h>
     #include <unistd.h>
     #include <errno.h>
+
+    #include <poll.h>
+    #define sys_poll(fds, nfds, timeout) poll(fds, nfds, timeout)
 #endif
 
 #ifdef SOCKET_TLS
@@ -49,7 +55,11 @@ public:
     void CreateSSLCtx();
 
     void Update(bool asClient);
-    void UpdateIO(const fd_set& rs, const fd_set& ws, bool asClient);
+    void FlushClosedClients();
+
+    void HandleReadIO(NetClient* pClient);
+    void HandleWriteIO(NetClient* pClient);
+
     void AcceptConnection();
 
     void CloseClient(uint16 connectionID);
@@ -57,8 +67,10 @@ public:
     NetClient* GetClient(int16 connectionID);
 
     bool Send(NetClient* pClient, void* pData, uint32 size);
-
     SocketEventDispatcher& GetEvents() { return m_events; }
+
+private:
+    NetClient* GetClientByFD(socket_t fd);
 
 private:
     socket_t m_socket;
@@ -66,6 +78,10 @@ private:
 
     SocketEventDispatcher m_events;
     std::unordered_map<int16, NetClient*> m_clients;
+
+    std::vector<pollfd> m_pollFds;
+    std::vector<NetClient*> m_fdToClient;
+    bool m_isPollDirty = true;
 
 #ifdef SOCKET_USE_TLS
     SSL_CTX* m_pSslCtx;

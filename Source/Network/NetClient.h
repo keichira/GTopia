@@ -52,6 +52,8 @@ struct NetClient
 
 #ifdef SOCKET_USE_TLS
     SSL* pSsl = nullptr;
+    bool sslWantsRead = false;
+    bool sslWantsWrite = false;
 #endif
 
     bool Send(const VariantVector& data);

@@ -144,6 +144,9 @@ void PlayerManager::UpdatePlayers()
 
 void PlayerManager::SaveAllToDatabase()
 {
+    if(!GetContext()->GetDatabasePool()->GetWorker(0)->IsConnected())
+        return;
+
     for(auto& [_, pPlayer] : m_gamePlayers) 
     {
         if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_IN_GAME))

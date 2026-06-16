@@ -1,5 +1,5 @@
 CREATE TABLE `Players` (
-  `ID` int NOT NULL AUTO_INCREMENT,
+  `ID` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `GuestName` varchar(32) NOT NULL,
   `CreationDate` date DEFAULT NULL,
   `Mac` char(24) DEFAULT NULL,
@@ -31,7 +31,7 @@ CREATE TABLE `Players` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `Worlds` (
-  `ID` int NOT NULL AUTO_INCREMENT,
+  `ID` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `Name` varchar(64) NOT NULL,
   `Flags` int NOT NULL DEFAULT '0',
   `LastSeenTime` datetime DEFAULT NULL,

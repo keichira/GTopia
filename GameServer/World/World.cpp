@@ -63,6 +63,29 @@ void World::SaveToDatabaseCB(QueryTaskResult&& result)
     if(!pWorld)
         return;
 
+    SaveToFile(pWorld);
+}
+
+void World::SaveToDatabase()
+{
+    if(!GetContext()->GetDatabasePool()->GetWorker(0)->IsConnected())
+    {
+        SaveToFile(this);
+    }
+    else
+    {
+        QueryRequest req = WorldDB::Save(GetWorlName(), GetDatabaseID(), GetInstanceID());
+        req.callback = &World::SaveToDatabaseCB;
+    
+        DatabaseWorldExec(GetContext()->GetDatabasePool(), req);
+    }
+}
+
+void World::SaveToFile(World* pWorld)
+{
+    if(!pWorld)
+        return;
+
     File file;
     string worldSavePath = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(pWorld->GetDatabaseID()) + ".bin";
     if(!file.Open(worldSavePath, FILE_MODE_WRITE))
@@ -83,14 +106,6 @@ void World::SaveToDatabaseCB(QueryTaskResult&& result)
 
     file.Close();
     SAFE_DELETE_ARRAY(pWorldData);
-}
-
-void World::SaveToDatabase()
-{
-    QueryRequest req = WorldDB::Save(GetWorlName(), GetDatabaseID(), GetInstanceID());
-    req.callback = &World::SaveToDatabaseCB;
-
-    DatabaseWorldExec(GetContext()->GetDatabasePool(), req);
 }
 
 void World::Update()

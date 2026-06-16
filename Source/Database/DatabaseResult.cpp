@@ -19,7 +19,16 @@ bool DatabaseResult::Parse(MYSQL* pConnection, MYSQL_STMT* pStmt)
 
     MYSQL_ROW row;
     uint32 numFields = mysql_num_fields(pResult);
-    MYSQL_FIELD* fields = mysql_fetch_field(pResult);
+    
+    MYSQL_FIELD* fields = mysql_fetch_fields(pResult); 
+    if(!fields) {
+        if(!pStmt)
+        {
+            mysql_free_result(pResult);
+        }
+
+        return false;
+    }
 
     if(pStmt) 
     {
@@ -62,14 +71,27 @@ uint32 DatabaseResult::GetSizeOfField(MYSQL_FIELD& field)
 
 void DatabaseResult::ParseNormal(MYSQL_RES* pResult, MYSQL_ROW& row, MYSQL_FIELD* fields, uint32 numFields)
 {
+    m_columnNames.reserve(numFields);
+
+    for(uint32 i = 0; i < numFields; ++i) 
+    {
+        m_columnNames.emplace_back(fields[i].name);
+        m_columnIndices[fields[i].name] = i;
+    }
+
+    uint64 numRows = mysql_num_rows(pResult);
+    m_rows.reserve(numRows);
+
     while((row = mysql_fetch_row(pResult))) 
     {
         unsigned long* lengths = mysql_fetch_lengths(pResult);
-        VariantMap& varMap = m_results.emplace_back();
+        
+        VariantVector& curRow = m_rows.emplace_back();
+        curRow.reserve(numFields);
 
         for(uint32 i = 0; i < numFields; ++i) 
         {
-            ParseAndInsertField(fields[i], row[i], lengths[i], row[i] == nullptr, varMap);
+            curRow.push_back(ExtractFieldVariant(fields[i], row[i], lengths[i], row[i] == nullptr));
         }
     }
 }
@@ -81,20 +103,32 @@ void DatabaseResult::ParseSTMT(MYSQL_STMT* pStmt, MYSQL_RES* pResult, MYSQL_ROW&
 
     mysql_stmt_bind_result(pStmt, prepParam.GetBinds().data());
 
-    while((mysql_stmt_fetch(pStmt) == 0)) 
+    m_columnNames.reserve(numFields);
+    for(uint32 i = 0; i < numFields; ++i) 
     {
-        VariantMap& varMap = m_results.emplace_back();
+        m_columnNames.emplace_back(fields[i].name);
+        m_columnIndices[fields[i].name] = i;
+    }
+
+    uint64 numRows = mysql_num_rows(pResult);
+    m_rows.reserve(numRows);
+
+    while((mysql_stmt_fetch(pStmt) == 0)) 
+    {        
+        VariantVector& curRow = m_rows.emplace_back();
+        curRow.reserve(numFields);
 
         for(uint32 i = 0; i < numFields; ++i) 
         {
-            ParseAndInsertField(fields[i], prepParam.GetBuffers()[i].data(), prepParam.GetLengths()[i], prepParam.GetNulls()[i], varMap);
+            curRow.push_back(ExtractFieldVariant(fields[i], prepParam.GetBuffers()[i].data(), prepParam.GetLengths()[i], prepParam.GetNulls()[i]));
         }
     }
 }
 
-void DatabaseResult::ParseAndInsertField(MYSQL_FIELD& field, void* data, unsigned long length, bool isNull, VariantMap& variantMap)
+Variant DatabaseResult::ExtractFieldVariant(MYSQL_FIELD& field, void* data, unsigned long length, bool isNull)
 {
-    Variant var;
+    if(isNull || !data)
+        return Variant();
 
     switch(field.type) 
     {
@@ -103,35 +137,28 @@ void DatabaseResult::ParseAndInsertField(MYSQL_FIELD& field, void* data, unsigne
         case MYSQL_TYPE_LONG:
         case MYSQL_TYPE_LONGLONG: 
         {
-            var = (isNull ? (uint32)0 : 
-            (field.flags & UNSIGNED_FLAG ?
-                      ToUInt((const char*)data) :
-                      ToInt((const char*)data)));
-            break;
+            return (field.flags & UNSIGNED_FLAG) ? Variant(ToUInt((const char*)data)) : Variant(ToInt((const char*)data));
         }
 
-        case MYSQL_TYPE_FLOAT:
         case MYSQL_TYPE_DOUBLE: 
         case MYSQL_TYPE_DECIMAL:
         case MYSQL_TYPE_NEWDECIMAL:
+        case MYSQL_TYPE_FLOAT:
         {
-            var = (isNull ? (float)0 : ToFloat((const char*)data));
-            break;
+            return Variant(ToFloat((const char*)data));
         }
 
         case MYSQL_TYPE_BLOB:
         case MYSQL_TYPE_STRING:
         case MYSQL_TYPE_VAR_STRING: 
         {
-            var = (isNull ? "" : string((char*)data, length));
-            break;
+            return Variant(string((char*)data, length));
         }
 
         default: 
         {
             LOGGER_LOG_WARN("We dont know how to parse %s type %d", field.name, field.type);
+            return Variant();
         }
     }
-
-    variantMap.insert_or_assign(field.name, std::move(var));
 }

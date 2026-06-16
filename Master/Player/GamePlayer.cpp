@@ -131,7 +131,7 @@ void GamePlayer::CheckAccountCB(QueryTaskResult&& result)
 
         if(!pID || pID->GetUINT() < 1) {
             pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
-            LOGGER_LOG_WARN("Got player but rows are null or id is not valid %s", pPlayer->GetAddress());
+            LOGGER_LOG_WARN("Got player but rows are null or id is not valid");
             return;
         }
 

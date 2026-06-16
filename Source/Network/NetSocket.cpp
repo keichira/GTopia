@@ -8,7 +8,7 @@ bool MakeSocketNonBlocking(socket_t fd)
     return ioctlsocket(fd, FIONBIO, &mode) == 0;
 #else
     int32 flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1) {
+    if(flags == -1) {
         return false;
     }
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK) != -1;
@@ -80,14 +80,14 @@ bool NetSocket::Init(const string& host, uint16 port, int32 backLog)
 {
 #ifdef _WIN32
     WSADATA wsaData;
-    if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0) {
+    if(WSAStartup(MAKEWORD(2,2), &wsaData) != 0) {
         LOGGER_LOG_ERROR("WSAStartup failed.");
         return false;
     }
 #endif
 
     m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (m_socket < 0) {
+    if(m_socket < 0) {
         return false;
     }
 
@@ -180,12 +180,30 @@ int16 NetSocket::Connect(const string& host, uint16 port, bool nonBlocking)
         return -1;
     }
 
-    SSL_set_tlsext_host_name(pSsl, host.c_str()); // ??
+    SSL_set_tlsext_host_name(pSsl, host.c_str()); // here
     SSL_set_fd(pSsl, socketCli);
 
-    int32 sslRes = SSL_connect(pSsl);
-    if(sslRes <= 0) {
-        return -1;
+    if(nonBlocking) 
+    {
+        SSL_set_connect_state(pSsl);
+        int32 sslRes = SSL_connect(pSsl);
+        int32 sslErr = SSL_get_error(pSsl, sslRes);
+        
+        if(sslRes <= 0 && sslErr != SSL_ERROR_WANT_READ && sslErr != SSL_ERROR_WANT_WRITE) 
+        {
+            SSL_free(pSsl);
+            CloseSocket(socketCli);
+            return -1;
+        }
+    } 
+    else 
+    {
+        if(SSL_connect(pSsl) <= 0) 
+        {
+            SSL_free(pSsl);
+            CloseSocket(socketCli);
+            return -1;
+        }
     }
 #endif
 
@@ -203,7 +221,16 @@ int16 NetSocket::Connect(const string& host, uint16 port, bool nonBlocking)
 
     m_clients.insert_or_assign(pClient->connectionID, pClient);
 
-    if(!nonBlocking && result >= 0) {
+    if(socketCli >= (socket_t)m_fdToClient.size()) 
+    {
+        m_fdToClient.resize(socketCli + 128, nullptr);
+    }
+    m_fdToClient[socketCli] = pClient;
+    
+    m_isPollDirty = true; 
+
+    if(!nonBlocking && result >= 0) 
+    {
         m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
     }
     return pClient->connectionID;
@@ -237,217 +264,404 @@ void NetSocket::CreateSSLCtx()
 
 void NetSocket::Update(bool asClient)
 {
-    fd_set rs, ws;
-    FD_ZERO(&rs);
-    FD_ZERO(&ws);
-
-    socket_t maxFD = SOCKET_INVALID;
-    if(!asClient) {
-        if(m_socket == SOCKET_INVALID) {
-            return;
-        }
-
-        maxFD = m_socket;
-    }
-
-    if(m_socket != SOCKET_INVALID)
+    if(m_isPollDirty) 
     {
-        if(!asClient || (asClient && m_socket != SOCKET_INVALID))
+        m_pollFds.clear();
+        
+        if(!asClient && m_socket != SOCKET_INVALID) 
         {
-            FD_SET(m_socket, &rs);
-    
-            if(m_socket > maxFD)
+            pollfd listenFd{};
+            listenFd.fd = m_socket;
+            listenFd.events = POLLIN;
+            m_pollFds.push_back(listenFd);
+        }
+
+        for(auto& [_, pClient] : m_clients) 
+        {
+            if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE) 
+                continue;
+
+            pollfd cFd{};
+            cFd.fd = pClient->socket;
+            cFd.events = 0;
+            
+        #ifdef SOCKET_USE_TLS
+            if(pClient->pSsl && (pClient->sslWantsRead || pClient->sslWantsWrite)) 
             {
-                maxFD = m_socket;
+                if(pClient->sslWantsRead)
+                {
+                    cFd.events |= POLLIN;
+                }
+
+                if(pClient->sslWantsWrite) 
+                {
+                    cFd.events |= POLLOUT;
+                }
             }
+            else
+        #endif
+            {
+                cFd.events |= POLLIN;
+                
+                if(pClient->sendQueue.GetDataSize() > 0 || pClient->status == SOCKET_CLIENT_CONNECTING) 
+                {
+                    cFd.events |= POLLOUT;
+                }
+            }
+
+            m_pollFds.push_back(cFd);
+        }
+        m_isPollDirty = false;
+    }
+    else 
+    {
+        usize idx = (!asClient && m_socket != SOCKET_INVALID) ? 1 : 0;
+        for(auto& [_, pClient] : m_clients) 
+        {
+            if(idx >= m_pollFds.size()) 
+                break;
+
+            if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE) 
+            { 
+                m_pollFds[idx].fd = SOCKET_INVALID;
+                m_pollFds[idx].events = 0;
+                idx++; 
+                continue; 
+            }
+    
+            m_pollFds[idx].events = 0;
+    
+        #ifdef SOCKET_USE_TLS
+            if(pClient->pSsl && (pClient->sslWantsRead || pClient->sslWantsWrite)) 
+            {
+                if(pClient->sslWantsRead)  m_pollFds[idx].events |= POLLIN;
+                if(pClient->sslWantsWrite) m_pollFds[idx].events |= POLLOUT;
+            }
+            else
+        #endif
+            {
+                m_pollFds[idx].events |= POLLIN;
+                if(pClient->sendQueue.GetDataSize() > 0 || pClient->status == SOCKET_CLIENT_CONNECTING) 
+                {
+                    m_pollFds[idx].events |= POLLOUT;
+                }
+            }
+
+            idx++;
         }
     }
 
-    for(auto it = m_clients.begin(); it != m_clients.end();) {
-        NetClient* pClient = it->second;
-
-        if(!pClient) {
-            it = m_clients.erase(it);
-            continue;
-        }
-
-        if(pClient->status == SOCKET_CLIENT_CLOSE || pClient->socket < 0) {
-            CloseClient(pClient->connectionID);
-            it = m_clients.erase(it);
-            continue;
-        }
-
-#ifdef SOCKET_USE_TLS
-        socket_t fd = SSL_get_fd(pClient->pSsl);
-#else
-        socket_t fd = pClient->socket;
-#endif
-
-        FD_SET(fd, &rs);
-        if(pClient->status == SOCKET_CLIENT_CONNECTING || pClient->sendQueue.GetDataSize() != 0) {
-            FD_SET(fd, &ws);
-        }
-        if(fd > maxFD) maxFD = fd;
-
-        ++it;
-    }
-
-    timeval timeout = {0, 0};
-    int32 act = select(maxFD + 1, &rs, &ws, nullptr, &timeout);
-    if(act == 0) {
+    if(m_pollFds.empty()) 
         return;
-    }
-    else if(act < 0) {
-        // manage errno
+
+    int32 act = sys_poll(m_pollFds.data(), (unsigned long)m_pollFds.size(), 0);
+    if(act <= 0) 
+        return;
+
+    usize startIdx = 0;
+    if(!asClient && m_socket != SOCKET_INVALID) 
+    {
+        if(m_pollFds[0].revents & POLLIN) 
+        {
+            AcceptConnection();
+        }
+        startIdx = 1;
     }
 
-    if(m_socket >= 0 && FD_ISSET(m_socket, &rs) && !asClient) {
-        AcceptConnection();
+    for(usize i = startIdx; i < m_pollFds.size(); ++i) 
+    {
+        socket_t fd = m_pollFds[i].fd;
+        short revents = m_pollFds[i].revents;
+
+        if(revents == 0) 
+            continue;
+
+        NetClient* pClient = GetClientByFD(fd);
+        if(!pClient) 
+            continue;
+
+        if(revents & (POLLERR | POLLHUP)) {
+            pClient->status = SOCKET_CLIENT_CLOSE;
+            m_isPollDirty = true;
+            continue;
+        }
+
+        if(revents & POLLIN) 
+        {
+            HandleReadIO(pClient);
+        }
+
+        if(revents & POLLOUT && pClient->status != SOCKET_CLIENT_CLOSE) 
+        {
+            HandleWriteIO(pClient);
+        }
     }
 
-    UpdateIO(rs, ws, asClient);
+    FlushClosedClients();
 }
 
-void NetSocket::UpdateIO(const fd_set& rs, const fd_set& ws, bool asClient)
+void NetSocket::FlushClosedClients()
 {
-    for(auto it = m_clients.begin(); it != m_clients.end();) {
+    for(auto it = m_clients.begin(); it != m_clients.end();) 
+    {
         NetClient* pClient = it->second;
 
-        if(!pClient) {
-            it = m_clients.erase(it);
-            continue;
-        }
+        if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE) 
+        {
+            if(pClient) 
+            {
+                socket_t fd = pClient->socket;
 
-        if(pClient->status == SOCKET_CLIENT_CLOSE) {
-            CloseClient(pClient->connectionID);
-            it = m_clients.erase(it);
-            continue;
-        }
-
-        if(pClient->status != SOCKET_CLIENT_CONNECTING && FD_ISSET(pClient->socket, &rs)) {
-            char buffer[SOCKET_MAX_BUFFER_SIZE];
-
-    #ifdef _WIN32
-        int32 flags = 0;
-    #else
-        int32 flags = MSG_DONTWAIT;
-    #endif
-
-    #ifdef SOCKET_USE_TLS
-            int32 val = SSL_read(pClient->pSsl, buffer, sizeof(buffer));
-    #else
-            int32 val = recv(pClient->socket, buffer, sizeof(buffer), flags);
-    #endif
-
-            if(val > 0) {
-                if(pClient->recvQueue.GetAvailableSpace() < val) {
-                    pClient->status = SOCKET_CLIENT_CLOSE;
-                    LOGGER_LOG_WARN("Overflow on netsocket while writing recv data fd: %d", pClient->socket);
+                if(fd >= 0 && fd < (socket_t)m_fdToClient.size()) {
+                    m_fdToClient[fd] = nullptr;
                 }
-                else {
-                    {
-                        std::lock_guard<std::mutex> lock(pClient->recvMutex);
-                        uint32 written = pClient->recvQueue.Write(&buffer, val);
-                    }
+
+                if(fd != SOCKET_INVALID) {
+                    CloseSocket(fd);
+                }
+
+#ifdef SOCKET_USE_TLS
+                if(pClient->pSsl) {
+                    SSL_shutdown(pClient->pSsl);
+                    SSL_free(pClient->pSsl);
+                    pClient->pSsl = nullptr;
+                }
+#endif
+                m_events.Dispatch(SOCKET_EVENT_TYPE_DISCONNECT, pClient);
+                
+                SAFE_DELETE(pClient);
+            }
+
+            it = m_clients.erase(it);
+            m_isPollDirty = true;
+        }
+        else 
+        {
+            ++it;
+        }
+    }
+}
+
+void NetSocket::HandleReadIO(NetClient* pClient)
+{
+    if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE) 
+        return;
+
+    uint32 availableSpace = pClient->recvQueue.GetAvailableSpace();
+    if(availableSpace == 0) {
+        pClient->status = SOCKET_CLIENT_CLOSE;
+        LOGGER_LOG_WARN("[NetSocket] RingBuffer overflow on fd: %d", pClient->socket);
+        return;
+    }
+
+    uint32 readSize = availableSpace > SOCKET_MAX_BUFFER_SIZE ? SOCKET_MAX_BUFFER_SIZE : availableSpace;
+    char buffer[SOCKET_MAX_BUFFER_SIZE];
     
-                    m_events.Dispatch(SOCKET_EVENT_TYPE_RECEIVE, pClient);
-                }
-            }
-            else if(val == 0) {
-                pClient->status = SOCKET_CLIENT_CLOSE;
-            }
-            else {
+    int32 val = 0;
+    int32 sslErr = 0;
 
-        #ifdef _WIN32
-                if(WSAGetLastError() != WSAEWOULDBLOCK) {
-                    pClient->status = SOCKET_CLIENT_CLOSE;
-                }
-        #else
-                int32 error = errno;
-                if(error != EAGAIN && error != EWOULDBLOCK) {
-                    pClient->status = SOCKET_CLIENT_CLOSE;
-                    LOGGER_LOG_WARN("Socket error %d, closing fd %d", error, pClient->socket);
-                }
-        #endif
-            }
+#ifdef SOCKET_USE_TLS
+    if(pClient->pSsl) 
+    {
+        val = SSL_read(pClient->pSsl, buffer, readSize);
+        if(val <= 0) 
+        {
+            sslErr = SSL_get_error(pClient->pSsl, val);
         }
+    } 
+    else
+#endif
+    {
+#ifdef _WIN32
+        val = recv(pClient->socket, buffer, readSize, 0);
+#else
+        val = recv(pClient->socket, buffer, readSize, MSG_DONTWAIT);
+#endif
+    }
 
-        if(pClient->status != SOCKET_CLIENT_CLOSE && FD_ISSET(pClient->socket, &ws)) {
-            if(pClient->status == SOCKET_CLIENT_CONNECTING) {
-            int error = 0;
+    if(val > 0) 
+    {
+        pClient->recvQueue.Write(buffer, val);
+        
+#ifdef SOCKET_USE_TLS
+        pClient->sslWantsRead = false;
+        pClient->sslWantsWrite = false;
+#endif
+
+        m_events.Dispatch(SOCKET_EVENT_TYPE_RECEIVE, pClient);
+    }
+    else if(val == 0) 
+    {
+        pClient->status = SOCKET_CLIENT_CLOSE;
+    }
+    else 
+    {
+#ifdef SOCKET_USE_TLS
+        if(pClient->pSsl) {
+            if(sslErr == SSL_ERROR_WANT_READ) 
+            { 
+                pClient->sslWantsRead = true; 
+                return; 
+            }
+
+            if(sslErr == SSL_ERROR_WANT_WRITE) 
+            { 
+                pClient->sslWantsWrite = true; 
+                m_isPollDirty = true; 
+                return; 
+            }
+
+            pClient->status = SOCKET_CLIENT_CLOSE; return;
+        }
+#endif
+#ifdef _WIN32
+        if(WSAGetLastError() != WSAEWOULDBLOCK)
+        {
+            pClient->status = SOCKET_CLIENT_CLOSE;
+        }
+#else
+        if(errno != EAGAIN && errno != EWOULDBLOCK)
+        {
+            pClient->status = SOCKET_CLIENT_CLOSE;
+        }
+#endif
+    }
+}
+
+void NetSocket::HandleWriteIO(NetClient* pClient)
+{
+    if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE) 
+        return;
+
+    if(pClient->status == SOCKET_CLIENT_CONNECTING) 
+    {
+        int error = 0;
 
     #ifdef _WIN32
             int len = sizeof(error);
-            if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, (char*)&error, &len) == 0) {
+            if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, (char*)&error, &len) != 0 || error != 0) {
     #else
             socklen_t len = sizeof(error);
-            if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, &error, &len) == 0) {
+            if(getsockopt(pClient->socket, SOL_SOCKET, SO_ERROR, &error, &len) != 0 || error != 0) {
     #endif
-
-                    if (error == 0) {
-            #ifdef SOCKET_USE_TLS
-                        int32 sslRes = SSL_connect(pClient->pSsl);
-
-                        if(sslRes == 1) {
-                            pClient->status = SOCKET_CLIENT_CONNECTED;
-                            m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
-                        }
-                        else {
-                            int32 sslErr = SSL_get_error(pClient->pSsl, sslRes);
-                            if(sslErr != SSL_ERROR_WANT_READ && sslErr != SSL_ERROR_WANT_WRITE) {
-                                pClient->status = SOCKET_CLIENT_CLOSE;
-                            }
-                        }
-            #else
-                        pClient->status = SOCKET_CLIENT_CONNECTED;
-                        m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
-            #endif
-                    }
-                    else {
-                        LOGGER_LOG_ERROR("Failed to connect socket error %d", error)
-                        pClient->status = SOCKET_CLIENT_CLOSE;
-                    }
-                }
-            }
-            else if(pClient->sendQueue.GetDataSize() > 0) {
-                std::lock_guard<std::mutex> lock(pClient->sendMutex);
-
-                while(pClient->sendQueue.GetDataSize() > 0) {
-                    uint32 sendSize = pClient->sendQueue.GetDataSize();
-                    if(sendSize > SOCKET_MAX_BUFFER_SIZE) {
-                        sendSize = SOCKET_MAX_BUFFER_SIZE;
-                    }
-
-                    char buffer[SOCKET_MAX_BUFFER_SIZE];
-                    uint32 readSize = pClient->sendQueue.Read(&buffer, sendSize);
-
-                    if(readSize <= 0) {
-                        break;
-                    }
-
-        #ifdef _WIN32
-            int32 flags = 0;
-        #else
-            int32 flags = MSG_DONTWAIT;
-        #endif
-
-        #ifdef SOCKET_USE_TLS
-                    uint32 sentSize = SSL_write(pClient->pSsl, buffer, readSize);
-        #else
-                    uint32 sentSize = send(pClient->socket, buffer, readSize, flags);
-        #endif
-
-                    if(sentSize < readSize) {
-                        pClient->sendQueue.Write(&buffer[sentSize], readSize - sentSize);
-                        break;
-                    }
-
-                    //EAGAIN EWOULDBLOCK
-                }
-            }
+            LOGGER_LOG_ERROR("[NetSocket] Non-block connect failed on fd: %d, Error: %d", pClient->socket, error);
+            pClient->status = SOCKET_CLIENT_CLOSE;
+            m_isPollDirty = true;
+            return;
         }
 
-        ++it;
+#ifdef SOCKET_USE_TLS
+        if(pClient->pSsl) 
+        {
+            int32 ret = SSL_do_handshake(pClient->pSsl);
+            if(ret == 1) 
+            {
+                pClient->status = SOCKET_CLIENT_CONNECTED;
+                pClient->sslWantsRead = false;
+                pClient->sslWantsWrite = false;
+                m_isPollDirty = true;
+                m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
+                return;
+            }
+
+            int32 sslErr = SSL_get_error(pClient->pSsl, ret);
+            if(sslErr == SSL_ERROR_WANT_READ) 
+            { 
+                pClient->sslWantsRead = true; 
+                pClient->sslWantsWrite = false; 
+                m_isPollDirty = true; 
+                return; 
+            }
+
+            if(sslErr == SSL_ERROR_WANT_WRITE) 
+            { 
+                pClient->sslWantsWrite = true; 
+                pClient->sslWantsRead = false; 
+                return; 
+            }
+
+            pClient->status = SOCKET_CLIENT_CLOSE;
+            return;
+        }
+#endif
+        pClient->status = SOCKET_CLIENT_CONNECTED;
+        m_isPollDirty = true;
+        m_events.Dispatch(SOCKET_EVENT_TYPE_CONNECT, pClient);
+        return;
+    }
+
+    std::lock_guard<std::mutex> lock(pClient->sendMutex);
+    uint32 dataSize = pClient->sendQueue.GetDataSize();
+    if(dataSize == 0) 
+        return;
+
+    uint32 chunkSize = dataSize > SOCKET_MAX_BUFFER_SIZE ? SOCKET_MAX_BUFFER_SIZE : dataSize;
+    char buffer[SOCKET_MAX_BUFFER_SIZE];
+
+    pClient->sendQueue.Peek(buffer, chunkSize);
+
+    int32 val = 0;
+    int32 sslErr = 0;
+
+#ifdef SOCKET_USE_TLS
+    if(pClient->pSsl) {
+        val = SSL_write(pClient->pSsl, buffer, chunkSize);
+        if(val <= 0) 
+        {
+            sslErr = SSL_get_error(pClient->pSsl, val);
+        }
+    } 
+    else
+#endif
+    {
+#ifdef _WIN32
+        val = send(pClient->socket, buffer, chunkSize, 0);
+#else
+        val = send(pClient->socket, buffer, chunkSize, MSG_DONTWAIT);
+#endif
+    }
+
+    if(val > 0) 
+    {
+        pClient->sendQueue.Skip(val);
+        
+#ifdef SOCKET_USE_TLS
+        pClient->sslWantsRead = false;
+        pClient->sslWantsWrite = false;
+#endif
+
+    }
+    else 
+    {
+#ifdef SOCKET_USE_TLS
+        if(pClient->pSsl) {
+            if(sslErr == SSL_ERROR_WANT_WRITE) 
+            { 
+                pClient->sslWantsWrite = true; 
+                return; 
+            }
+
+            if(sslErr == SSL_ERROR_WANT_READ) 
+            { 
+                pClient->sslWantsRead = true; 
+                m_isPollDirty = true; 
+                return; 
+            }
+            
+            pClient->status = SOCKET_CLIENT_CLOSE; return;
+        }
+#endif
+#ifdef _WIN32
+        if(WSAGetLastError() != WSAEWOULDBLOCK)
+        {
+            pClient->status = SOCKET_CLIENT_CLOSE;
+        }
+#else
+        if(errno != EAGAIN && errno != EWOULDBLOCK)
+        {
+            pClient->status = SOCKET_CLIENT_CLOSE;
+        }
+#endif
     }
 }
 
@@ -486,6 +700,12 @@ void NetSocket::AcceptConnection()
     SSL_set_accept_state(pSsl);
 #endif
 
+    if(socketClient >= (socket_t)m_fdToClient.size()) 
+    {
+        //uhh
+        m_fdToClient.resize(socketClient + 128, nullptr);
+    }
+
     NetClient* pClient = new NetClient();
     pClient->socket = socketClient;
     pClient->connectionID = m_lastConnID++;
@@ -497,37 +717,53 @@ void NetSocket::AcceptConnection()
     pClient->pSsl = pSsl;
 #endif
 
+    m_fdToClient[socketClient] = pClient;
+    m_isPollDirty = true;
     m_clients.insert_or_assign(pClient->connectionID, pClient);
 }
 
 void NetSocket::CloseClient(uint16 connectionID)
 {
     auto it = m_clients.find(connectionID);
-
-    if(it != m_clients.end()) {
+    if(it != m_clients.end()) 
+    {
         NetClient* pClient = it->second;
-        if(!pClient) {
-            return;
-        }
+        if(pClient) 
+        {
+            socket_t fd = pClient->socket;
 
-        CloseSocket(pClient->socket);
+            if(fd >= 0 && fd < (socket_t)m_fdToClient.size()) 
+            {
+                m_fdToClient[fd] = nullptr;
+            }
+
+            if(fd != SOCKET_INVALID) 
+            {
+                CloseSocket(fd);
+            }
 
 #ifdef SOCKET_USE_TLS
-        if(pClient->pSsl) {
-            SSL_get_shutdown(pClient->pSsl);
-            SSL_free(pClient->pSsl);
-        }
+            if(pClient->pSsl) 
+            {
+                SSL_shutdown(pClient->pSsl);
+                SSL_free(pClient->pSsl);
+                pClient->pSsl = nullptr;
+            }
 #endif
+            m_events.Dispatch(SOCKET_EVENT_TYPE_DISCONNECT, pClient);
+            SAFE_DELETE(pClient);
+        }
 
-        m_events.Dispatch(SOCKET_EVENT_TYPE_DISCONNECT, pClient);
-        SAFE_DELETE(pClient);
+        m_clients.erase(it);
+        m_isPollDirty = true;
     }
 }
 
 void NetSocket::CloseAllClients()
 {
-    for(auto& it : m_clients) {
-        CloseClient(it.first);
+    while(!m_clients.empty()) 
+    {
+        CloseClient(m_clients.begin()->first);
     }
 
     m_clients.clear();
@@ -563,4 +799,12 @@ bool NetSocket::Send(NetClient* pClient, void* pData, uint32 size)
     }
 
     return true;
+}
+
+NetClient* NetSocket::GetClientByFD(socket_t fd)
+{
+    if(fd == SOCKET_INVALID || fd < 0 || fd >= (socket_t)m_fdToClient.size())
+        return nullptr;
+    
+    return m_fdToClient[fd];
 }

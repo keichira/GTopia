@@ -4,6 +4,7 @@
 #include <concurrentqueue.h>
 #include "PreparedParam.h"
 #include "QueryUtils.h"
+#include "../Utils/Timer.h"
 
 #define QUERY_TIMEOUT_MS 3000
 #define PREPARED_PARAM_MAX_SIZE 8
@@ -20,8 +21,10 @@ public:
     void Kill();
 
     void Update();
-
     void AddTask(QueryTaskRequest&& taskReq);
+
+    bool IsConnected() { return (m_pDatabaseMgr && m_pDatabaseMgr->IsConnected()); }
+    uint32 GetQueueSize() const { return m_taskQueue.size_approx(); }
 
 private:
     void SetupPreparedParams(VariantVector& params, bool bulk, uint32 startPos = 0);
@@ -34,4 +37,7 @@ private:
     PreparedParam* m_pPrepParam;
     DatabasePool* m_pDbPool;
     moodycamel::ConcurrentQueue<QueryTaskRequest> m_taskQueue;
+
+    Timer m_lastConnTime;
+    DatabaseConnectConfig m_config;
 };

@@ -23,7 +23,6 @@ public:
 
     void AddTask(QueryTaskRequest&& taskReq);
     bool GetResult(QueryTaskResult& taskRes);
-    bool IsConnectionLost(uint8 workerIdx);
 
 private:
     void AddResult(QueryTaskResult&& taskRes);

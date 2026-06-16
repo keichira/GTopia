@@ -123,6 +123,6 @@ void CrystalBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo*
         db.AddTextBox(elementInfo);
     }
 
-    db.EndDialog("crystal_edit", "Cool, man", "");
+    db.EndDialog("crystal_edit", "", "Cool, man");
     pPlayer->SendOnDialogRequest(db.Get());
 }

@@ -13,6 +13,8 @@ DatabaseManager::~DatabaseManager()
 
 bool DatabaseManager::Init(const DatabaseConnectConfig& config)
 {
+    Kill();
+
     m_pConnection = mysql_init(nullptr);
     if(!m_pConnection) 
     {
@@ -167,25 +169,35 @@ uint64 DatabaseManager::GetLastInsertID()
 
 string DatabaseManager::EscapeString(const string& value)
 {
-    char* buffer = new char[value.size() * 2 + 1];
+    if(!m_pConnection || value.empty())
+        return "";
 
-    mysql_real_escape_string(m_pConnection, buffer, value.c_str(), value.size());
+    string res;
+    res.resize(value.size() * 2 + 1);
 
-    string res = buffer;
-    SAFE_DELETE_ARRAY(buffer);
+    unsigned long escapedLength = mysql_real_escape_string(m_pConnection, &res[0], value.c_str(), value.size());
 
+    res.resize(escapedLength);
     return res;
 }
 
 void DatabaseManager::PrintError()
 {
+    if(!m_pConnection)
+        return;
+
     int32 err = mysql_errno(m_pConnection);
+    const char* errStr = mysql_error(m_pConnection);
+
     if(err == CR_SERVER_GONE_ERROR || err == CR_SERVER_LOST) 
     {
-        
+        LOGGER_LOG_ERROR("CRITICAL: Database connection lost! Error: (%d) %s. Cleaning up connection...", err, errStr);
+        Kill();
     }
-    
-    LOGGER_LOG_ERROR("MySQL Error: (%d) %s", err, mysql_error(m_pConnection));
+    else
+    {
+        LOGGER_LOG_ERROR("MySQL Error: (%d) %s", err, errStr);
+    }
 }
 
 DatabaseResult* DatabaseManager::GetResults()
