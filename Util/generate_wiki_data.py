@@ -186,7 +186,7 @@ def fetch_wiki_and_write(serialize_until: int = 0, file_path: str = "items.dat")
 
                     write += f"{seed_1.id + 1}|{seed_2.id + 1}|"
 
-                write += f"{wiki.element.upper()}|"
+                write += f"{wiki.element.replace("WIND", "AIR").upper()}|"
                 write += f"{wiki.description}|"
 
                 if (

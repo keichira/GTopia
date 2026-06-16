@@ -1,6 +1,7 @@
 #include "TileChangeRequest.h"
 #include "Item/ItemInfoManager.h"
 #include "../../../Player/Dialog/PlayerDialog.h"
+#include "../../../Item/HarmonicCrystal.h"
 
 /**
  * 
@@ -190,12 +191,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         return;
     }
 
-    if(pPacket->field_7 != ITEM_ID_FIST && pTile->GetFG() != ITEM_ID_BLANK)
-    {
-        pPlayer->SendFakePingReply();
-        return;
-    }
-
     bool tileBroken = false;
 
     if(pPacket->field_7 != ITEM_ID_FIST)
@@ -209,7 +204,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(inventory.GetCountOfItem(pPacket->field_7) < 1)
             return;
 
-        if(!pWorld->GetPlayersInWorldRect(pTile->GetRect()).empty())
+        if(!pItem->IsBackground() && !pWorld->GetPlayersInWorldRect(pTile->GetRect()).empty())
         {
             pPlayer->SendFakePingReply();
             return;
@@ -248,7 +243,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
-        if(pItem->type == ITEM_TYPE_SEED)
+        if(pItem->type == ITEM_TYPE_SEED || pTileItem->type == ITEM_TYPE_CRYSTAL)
         {
             pWorld->OnPlantSeed(pPlayer, pTile, pItem, pPacket);
             return;
@@ -263,6 +258,15 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             if(pAchiExtra)
             {
                 pAchiExtra->ownerID = pPlayer->GetUserID();
+            }
+        }
+
+        if(pItem->type == ITEM_TYPE_CRYSTAL)
+        {
+            TileExtra_Crystal* pCrystalExtra = pTile->GetExtra<TileExtra_Crystal>();
+            if(pCrystalExtra)
+            {
+                pCrystalExtra->crystals += gHarmonicCrystal.GetCrystalCodeFromID(pItem->id);
             }
         }
 
@@ -357,6 +361,9 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pTile->GetWorldPosCenter());
         }
 
+        if(pTileItem->type == ITEM_TYPE_CRYSTAL && pWorld->OnPunchHarmonicCrystal(pTile, pPlayer))
+            return;
+
         if(!pTile->WillBreak(punchDamage))
         {
             pPacket->type = NET_GAME_PACKET_TILE_APPLY_DAMAGE;
@@ -429,19 +436,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(pTile->GetHealthPercent() > 0.0f)
         {
             pWorld->SendTileApplyDamage(pTile, pPlayer->GetCharData().punchDamage, pPlayer->GetNetID());
-        }
-        else if(tileBroken)
-        {
-            GameUpdatePacket packet;
-            packet.type   = NET_GAME_PACKET_TILE_CHANGE_REQUEST;
-            packet.field_4  = pPlayer->GetNetID();
-            packet.field_7 = ITEM_ID_FIST;
-
-            Vector2Int& vTilePos = pTile->GetPos();
-            packet.field_11 = vTilePos.x;
-            packet.field_12 = vTilePos.y;
-
-            pWorld->SendGamePacketToAll(&packet);
         }
     }
 

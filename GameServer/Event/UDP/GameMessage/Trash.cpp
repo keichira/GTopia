@@ -1,7 +1,7 @@
 #include "Trash.h"
 #include "../../../Player/Dialog/TrashDialog.h"
 
-void Trash::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void Trash::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     auto pItemID = packet.Find("itemID"_hash);
     if(!pItemID)

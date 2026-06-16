@@ -1,7 +1,7 @@
 #include "SetSkin.h"
 #include "Utils/StringUtils.h"
 
-void SetSkin::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void SetSkin::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     auto pColor = packet.Find("color"_hash);
     if(!pColor)

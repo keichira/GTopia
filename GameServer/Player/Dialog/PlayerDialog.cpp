@@ -10,6 +10,7 @@
 #include "BattleCageDialog.h"
 #include "XenoniteDialog.h"
 #include "MailboxBlockDialog.h"
+#include "CrystalBlockDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
@@ -60,6 +61,12 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if(pItem->type == ITEM_TYPE_MAILBOX)
     {
         MailboxBlockDialog::Request(pPlayer, pTile, pItem);
+        return;
+    }
+
+    if(pItem->type == ITEM_TYPE_CRYSTAL)
+    {
+        CrystalBlockDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 }

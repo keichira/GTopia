@@ -1,6 +1,6 @@
 #include "Drop.h"
 
-void Drop::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void Drop::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

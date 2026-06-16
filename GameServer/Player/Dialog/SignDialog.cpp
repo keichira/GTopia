@@ -30,7 +30,7 @@ void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

@@ -31,7 +31,7 @@ void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder,
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer || pPlayer->HasGrowID())
         return;

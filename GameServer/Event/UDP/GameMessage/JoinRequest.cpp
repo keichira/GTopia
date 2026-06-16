@@ -2,7 +2,7 @@
 #include "IO/Log.h"
 #include "../../../World/WorldManager.h"
 
-void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void JoinRequest::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(pPlayer->GetLastJoinRequestTime().GetElapsedTime() <= 800)
         return;

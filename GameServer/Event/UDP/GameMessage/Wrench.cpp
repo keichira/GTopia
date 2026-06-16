@@ -2,7 +2,7 @@
 #include "Utils/StringUtils.h"
 #include "../../../Player/Dialog/WrenchSelfDialog.h"
 
-void Wrench::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void Wrench::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

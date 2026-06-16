@@ -5,8 +5,7 @@ class GamePlayer;
 class TileInfo;
 class ItemInfo;
 
-class BattleCageDialog {
+class CrystalBlockDialog {
 public:
     static void Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem);
-    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
 };

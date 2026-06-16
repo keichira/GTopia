@@ -39,7 +39,7 @@ void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemI
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

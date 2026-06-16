@@ -292,6 +292,7 @@ void RunGameLoop()
             uint64 tickStart = Time::GetSystemTime();
 
             pGameServer->UpdateGameLogic(GAME_TICK_MS);
+            GetUserCacheManager()->Update();
 
             uint64 tickEnd = Time::GetSystemTime();
             uint32 tickDur = (uint32)(tickEnd - tickStart);

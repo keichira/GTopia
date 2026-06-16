@@ -3,7 +3,7 @@
 #include "Item/ItemInfoManager.h"
 #include "IO/Log.h"
 
-void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void RefreshItemData::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     pPlayer->SendOnConsoleMessage("One moment updating item data...");
 

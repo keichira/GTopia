@@ -9,5 +9,5 @@ class ItemInfo;
 class XenoniteDialog {
 public:
     static void Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem);
-    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet);
+    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
 };

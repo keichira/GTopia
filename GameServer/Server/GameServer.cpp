@@ -119,7 +119,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             }
             else if(pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) 
             {
-                ParsedTextPacket<40> packet;
+                ParsedTextPacket<38> packet;
                 ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
             
                 auto pAction = packet.Find("action"_hash);
@@ -138,7 +138,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             }
             else if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) 
             {
-                ParsedTextPacket<40> packet;
+                ParsedTextPacket<38> packet;
                 ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
             
                 auto pAction = packet.Find("action"_hash);

@@ -151,7 +151,7 @@ void MailboxBlockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstan
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void MailboxBlockDialog::Handle(GamePlayer *pPlayer, ParsedTextPacket<40> &packet)
+void MailboxBlockDialog::Handle(GamePlayer *pPlayer, ParsedTextPacket<38> &packet)
 {
     if(!pPlayer)
         return;

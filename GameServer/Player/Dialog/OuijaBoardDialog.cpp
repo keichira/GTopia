@@ -310,7 +310,7 @@ void OuijaBoardDialog::RequestCommand(GamePlayer* pPlayer, TileInfo* pTile)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void OuijaBoardDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void OuijaBoardDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

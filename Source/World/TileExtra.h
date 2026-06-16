@@ -4,6 +4,7 @@
 #include "../Memory/MemoryBuffer.h"
 #include "Utils/Timer.h"
 #include "../Item/ItemInfoManager.h"
+#include "../Math/Random.h"
 #include <deque>
 
 class TileExtra;
@@ -357,4 +358,15 @@ TILE_EXTRA(TileExtra_Mailbox, TILE_EXTRA_TYPE_MAILBOX)
 
         return false;
     }
+};
+
+TILE_EXTRA(TileExtra_Crystal, TILE_EXTRA_TYPE_CRYSTAL)
+    string crystals;
+    int16 chi[4] = 
+    {
+        (int16)RandomRangeInt(20, 120),
+        (int16)RandomRangeInt(20, 120),
+        (int16)RandomRangeInt(20, 120),
+        (int16)RandomRangeInt(20, 120)
+    };
 };

@@ -71,9 +71,9 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer,
             return false;
         }
 
-        if(payload.empty()) return false;
+        if(payload.empty()) 
+            return false;
 
-        // Payload ayrıştırma kontrolleri
         usize loginInfoPos = payload.find("loginInfo=");
         usize growIDPos = payload.find("&growID=");
         usize passwordPos = payload.find("&password=");

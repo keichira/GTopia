@@ -103,6 +103,9 @@ public:
 
     void ToggleXenoniteCrystal(bool enable);
 
+    void CalcHarmonicCrystal(TileInfo* pTile, int16* dest);
+    bool OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer);
+
     bool CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command);
     bool CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile);
     bool TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile);

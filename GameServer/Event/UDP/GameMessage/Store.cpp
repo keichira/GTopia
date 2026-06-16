@@ -1,7 +1,7 @@
 #include "Store.h"
 #include "../../../Store/StoreManager.h"
 
-void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

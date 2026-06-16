@@ -11,6 +11,7 @@
 #include "Utils/GrowUtils.h"
 #include "../Server/UserCacheManager.h"
 #include "Math/WeightRand.h"
+#include "../Item/HarmonicCrystal.h"
 
 World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
@@ -1534,6 +1535,126 @@ void World::ToggleXenoniteCrystal(bool enable)
     }
 }
 
+void World::CalcHarmonicCrystal(TileInfo* pTile, int16* dest)
+{
+    if(!pTile || !dest)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem || pItem->type != ITEM_TYPE_CRYSTAL)
+        return;
+
+    TileExtra_Crystal* pTileExtra = pTile->GetExtra<TileExtra_Crystal>();
+    if(!pTileExtra)
+        return;
+
+    Vector2Int& vTilePos = pTile->GetPos();
+
+    int32 neighbors[9][2] = 
+    {
+        {-1, -1}, {0, -1}, {1, -1}, 
+        {-1, 0}, {0, 0}, {1, 0},
+        {-1, 1}, {0, 1}, {1, 1}
+    };
+
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+
+    for(auto& d : neighbors)
+    {
+        TileInfo* pNeighbor = GetTileManager()->GetTile(vTilePos.x + d[0], vTilePos.y + d[1]);
+        if(!pNeighbor)
+            continue;
+
+        ItemInfo* pBgItem = pItemMgr->GetItemByID(pNeighbor->GetBG());
+        if(pBgItem)
+        {
+            if(pBgItem->element < ITEM_ELEMENT_NONE && pBgItem->rarity < 999)
+                dest[pBgItem->element] += pBgItem->rarity;
+        }
+
+        if(pNeighbor != pTile)
+        {
+            ItemInfo* pFgItem = pItemMgr->GetItemByID(pNeighbor->GetFG());
+            if(pFgItem)
+            {
+                if(pFgItem->element < ITEM_ELEMENT_NONE && pFgItem->rarity < 999)
+                    dest[pFgItem->element] += pFgItem->rarity;
+            }
+
+            if(pNeighbor->HasFlag(TILE_FLAG_IS_WET))
+            {
+                ItemInfo* pWaterItem = pItemMgr->GetItemByID(ITEM_ID_WATER_BUCKET);
+                if(pWaterItem)
+                {
+                    dest[ITEM_ELEMENT_WATER] += pWaterItem->rarity;
+                }
+            }
+        }
+    }
+}
+
+bool World::OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer)
+{
+    if(!pTile || !pPlayer)
+        return false;
+
+    TileExtra_Crystal* pTileExtra = pTile->GetExtra<TileExtra_Crystal>();
+    if(!pTileExtra)
+        return false;
+
+    if(pTileExtra->crystals.size() < 5)
+        return false;
+
+    int16 totalChi[4] = { 0 };
+    CalcHarmonicCrystal(pTile, totalChi);
+
+    int16 accur = gHarmonicCrystal.GetChiAccuracy(pTile, this);
+    for(int32 i = 0; i < 4; ++i)
+    {
+        int16 required = pTileExtra->chi[i];
+
+        if(totalChi[i] < (required - accur))
+            return false;
+
+        if(totalChi[i] > (required + accur))
+            return false;
+    }
+
+    HarmonicCrystalRecipe* pRecipe = gHarmonicCrystal.GetRecipe(pTileExtra->crystals);
+    if(!pRecipe)
+        return false;
+
+    DropObjectOnTile(pTile, pRecipe->rewardID, pRecipe->rewardCount, GetRandomItemDropOffset(), true);
+    SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pTile->GetWorldPosCenter());
+
+    Vector2Int& vTilePos = pTile->GetPos();
+    TileInfo* pBottom = GetTileManager()->GetTile(vTilePos.x, vTilePos.y + 1);
+    if(pBottom && pBottom->GetFG() == ITEM_ID_RAINBOW_CRYSTAL_BLOCK)
+    {
+        if(RandomRangeInt(0, 5) == 0)
+        {
+            int32 randChar = RandomRangeInt(0, 4);
+            if(pTileExtra->crystals.size() > randChar)
+            {
+                int32 crystalID = pTileExtra->crystals[randChar] * 2 + ITEM_ID_RED_CRYSTAL;
+                DropObjectOnTile(pTile, crystalID, 1, GetRandomItemDropOffset(), true);
+            }
+        }
+    }
+
+    pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
+
+    if(pTile->GetBG() == ITEM_ID_CHI_HARMONIZER)
+    {
+        pTile->SetBG(ITEM_ID_BLANK);
+        pPlayer->SendOnTalkBubble("Your Chi Harmonizer helped to resonate the elements!", false);
+    }
+
+    pPlayer->GiveXP(20);
+    SendTileUpdate(pTile);
+    return true;
+}
+
 bool World::CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command)
 {
     if(!pPlayer)
@@ -1932,6 +2053,44 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
 {
     if(!pPlayer || !pTile || !pSeed || !pPacket)
         return;
+
+    if(pSeed->type == ITEM_TYPE_CRYSTAL)
+    {
+        TileExtra_Crystal* pTileExtra = pTile->GetExtra<TileExtra_Crystal>();
+        if(!pTileExtra)
+            return;
+
+        if(pTileExtra->crystals.size() == 5)
+        {
+            pPlayer->SendOnTalkBubble("That crystal's energy is already at its highest vibration!", false);
+            return;
+        }
+
+        pTileExtra->crystals += gHarmonicCrystal.GetCrystalCodeFromID(pSeed->id);
+
+        if(pTileExtra->crystals.size() == 5)
+        {
+            std::sort(pTileExtra->crystals.begin(), pTileExtra->crystals.end());
+            
+            if(!gHarmonicCrystal.GetRecipe(pTileExtra->crystals))
+            {
+                pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
+                pTile->SetBG(ITEM_ID_BLANK);
+
+                SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pTile->GetWorldPosCenter());
+            }
+            else
+            {
+                pPlayer->SendOnTalkBubble("The crystals have reached their highest vibration!", false);
+            }
+        }
+
+        if(pTile->HasFlag(TILE_FLAG_PAINTED_WHITE))
+            pTile->RemoveFlag(TILE_FLAG_PAINTED_WHITE);
+
+        SendTileUpdate(pTile);
+        return;
+    }
 
     if(!(pTile->IsTree() || pTile->GetDisplayedItem() == ITEM_ID_BLANK))
         return;

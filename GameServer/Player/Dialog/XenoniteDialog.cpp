@@ -126,7 +126,7 @@ void XenoniteDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pIt
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void XenoniteDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void XenoniteDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

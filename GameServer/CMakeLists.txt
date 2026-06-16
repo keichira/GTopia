@@ -28,6 +28,7 @@ set(GAME_WORLD "${GAME_ROOT}/World")
 set(GAME_COMMAND "${GAME_ROOT}/Command")
 set(GAME_DIALOG "${GAME_PLAYER}/Dialog")
 set(GAME_STORE "${GAME_ROOT}/Store")
+set(GAME_ITEM "${GAME_ROOT}/Item")
 
 set(GAME_FILES PRIVATE
     ${SOURCE_DATABASE}/Table/PlayerDBTable.cpp
@@ -110,6 +111,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/BattleCageDialog.cpp
     ${GAME_DIALOG}/XenoniteDialog.cpp
     ${GAME_DIALOG}/MailboxBlockDialog.cpp
+    ${GAME_DIALOG}/CrystalBlockDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
@@ -126,6 +128,8 @@ set(GAME_FILES PRIVATE
     ${GAME_PLAYER}/PlayerPlayModController.cpp
 
     ${GAME_STORE}/StoreManager.cpp
+
+    ${GAME_ITEM}/HarmonicCrystal.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp

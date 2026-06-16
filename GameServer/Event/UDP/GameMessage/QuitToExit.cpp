@@ -1,7 +1,7 @@
 #include "QuitToExit.h"
 #include "../../../World/WorldManager.h"
 
-void QuitToExit::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void QuitToExit::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

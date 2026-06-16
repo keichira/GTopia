@@ -192,7 +192,7 @@ void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, in
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(pPlayer->GetCurrentWorld() == 0)
         return;

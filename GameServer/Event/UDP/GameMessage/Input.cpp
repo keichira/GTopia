@@ -7,7 +7,7 @@
  * fix here
  */
 
-void Input::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void Input::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

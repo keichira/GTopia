@@ -74,7 +74,7 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer || pPlayer->GetCurrentWorld() == 0)
         return;

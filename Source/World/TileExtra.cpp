@@ -30,6 +30,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_XENONITE:
             return TILE_EXTRA_TYPE_XENONITE;
 
+        case ITEM_TYPE_CRYSTAL:
+            return TILE_EXTRA_TYPE_CRYSTAL;
+
         case ITEM_TYPE_BATTLE_CAGE:
             return TILE_EXTRA_TYPE_BATTLE_CAGE;
 
@@ -80,6 +83,9 @@ TileExtra* CreateTileExtra(uint8 type)
 
         case TILE_EXTRA_TYPE_XENONITE:
             return new TileExtra_Xenonite();
+
+        case TILE_EXTRA_TYPE_CRYSTAL:
+            return new TileExtra_Crystal();
 
         case TILE_EXTRA_TYPE_BATTLE_CAGE:
             return new TileExtra_BattleCage();
@@ -433,5 +439,16 @@ void TileExtra_Mailbox::Serialize(MemoryBuffer& memBuffer, bool write, bool data
             memBuffer.ReadWrite(letter.userID, write);
             memBuffer.ReadWriteString(letter.message, write);
         }
+    }
+}
+
+void TileExtra_Crystal::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWriteString(crystals, write);
+    
+    if(database)
+    {
+        memBuffer.ReadWriteRaw(chi, 4 * sizeof(int16), write);
     }
 }

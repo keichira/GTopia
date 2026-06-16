@@ -195,7 +195,7 @@ void LoadAccount(QueryTaskResult&& result)
     }
 }
 
-void EnterGame::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void EnterGame::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer || !pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
         return;

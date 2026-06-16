@@ -154,7 +154,7 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

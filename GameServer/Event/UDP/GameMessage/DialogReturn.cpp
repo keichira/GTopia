@@ -13,7 +13,7 @@
 #include "../../../Player/Dialog/XenoniteDialog.h"
 #include "../../../Player/Dialog/MailboxBlockDialog.h"
 
-void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<40>& packet)
+void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
         return;

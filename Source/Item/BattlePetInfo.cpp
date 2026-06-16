@@ -42,7 +42,7 @@ string BattlePetInfo::GetElementName()
             return "Fire";
 
         case ITEM_ELEMENT_AIR:
-            return "Water";
+            return "Air";
 
         case ITEM_ELEMENT_WATER:
             return "Water";
