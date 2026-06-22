@@ -11,6 +11,7 @@ set(SOURCE_PROTON "${SOURCE_ROOT}/Proton")
 set(SOURCE_SERVER "${SOURCE_ROOT}/Server")
 set(SOURCE_UTILS "${SOURCE_ROOT}/Utils")
 set(SOURCE_WORLD "${SOURCE_ROOT}/World")
+set(SOURCE_OS "${SOURCE_ROOT}/OS")
 
 set(THIRD_PARTY_ROOT "${CMAKE_CURRENT_LIST_DIR}/../ThirdParty")
 set(THIRD_PARTY_ENET "${THIRD_PARTY_ROOT}/enet")
@@ -34,6 +35,8 @@ set(SOURCE_DEFAULT_FILES
     ${SOURCE_MEMORY}/RingBuffer.cpp
 
     ${SOURCE_PROTON}/ProtonUtils.cpp
+
+    ${SOURCE_OS}/OSPrecompiled.cpp
 
     ${SOURCE_UTILS}/StringUtils.cpp
     ${SOURCE_UTILS}/Timer.cpp

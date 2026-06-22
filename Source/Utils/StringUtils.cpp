@@ -494,6 +494,11 @@ bool IsLower(char c)
     return islower((unsigned char)c) != 0;
 }
 
+bool IsSpace(char c)
+{
+    return isspace((unsigned char)c) != 0;
+}
+
 void ReplaceString(string& str, const string& replaceThis, const string& replaceTo)
 {
     if(str.empty()) {
@@ -518,6 +523,8 @@ std::vector<string> Split(const char* str, uint32 size, char delim)
     const char* lastDelim = str;
 
     std::vector<string> token;
+    if(size == 0)
+        return token;
 
     for(const char* c = str; c != strEnd; ++c) {
         if(*c == delim) {

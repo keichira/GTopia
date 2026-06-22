@@ -17,7 +17,7 @@ GamePlayer::~GamePlayer()
 {
 }
 
-void GamePlayer::StartLoginRequest(ParsedTextPacket<35>& packet)
+void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
 {
     SetState(PLAYER_STATE_LOGIN_REQUEST);
 

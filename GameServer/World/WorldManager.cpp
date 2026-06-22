@@ -369,6 +369,14 @@ void WorldManager::OnHandleGamePacket(NetworkEvent& event)
         pPlayer->GetLastActionTime().Reset();
     }
 
+    if(pGamePacket->type == NET_GAME_PACKET_SET_ICON_STATE)
+    {
+        pPlayer->SetIconState(pGamePacket->field_11);
+        pWorld->SendGamePacketToAll(pGamePacket, pPlayer);
+        gPacketPool.Release(event.pPacket);
+        return;
+    }
+
     m_packetEvents.Dispatch((eGamePacketType)pGamePacket->type, pPlayer, pWorld, pGamePacket);
     gPacketPool.Release(event.pPacket);
 }

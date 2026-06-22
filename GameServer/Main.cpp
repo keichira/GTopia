@@ -53,7 +53,7 @@ bool ReadArgs(int argc, char const* argv[])
         if(string(argv[i]) == "--id") {
             uint16 id = ToUInt(argv[i+1]);
             if(id <= 0) {
-                LOGGER_LOG_ERROR("server id must bigger than 0");
+                LOGGER_LOG_ERROR_ASAP("server id must bigger than 0");
                 return false;
             }
 
@@ -63,7 +63,7 @@ bool ReadArgs(int argc, char const* argv[])
     }
 
     if(!idSet) {
-        LOGGER_LOG_ERROR("No --id param detected it must set!");
+        LOGGER_LOG_ERROR_ASAP("No --id param detected it must set!");
         return false;
     }
 
@@ -166,19 +166,19 @@ bool LoadItemData()
     }
 
     if(!pItemMgr->Load(GetProgramPath() + "/items.txt")) {
-        LOGGER_LOG_ERROR("Failed to load items.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load items.txt");
         return false;
     }
 
     if(!pItemMgr->LoadWikiData(GetProgramPath() + "/wiki_data.txt")) {
-        LOGGER_LOG_ERROR("wiki_data.txt not found, skipping");
+        LOGGER_LOG_ERROR_ASAP("wiki_data.txt not found, skipping");
     }
     pItemMgr->SetupItemExtras();
 
     bool usingGTCDN = pGameConfig->cdnServer.find("ubistatic-a.akamaihd.net") != string::npos;
     if(usingGTCDN)
     {
-        LOGGER_LOG_WARN("Detected ubistatic-a.akamaihd.net skipping filehashes.txt");
+        LOGGER_LOG_WARN_ASAP("Detected ubistatic-a.akamaihd.net skipping filehashes.txt");
     }
 
     std::unordered_map<string, uint32> hashData;
@@ -186,7 +186,7 @@ bool LoadItemData()
     {
         File fileHashes;
         if(!fileHashes.Open(GetProgramPath() + "/filehashes.txt")) {
-            LOGGER_LOG_ERROR("Failed to load filehashes.txt");
+            LOGGER_LOG_ERROR_ASAP("Failed to load filehashes.txt");
             return false;
         }
     
@@ -234,17 +234,17 @@ bool LoadItemData()
 
     if(!pItemMgr->LoadConsumableData(GetProgramPath() + "/consumable_data.txt"))
     {
-        LOGGER_LOG_ERROR("consumable_data.txt not found skipping");
+        LOGGER_LOG_ERROR_ASAP("consumable_data.txt not found skipping");
     }
 
     if(!pItemMgr->LoadBattlePetData(GetProgramPath() + "/battle_pet_data.txt"))
     {
-        LOGGER_LOG_ERROR("battle_pet_data.txt not found skipping");
+        LOGGER_LOG_ERROR_ASAP("battle_pet_data.txt not found skipping");
     }
 
     /*PlayerTribute* pPlayerTrib = GetPlayerTributeManager();
     if(!pPlayerTrib->Load(GetProgramPath() + "/player_tribute.txt")) {
-        LOGGER_LOG_ERROR("Failed to load player_tribute.txt anyways skipping it");
+        LOGGER_LOG_ERROR_ASAP("Failed to load player_tribute.txt anyways skipping it");
     }
     else {
         pPlayerTrib->SaveToClientData();
@@ -381,48 +381,47 @@ int main(int argc, char const* argv[])
     if(!ReadArgs(argc, argv))
         return 0;
 
-    LOGGER_LOG_INFO("Starting Game Server %d", GetContext()->GetID());
-    LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia")
-
-    GetContext()->Init();
-    
-    SetRandomSeed(Time::GetSystemTime());
-    RandomizeRandomSeed();
-    
     if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_SERVER_" + ToString(GetContext()->GetID()) + ".txt")) 
     {
-        LOGGER_LOG_ERROR("Failed to init log file, maybe try to create 'logs' folder?");
+        LOGGER_LOG_ERROR_ASAP("Failed to init log file, maybe try to create 'logs' folder?");
         return 0;
     }
+
+    LOGGER_LOG_INFO_ASAP("Starting Game Server %d", GetContext()->GetID());
+    LOGGER_LOG_INFO_ASAP("Project created by keichira https://github.com/keichira/GTopia")
+
+    GetContext()->Init();
+    SetRandomSeed(Time::GetSystemTime());
+    RandomizeRandomSeed();
 
     auto pGameConfig = GetContext()->GetGameConfig();
     if(pGameConfig->LoadServersClient(GetProgramPath() + "/servers.txt", GetContext()->GetID()) != 2) 
     {
-        LOGGER_LOG_ERROR("Failed to load servers.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load servers.txt");
         return 0;
     }
 
     if(pGameConfig->servers[1].serverType != CONFIG_SERVER_GAME) 
     {
-        LOGGER_LOG_ERROR("Woops trying to run server with wrong type %d it should be game", pGameConfig->servers[1].serverType);
+        LOGGER_LOG_ERROR_ASAP("Woops trying to run server with wrong type %d it should be game", pGameConfig->servers[1].serverType);
         return 0;
     }
 
     if(!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt")) 
     {
-        LOGGER_LOG_ERROR("Failed to load config.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load config.txt");
         return 0;
     }
 
     auto gameServerInfo = pGameConfig->servers[1];
     if(!GetMasterBroadway()->Init(gameServerInfo.lanIP, gameServerInfo.tcpPort, 0)) 
     {
-        LOGGER_LOG_ERROR("Failed to initialize netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
         return 0;
     }
-    LOGGER_LOG_INFO("Started netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
+    LOGGER_LOG_INFO_ASAP("Started netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
 
-    LOGGER_LOG_INFO("Connecting to master server");
+    LOGGER_LOG_INFO_ASAP("Connecting to master server");
     auto masterServerInfo = pGameConfig->servers[0];
 
     while(!GetContext()->IsShutting()) 
@@ -433,16 +432,16 @@ int main(int argc, char const* argv[])
         }
         else 
         {
-            LOGGER_LOG_ERROR("Failed to connect master server");
+            LOGGER_LOG_ERROR_ASAP("Failed to connect master server");
             return 0;
         }
     }
 
-    LOGGER_LOG_INFO("Connected to master server");
+    LOGGER_LOG_INFO_ASAP("Connected to master server");
 
     if(!GetRoleManager()->Load(GetProgramPath() + "/roles.txt")) 
     {
-        LOGGER_LOG_ERROR("Failed to load roles.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load roles.txt");
         return 0;
     }
 
@@ -451,17 +450,17 @@ int main(int argc, char const* argv[])
 
     if(!GetPlayModManager()->Load(GetProgramPath() + "/playmods.txt")) 
     {
-        LOGGER_LOG_ERROR("Failed to load playmods.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load playmods.txt");
     }
 
     if(!GetAchievementManager()->Load(GetProgramPath() + "/achievements.txt"))
     {
-        LOGGER_LOG_ERROR("Failed to load achievements.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load achievements.txt");
     }
 
     if(!GetStoreManager()->Load(GetProgramPath() + "/store.txt"))
     {
-        LOGGER_LOG_ERROR("Failed to load store.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load store.txt");
     }
 
     GetMasterBroadway()->SendHelloPacket();
@@ -475,18 +474,19 @@ int main(int argc, char const* argv[])
 
     if(!GetContext()->GetDatabasePool()->Init(1, dbConfig)) 
     {
-        LOGGER_LOG_ERROR("Failed to initialize database pool");
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize database pool");
+        GetContext()->GetDatabasePool()->Kill();
         return 0;
     }
-    LOGGER_LOG_INFO("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
+    LOGGER_LOG_INFO_ASAP("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
 
     if(!GetGameServer()->Init(gameServerInfo.wanIP, gameServerInfo.udpPort))
     {
-        LOGGER_LOG_ERROR("Failed to initialize game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
         return 0;
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
-    LOGGER_LOG_INFO("Started game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
+    LOGGER_LOG_INFO_ASAP("Started game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
 
     GetUserCacheManager()->Init(100);
 
@@ -503,7 +503,7 @@ int main(int argc, char const* argv[])
 
     RunGameLoop();
 
-    LOGGER_LOG_ERROR("Killing Game server %d", GetContext()->GetID());
+    LOGGER_LOG_INFO_ASAP("Killing Game server %d", GetContext()->GetID());
 
     GetLog()->Flush();
 

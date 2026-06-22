@@ -64,6 +64,9 @@ bool RoleManager::Load(const string& filePath)
 
             for(uint8 i = 1; i < line.GetArgSize(); ++i)
             {
+                if(line.IsEmpty(i))
+                    continue;
+
                 pLastRole->m_inherits.push_back(line.GetInt(i));
             }
         }

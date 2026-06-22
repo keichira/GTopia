@@ -28,7 +28,7 @@ bool Log::InitFile(const string& filePath)
     return true;
 }
 
-void Log::Print(eLogLevel logLvl, const char* fmt, ...)
+void Log::Print(eLogLevel logLvl, bool asapWrite, const char* fmt, ...)
 {
     char rawBuffer[3072];
     va_list args;
@@ -38,12 +38,19 @@ void Log::Print(eLogLevel logLvl, const char* fmt, ...)
 
     printf("[%s] %s\r\n", logLevelArr[logLvl].c_str(), rawBuffer);
 
-    if (m_pFile) {
+    if(m_pFile) {
         char finalBuffer[4096];
         int len = snprintf(finalBuffer, sizeof(finalBuffer), "%s | %s | %s\n", logLevelArr[logLvl].c_str(), Time::GetDateTimeStr().c_str(), rawBuffer);
         if(len > 0) 
         {
-            m_logs.enqueue(string(finalBuffer, len));
+            if(asapWrite)
+            {
+                m_pFile->Write(finalBuffer, len);
+            }
+            else
+            {
+                m_logs.enqueue(string(finalBuffer, len));
+            }
         }
     }
 }

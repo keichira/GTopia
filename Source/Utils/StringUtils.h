@@ -90,6 +90,7 @@ bool IsAlpha(char c);
 bool IsDigit(char c);
 bool IsUpper(char c);
 bool IsLower(char c);
+bool IsSpace(char c);
 
 void ReplaceString(string& str, const string& replaceThis, const string& replaceTo);
 

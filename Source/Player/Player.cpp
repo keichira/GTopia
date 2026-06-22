@@ -10,6 +10,7 @@ Player::Player()
     ResetFeatures();
     m_freezeState = PLAYER_FREEZE_STATE_NONE;
     SetAddress("0.0.0.0");
+    m_iconState = ICON_STATE_NONE;
 }
 
 Player::~Player()
@@ -337,6 +338,14 @@ string Player::BuildFeaturesBase64String()
 }
 
 #ifdef SERVER_GAME
+void Player::SetIconState(int32 iconState)
+{
+    if(iconState >= ICON_STATE_COUNT)
+        return;
+
+    m_iconState = (eIconState)iconState;
+}
+
 void Player::SendInventoryPacket()
 {
     GameUpdatePacket gamePacket;

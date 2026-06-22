@@ -13,7 +13,7 @@
 #include <signal.h>
 void SignalStop(int32 signum) 
 { 
-    LOGGER_LOG_WARN("Received signal %d", signum);
+    LOGGER_LOG_WARN_ASAP("Received signal %d", signum);
     GetContext()->Shutdown();
 }
 
@@ -225,8 +225,13 @@ int main(int argc, char const* argv[])
     signal(SIGTERM, SignalStop);
     signal(SIGINT, SignalStop);
 
-    LOGGER_LOG_INFO("Starting Master Server");
-    LOGGER_LOG_INFO("Project created by keichira https://github.com/keichira/GTopia")
+    if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_MASTER.txt")) {
+        LOGGER_LOG_ERROR_ASAP("Failed to init log file, maybe try to create 'logs' folder?");
+        return 0;
+    }
+
+    LOGGER_LOG_INFO_ASAP("Starting Master Server");
+    LOGGER_LOG_INFO_ASAP("Project created by keichira https://github.com/keichira/GTopia")
     
     GetContext()->Init();
 
@@ -234,34 +239,30 @@ int main(int argc, char const* argv[])
     RandomizeRandomSeed();
 
     GetContext()->SetID(0);
-    if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_MASTER.txt")) {
-        LOGGER_LOG_ERROR("Failed to init log file, maybe try to create 'logs' folder?");
-        return 0;
-    }
 
     auto pGameConfig = GetContext()->GetGameConfig();
     if(pGameConfig->LoadServersMaster(GetProgramPath() + "/servers.txt") == 0) {
-        LOGGER_LOG_ERROR("Failed to load servers.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load servers.txt");
         return 0;
     }
-    LOGGER_LOG_INFO("Loaded %d servers from servers.txt", pGameConfig->servers.size());
+    LOGGER_LOG_INFO_ASAP("Loaded %d servers from servers.txt", pGameConfig->servers.size());
 
     if(!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt")) {
-        LOGGER_LOG_ERROR("Failed to load config.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load config.txt");
         return 0;
     }
 
     if(!GetRoleManager()->Load(GetProgramPath() + "/roles.txt")) {
-        LOGGER_LOG_ERROR("Failed to load roles.txt");
+        LOGGER_LOG_ERROR_ASAP("Failed to load roles.txt");
         return 0;
     }
 
     auto masterServerInfo = pGameConfig->servers[0];
     if(!GetServerManager()->Init(masterServerInfo.lanIP, masterServerInfo.tcpPort)) {
-        LOGGER_LOG_ERROR("Failed to initialize netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
         return 0;
     }
-    LOGGER_LOG_INFO("Started netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
+    LOGGER_LOG_INFO_ASAP("Started netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
 
     DatabaseConnectConfig dbConfig;
     dbConfig.host = pGameConfig->database.host.c_str();
@@ -271,17 +272,17 @@ int main(int argc, char const* argv[])
     dbConfig.port = pGameConfig->database.port;
 
     if(!GetContext()->GetDatabasePool()->Init(1, dbConfig)) {
-        LOGGER_LOG_ERROR("Failed to initialize database pool");
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize database pool");
         return 0;
     }
-    LOGGER_LOG_INFO("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
+    LOGGER_LOG_INFO_ASAP("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
 
     if(!GetGameServer()->Init(masterServerInfo.wanIP, masterServerInfo.udpPort)) {
-        LOGGER_LOG_ERROR("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
         return 0;
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
-    LOGGER_LOG_INFO("Started game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
+    LOGGER_LOG_INFO_ASAP("Started game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
 
     //RegisterBalancedWorlds();
 
@@ -290,20 +291,20 @@ int main(int argc, char const* argv[])
         TelnetServer* pTelnetServer = GetTelnetServer();
         if(pTelnetServer->LoadTelnetConfigFromFile(GetProgramPath() + "/telnet_config.txt")) {
             if(!pTelnetServer->Init()) {
-                LOGGER_LOG_ERROR("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+                LOGGER_LOG_ERROR_ASAP("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
                 return 0;
             }
             else {
-                LOGGER_LOG_INFO("Started telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+                LOGGER_LOG_INFO_ASAP("Started telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
             }
         }
         else {
-            LOGGER_LOG_ERROR("Failed to load telnet_config.txt not gonna initialize telnet server");
+            LOGGER_LOG_ERROR_ASAP("Failed to load telnet_config.txt not gonna initialize telnet server");
         }
     }
     else
     {
-        LOGGER_LOG_INFO("Not starting telnet server its disabled in config");
+        LOGGER_LOG_INFO_ASAP("Not starting telnet server its disabled in config");
     }
 
     gNetBurstConfig.threshold.heavyQueueSize = pGameConfig->netThreshold.heavyQueueSize;
@@ -319,7 +320,7 @@ int main(int argc, char const* argv[])
     
     RunGameLoop();
 
-    LOGGER_LOG_INFO("Killing Master server");
+    LOGGER_LOG_INFO_ASAP("Killing Master server");
 
     GetLog()->Flush();
 

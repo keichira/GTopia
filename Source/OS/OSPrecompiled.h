@@ -26,3 +26,4 @@ bool IsFolderExists(const string& path);
 string GetFileExtension(const string& file);
 uint32 GetSecondsFromMidnight();
 string GetLoadAvgString();
+string GetFileNameFromPath(const string& path);

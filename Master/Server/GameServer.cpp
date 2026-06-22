@@ -97,7 +97,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             switch(pPlayer->GetState()) {
                 case PLAYER_STATE_LOGIN_REQUEST: 
                 {
-                    ParsedTextPacket<35> packet;
+                    ParsedTextPacket<40> packet;
                     ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
 
                     pPlayer->StartLoginRequest(packet);

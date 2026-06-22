@@ -122,7 +122,7 @@ void LoadAccount(QueryTaskResult&& result)
         inventory.AddItem(ITEM_ID_WRENCH, 1);
     }
 
-    pPlayer->SetGuestID(result.result->GetField("GuestID", 0).GetUINT());
+    pPlayer->SetGuestID(result.result->GetField("GuestID", 0).GetINT());
 
     /*for(uint8 i = 0; i < BODY_PART_SIZE; ++i) 
     {
@@ -169,7 +169,7 @@ void LoadAccount(QueryTaskResult&& result)
         pPlayer->SendOnSetFeatureEnableFlags();
     }
 
-    uint32 worldID = result.result->GetField("LastWorld", 0).GetUINT();
+    uint32 worldID = result.result->GetField("LastWorld", 0).GetINT();
 
     if(worldID != 0 && loginDetail.loginMode == LOGON_MODE_WELCOME) 
     {

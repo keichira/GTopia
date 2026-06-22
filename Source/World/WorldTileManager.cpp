@@ -338,9 +338,6 @@ void WorldTileManager::GenerateDefaultMap()
     TileInfo* pDoorTile = GetTile(doorPosX, layer.top - 1);
 
     pDoorTile->SetFG(ITEM_ID_MAIN_DOOR, this);
-    if(TileExtra_Door* pTileExtra = pDoorTile->GetExtra<TileExtra_Door>()) {
-        pTileExtra->name = "EXIT";
-    }
 
     TileInfo* pBedrockTile = GetTile(doorPosX, layer.top);
     pBedrockTile->SetFG(ITEM_ID_BEDROCK, this);

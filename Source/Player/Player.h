@@ -45,6 +45,14 @@ enum ePlayerFreezeState
     PLAYER_FREEZE_STATE_FROZEN_BUT_GRAVITY // frozen but physics works (like respawn ig)
 };
 
+enum eIconState
+{
+    ICON_STATE_NONE,
+    ICON_STATE_CHATTING,
+    ICON_STATE_BUSY,
+    ICON_STATE_COUNT
+};
+
 class Player {
 public:
     Player();
@@ -100,6 +108,8 @@ public:
     bool IsFeatureEnabled(eClientFeatureFlag flag);
     string BuildFeaturesBase64String();
 
+    void SetIconState(int32 iconState);
+
 #ifdef SERVER_GAME
     PlayerInventory& GetInventory() { return m_inventory; }
     void SendInventoryPacket();
@@ -115,6 +125,7 @@ protected:
     uint32 m_netID;
     PlayerLoginDetail m_loginDetail;
     ePlayerFreezeState m_freezeState;
+    eIconState m_iconState;
 
     char m_address[16];
     string m_lastAction;

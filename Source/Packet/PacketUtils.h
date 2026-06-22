@@ -62,7 +62,6 @@ struct ParsedTextPacket
 template<uint8 N>
 inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& out) 
 {
-
     out.count = 0;
     if(!data || size == 0) 
         return;
@@ -98,15 +97,46 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
         if(!pipe) 
             continue;
 
-        // ||item|4, item||5
-        const char* secondPipe = (const char*)(std::memchr(pipe + 1, '|', lineEnd - (pipe + 1)));
-        if(secondPipe) 
-            continue; 
-
         const char* keyStart = lineStart;
         const char* keyEnd = pipe;
         const char* valStart = pipe + 1;
         const char* valEnd = lineEnd;
+
+        // ||item|4, item||5
+        const char* secondPipe = (const char*)(std::memchr(pipe + 1, '|', lineEnd - (pipe + 1)));
+        if(secondPipe) 
+        {
+            const char* secondKeyStart = secondPipe;
+            while(secondKeyStart > valStart)
+            {
+                char c = *(secondKeyStart - 1);
+                if(IsAlpha(c)) {
+                    --secondKeyStart;
+                } else {
+                    break;
+                }
+            }
+
+            if(secondKeyStart > valStart && secondKeyStart < secondPipe)
+            {
+                valEnd = secondKeyStart;
+
+                if(keyStart < keyEnd && valStart <= valEnd && out.count < N)
+                {
+                    uint32 hash = HashString(keyStart, (uint32)(keyEnd - keyStart));
+                    out.fields[out.count++] = { hash, valStart, (uint16)(valEnd - valStart) };
+                }
+
+                keyStart = secondKeyStart;
+                keyEnd = secondPipe;
+                valStart = secondPipe + 1;
+                valEnd = lineEnd;
+            }
+            else
+            {
+                continue; 
+            }
+        }
 
         if(valEnd > valStart && *(valEnd - 1) == '\0')
             --valEnd;

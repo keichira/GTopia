@@ -108,7 +108,7 @@ DialogBuilder* DialogBuilder::AddButton(const string& buttonID, const string& na
 {
     m_str += "add_button|" + buttonID + "|" + name + "|" + texturePath + "|" + description + "|" + ToString(posX) + "|" + ToString(posY) + "|";
     m_str += ToString(gemCost) + "|" + ToString(videoCreditCost) + "|" + overlayText + "|" + ovelayTexture + "|" + ToString(overlayPosX) + "|" + ToString(overlayPosY) + "|";
-    m_str += popupTexture + "|" + ToString(popupPosX) + "|" + ToString(popupPosY) + "|" + "||"; 
+    m_str += popupTexture + "|" + ToString(popupPosX) + "|" + ToString(popupPosY) + "|" + "|"; 
     m_str += enabled ? "1|" : "0|";
     m_str += "||||" + disabledTexture + "|" + ToString(disabledPosX) + "|" + ToString(disabledPosY) + "|\n";
 

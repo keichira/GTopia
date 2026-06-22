@@ -1,6 +1,4 @@
-# =================================================================
-# GTopia Telnet File
-# =================================================================
+# if line starts with '#' it means its comment line
 
 # Set LAN_IP or WAN_IP (Public IP) for VPS hosting.
 telnet_host|127.0.0.1|

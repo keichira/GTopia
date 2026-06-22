@@ -101,7 +101,7 @@ uint32 GamePlayer::GetPlayerNextLevelXP()
     return 50 * ((GetPlayerLevel() + 1) * (GetPlayerLevel() + 1) + 2);
 }
 
-void GamePlayer::StartLoginRequest(ParsedTextPacket<35>& packet)
+void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
 {
     if(!HasState(PLAYER_STATE_LOGIN_REQUEST))
         return;

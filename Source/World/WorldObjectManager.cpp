@@ -34,13 +34,16 @@ void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
         m_lastObjectID = 0;
     }
 
-    for(auto& obj : m_objects) // because of padding need to serialize like this way
+    if(objectCount > 0)
     {
-        obj.Serialize(memBuffer, write);
-
-        if(database)
+        for(auto& obj : m_objects) // because of padding need to serialize like this way
         {
-            obj.objectID = ++m_lastObjectID;
+            obj.Serialize(memBuffer, write);
+
+            if(database)
+            {
+                obj.objectID = ++m_lastObjectID;
+            }
         }
     }
 }

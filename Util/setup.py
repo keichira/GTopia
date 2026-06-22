@@ -35,6 +35,18 @@ SQL_FILE = (ROOT / ".." / "Configs" / "gtopia.sql").resolve()
 def run_silent(cmd):
     return subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+def run_powershell(command: str):
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return True, result.stdout.strip()
+    except Exception as e:
+        return False, (e.stderr or e.stdout or str(e)).strip()
+
 def download_file(url, path: Path):
     try:
         print_info(f"Downloading: {url}")
@@ -188,7 +200,10 @@ def sql_wizard(mysql_client):
         print_info(f"Connecting to MySQL and preparing database '{db_name}'...")
         
         sql = f"CREATE DATABASE IF NOT EXISTS {db_name};"
-        result = run_mysql(mysql_client, ["-u", user, f"-p{password}"], sql)
+        if password is None:
+            result = run_mysql(mysql_client, ["-u", user], sql)
+        else:
+            result = run_mysql(mysql_client, ["-u", user, f"-p{password}"], sql)
         
         if not result or result.returncode != 0:
             err_msg = result.stderr if result else "Unknown process error"
@@ -209,7 +224,10 @@ def sql_wizard(mysql_client):
             sql_data = f.read()
             
         print_info("Importing SQL tables...")
-        import_res = run_mysql(mysql_client, ["-u", user, f"-p{password}", db_name], sql_data)
+        if password is None:
+            import_res = run_mysql(mysql_client, ["-u", user, db_name], sql_data)
+        else:
+            import_res = run_mysql(mysql_client, ["-u", user, f"-p{password}", db_name], sql_data)
         
         if import_res and import_res.returncode == 0:
             print_success(f"Successfully integrated all tables into '{db_name}'.")
@@ -369,6 +387,48 @@ def edit_configuration_files(db_name, user, password, local_ip, latest_cdn):
 
     print_success("All configurations edited successfully!\n")
 
+    if choice == "2" and platform.system() == "Windows":
+        if get_clean_input("\n👉 👉 Do you want to automatically create Firewall rules? [Y/n]", default="y").lower() != "y":
+            print_info("Skippied creating firewall rules")
+            return
+        
+        try:
+            server_count = int(get_clean_input("How many game servers are you planning to run? Default is 1", default=1))
+        except Exception as e:
+            print_error(f"Failed: {e}")
+            return
+        
+        rules_to_create = [
+            {"GTopia-UDP-GamePorts", "UDP", f"18000-{18000 + server_count}"},
+            {"GTopia-TCP-SocketPorts", "TCP", f"18500-{18500 + server_count}"}
+        ]
+        
+        print_info("Creating Firewall inbound rules...")
+
+        for rule_name, proto, port_range in rules_to_create:
+            ps = f'''
+            Remove-NetFirewallRule -DisplayName "{rule_name}" -ErrorAction SilentlyContinue
+            
+            $RuleParams = @{{
+                DisplayName = "{rule_name}"
+                Direction   = "Inbound"
+                Action      = "Allow"
+                Protocol    = "{proto}"
+                LocalPort   = "{port_range}"
+            }}
+            
+            New-NetFirewallRule @RuleParams
+            '''
+            
+            ok, output = run_powershell(ps)
+            if ok:
+                print_success(f"Created rule: {rule_name} -> {proto} {port_range}")
+            else:
+                print_error(f"Failed to create rule: {rule_name}")
+                print(output)
+
+        print_success("Firewall rules configured\n")
+
 def main():
     print("==========================================")
     print("      GTopia Private Server Setup Wizard   ")
@@ -443,3 +503,5 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print_error("\nSetup cancelled by user.")
         sys.exit(0)
+
+    input("Press any key to exit...")

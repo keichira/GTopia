@@ -321,16 +321,6 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     worldEnterMsg += "`oentered, There are `w" + ToString(GetPlayerCount() - 1) + "`o other people here, `w" + ToString(GetPlayerManager()->GetTotalPlayerCount()) + " `oonline.";
 
     pPlayer->SendOnConsoleMessage(worldEnterMsg);
-
-    TileInfo* pWorldLock = pTileMgr->GetKeyTile(KEY_TILE_WORLD_LOCK);
-    if(pWorldLock) 
-    {
-        TileExtra_Lock* pExtra = pWorldLock->GetExtra<TileExtra_Lock>();
-        if(pExtra) 
-        {
-            
-        }
-    }
 }
 
 void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)

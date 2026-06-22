@@ -51,7 +51,7 @@ public:
     uint32 GetPlayerLevel();
     uint32 GetPlayerNextLevelXP();
 
-    void StartLoginRequest(ParsedTextPacket<35>& packet);
+    void StartLoginRequest(ParsedTextPacket<40>& packet);
     void HandleCheckSession(VariantVector&& result);
     void TransferToGame();
 

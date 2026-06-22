@@ -4,7 +4,7 @@
 #include "../IO/Log.h"
 #include "../Utils/Base64.h"
 
-bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer, bool asGameServer)
+bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer, bool asGameServer)
 {   
     if(!pPlayer) 
         return false;
@@ -49,6 +49,7 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer,
         return false;
     }
 
+    string loginInfo;
     if(!asGameServer && protocol > 200)
     {
         auto pLToken = packet.Find("ltoken"_hash);
@@ -80,12 +81,12 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer,
 
         if(loginInfoPos == string::npos || growIDPos == string::npos || passwordPos == string::npos) 
         {
-            LOGGER_LOG_WARN("[LOGIN_FAIL] ltoken payload layout is invalid/corrupted. IP: %s", playerIP.data());
+            LOGGER_LOG_WARN("[LOGIN_FAIL] ltoken payload layout is invalid/corrupted. IP:", playerIP.data());
             return false;
         }
 
         usize loginInfoStart = loginInfoPos + 10;
-        string loginInfo = payload.substr(loginInfoStart, growIDPos - loginInfoStart);
+        loginInfo = payload.substr(loginInfoStart, growIDPos - loginInfoStart);
     
         if(loginInfo.empty()) 
         {
@@ -101,9 +102,10 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer,
         if(!tankIDPass.empty()) 
         {
             tankIDName = payload.substr(growIDStart, passwordPos - growIDStart);
-            if(tankIDName.empty()) return false;
+            if(tankIDName.empty()) 
+                return false;
         } 
-        else 
+        else
         {
             requestedName = payload.substr(growIDStart, passwordPos - growIDStart);
             tankIDPass = "";
@@ -235,9 +237,9 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<35>& packet, Player* pPlayer,
         auto pUser = packet.Find("user"_hash);
         auto pLMode = packet.Find("lmode"_hash);
 
-        if(!pToken || ToUInt(string(pToken->value, pToken->size), token) != TO_INT_SUCCESS ||
-           !pUser || ToUInt(string(pUser->value, pUser->size), user) != TO_INT_SUCCESS ||
-           !pLMode || ToUInt(string(pLMode->value, pLMode->size), loginMode) != TO_INT_SUCCESS)
+        if(!pToken || ToUInt(pToken->value, pToken->size, token) != TO_INT_SUCCESS ||
+           !pUser || ToUInt(pUser->value, pUser->size, user) != TO_INT_SUCCESS ||
+           !pLMode || ToUInt(pLMode->value, pLMode->size, loginMode) != TO_INT_SUCCESS)
         {
             LOGGER_LOG_ERROR("[LOGIN_FAIL] Sub-server login token handshake failure. IP: %s", playerIP.data());
             return false;

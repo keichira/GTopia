@@ -69,7 +69,6 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
 
 void WorldInfo::GenerateWorld(eWorldGenerationType type)
 {
-
     switch(type) {
         case WORLD_GENERATION_DEFAULT: {
             m_defaultWeather = WEATHER_TYPE_DEFAULT;
@@ -95,7 +94,12 @@ uint32 WorldInfo::GetMemEstimate(bool database, float gameVersion)
     memSize += sizeof(uint16) + sizeof(m_flags) + 2 + m_name.size();
     memSize += m_pTileMgr->GetMemEstimate(database, this, gameVersion);
     memSize += m_pObjMgr->GetMemEstimate();
-    memSize += sizeof(m_defaultWeather) + sizeof(m_currentWeather);
+    memSize += sizeof(m_defaultWeather) + sizeof(m_currentWeather) + sizeof(uint16) * 2 + sizeof(uint32);
+
+    if(!database && gameVersion > 5.40f)
+    {
+        memSize += sizeof(uint32) * 3;
+    }
 
     return memSize;
 }

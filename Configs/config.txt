@@ -1,7 +1,4 @@
-# =================================================================
-# GTopia Config File
-# If line starts with '#' its comment line
-# =================================================================
+# if line starts with '#' it means its comment line
 
 # Database connection details
 # Format: database_info|HOST|USER|PASSWORD|DB_NAME|PORT|

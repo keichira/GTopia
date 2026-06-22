@@ -74,10 +74,10 @@ bool StoreManager::Load(const string& filePath)
 
         if(key == "set_items")
         {
-            if(!line.Require(3))
+            if(!line.Require(2))
                 return false;
 
-            if((line.GetArgSize() - 2) % 2 != 0)
+            if(((line.GetArgSize() - (line.IsLastSpace() ? 1 : 0)) - 2) % 2 != 0)
             {
                 LOGGER_LOG_ERROR("Something wrong with expected args size in line %d", line.lineNumber);
                 return false;
