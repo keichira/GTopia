@@ -212,6 +212,95 @@ TileInfo* WorldTileManager::GetTileByWorldPos(const Vector2Float& pos)
     return GetTileByWorldPos(pos.x, pos.y);
 }
 
+TileInfo* WorldTileManager::GetTileParentTileWithWorldLock(TileInfo* pTile)
+{
+    if(!pTile)
+        return nullptr;
+
+    if(pTile->GetParent() == 0)
+    {
+        TileInfo* pWorldLock = GetKeyTile(KEY_TILE_WORLD_LOCK);
+        if(!pWorldLock)
+            return nullptr;
+
+        return pWorldLock;
+    }
+
+    return GetTile(pTile->GetParent());
+}
+
+bool WorldTileManager::IsTileLockedWithLock(TileInfo* pTile)
+{
+    if(!pTile)
+        return false;
+
+    if(GetKeyTile(KEY_TILE_WORLD_LOCK))
+        return true;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
+        return false;
+
+    return pItem->type == ITEM_TYPE_LOCK || pTile->GetParent() != 0;
+}
+
+bool WorldTileManager::IsTileLockedWithLockButPublic(TileInfo* pTile)
+{
+    if(!pTile)
+        return false;
+
+    TileInfo* pLockTile = GetTileParentTileWithWorldLock(pTile);
+    if(!pLockTile)
+        return false;
+
+    return pLockTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
+}
+
+TileExtra_Lock* WorldTileManager::GetTileParentLockExtra(TileInfo* pTile)
+{
+    if(!pTile)
+        return nullptr;
+
+    TileInfo* pParentTile = GetTileParentTileWithWorldLock(pTile);
+    if(!pParentTile)
+        return nullptr;
+
+    return pParentTile->GetExtra<TileExtra_Lock>();
+}
+
+bool WorldTileManager::IsPlayerOwnerOfTheTile(TileInfo* pTile, int32 userID)
+{
+    if(!pTile)
+        return false;
+
+    TileExtra_Lock* pExtraLock = GetTileParentLockExtra(pTile);
+    if(!pExtraLock)
+        return true;
+
+    return pExtraLock->ownerID == userID;
+}
+
+TileInfo* WorldTileManager::GetTileInfoFlaggedWith(eItemFlag flag, uint32 skipItemID)
+{
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+
+    for(auto& tile : m_tiles)
+    {
+        uint16 fgItemID = tile.GetFG();
+        if(fgItemID== ITEM_ID_BLANK || fgItemID == skipItemID)
+            continue;
+
+        ItemInfo* pItem = pItemMgr->GetItemByID(fgItemID);
+        if(!pItem)
+            continue;
+
+        if(pItem->HasFlag(flag))
+            return &tile;
+    }
+
+    return nullptr;
+}
+
 int32 WorldTileManager::GetTileIndex(TileInfo* pTile)
 {
     if(!pTile)
@@ -270,6 +359,9 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
     }
     else if(fgItem == ITEM_ID_XENONITE_CRYSTAL) {
         m_keyTiles[KEY_TILE_XENONITE] = remove ? nullptr : pTile;
+    }
+    else if(fgItem == ITEM_ID_FIREHOUSE) {
+        m_keyTiles[KEY_TILE_FIREHOUSE] = remove ? nullptr : pTile;
     }
     else if(fgItem == ITEM_ID_CONTAINMENT_FIELD_POWER_NODE)
     {
@@ -517,8 +609,7 @@ std::vector<TileInfo*> WorldTileManager::RemoveTileParentsLockedBy(TileInfo* pLo
         return unlockedTiles;
     }
 
-    Vector2Int vLockPos = pLockTile->GetPos();
-    uint32 index = vLockPos.x + m_size.x * vLockPos.y;
+    uint32 index = pLockTile->GetMapIndex();
 
     for(auto& tile : m_tiles) {
         if(tile.GetParent() == index) {

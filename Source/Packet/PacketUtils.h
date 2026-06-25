@@ -3,78 +3,85 @@
 #include "../Precompiled.h"
 #include "../Utils/StringUtils.h"
 
-struct TextPacketField 
+struct TextPacketField
 {
-    uint32 hash;
+    uint32 hash = 0;
+    const char* key;
+    uint16 keySize = 0;
     const char* value;
-    uint16 size;
+    uint16 valueSize = 0;
+
+    std::string_view GetKeyStringView() const
+    {
+        return std::string_view(key, keySize);
+    }
 
     std::string_view GetStringView() const
     {
-        return std::string_view(value, size);
+        return std::string_view(value, valueSize);
     }
 
     string GetString()
     {
-        return string(value, size);
+        return string(value, valueSize);
     }
 
     eToIntResult GetUInt(uint32& out)
     {
-        return ToUInt(value, size, out);
+        return ToUInt(value, valueSize, out);
     }
 
     eToIntResult GetInt(int32& out)
     {
-        return ToInt(value, size, out);
+        return ToInt(value, valueSize, out);
     }
 
     eToIntResult GetBool(bool& out)
     {
         int32 tempVal = 0;
 
-        eToIntResult res = ToInt(value, size, tempVal);
-        if(res != TO_INT_SUCCESS)
+        eToIntResult res = ToInt(value, valueSize, tempVal);
+        if (res != TO_INT_SUCCESS)
             return res;
-    
-        out = (tempVal != 0); 
+
+        out = (tempVal != 0);
         return TO_INT_SUCCESS;
     }
 };
 
 template<uint8 N>
-struct ParsedTextPacket 
+struct ParsedTextPacket
 {
     TextPacketField fields[N];
     uint8 count;
 
     TextPacketField* Find(uint32 hash) {
-        for(uint8 i = 0; i < count; ++i) {
-            if(fields[i].hash == hash) {
+        for (uint8 i = 0; i < count; ++i) {
+            if (fields[i].hash == hash) {
                 return &fields[i];
             }
         }
-    
+
         return nullptr;
     }
 };
 
 template<uint8 N>
-inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& out) 
+inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& out)
 {
     out.count = 0;
-    if(!data || size == 0) 
+    if (!data || size == 0)
         return;
 
     const char* p = data;
     const char* end = data + size;
 
-    while(p < end && out.count < N)
+    while (p < end && out.count < N)
     {
-        while(p < end && (*p == '\n' || *p == '\r'))
+        while (p < end && (*p == '\n' || *p == '\r'))
             ++p;
 
-        if(p >= end) 
+        if (p >= end)
             break;
 
         const char* nextNL = (const char*)(std::memchr(p, '\n', end - p));
@@ -83,18 +90,18 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
         p = nextNL ? nextNL + 1 : end;
 
         // umm, lets keep it whatever...
-        if(lineEnd > lineStart && *(lineEnd - 1) == '\r') 
+        if (lineEnd > lineStart && *(lineEnd - 1) == '\r')
             --lineEnd;
 
-        if(lineStart < lineEnd && *lineStart == '|') 
+        if (lineStart < lineEnd && *lineStart == '|')
             ++lineStart;
 
-        if(lineEnd > lineStart && *(lineEnd - 1) == '|')
+        if (lineEnd > lineStart && *(lineEnd - 1) == '|')
             --lineEnd;
 
         // force check 1 |
         const char* pipe = (const char*)(std::memchr(lineStart, '|', lineEnd - lineStart));
-        if(!pipe) 
+        if (!pipe)
             continue;
 
         const char* keyStart = lineStart;
@@ -104,27 +111,28 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
 
         // ||item|4, item||5
         const char* secondPipe = (const char*)(std::memchr(pipe + 1, '|', lineEnd - (pipe + 1)));
-        if(secondPipe) 
+        if (secondPipe)
         {
             const char* secondKeyStart = secondPipe;
-            while(secondKeyStart > valStart)
+            while (secondKeyStart > valStart)
             {
                 char c = *(secondKeyStart - 1);
-                if(IsAlpha(c)) {
+                if (IsAlpha(c)) {
                     --secondKeyStart;
-                } else {
+                }
+                else {
                     break;
                 }
             }
 
-            if(secondKeyStart > valStart && secondKeyStart < secondPipe)
+            if (secondKeyStart > valStart && secondKeyStart < secondPipe)
             {
                 valEnd = secondKeyStart;
 
-                if(keyStart < keyEnd && valStart <= valEnd && out.count < N)
+                if (keyStart < keyEnd && valStart <= valEnd && out.count < N)
                 {
                     uint32 hash = HashString(keyStart, (uint32)(keyEnd - keyStart));
-                    out.fields[out.count++] = { hash, valStart, (uint16)(valEnd - valStart) };
+                    out.fields[out.count++] = { hash, keyStart, (uint16)(keyEnd - keyStart), valStart, (uint16)(valEnd - valStart) };
                 }
 
                 keyStart = secondKeyStart;
@@ -134,20 +142,22 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
             }
             else
             {
-                continue; 
+                continue;
             }
         }
 
-        if(valEnd > valStart && *(valEnd - 1) == '\0')
+        if (valEnd > valStart && *(valEnd - 1) == '\0')
             --valEnd;
 
-        if(keyStart >= keyEnd || valStart > valEnd) 
+        if (keyStart >= keyEnd || valStart > valEnd)
             continue;
 
         uint32 hash = HashString(keyStart, (uint32)(keyEnd - keyStart));
 
         out.fields[out.count++] = {
             hash,
+            keyStart,
+            (uint16)(keyEnd - keyStart),
             valStart,
             (uint16)(valEnd - valStart)
         };

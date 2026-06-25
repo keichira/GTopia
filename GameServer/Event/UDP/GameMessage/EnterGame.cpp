@@ -55,7 +55,7 @@ void LoadAccount(QueryTaskResult&& result)
         loginDetail.tankIDName = growIDName;
     }
 
-    uint32 roleID = result.result->GetField("RoleID", 0).GetUINT();
+    uint32 roleID = result.result->GetField("RoleID", 0).GetINT();
     if(roleID == 0)
     {
         roleID = GetRoleManager()->GetDefaultRoleID();
@@ -77,8 +77,8 @@ void LoadAccount(QueryTaskResult&& result)
         pPlayer->GetCharData().SetSkinColor(skinColor);
     }*/
 
-    pPlayer->SetFlags(result.result->GetField("Flags", 0).GetUINT());
-    pPlayer->SetGems(result.result->GetField("Gems", 0).GetUINT());
+    pPlayer->SetFlags(result.result->GetField("Flags", 0).GetINT());
+    pPlayer->SetGems(result.result->GetField("Gems", 0).GetINT());
 
     PlayerInventory& inventory = pPlayer->GetInventory();
 
@@ -145,14 +145,7 @@ void LoadAccount(QueryTaskResult&& result)
 
     pPlayer->SendGems(true);
     
-    if(loginDetail.protocol > 200)
-    {
-        pPlayer->SendSetHasGrowID(true);
-    }
-    else
-    {
-        pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
-    }
+    pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
 
     pPlayer->SendInventoryPacket();
 

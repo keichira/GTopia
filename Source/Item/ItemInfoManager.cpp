@@ -196,6 +196,9 @@ bool ItemInfoManager::Load(const string& filePath)
                 
             for(uint16 i = 1; i < line.GetArgSize(); ++i) 
             {
+                if(line.IsEmpty(i))
+                    continue;
+
                 m_items[lastItemID].flags |= StrToItemFlag(line.GetString(i));
             }
 
@@ -209,6 +212,9 @@ bool ItemInfoManager::Load(const string& filePath)
                 
             for(uint16 i = 1; i < line.GetArgSize(); ++i) 
             {
+                if(line.IsEmpty(i))
+                    continue;
+
                 m_items[lastItemID].flags2 |= StrToFlags2(line.GetString(i));
             }
 
@@ -471,6 +477,8 @@ bool ItemInfoManager::LoadConsumableData(const string& filePath)
 
             for(uint8 i = 1; i < line.GetArgSize(); ++i)
             {
+                if(line.IsEmpty(i))
+                    continue;
                 pConfig->flags |= StrToConsumableFlag(line.GetString(i));
             }
 

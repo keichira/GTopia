@@ -65,7 +65,13 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
         return;
     }
 
-    if(m_pExtraData) {
+    if(m_pExtraData) 
+    {
+        if(pItem->type == ITEM_TYPE_LOCK)
+        {
+            pTileMgr->RemoveTileParentsLockedBy(this);
+        }    
+
         SAFE_DELETE(m_pExtraData);
         RemoveFlag(TILE_FLAG_HAS_EXTRA_DATA);
     }
@@ -135,7 +141,7 @@ void TileInfo::BindTileData(TempTileData* pTileData)
     m_tileData = pTileData;
 }
 
-void TileInfo::PunchTile(uint8 damage)
+void TileInfo::PunchTile(uint32 damage)
 {
     uint16 itemToDamage = GetDisplayedItem();
 

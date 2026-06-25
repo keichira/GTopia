@@ -124,6 +124,7 @@ public:
     bool HasFlag2(uint32 flag) { return (flags2 & flag) != 0; }
     void Serialize(MemoryBuffer& memBuffer, bool write, uint16 version);
 
+    bool IsUnlimited() const { return maxCanHold == 0; }
     bool IsBackground();
     bool IsLOSBlocking();
 };
@@ -133,6 +134,7 @@ bool IsWorldLock(uint16 itemID);
 bool IsMainDoor(uint16 itemID);
 bool IsFuelPack(uint16 itemID);
 bool IsJammer(uint16 itemID);
+bool IsGaunletOfElements(uint16 itemID);
 
 uint16 GetMaxTilesToLock(uint16 itemID);
 

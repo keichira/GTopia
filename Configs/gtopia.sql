@@ -17,7 +17,7 @@ CREATE TABLE `Players` (
   `VID` binary(16) NOT NULL DEFAULT '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',
   `Hash` int NOT NULL DEFAULT '0',
   `SID` binary(16) NOT NULL DEFAULT '\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0',
-  `SkinColor` int NOT NULL DEFAULT '0',
+  `SkinColor` int UNSIGNED NOT NULL DEFAULT '0',
   `Gems` int NOT NULL DEFAULT '0',
   `ProgressData` varbinary(512) DEFAULT NULL,
   `LastWorld` int NOT NULL DEFAULT '0',

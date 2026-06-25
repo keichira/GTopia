@@ -35,14 +35,10 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
     {
         showWarning = true;
     }
-
-    TileExtra_Lock* pLockExtra = pLockTile->GetExtra<TileExtra_Lock>();
-    if(!pLockExtra)
+    else
     {
-        showWarning = true;
-    }
-    else {
-        if(!pLockExtra->HasAccess(pPlayer->GetUserID()))
+        TileExtra_Lock* pLockExtra = pLockTile->GetExtra<TileExtra_Lock>();
+        if(!pLockExtra && (pLockExtra && !pLockExtra->HasAccess(pPlayer->GetUserID())))
         {
             showWarning = true;
         }
@@ -65,7 +61,7 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
                 db.AddTextBox("`4Warning:`` Players asking you to drop items may be scamming you.");
                 break;
             case 4:
-                db.AddTextBox("If trading, use the trade system instead of dropping items!");
+                db.AddTextBox("`4Warning:`` If trading, use the trade system instead of dropping items!");
                 break;
         }
     }

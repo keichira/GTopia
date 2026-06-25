@@ -22,7 +22,8 @@
 GamePlayer::GamePlayer() 
 : m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), 
 m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0),
-m_progressData(this), m_modController(this), m_activeBattlePetSlot(0)
+m_progressData(this), m_modController(this), m_activeBattlePetSlot(0), 
+m_lockAccessTileIndex(-1), m_lockAccessOwnerID(-1)
 {
     RandomizeNextDBSaveTime();
 }
@@ -98,7 +99,8 @@ uint32 GamePlayer::GetPlayerLevel()
 
 uint32 GamePlayer::GetPlayerNextLevelXP()
 {
-    return 50 * ((GetPlayerLevel() + 1) * (GetPlayerLevel() + 1) + 2);
+    uint32 currentLevel = GetPlayerLevel();
+    return 50 * ((currentLevel + 1) * (currentLevel + 1) + 2);
 }
 
 void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
@@ -862,4 +864,186 @@ float GamePlayer::GetDistToTile(TileInfo* pGoalTile)
 uint32 GamePlayer::GetDistToTileInTiles(TileInfo* pGoalTile)
 {
     return GetDistToTile(pGoalTile) / 32;
+}
+
+bool GamePlayer::HasLOSToTile(TileInfo* pGoalTile)
+{
+    if(!pGoalTile)
+        return false;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
+        return false;
+
+    TileInfo* pPlayerTile = pWorld->GetTileManager()->GetTileByWorldPos(m_worldPos);
+    if(!pPlayerTile)
+        return false;
+
+    Vector2Int& vPlayerTilePos = pPlayerTile->GetPos();
+    Vector2Int& vGoalPos = pGoalTile->GetPos();
+
+    int32 dx = vGoalPos.x - vPlayerTilePos.x;
+    int32 dy = vGoalPos.y - vPlayerTilePos.y;
+
+    int32 steps = (Abs(dx) + Abs(dy)) * 2;
+    if(steps == 0)
+        return true;
+
+    float stepX = (float)dx / (float)(steps * 2);
+    float stepY = (float)dy / (float)(steps * 2);
+
+    const float offsets[4][2] =
+    {
+        {0.25f, 0.25f},
+        {0.75f, 0.25f},
+        {0.75f, 0.75f},
+        {0.25f, 0.75f}
+    };
+
+    WorldTileManager* pTileMgr = pWorld->GetTileManager();
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+
+    for(int32 sample = 0; sample < 4; ++sample)
+    {
+        float x = vPlayerTilePos.x + offsets[sample][0];
+        float y = vPlayerTilePos.y + offsets[sample][1];
+
+        int32 lastX = -1, lastY = -1;
+
+        for(int32 i = 0; i < steps; ++i) 
+        {
+            int32 tileX = (int32)x;
+            int32 tileY = (int32)y;
+
+            if(tileX != lastX || tileY != lastY)
+            {
+                lastX = tileX;
+                lastY = tileY;
+
+                if(tileX == vGoalPos.x && tileY == vGoalPos.y)
+                    break;
+
+                TileInfo* pTile = pTileMgr->GetTile(tileX, tileY);
+                if(pTile)
+                {
+                    if(pTile->GetFG() == ITEM_ID_BEDROCK) 
+                        return false;
+
+                    if(pWorld->IsTileCollidableForPlayer(this, pTile, false) && !pWorld->PlayerHasAccessOnTile(this, pTile))
+                        return false;
+                }
+            }
+
+            x += stepX;
+            y += stepY;
+        }
+    }
+
+    return true;
+}
+
+void GamePlayer::SendLockAccessRequest(GamePlayer* pOwner, TileInfo* pLockTile)
+{
+    if(!pOwner && !pLockTile && pOwner->HasState(PLAYER_STATE_DELETE))
+        return;
+
+    if(pOwner->GetLastSentAccessTime().GetElapsedTime() < 5000)
+    {
+        pOwner->SendOnTalkBubble("`4You need to wait a little bit before accessing someone else.``", false);
+        return;
+    }
+
+    TileExtra_Lock* pTileExtra = pLockTile->GetExtra<TileExtra_Lock>();
+    if(!pTileExtra)
+        return;
+
+    if(pTileExtra->HasAccess(GetUserID()))
+    {
+        pOwner->SendOnTalkBubble("That person already has access to this lock.", false);
+        return;
+    }
+    
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pLockTile->GetFG());
+    if(!pItem || pItem->type != ITEM_TYPE_LOCK)
+        return;
+
+    m_lastSentAccessTime.Reset();
+    m_lockAccessOwnerID = pOwner->GetNetID();
+    SetLockAccessTile(pLockTile->GetMapIndex());
+
+    string notifyMsg = pOwner->GetDisplayName(true) + "`w wants to add you to a " + pItem->name + "`w. Wrench yourself to accept.";
+    SendOnTalkBubble(notifyMsg, false);
+    SendOnConsoleMessage(notifyMsg);
+    PlaySFX("secret.wav");
+
+    pOwner->SendOnTalkBubble("Offered " + GetDisplayName(false) + "`w access to lock.", false);
+}
+
+void GamePlayer::SetLockAccessTile(int32 lockIndex)
+{
+    m_lockAccessTileIndex = lockIndex;
+    if(lockIndex == -1) m_lockAccessOwnerID = -1;
+}
+
+TileInfo* GamePlayer::GetLockAcessTile()
+{
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
+        return nullptr;
+
+    return pWorld->GetTileManager()->GetTile(m_lockAccessTileIndex);
+}
+
+void GamePlayer::AcceptLockAccess()
+{
+    if(m_lockAccessTileIndex == -1)
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if(!pWorld)
+        return;
+
+    TileInfo* pTile = pWorld->GetTileManager()->GetTile(m_lockAccessTileIndex);
+    if(!pTile)
+        return;
+
+    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
+    if(!pTileExtra)
+        return;
+
+    GamePlayer* pOwner = GetPlayerManager()->GetPlayerByNetID(m_lockAccessOwnerID);
+    if(!pOwner || m_currentWorldID != pOwner->GetCurrentWorld())
+    {
+        SendOnTalkBubble("The lock owner has left!", false);
+        SetLockAccessTile(-1);
+        return;
+    }
+        
+    if(pTileExtra->ownerID != pOwner->GetUserID())
+    {
+        SendOnTalkBubble("Sorry, the lock is gone!", false);
+        SetLockAccessTile(-1);
+        return;
+    }
+
+    if(pTileExtra->GetTotalAccessedCount() > 25)
+    {
+        SendOnTalkBubble("Sorry, that lock has the maximum players on it already!", false);
+        SetLockAccessTile(-1);
+        return;
+    }
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem || pItem->type != ITEM_TYPE_LOCK)
+        return;
+
+    SetLockAccessTile(-1);
+
+    pTileExtra->accessList.push_back(GetUserID());
+    pWorld->SendTileUpdate(pTile);
+
+    pWorld->SendConsoleMessageToAll(GetDisplayName(false) + "`o was given access to a " + pItem->name + "`o.");
+    PlaySFX("secret.wav");
+
+    pWorld->SendNameChangeToAll(this);
 }

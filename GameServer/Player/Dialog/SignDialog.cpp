@@ -19,13 +19,13 @@ void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-    ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
-    ->AddSpacer()
-    ->AddTextBox("What would you like to write on this sign?")
-    ->AddTextInput("sign_text", "", pTileExtra->text, 128)
-    ->EmbedData("tilex", pTile->GetPos().x)
-    ->EmbedData("tiley", pTile->GetPos().y)
-    ->EndDialog("sign_edit", "OK", "Cancel");
+        ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
+        ->AddSpacer()
+        ->AddTextBox("What would you like to write on this sign?")
+        ->AddTextInput("sign_text", "", pTileExtra->text, 128)
+        ->EmbedData("tilex", pTile->GetPos().x)
+        ->EmbedData("tiley", pTile->GetPos().y)
+        ->EndDialog("sign_edit", "OK", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get());
 }
@@ -70,10 +70,10 @@ void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         return;
     }
 
-    if(pSignText->size == 0)
+    if(pSignText->valueSize == 0)
         return;
 
-    if(pSignText->size > 128)
+    if(pSignText->valueSize > 128)
     {
         pPlayer->SendOnTalkBubble("That text is too long!", false);
         return;

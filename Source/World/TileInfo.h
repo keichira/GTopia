@@ -75,7 +75,7 @@ public:
     bool HasFlag(uint16 flag) { return m_tileData->flags & flag; };
     void ToggleFlag(uint16 flag) { m_tileData->flags ^= flag; }
 
-    void PunchTile(uint8 damage);
+    void PunchTile(uint32 damage);
     bool WillBreak(uint8 damage);
     float GetHealthPercent();
 

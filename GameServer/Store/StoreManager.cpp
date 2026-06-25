@@ -77,7 +77,8 @@ bool StoreManager::Load(const string& filePath)
             if(!line.Require(2))
                 return false;
 
-            if(((line.GetArgSize() - (line.IsLastSpace() ? 1 : 0)) - 2) % 2 != 0)
+            uint32 totalArgs = line.GetArgSize() - (line.IsLastSpace() ? 1 : 0);
+            if((totalArgs - 2) % 2 != 0)
             {
                 LOGGER_LOG_ERROR("Something wrong with expected args size in line %d", line.lineNumber);
                 return false;
@@ -87,7 +88,7 @@ bool StoreManager::Load(const string& filePath)
             if(!pEntry)
                 continue;
 
-            for(uint16 i = 2; i < line.GetArgSize(); ++i)
+            for(uint16 i = 2; i < totalArgs; ++i)
             {
                 pEntry->items.push_back(line.GetUInt(i));
             }

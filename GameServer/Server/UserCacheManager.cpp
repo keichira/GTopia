@@ -7,6 +7,7 @@
 #include "../World/WorldManager.h"
 #include "../Player/Dialog/LockDialog.h"
 #include "../Player/Dialog/MailboxBlockDialog.h"
+#include "../Player/Dialog/BulletinBlockDialog.h"
 
 UserCacheManager::UserCacheManager()
 {
@@ -27,7 +28,7 @@ void UserCacheManager::Init(uint32 maxExpectedPlayers)
 UserMetadata* UserCacheManager::GetMetadata(uint32 userID)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(userID);
-    if(pPlayer)
+    if(pPlayer && !pPlayer->HasState(PLAYER_STATE_DELETE) && pPlayer->HasState(PLAYER_STATE_IN_GAME))
     {
         uint32 roleID = 0;
         if(Role* pRole = pPlayer->GetRole())
@@ -140,14 +141,14 @@ void UserCacheManager::OnMetadataFetched(QueryTaskResult&& result)
             if(name.empty())
             {
                 meta.name = result.result->GetField("GuestName", i).GetString() + "_";
-                meta.name += ToString(result.result->GetField("GuestID", i).GetUINT());
+                meta.name += ToString(result.result->GetField("GuestID", i).GetINT());
             }
             else
             {
                 meta.name = name;
             }
 
-            uint32 roleID = result.result->GetField("RoleID", i).GetUINT();
+            uint32 roleID = result.result->GetField("RoleID", i).GetINT();
             Role* pRole = GetRoleManager()->GetRole(roleID);
             if(pRole)
             {
@@ -200,7 +201,7 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
     {
         case CACHE_REQ_WORLD_LOCK_PUNCH:
         {
-            OnPunchedLock(pPlayer, request);
+            OnTriedPunchedOrPlaceLockedArea(pPlayer, request);
             break;
         }
 
@@ -225,6 +226,16 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
                 break;
 
             MailboxBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
+            break;
+        }
+
+        case CACHE_REQ_BULLETIN_BLOCK:
+        {
+            if(request.params.size() < 3)
+                break;
+
+            BulletinBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
+            break;
         }
 
         default:
@@ -232,7 +243,7 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
     }
 }
 
-void UserCacheManager::OnPunchedLock(GamePlayer* pPlayer, const PendingRequest& request)
+void UserCacheManager::OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, const PendingRequest& request)
 {
     if(!pPlayer || request.params.size() < 3)
         return;
@@ -263,14 +274,22 @@ void UserCacheManager::OnPunchedLock(GamePlayer* pPlayer, const PendingRequest& 
     if(pItem->type != ITEM_TYPE_LOCK)
         return;
 
-    string notifyMsg = "`w" + pUserMeta->displayName + + "``'s `$" + pItem->name + "``.";
-    if(pTileExtra->HasAccess(pPlayer->GetUserID()))
+    string notifyMsg;
+    if(request.params[3].GetUInt32() == 0)
     {
-        notifyMsg += " (`wAccess granted``)";
+        notifyMsg = "`w" + pUserMeta->displayName + + "``'s `$" + pItem->name + "``.";
+        if(pTileExtra->HasAccess(pPlayer->GetUserID()))
+        {
+            notifyMsg += " (`2Access granted``)";
+        }
+        else
+        {
+            notifyMsg += " (`4No access``)";
+        }
     }
     else
     {
-        notifyMsg += " (`4No access``)";
+        notifyMsg = "That area is owned by `w" + pUserMeta->displayName;
     }
 
     pPlayer->SendOnTalkBubble(notifyMsg, true);

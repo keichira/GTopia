@@ -123,11 +123,12 @@ void Player::SendOnRemove(int32 netID)
     );
 }
 
-void Player::SendOnDialogRequest(const string& dialogData)
+void Player::SendOnDialogRequest(const string& dialogData, int32 delayMS)
 {
     SendCallFunctionPacket(
         GetNetID(),
-        VariantPacket::OnDialogRequest(dialogData)
+        VariantPacket::OnDialogRequest(dialogData),
+        -1, delayMS
     );
 }
 

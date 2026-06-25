@@ -36,14 +36,14 @@
 #include "../Command/Emotes.h"
 
 static const uint32 SMALL_PACKET_SIZE = 80;
-static const uint32 MED_PACKET_SIZE   = 800;
+static const uint32 MED_PACKET_SIZE = 800;
 static const uint32 LARGE_PACKET_SIZE = 1500;
-static const uint32 HUGE_PACKET_SIZE  = 400 * 1024;
+static const uint32 HUGE_PACKET_SIZE = 400 * 1024;
 
 static const uint32 SMALL_PACKET_COUNT = 5000;
-static const uint32 MED_PACKET_COUNT   = 256;
+static const uint32 MED_PACKET_COUNT = 256;
 static const uint32 LARGE_PACKET_COUNT = 128;
-static const uint32 HUGE_PACKET_COUNT  = 10;
+static const uint32 HUGE_PACKET_COUNT = 10;
 
 GameServer::GameServer()
 {
@@ -75,7 +75,7 @@ void GameServer::OnEventConnect(NetworkEvent& event)
     GetPlayerManager()->AddPlayer(pPlayer);
 
     char ipBuffer[16] = { 0 };
-    if(GetIPStringFromHost(event.host, ipBuffer, sizeof(ipBuffer)) == 0)
+    if (GetIPStringFromHost(event.host, ipBuffer, sizeof(ipBuffer)) == 0)
     {
         pPlayer->SetAddress(ipBuffer);
     }
@@ -90,11 +90,11 @@ void GameServer::OnEventConnect(NetworkEvent& event)
 
 void GameServer::OnEventReceive(NetworkEvent& event)
 {
-    if(!event.pPacket)
+    if (!event.pPacket)
         return;
 
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(event.netID);
-    if(!pPlayer)
+    if (!pPlayer)
     {
         gPacketPool.Release(event.pPacket);
         return;
@@ -103,68 +103,68 @@ void GameServer::OnEventReceive(NetworkEvent& event)
     PooledPacket* pPacket = event.pPacket;
     uint32 msgType = GetMessageTypeFromEnetPacket(pPacket->payload, pPacket->dataLength);
 
-    switch(msgType) 
+    switch (msgType)
     {
-        case NET_MESSAGE_GENERIC_TEXT:
-        case NET_MESSAGE_GAME_MESSAGE: 
+    case NET_MESSAGE_GENERIC_TEXT:
+    case NET_MESSAGE_GAME_MESSAGE:
+    {
+        LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength));
+
+        if (pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
         {
-            LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength));
+            ParsedTextPacket<40> packet;
+            ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
 
-            if(pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
+            pPlayer->StartLoginRequest(packet);
+        }
+        else if (pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
+        {
+            ParsedTextPacket<38> packet;
+            ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+
+            auto pAction = packet.Find("action"_hash);
+            if (pAction)
             {
-                ParsedTextPacket<40> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+                uint32 packetType = HashString(pAction->value, pAction->valueSize);
 
-                pPlayer->StartLoginRequest(packet);
-            }
-            else if(pPlayer->HasState(PLAYER_STATE_ENTERING_GAME)) 
-            {
-                ParsedTextPacket<38> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
-            
-                auto pAction = packet.Find("action"_hash);
-                if(pAction) 
-                {
-                    uint32 packetType = HashString(pAction->value, pAction->size);
-
-                    if(packetType == "refresh_item_data"_hash ||
-                        packetType == "enter_game"_hash ||
-                        packetType == "refresh_player_tribute_data"_hash ||
-                        packetType == "quit"_hash
+                if (packetType == "refresh_item_data"_hash ||
+                    packetType == "enter_game"_hash ||
+                    packetType == "refresh_player_tribute_data"_hash ||
+                    packetType == "quit"_hash
                     ) {
-                        m_messagePacket.Dispatch(packetType, pPlayer, packet);   
-                    }
-                }
-            }
-            else if(pPlayer->HasState(PLAYER_STATE_IN_GAME)) 
-            {
-                ParsedTextPacket<38> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
-            
-                auto pAction = packet.Find("action"_hash);
-                if(pAction)
-                {
-                    uint32 packetType = HashString(pAction->value, pAction->size);
                     m_messagePacket.Dispatch(packetType, pPlayer, packet);
                 }
             }
-
-            break;
         }
-
-        case NET_MESSAGE_GAME_PACKET: 
+        else if (pPlayer->HasState(PLAYER_STATE_IN_GAME))
         {
-            if(pPlayer->GetCurrentWorld() == 0) 
-            {
-                /**
-                 * response
-                 */
-                break;
-            }
+            ParsedTextPacket<38> packet;
+            ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
 
-            GetWorldManager()->OnHandleGamePacket(event);
+            auto pAction = packet.Find("action"_hash);
+            if (pAction)
+            {
+                uint32 packetType = HashString(pAction->value, pAction->valueSize);
+                m_messagePacket.Dispatch(packetType, pPlayer, packet);
+            }
+        }
+
+        break;
+    }
+
+    case NET_MESSAGE_GAME_PACKET:
+    {
+        if (pPlayer->GetCurrentWorld() == 0)
+        {
+            /**
+             * response
+             */
             break;
         }
+
+        GetWorldManager()->OnHandleGamePacket(event);
+        break;
+    }
     }
 
     gPacketPool.Release(pPacket);
@@ -173,7 +173,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
 void GameServer::OnEventDisconnect(NetworkEvent& event)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(event.netID);
-    if(!pPlayer)
+    if (!pPlayer)
     {
         gPacketPool.Release(event.pPacket);
         return;
@@ -182,7 +182,7 @@ void GameServer::OnEventDisconnect(NetworkEvent& event)
     pPlayer->LogOff(true, true, true, false);
     GetPlayerManager()->RemovePlayer(pPlayer->GetNetID());
 
-    if(event.pPacket) 
+    if (event.pPacket)
     {
         gPacketPool.Release(event.pPacket);
     }
@@ -225,20 +225,20 @@ void GameServer::UpdateGameLogic(uint64 maxTimeMS)
 
 void GameServer::Update()
 {
-    if(!m_pENetServer)
+    if (!m_pENetServer)
         return;
 
     Context* pContext = GetContext();
 
-    uint32 currentCpuPermille = pContext->GetPerfStats().netCpuPermille; 
+    uint32 currentCpuPermille = pContext->GetPerfStats().netCpuPermille;
     usize outgoingQueueSize = gPacketOutgoingQueue.size_approx();
 
     uint32 currentBurstLimit = 0;
     bool isPanicMode = false;
-    
+
     EvaluateNetHealth(outgoingQueueSize, currentCpuPermille, currentBurstLimit, isPanicMode);
 
-    if(pContext->IsShutting()) 
+    if (pContext->IsShutting())
     {
         currentBurstLimit = 5000;
     }
@@ -246,50 +246,50 @@ void GameServer::Update()
     uint32 processedSends = 0;
     NetworkEvent outEvent;
 
-    while(processedSends < currentBurstLimit && gPacketOutgoingQueue.try_dequeue(outEvent))
+    while (processedSends < currentBurstLimit && gPacketOutgoingQueue.try_dequeue(outEvent))
     {
         processedSends++;
 
         auto it = m_connectionMap.find(outEvent.netID);
-        if(it == m_connectionMap.end() || !it->second) 
+        if (it == m_connectionMap.end() || !it->second)
         {
-            if(outEvent.pPacket)
+            if (outEvent.pPacket)
             {
                 gPacketPool.Release(outEvent.pPacket);
             }
             continue;
         }
 
-        if(outEvent.shouldDisconnect)
+        if (outEvent.shouldDisconnect)
         {
             enet_peer_disconnect(it->second, 0);
             m_connectionMap.erase(it);
-            
-            if(outEvent.pPacket)
+
+            if (outEvent.pPacket)
             {
                 gPacketPool.Release(outEvent.pPacket);
             }
             continue;
         }
 
-        if(!outEvent.pPacket)
+        if (!outEvent.pPacket)
             continue;
 
         ENetPacket* pEnetPacket = nullptr;
 
-        if(outEvent.isItemData)
+        if (outEvent.isItemData)
         {
             GameUpdatePacket* pGamePacket = GetGamePacketFromEnetPacket(outEvent.pPacket->payload, outEvent.pPacket->dataLength, false);
-            if(!pGamePacket || pGamePacket->type != NET_GAME_PACKET_SEND_ITEM_DATABASE_DATA)
+            if (!pGamePacket || pGamePacket->type != NET_GAME_PACKET_SEND_ITEM_DATABASE_DATA)
                 continue;
 
             ItemsClientData* pClientData = GetItemInfoManager()->GetClientData(pGamePacket->field_11, pGamePacket->field_10);
-            if(!pClientData || (pClientData && !pClientData->pItemData))
+            if (!pClientData || (pClientData && !pClientData->pItemData))
                 continue;
 
             pGamePacket->field_10 = 0;
             pGamePacket->field_11 = 0;
-            
+
             pEnetPacket = enet_packet_create(nullptr, outEvent.pPacket->dataLength + pClientData->compressSize, ENET_PACKET_FLAG_RELIABLE);
             memcpy(pEnetPacket->data, outEvent.pPacket->payload, outEvent.pPacket->dataLength);
             memcpy(pEnetPacket->data + outEvent.pPacket->dataLength - 1, pClientData->pItemData, pGamePacket->extraDataSize);
@@ -299,7 +299,7 @@ void GameServer::Update()
             pEnetPacket = enet_packet_create(outEvent.pPacket->payload, outEvent.pPacket->dataLength, ENET_PACKET_FLAG_RELIABLE);
         }
 
-        if(pEnetPacket)
+        if (pEnetPacket)
         {
             enet_peer_send(it->second, 0, pEnetPacket);
         }
@@ -307,111 +307,111 @@ void GameServer::Update()
         gPacketPool.Release(outEvent.pPacket);
     }
 
-    if(pContext->IsShutting())
+    if (pContext->IsShutting())
         return;
 
     uint32 processedReceives = 0;
     ENetEvent inEvent;
-    
+
     uint32 recvLimit = isPanicMode ? gNetBurstConfig.panicBurst : currentBurstLimit;
 
-    while(!pContext->IsShutting() && processedReceives < recvLimit && m_pENetServer->Update(&inEvent))
+    while (!pContext->IsShutting() && processedReceives < recvLimit && m_pENetServer->Update(&inEvent))
     {
         processedReceives++;
-        if(!inEvent.peer)
+        if (!inEvent.peer)
             continue;
 
-        switch(inEvent.type)
+        switch (inEvent.type)
         {
-            case ENET_EVENT_TYPE_CONNECT:
+        case ENET_EVENT_TYPE_CONNECT:
+        {
+            uint32 newConnID = ++m_lastConnectionID;
+            if (newConnID == 0) newConnID = ++m_lastConnectionID;
+
+            inEvent.peer->data = (void*)(uintptr_t)newConnID;
+            m_connectionMap[newConnID] = inEvent.peer;
+
+            NetworkEvent netEvent;
+            netEvent.type = ENET_EVENT_TYPE_CONNECT;
+            netEvent.netID = newConnID;
+            netEvent.host = inEvent.peer->address.host;
+            m_networkQueue.enqueue(std::move(netEvent));
+            break;
+        }
+
+        case ENET_EVENT_TYPE_RECEIVE:
+        {
+            if (!inEvent.packet || inEvent.packet->dataLength < 4)
             {
-                uint32 newConnID = ++m_lastConnectionID; 
-                if(newConnID == 0) newConnID = ++m_lastConnectionID;
-            
-                inEvent.peer->data = (void*)(uintptr_t)newConnID;            
-                m_connectionMap[newConnID] = inEvent.peer;
-            
-                NetworkEvent netEvent;
-                netEvent.type = ENET_EVENT_TYPE_CONNECT;
-                netEvent.netID = newConnID;
-                netEvent.host = inEvent.peer->address.host;
-                m_networkQueue.enqueue(std::move(netEvent));
-                break;
-            }
-
-            case ENET_EVENT_TYPE_RECEIVE:
-            {
-                if(!inEvent.packet || inEvent.packet->dataLength < 4)
-                {
-                    enet_packet_destroy(inEvent.packet);
-                    continue;
-                }
-
-                uint32 packetLen = inEvent.packet->dataLength;
-                uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
-
-                if(msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET && msgType != NET_MESSAGE_GENERIC_TEXT)
-                {
-                    enet_packet_destroy(inEvent.packet);
-                    continue;
-                }
-
-                // we can add more checks based on type
-
-                if(msgType == NET_MESSAGE_GAME_PACKET && packetLen > SMALL_PACKET_SIZE)
-                {
-                    enet_packet_destroy(inEvent.packet);
-                    continue;
-                }
-
-                if((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
-                {
-                    enet_packet_destroy(inEvent.packet);
-                    continue;
-                }
-
-                PooledPacket* pPacket = gPacketPool.Acquire(packetLen);
-                if(!pPacket)
-                {
-                    enet_packet_destroy(inEvent.packet);
-                    continue;
-                }
-
-                pPacket->dataLength = packetLen;
-                memcpy(pPacket->payload, inEvent.packet->data, packetLen);
-
                 enet_packet_destroy(inEvent.packet);
-
-                NetworkEvent netEvent{ ENET_EVENT_TYPE_RECEIVE, (uint32)(uintptr_t)inEvent.peer->data, pPacket };
-                m_networkQueue.enqueue(std::move(netEvent));
-                break;
+                continue;
             }
 
-            case ENET_EVENT_TYPE_DISCONNECT:
+            uint32 packetLen = inEvent.packet->dataLength;
+            uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
+
+            if (msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET && msgType != NET_MESSAGE_GENERIC_TEXT)
             {
-                if(!inEvent.peer)
-                    continue;
-
-                uint32 netID = (uint32)(uintptr_t)inEvent.peer->data;
-                inEvent.peer->data = nullptr;
-
-                m_connectionMap.erase(netID);
-
-                NetworkEvent netEvent{ ENET_EVENT_TYPE_DISCONNECT, netID, nullptr };
-                m_networkQueue.enqueue(std::move(netEvent));
-                break;
+                enet_packet_destroy(inEvent.packet);
+                continue;
             }
+
+            // we can add more checks based on type
+
+            if (msgType == NET_MESSAGE_GAME_PACKET && packetLen > SMALL_PACKET_SIZE)
+            {
+                enet_packet_destroy(inEvent.packet);
+                continue;
+            }
+
+            if ((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
+            {
+                enet_packet_destroy(inEvent.packet);
+                continue;
+            }
+
+            PooledPacket* pPacket = gPacketPool.Acquire(packetLen);
+            if (!pPacket)
+            {
+                enet_packet_destroy(inEvent.packet);
+                continue;
+            }
+
+            pPacket->dataLength = packetLen;
+            memcpy(pPacket->payload, inEvent.packet->data, packetLen);
+
+            enet_packet_destroy(inEvent.packet);
+
+            NetworkEvent netEvent{ ENET_EVENT_TYPE_RECEIVE, (uint32)(uintptr_t)inEvent.peer->data, pPacket };
+            m_networkQueue.enqueue(std::move(netEvent));
+            break;
+        }
+
+        case ENET_EVENT_TYPE_DISCONNECT:
+        {
+            if (!inEvent.peer)
+                continue;
+
+            uint32 netID = (uint32)(uintptr_t)inEvent.peer->data;
+            inEvent.peer->data = nullptr;
+
+            m_connectionMap.erase(netID);
+
+            NetworkEvent netEvent{ ENET_EVENT_TYPE_DISCONNECT, netID, nullptr };
+            m_networkQueue.enqueue(std::move(netEvent));
+            break;
+        }
         }
     }
 }
 
 void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)
 {
-    if(!pPlayer || args.empty())
+    if (!pPlayer || args.empty())
         return;
 
     uint32 hashCmd = HashString(args[0].substr(1));
-    if(!m_commands.HasHandler(hashCmd)) 
+    if (!m_commands.HasHandler(hashCmd))
     {
         pPlayer->SendOnConsoleMessage("`4Unknown command. ``Enter `$/help`` for a list of valid commands.");
         return;

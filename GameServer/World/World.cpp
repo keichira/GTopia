@@ -313,7 +313,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
         worldSituationMsg += "`2ANTIGRAVITY``";
     }
 
-    string worldEnterMsg = "World `w" + GetWorlName() + "`o ";
+    string worldEnterMsg = "`oWorld `w" + GetWorlName() + "`o ";
     if(!worldSituationMsg.empty()) 
     {
         worldEnterMsg += "`0[``" + worldSituationMsg + "`0] ";
@@ -425,14 +425,14 @@ void World::SendConsoleMessageToAll(const string& message)
     }
 }
 
-void World::SendNameChangeToAll(GamePlayer* pPlayer)
+void World::SendNameChangeToAll(GamePlayer* pPlayer, bool checkWorld)
 {
     if(!pPlayer) {
         return;
     }
 
     uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnNameChanged(pPlayer->GetDisplayName(true)), &size, nullptr);
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnNameChanged(pPlayer->GetDisplayName(checkWorld)), &size, nullptr);
 
     for(auto& pWorldPlayer : m_players) 
     {
@@ -585,18 +585,17 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_LOCK;
-    packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.field_11 = pLockTile->GetPos().x;
     packet.field_12 = pLockTile->GetPos().y;
     packet.field_7 = lockID;
     packet.field_4 = userID;
-
-    HandleTilePackets(&packet);
+    packet.field_5 = tiles.size();
 
     uint8* pData = nullptr;
 
-    if(!tiles.empty()) {
-        packet.field_5 = tiles.size();
+    if(!tiles.empty()) 
+    {
+        packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
         packet.extraDataSize = tiles.size() * sizeof(uint16);
     
         uint32 memSize = packet.extraDataSize;
@@ -615,6 +614,8 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
             memBuffer.Write(index);
         }
     }
+
+    HandleTilePackets(&packet); 
 
     SendGamePacketToAll(&packet, nullptr, pData);
     SAFE_DELETE_ARRAY(pData);
@@ -839,15 +840,31 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 return;
             }
 
-            pTile->SetFG(pGamePacket->field_7, GetTileManager());
+            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+            if(!pItem)
+                return;
 
             TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-            if(!pTileExtra) {
-                return;
+
+            bool alreadyLockedWithSomeOwner = false;
+            if(pItem->type == ITEM_TYPE_LOCK)
+            {
+                if(pTileExtra && pTileExtra->ownerID == pGamePacket->field_4)
+                {
+                    alreadyLockedWithSomeOwner = true;
+                }
             }
 
-            pTileExtra->ownerID = pGamePacket->field_4;
-            SendTileUpdate(pGamePacket->field_11, pGamePacket->field_12);
+            if(!alreadyLockedWithSomeOwner)
+            {
+                pTile->SetFG(pGamePacket->field_7, GetTileManager());
+
+                pTileExtra = pTile->GetExtra<TileExtra_Lock>();
+                if(pTileExtra)
+                {
+                    pTileExtra->ownerID = pGamePacket->field_4;
+                }
+            }
             break;
         }
 
@@ -1286,40 +1303,31 @@ bool World::PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile)
         return false;
     }
 
-    if(pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC)) {
+    if(!GetTileManager()->IsTileLockedWithLock(pTile))
         return true;
-    }
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-    if(pItem->HasFlag(ITEM_FLAG_PUBLIC)) {
-        return true;
-    }
-
-    TileInfo* pWorldLockTile = GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
-    if(pWorldLockTile) {
-        TileExtra_Lock* pWLExtra = pWorldLockTile->GetExtra<TileExtra_Lock>();
-        if(!pWLExtra) {
-            return false;
-        }
-
-        return pWLExtra->HasAccess(pPlayer->GetUserID());
-    }
-
-    if(pTile->GetParent() == 0) {
-        return true;
-    }
-
-    TileInfo* pMainLockTile = GetTileManager()->GetTile(pTile->GetParent());
-    if(!pMainLockTile) {
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
         return false;
+
+    TileInfo* pParent = nullptr;
+    if(pItem->type == ITEM_TYPE_LOCK)
+    {
+        pParent = pTile;
+    }
+    else
+    {
+        pParent = GetTileManager()->GetTileParentTileWithWorldLock(pTile);
     }
 
-    TileExtra_Lock* pMainLockExtra = pMainLockTile->GetExtra<TileExtra_Lock>();
-    if(!pMainLockExtra) {
+    if(!pParent)
         return false;
-    }
 
-    return pMainLockExtra->HasAccess(pPlayer->GetUserID());
+    TileExtra_Lock* pParentExtra = pParent->GetExtra<TileExtra_Lock>();
+    if(!pParentExtra)
+        return false;
+
+    return pParentExtra->HasAccess(pPlayer->GetUserID());
 }
 
 std::vector<GamePlayer*> World::GetPlayersInWorldRect(const RectFloat& rect)
@@ -1660,6 +1668,69 @@ bool World::OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer)
     return true;
 }
 
+bool World::CheckAndSwapTiles(GamePlayer* pPlayer, TileInfo* pTile, string& error)
+{
+    if(!pPlayer || !pTile)
+        return false;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
+        return false;
+
+    if(pPlayer->GetCurrentWorld() != GetInstanceID())
+        return false;
+
+    if(!PlayerHasAccessOnTile(pPlayer, pTile))
+    {
+        error = "With great power, comes great responsibility! Your power needs to be used on your own tiles.";
+        return false;
+    }
+
+    TileInfo* pParentTile = GetTileManager()->GetTileParentTileWithWorldLock(pTile);
+    if(!pParentTile)
+    {
+        error = "With great power, comes great responsibility! Your power needs to be used on your own tiles.";
+        return false;
+    }
+
+    TileExtra_Lock* pParentExtra = pParentTile->GetExtra<TileExtra_Lock>();
+    if(!pParentExtra)
+        return false;
+
+    if(pParentExtra->ownerID != pPlayer->GetUserID())
+    {
+        error = "With great power, comes great responsibility! Your power needs to be used on your own tiles.";
+        return false;
+    }
+
+    if(!CheckIfSwappingValid(pPlayer, pTile, error))
+        return false;
+
+    return true;
+}
+
+bool World::CheckIfSwappingValid(GamePlayer* pPlayer, TileInfo* pTile, string& error)
+{
+    if(!pPlayer || !pTile)
+        return false;
+
+    int32 handItemID = pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND);
+    if(!IsGaunletOfElements(handItemID))
+        return false;
+
+    if(pTile->GetFG() == ITEM_ID_BLANK)
+    {
+        error = "You can not move an empty tile.";
+        return false;
+    }
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
+        return false;
+
+    return true;
+}
+
 bool World::CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command)
 {
     if(!pPlayer)
@@ -1995,9 +2066,19 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
         return;
     }
 
+    RemoveAllAccessRequestsFromLock(pTile);
+
     if(IsWorldLock(pItem->id)) {
         SendConsoleMessageToAll("`5[```w" + GetWorlName() + "`` has had its `$World Lock`` removed!`5]``");
         LOGGER_LOG_INFO("Removed world lock in %s (%d) by %d", GetWorlName().c_str(), GetDatabaseID(), pPlayer->GetUserID());
+
+        for(auto& pWorldPlayer : m_players)
+        {
+            if(!pWorldPlayer)
+                continue;
+
+            SendNameChangeToAll(pWorldPlayer, false);
+        }
     }
     else {
         std::vector<TileInfo*> unlockedTiles = GetTileManager()->RemoveTileParentsLockedBy(pTile);
@@ -2005,19 +2086,45 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
     }
 }
 
-void World::OnPunchedLock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
+void World::RemoveAllAccessRequestsFromLock(TileInfo* pTile)
 {
-    if(!pPlayer || !pTile || !pItem)
+    if(!pTile)
         return;
 
-    if(pItem->type != ITEM_TYPE_LOCK)
+    for(auto& pPlayer : m_players)
+    {
+        if(!pPlayer || GetInstanceID() != pPlayer->GetCurrentWorld()) // dunno why im checking, that should not be possible
+            continue;
+
+        if(pPlayer->GetLockAcessTile() == pTile)
+        {
+            pPlayer->SetLockAccessTile(-1);
+        }
+    }
+}
+
+void World::OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, TileInfo* pTile, bool placeBehind)
+{
+    if(!pPlayer || !pTile)
         return;
 
-    TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-    if(!pTileExtra)
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
         return;
 
-    if(pTileExtra->ownerID == pPlayer->GetUserID())
+    TileInfo* pParent = pTile;
+    if(!placeBehind && pItem->type != ITEM_TYPE_LOCK)
+    {
+        pParent = GetTileManager()->GetTileParentTileWithWorldLock(pTile);
+        if(!pParent || pParent != pTile)
+            return;
+    }
+
+    TileExtra_Lock* pLockExtra = pParent->GetExtra<TileExtra_Lock>();
+    if(!pLockExtra)
+        return;
+
+    if(pLockExtra->ownerID == pPlayer->GetUserID())
         return;
 
     UserCacheManager* pCacheMgr = GetUserCacheManager();
@@ -2026,8 +2133,8 @@ void World::OnPunchedLock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
     pCacheMgr->FetchMetadata(
         pPlayer->GetNetID(),
         CACHE_REQ_WORLD_LOCK_PUNCH,
-        { pTileExtra->ownerID },
-        { GetInstanceID(), vTilePos.x, vTilePos.y }
+        { pLockExtra->ownerID },
+        { GetInstanceID(), vTilePos.x, vTilePos.y, placeBehind }
     );
 }
 

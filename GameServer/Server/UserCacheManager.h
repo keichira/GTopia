@@ -14,7 +14,8 @@ enum eCacheRequestType : uint8
     CACHE_REQ_WORLD_LOCK_PUNCH,
     CACHE_REQ_WORLD_LOCK_DIALOG,
     CACHE_REQ_ACHIEVEMENT_BLOCK_PUNCH,
-    CACHE_REQ_MAILBOX_BLOCK
+    CACHE_REQ_MAILBOX_BLOCK,
+    CACHE_REQ_BULLETIN_BLOCK
 };
 
 union CacheParam
@@ -100,7 +101,7 @@ private:
     };
 
     void ExecuteRequest(uint32 playerNetID, const PendingRequest& request);
-    void OnPunchedLock(GamePlayer* pPlayer, const PendingRequest& request);
+    void OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, const PendingRequest& request);
     void OnPunchedAchievementBlock(GamePlayer* pPlayer, const PendingRequest& request);
 
     std::unordered_map<uint32, UserMetadata> m_cache;

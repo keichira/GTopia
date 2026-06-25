@@ -25,5 +25,8 @@ void Role::FinalizePermissions()
 
 bool Role::HasPerm(uint32 permHash) const
 {
+    if(permHash == 0)
+        return true;
+
     return std::binary_search(m_finalPerms.begin(), m_finalPerms.end(), permHash);
 }

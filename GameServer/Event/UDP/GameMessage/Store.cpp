@@ -3,20 +3,20 @@
 
 void Store::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(!pPlayer)
+    if (!pPlayer)
         return;
 
     auto pLocation = packet.Find("location"_hash);
-    if(!pLocation)
+    if (!pLocation)
         return;
 
-    if(pLocation->size > 50)
+    if (pLocation->valueSize > 50)
         return;
 
     StoreManager* pStoreMgr = GetStoreManager();
     StoreEntry* pStoreEntry = pStoreMgr->GetStoreEntryByCode(pLocation->GetString());
 
-    if(!pStoreEntry)
+    if (!pStoreEntry)
     {
         pStoreMgr->NavigatePlayer(pPlayer, STORE_TAB_MAIN_MENU);
     }

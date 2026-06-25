@@ -62,7 +62,7 @@ public:
     void SendSkinColorUpdateToAll(GamePlayer* pPlayer);
     void SendTalkBubbleAndConsoleToAll(const string& message, bool stackBubble, GamePlayer* pPlayer = nullptr);
     void SendConsoleMessageToAll(const string& message);
-    void SendNameChangeToAll(GamePlayer* pPlayer);
+    void SendNameChangeToAll(GamePlayer* pPlayer, bool checkWorld = true);
     void SendSetCharPacketToAll(GamePlayer* pPlayer);
     void SendClothUpdateToAll(GamePlayer* pPlayer);
     void SendParticleEffectToAll(float coordX, float coordY, uint32 particleType, float particleSize = 0, int32 delay = -1);
@@ -107,13 +107,17 @@ public:
     void CalcHarmonicCrystal(TileInfo* pTile, int16* dest);
     bool OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer);
 
+    bool CheckAndSwapTiles(GamePlayer* pPlayer, TileInfo* pTile, string& error);
+    bool CheckIfSwappingValid(GamePlayer* pPlayer, TileInfo* pTile, string& error);
+
     bool CheckOuijaBoardCommand(GamePlayer* pPlayer, const string& command);
     bool CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile);
     bool TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile);
 
     void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID);
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
-    void OnPunchedLock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem);
+    void RemoveAllAccessRequestsFromLock(TileInfo* pTile);
+    void OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, TileInfo* pTile, bool placeBehind);
     void OnPunchedAchievementBlock(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem);
 
     void OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket);

@@ -107,11 +107,19 @@ public:
     void SendPositionToWorldPlayers();
     float GetDistToTile(TileInfo* pGoalTile);
     uint32 GetDistToTileInTiles(TileInfo* pGoalTile);
+    bool HasLOSToTile(TileInfo* pGoalTile);
+
+    void SendLockAccessRequest(GamePlayer* pOwner, TileInfo* pLockTile);
+    void SetLockAccessTile(int32 lockIndex);
+    TileInfo* GetLockAcessTile();
+    int32 GetLockAcessOwnerID() const { return m_lockAccessOwnerID; }
+    void AcceptLockAccess();
 
     Timer& GetLastActionTime() { return m_lastActionTime; }
     Timer& GetLastDBSaveTime() { return m_lastDbSaveTime; }
     Timer& GetLastJoinRequestTime() { return m_lastJoinRequestTime; }
     Timer& GetLastTileChangeTime() { return m_lastTileChangeTime; }
+    Timer& GetLastSentAccessTime() { return m_lastSentAccessTime; }
 
     void RandomizeNextDBSaveTime() { m_nextDbSaveTime = RandomRangeInt(10 * 60, 15 * 60) * 1000; };
     uint64 GetNextDBSaveTime() const { return m_nextDbSaveTime; };
@@ -126,6 +134,10 @@ private:
     uint32 m_flags;
     int32 m_gems;
     uint8 m_activeBattlePetSlot;
+
+    int32 m_lockAccessOwnerID;
+    Timer m_lastSentAccessTime;
+    int32 m_lockAccessTileIndex;
 
     PlayerProgress m_progressData;
     PlayerPlayModController m_modController;

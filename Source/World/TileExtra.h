@@ -26,9 +26,9 @@ protected:                               \
 public:
 
 #define TILE_EXTRA_GROWTH(CLASS, TYPEID) \
-class CLASS : public TileExtraGrowth {  \
+class CLASS : public TileExtraGrowth {   \
 public:                                  \
-    static constexpr uint8 TYPE = TYPEID; \
+    static constexpr uint8 TYPE = TYPEID;\
     CLASS() : TileExtraGrowth(TYPE) {}   \
 protected:                               \
     void Serialize(                      \
@@ -141,7 +141,10 @@ enum eTileExtraFlags
     TILE_EXTRA_CAMERA_SHOW_COLLECTS = 1 << 4,
     TILE_EXTRA_CAMERA_DONT_SHOW_OTHERS = 1 << 5,
     TILE_EXTRA_CAMERA_DONT_SHOW_OWNER = 1 << 6,
-    TILE_EXTRA_CAMERA_DONT_SHOW_ADMINS = 1 << 7
+    TILE_EXTRA_CAMERA_DONT_SHOW_ADMINS = 1 << 7,
+
+    TILE_EXTRA_BULLETIN_READ_ONLY = 1 << 3,
+    TILE_EXTRA_BULLETIN_HIDE_NAMES = 1 << 4
 };
 
 uint8 GetTileExtraType(uint8 itemType);
@@ -267,7 +270,14 @@ TILE_EXTRA(TileExtra_Lock, TILE_EXTRA_TYPE_LOCK)
 
     void RemoveFromList(int32 id)
     {
-        accessList.erase(accessList.begin() + id);
+        for(uint16 i = 0; i < accessList.size(); ++i)
+        {
+            if(accessList[i] == id) 
+            {
+                accessList.erase(accessList.begin() + i);
+                return;
+            }
+        }
     }
 };
 
@@ -369,4 +379,33 @@ TILE_EXTRA(TileExtra_Crystal, TILE_EXTRA_TYPE_CRYSTAL)
         (int16)RandomRangeInt(20, 120),
         (int16)RandomRangeInt(20, 120)
     };
+};
+
+TILE_EXTRA(TileExtra_Bulletin, TILE_EXTRA_TYPE_BULLETIN)
+    /**
+     * normally gt serializes Variants into first string
+     * var[0] = userID
+     * var[1] = msg
+     * but we gonna hold it on deque to not serialize/deserialize everytime
+     */
+
+    std::deque<TileMailboxLetter> letters;
+    uint8 flags = 0;
+
+    void SetFlag(uint8 flag) { flags |= flag; }
+    void RemoveFlag(uint8 flag) { flags &= ~flag; }
+    bool HasFlag(uint8 flag) { return flags & flag; };
+
+    uint32 GetCountOfLettersFromID(uint32 userID)
+    {
+        uint32 count = 0;
+
+        for(auto& letter : letters)
+        {
+            if(letter.userID == userID)
+                count++;
+        }
+
+        return count;
+    }
 };

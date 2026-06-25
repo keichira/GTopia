@@ -78,10 +78,10 @@ void ObjectActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpda
     {
         inventory.AddItem(pItemInfo->id, takeCount);
 
-        string noticeMessage = "Collected `w" + ToString(takeCount) + " " + pItemInfo->name + "``.";
+        string noticeMessage = "`oCollected `w" + ToString(takeCount) + "`o " + pItemInfo->name + "`o.";
         if(pItemInfo->rarity != 999)
         {
-            noticeMessage += " Rarity: `w" + ToString(pItemInfo->rarity) + "``.";
+            noticeMessage += " `oRarity: `w" + ToString(pItemInfo->rarity) + "`o.";
         }
 
         pPlayer->SendOnConsoleMessage(noticeMessage);

@@ -51,8 +51,6 @@ bool RoleManager::Load(const string& filePath)
             pRole->m_prefix = line.GetString(3);
             pRole->m_suffix = line.GetString(4);
 
-            pRole->m_finalPerms.push_back(0);
-
             pLastRole = pRole;
             m_roles.insert_or_assign(pRole->GetID(), pRole);
         }

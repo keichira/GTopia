@@ -6,17 +6,17 @@
 
 void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
 {
-    if(!pPlayer || !pTile || !pItem)
+    if (!pPlayer || !pTile || !pItem)
         return;
 
-    if(pItem->type != ITEM_TYPE_ACHIEVEMENT)
+    if (pItem->type != ITEM_TYPE_ACHIEVEMENT)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
-    if(pWorld->GetWorldOwnerID() != pPlayer->GetUserID())
+    if (pWorld->GetWorldOwnerID() != pPlayer->GetUserID())
     {
         pPlayer->SendOnTalkBubble("An `5Achievement Block`` can only be etched by the owner of this world. (Requires `5World Lock``)", false);
         return;
@@ -26,11 +26,11 @@ void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemI
 
     DialogBuilder db;
     db.AddLabelWithIcon("`w" + pItem->name + "``", pItem->id, true)
-    ->EmbedData("tilex", vTilePos.x)
-    ->EmbedData("tiley", vTilePos.y)
-    ->AddTextBox("Which design do you want to etch into the block? (Tap the icon)");
+        ->EmbedData("tilex", vTilePos.x)
+        ->EmbedData("tiley", vTilePos.y)
+        ->AddTextBox("Which design do you want to etch into the block? (Tap the icon)");
 
-    if(pPlayer->GetProgressData().BuildAchievementsDialog(db, true) == 0)
+    if (pPlayer->GetProgressData().BuildAchievementsDialog(db, true) == 0)
     {
         db.AddTextBox("(`4Oops, you haven't earned any achievements yet, come back later!``)");
     }
@@ -41,59 +41,59 @@ void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemI
 
 void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(!pPlayer)
+    if (!pPlayer)
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
-    if(!pTileX)
+    if (!pTileX)
         return;
 
     auto pTileY = packet.Find("tiley"_hash);
-    if(!pTileY)
+    if (!pTileY)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     int32 tileX = 0;
-    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
+    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS)
         return;
 
     int32 tileY = 0;
-    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+    if (pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
-    if(!pTile)
+    if (!pTile)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-    if(!pItem || pItem->type != ITEM_TYPE_ACHIEVEMENT)
+    if (!pItem || pItem->type != ITEM_TYPE_ACHIEVEMENT)
         return;
 
-    if(pPlayer->GetUserID() != pWorld->GetWorldOwnerID())
+    if (pPlayer->GetUserID() != pWorld->GetWorldOwnerID())
     {
         pPlayer->SendOnTalkBubble("Only the owner of the `$World Lock`` can etch these blocks.", true);
         return;
     }
 
     TileExtra_Achievement* pTileExtra = pTile->GetExtra<TileExtra_Achievement>();
-    if(!pTileExtra)
+    if (!pTileExtra)
         return;
 
     int32 achievementID = 127;
-    if(auto pButtonClicked = packet.Find("buttonClicked"_hash))
+    if (auto pButtonClicked = packet.Find("buttonClicked"_hash))
     {
-        if(pButtonClicked->GetInt(achievementID) != TO_INT_SUCCESS)
+        if (pButtonClicked->GetInt(achievementID) != TO_INT_SUCCESS)
             return;
     }
 
-    if(achievementID != 127 && achievementID < 0 && achievementID > ACHIEVEMENT_COUNT && !pPlayer->GetProgressData().HasAchievement((eAchievement)achievementID))
+    if (achievementID != 127 && achievementID < 0 && achievementID > ACHIEVEMENT_COUNT && !pPlayer->GetProgressData().HasAchievement((eAchievement)achievementID))
         return;
 
     string message = "Block etched.";
-    if(achievementID == 127)
+    if (achievementID == 127)
     {
         message = "`5Achievement Block`` cleared.";
     }

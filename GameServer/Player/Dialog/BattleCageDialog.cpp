@@ -27,9 +27,9 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-    ->AddLabelWithIcon(pItem->name, pItem->id, true)
-    ->EmbedData("tilex", vTilePos.x)
-    ->EmbedData("tiley", vTilePos.y);
+        ->AddLabelWithIcon(pItem->name, pItem->id, true)
+        ->EmbedData("tilex", vTilePos.x)
+        ->EmbedData("tiley", vTilePos.y);
 
     PlayerProgress& progressData = pPlayer->GetProgressData();
 
@@ -87,17 +87,17 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
             return;
 
         string randStatus;
-        switch(RandomRangeInt(0, 4))
+        switch (RandomRangeInt(0, 4))
         {
-            case 0: randStatus += "sleeping in the back of the cage."; break;
-            case 1: randStatus += "bares razor fangs at you in silence."; break;
-            case 2: randStatus += "snarls and snaps as you get close."; break;
-            case 3: randStatus += "eyes you hungrily."; break;
-            case 4: randStatus += "stares at you, unblinking."; break;
+        case 0: randStatus += "sleeping in the back of the cage."; break;
+        case 1: randStatus += "bares razor fangs at you in silence."; break;
+        case 2: randStatus += "snarls and snaps as you get close."; break;
+        case 3: randStatus += "eyes you hungrily."; break;
+        case 4: randStatus += "stares at you, unblinking."; break;
         }
 
         db.AddTextBox(pPetInfo->GetColorCodeByElement() + pTileExtra->cageName + "`` the " + pPetInfo->name + "`` is " + randStatus);
-        
+
         if(!hasAccessToEdit)
         {
             db.EndDialog("battlecage", "", "Back away slowly");
@@ -105,7 +105,7 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
         else
         {
             db.AddSmallText("`wNatural ability:``")
-            ->AddLabelWithIcon(pPetInfo->GetDescribedPower(), pPetInfo->itemID);
+                ->AddLabelWithIcon(pPetInfo->GetDescribedPower(), pPetInfo->itemID);
 
             if(pTileExtra->secondPet != ITEM_ID_BLANK)
             {
@@ -114,19 +114,19 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
                 if(pPetInfo2)
                 {
                     db.AddSmallText("`wGene-spliced ability:``")
-                    ->AddLabelWithIcon(pPetInfo2->GetDescribedPower(), pPetInfo2->itemID)
-                    ->AddItemPicker("replace1", "Replace this ability", "Select any pet to splice its genes");
+                        ->AddLabelWithIcon(pPetInfo2->GetDescribedPower(), pPetInfo2->itemID)
+                        ->AddItemPicker("replace1", "Replace this ability", "Select any pet to splice its genes");
                 }
 
                 if(pTileExtra->thirdPet != ITEM_ID_BLANK)
                 {
                     BattlePetInfo* pPetInfo3 = GetItemInfoManager()->GetBattlePetInfo(pTileExtra->thirdPet);
-    
+
                     if(pPetInfo3)
                     {
                         db.AddSmallText("`wGene-spliced ability:``")
-                        ->AddLabelWithIcon(pPetInfo3->GetDescribedPower(), pPetInfo3->itemID)
-                        ->AddItemPicker("replace2", "Replace this ability", "Select any pet to splice its genes");
+                            ->AddLabelWithIcon(pPetInfo3->GetDescribedPower(), pPetInfo3->itemID)
+                            ->AddItemPicker("replace2", "Replace this ability", "Select any pet to splice its genes");
                     }
 
                     if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_GENETIC_RESEQUENCER) > 0)
@@ -145,9 +145,9 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
             }
 
             db.AddSmallText("It costs 10 World Locks to splice in the genes from another creature and add or replace an ability. A Battle Pet needs 3 Abilities to be used in battles.")
-            ->AddButton("pickitup", "Put " + pTileExtra->cageName + "`o in your Battle Leash")
-            ->AddTextInput("setname", "Name:", pTileExtra->cageName, 20)
-            ->EndDialog("battlecage", "Rename", "Cancel");
+                ->AddButton("pickitup", "Put " + pTileExtra->cageName + "`o in your Battle Leash")
+                ->AddTextInput("setname", "Name:", pTileExtra->cageName, 20)
+                ->EndDialog("battlecage", "Rename", "Cancel");
         }
     }
 
@@ -200,21 +200,21 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
     auto pCritter = packet.Find("critter"_hash);
     if(pCritter)
     {
-        if(ToUInt(string(pCritter->value, pCritter->size), critter) != TO_INT_SUCCESS)
+        if(pCritter->GetUInt(critter) != TO_INT_SUCCESS)
             return;
     }
 
     auto pReplace1 = packet.Find("replace1"_hash);
     if(pReplace1)
     {
-        if(ToUInt(string(pReplace1->value, pReplace1->size), replace1) != TO_INT_SUCCESS)
+        if(pReplace1->GetUInt(replace1) != TO_INT_SUCCESS)
             return;
     }
-
+    
     auto pReplace2 = packet.Find("replace2"_hash);
     if(pReplace2)
     {
-        if(ToUInt(string(pReplace2->value, pReplace2->size), replace2) != TO_INT_SUCCESS)
+        if(pReplace2->GetUInt(replace2) != TO_INT_SUCCESS)
             return;
     }
 
@@ -222,9 +222,9 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-    ->AddLabelWithIcon(pItem->name, pItem->id, true)
-    ->EmbedData("tilex", vTilePos.x)
-    ->EmbedData("tiley", vTilePos.y);
+        ->AddLabelWithIcon(pItem->name, pItem->id, true)
+        ->EmbedData("tilex", vTilePos.x)
+        ->EmbedData("tiley", vTilePos.y);
 
     auto pButtonClicked = packet.Find("buttonClicked"_hash);
     if(!pButtonClicked)
@@ -239,41 +239,41 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
                     pPlayer->SendOnTalkBubble("Something already lives in there!", false);
                     return;
                 }
-    
+
                 ItemInfo* pPetItemInfo = GetItemInfoManager()->GetItemByID(critter);
                 if(!pPetItemInfo)
                     return;
-    
+
                 BattlePetInfo* pPetInfo = GetItemInfoManager()->GetBattlePetInfo(critter);
                 if(!pPetInfo)
                 {
                     pPlayer->SendOnTalkBubble("A " + pPetItemInfo->name + " would not make a very good Battle Pet.", false);
                     return;
                 }
-    
+
                 db.AddTextBox("Are you absolutely sure you want to `4permanently destroy`` your `2" + pItem->name + "`` to make a Battle Pet? Once caged, a Battle Pet can never be removed because it becomes too dangerous. Destroying the Battle Pet Cage will also destroy the pet inside.")
-                ->EmbedData("critter", critter)
-                ->AddButton("docage", "Yes, I am sure!")
-                ->EndDialog("battlecage", "", "Nevermind");
+                    ->EmbedData("critter", critter)
+                    ->AddButton("docage", "Yes, I am sure!")
+                    ->EndDialog("battlecage", "", "Nevermind");
             }
             else
             {
                 auto pSetName = packet.Find("setname"_hash);
                 if(!pSetName)
                     return;
-    
-                if(pSetName->size < 1 || pSetName->size > 20)
+
+                if(pSetName->valueSize < 1 || pSetName->valueSize > 20)
                     return;
-    
-                string setName(pSetName->value, pSetName->size);
+
+                string setName = pSetName->GetString();
                 RemoveGTColorCodes(setName);
-    
+
                 if(setName.empty() || setName.size() > 20)
                     return;
-    
+
                 pTileExtra->cageName = setName;
                 pWorld->SendTileUpdate(pTile);
-    
+
                 pPlayer->SendOnTalkBubble("You renamed your pet \"" + setName + "``\"!", false);
                 return;
             }
@@ -325,7 +325,7 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
             db.AddTextBox("Are you absolutely sure you want to `4permanently destroy`` your `2" + pPetItemInfo->name + "`` to gene-splice its ability into " + pTileExtra->cageName + "`o?" + costStr);
 
             int32 replacedItem = (replace2 != ITEM_ID_BLANK) ? pTileExtra->thirdPet : pTileExtra->secondPet;
-            
+
             if(replacedItem != 0)
             {
                 BattlePetInfo* pReplacedPetInfo = GetItemInfoManager()->GetBattlePetInfo(replacedItem);
@@ -339,300 +339,300 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
             replaceButtonId += (replace2 != ITEM_ID_BLANK) ? "2" : "1";
 
             db.AddButton("doreplace", "Yes, I am sure")
-            ->EmbedData(replaceButtonId, itemToUse)
-            ->EndDialog("battlecage", "", "Nevermind");
+                ->EmbedData(replaceButtonId, itemToUse)
+                ->EndDialog("battlecage", "", "Nevermind");
         }
     }
     else
     {
-        if(pButtonClicked->size == 0 || pButtonClicked->size > 25)
+        if(pButtonClicked->valueSize == 0 || pButtonClicked->valueSize > 25)
             return;
 
-        uint32 buttonClickedHash = HashString(pButtonClicked->value, pButtonClicked->size);
+        uint32 buttonClickedHash = HashString(pButtonClicked->value, pButtonClicked->valueSize);
 
-        switch(buttonClickedHash)
+        switch (buttonClickedHash)
         {
-            case "docage"_hash:
+        case "docage"_hash:
+        {
+            if(critter == ITEM_ID_BLANK)
+                return;
+
+            if(pTileExtra->basePet != ITEM_ID_BLANK)
             {
-                if(critter == ITEM_ID_BLANK)
-                    return;
-
-                if(pTileExtra->basePet != ITEM_ID_BLANK)
-                {
-                    pPlayer->SendOnTalkBubble("Something already lives in there!", false);
-                    return;
-                }
-
-                ItemInfo* pPetItemInfo = GetItemInfoManager()->GetItemByID(critter);
-                if(!pPetItemInfo)
-                    return;
-    
-                BattlePetInfo* pPetInfo = GetItemInfoManager()->GetBattlePetInfo(critter);
-                if(!pPetInfo)
-                {
-                    pPlayer->SendOnTalkBubble("A " + pPetInfo->name + " would not make a very good Battle Pet.", false);
-                    return;
-                }
-
-                if(pPlayer->GetInventory().GetCountOfItem(critter) < 1)
-                {
-                    pPlayer->SendOnTalkBubble("You don't have that item!", false);
-                    return;
-                }
-
-                pPlayer->ModifyInventoryItem(critter, -1);
-                pTileExtra->basePet = critter;
-                pTileExtra->cageName = GetRandomGrowNamePart() + GetRandomGrowNamePart();
-
-                pPlayer->SendOnTalkBubble("I have caged " + pTileExtra->cageName + " the " + pPetInfo->name, false);
-                pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o has caged "  + pTileExtra->cageName + " the " + pPetInfo->name);
-
-                pWorld->SendTileUpdate(pTile);
-                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPos());
+                pPlayer->SendOnTalkBubble("Something already lives in there!", false);
                 return;
             }
 
-            case "resequence"_hash:
+            ItemInfo* pPetItemInfo = GetItemInfoManager()->GetItemByID(critter);
+            if(!pPetItemInfo)
+                return;
+
+            BattlePetInfo* pPetInfo = GetItemInfoManager()->GetBattlePetInfo(critter);
+            if(!pPetInfo)
             {
-                if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_GENETIC_RESEQUENCER) < 1)
-                {
-                    pPlayer->SendOnTalkBubble("You don't have Genetic Resequencer!", false);
-                    return;
-                }
+                pPlayer->SendOnTalkBubble("A " + pPetInfo->name + " would not make a very good Battle Pet.", false);
+                return;
+            }
 
-                if(pTileExtra->secondPet == ITEM_ID_BLANK || pTileExtra->thirdPet == ITEM_ID_BLANK)
-                {
-                    pPlayer->SendOnTalkBubble("You need completely spliced pet to resequence its genes", false);
-                    return;
-                }
+            if(pPlayer->GetInventory().GetCountOfItem(critter) < 1)
+            {
+                pPlayer->SendOnTalkBubble("You don't have that item!", false);
+                return;
+            }
 
-                db.AddTextBox("Resequencing " + pTileExtra->cageName + "'s genes will cost you 1 `5Genetic Resequencer``, and will leave it with the same 3 skills, but in a new order")
+            pPlayer->ModifyInventoryItem(critter, -1);
+            pTileExtra->basePet = critter;
+            pTileExtra->cageName = GetRandomGrowNamePart() + GetRandomGrowNamePart();
+
+            pPlayer->SendOnTalkBubble("I have caged " + pTileExtra->cageName + " the " + pPetInfo->name, false);
+            pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o has caged " + pTileExtra->cageName + " the " + pPetInfo->name);
+
+            pWorld->SendTileUpdate(pTile);
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPos());
+            return;
+        }
+
+        case "resequence"_hash:
+        {
+            if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_GENETIC_RESEQUENCER) < 1)
+            {
+                pPlayer->SendOnTalkBubble("You don't have Genetic Resequencer!", false);
+                return;
+            }
+
+            if(pTileExtra->secondPet == ITEM_ID_BLANK || pTileExtra->thirdPet == ITEM_ID_BLANK)
+            {
+                pPlayer->SendOnTalkBubble("You need completely spliced pet to resequence its genes", false);
+                return;
+            }
+
+            db.AddTextBox("Resequencing " + pTileExtra->cageName + "'s genes will cost you 1 `5Genetic Resequencer``, and will leave it with the same 3 skills, but in a new order")
                 ->AddTextBox("Are you sure you want to do this?")
                 ->AddButton("doresequence", "Yes, I am sure!")
                 ->EndDialog("battlecage", "", "Nevermind");
-                break;
-            }
+            break;
+        }
 
-            case "doresequence"_hash:
+        case "doresequence"_hash:
+        {
+            if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_GENETIC_RESEQUENCER) < 1)
             {
-                if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_GENETIC_RESEQUENCER) < 1)
-                {
-                    pPlayer->SendOnTalkBubble("You don't have a Genetic Resequencer!", false);
-                    return;
-                }
-
-                if(pTileExtra->thirdPet == ITEM_ID_BLANK)
-                {
-                    pPlayer->SendOnTalkBubble("You need a completely spliced pet to resequence its genes.", false);
-                    return;
-                }
-
-                int32 pet1 = pTileExtra->basePet;
-                int32 pet2 = pTileExtra->secondPet;
-                int32 pet3 = pTileExtra->thirdPet;
-
-                pTileExtra->basePet = pet2;
-                pTileExtra->secondPet = pet3;
-                pTileExtra->thirdPet = pet1;
-
-                pPlayer->SendOnTalkBubble(pTileExtra->cageName + " has resequenced " + GetFullBattlePetName(pet1, pet2, pet3) + "'s genes, it is now a " + GetFullBattlePetName(pet2, pet3, pet1) + ".", false);
-
-                pPlayer->ModifyInventoryItem(ITEM_ID_GENETIC_RESEQUENCER, -1);
-                pWorld->SendTileUpdate(pTile);
-                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPos());
+                pPlayer->SendOnTalkBubble("You don't have a Genetic Resequencer!", false);
                 return;
             }
 
-            case "doreplace"_hash:
+            if(pTileExtra->thirdPet == ITEM_ID_BLANK)
             {
-                if(replace1 == ITEM_ID_BLANK && replace2 == ITEM_ID_BLANK)
-                    return;
-
-                uint32 itemToUse = (replace2 != ITEM_ID_BLANK) ? replace2 : replace1;
-                if(pTileExtra->basePet == itemToUse || pTileExtra->secondPet == itemToUse || pTileExtra->thirdPet == itemToUse)
-                {
-                    pPlayer->SendOnTalkBubble("Your pet already has that ability!", false);
-                    return;
-                }
-    
-                ItemInfo* pPetItemInfo = GetItemInfoManager()->GetItemByID(itemToUse);
-                if(!pPetItemInfo)
-                    return;
-    
-                BattlePetInfo* pPetInfo = GetItemInfoManager()->GetBattlePetInfo(itemToUse);
-                if(!pPetInfo)
-                {
-                    pPlayer->SendOnTalkBubble("A " + pPetItemInfo->name + " has not Battle Pet abilities to splice.", false);
-                    return;
-                }
-    
-                if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_WORLD_LOCK) < 10)
-                {
-                    pPlayer->SendOnTalkBubble("You don't have 10 World Locks!", false);
-                    return;
-                }
-
-                if(pPlayer->GetInventory().GetCountOfItem(itemToUse) < 1)
-                {
-                    pPlayer->SendOnTalkBubble("You don't have that item", false);
-                    return;
-                }
-
-                pPlayer->ModifyInventoryItem(itemToUse, -1);
-                pPlayer->ModifyInventoryItem(ITEM_ID_WORLD_LOCK, -10);
-
-                BattlePetInfo* pBasePetInfo = GetItemInfoManager()->GetBattlePetInfo(pTileExtra->basePet);
-                if(!pBasePetInfo)
-                    return;
-
-                if(pBasePetInfo->element != pPetInfo->element)
-                {
-                    if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_CRISPR_TECHNOLOGY) < 1)
-                    {
-                        pPlayer->SendOnTalkBubble("You need CRISPR Technology!", false);
-                        return;
-                    }
-
-                    pPlayer->ModifyInventoryItem(ITEM_ID_CRISPR_TECHNOLOGY, -1);
-                }
-
-                if(replace2 != ITEM_ID_BLANK)
-                {
-                    pTileExtra->thirdPet = itemToUse;
-                }
-                else if(replace2 == ITEM_ID_BLANK && replace1 != ITEM_ID_BLANK)
-                {
-                    pTileExtra->secondPet = itemToUse;
-                }
-                else
-                    return;
-
-                string notfiyMsg = "You spent 10 World Locks";
-                if(pBasePetInfo->element != pPetInfo->element)
-                {
-                    notfiyMsg += ", 1 CRISPR Technology";
-                }
-                notfiyMsg += " and 1 " + pPetItemInfo->name + " to gene-splice the ability '" + pPetInfo->powerName + "' into your Battle Pet " + pTileExtra->cageName + "!";
-                
-                pPlayer->SendOnTalkBubble(notfiyMsg, false);
-                pWorld->SendTileUpdate(pTile);
-                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPos());
+                pPlayer->SendOnTalkBubble("You need a completely spliced pet to resequence its genes.", false);
                 return;
             }
 
-            case "pickitup"_hash:
+            int32 pet1 = pTileExtra->basePet;
+            int32 pet2 = pTileExtra->secondPet;
+            int32 pet3 = pTileExtra->thirdPet;
+
+            pTileExtra->basePet = pet2;
+            pTileExtra->secondPet = pet3;
+            pTileExtra->thirdPet = pet1;
+
+            pPlayer->SendOnTalkBubble(pTileExtra->cageName + " has resequenced " + GetFullBattlePetName(pet1, pet2, pet3) + "'s genes, it is now a " + GetFullBattlePetName(pet2, pet3, pet1) + ".", false);
+
+            pPlayer->ModifyInventoryItem(ITEM_ID_GENETIC_RESEQUENCER, -1);
+            pWorld->SendTileUpdate(pTile);
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPos());
+            return;
+        }
+
+        case "doreplace"_hash:
+        {
+            if(replace1 == ITEM_ID_BLANK && replace2 == ITEM_ID_BLANK)
+                return;
+
+            uint32 itemToUse = (replace2 != ITEM_ID_BLANK) ? replace2 : replace1;
+            if(pTileExtra->basePet == itemToUse || pTileExtra->secondPet == itemToUse || pTileExtra->thirdPet == itemToUse)
             {
-                if(pTileExtra->thirdPet == ITEM_ID_BLANK)
-                {
-                    pPlayer->SendOnTalkBubble("A pet needs 3 powers to be put in a Battle Leash!", false);
-                    return;
-                }
-
-                if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_BATTLE_LEASH) < 1)
-                {
-                    pPlayer->SendOnTalkBubble("You don't have a Battle Leash!", false);
-                    return;
-                }
-
-                PlayerProgress& progressData = pPlayer->GetProgressData();
-                if(progressData.GetProgress(PLAYER_PROGRESS_PET_1_0) != ITEM_ID_BLANK && progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) != ITEM_ID_BLANK)
-                {
-                    pPlayer->SendOnTalkBubble("Your Battle Leash is full, take somebody out of it!", false);
-                    return;
-                }
-
-                int32 freeSlotIdx = (progressData.GetProgress(PLAYER_PROGRESS_PET_1_0) == ITEM_ID_BLANK) ? PLAYER_PROGRESS_PET_1_0 : PLAYER_PROGRESS_PET_2_0;
-                progressData.SetProgress((ePlayerProgress)freeSlotIdx, pTileExtra->basePet);
-                progressData.SetProgress((ePlayerProgress)(freeSlotIdx + 1), pTileExtra->secondPet);
-                progressData.SetProgress((ePlayerProgress)(freeSlotIdx + 2), pTileExtra->thirdPet);
-
-                pTileExtra->basePet = ITEM_ID_BLANK;
-                pTileExtra->secondPet = ITEM_ID_BLANK;
-                pTileExtra->thirdPet = ITEM_ID_BLANK;
-
-                pPlayer->SendOnTalkBubble("I stuffed " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(freeSlotIdx) + " into my Battle Leash!", false);
-                pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o put " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(freeSlotIdx) + " in their Battle Leash");
-                pWorld->SendTileUpdate(pTile);
-
-                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPosCenter());
-
-                if(pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND) == ITEM_ID_BATTLE_LEASH)
-                {
-                    pPlayer->ToggleBattlePetLeash(true);
-                }
-
+                pPlayer->SendOnTalkBubble("Your pet already has that ability!", false);
                 return;
             }
 
-            case "dropoff1"_hash:
+            ItemInfo* pPetItemInfo = GetItemInfoManager()->GetItemByID(itemToUse);
+            if(!pPetItemInfo)
+                return;
+
+            BattlePetInfo* pPetInfo = GetItemInfoManager()->GetBattlePetInfo(itemToUse);
+            if(!pPetInfo)
             {
-                if(pTileExtra->basePet != ITEM_ID_BLANK)
-                    return;
+                pPlayer->SendOnTalkBubble("A " + pPetItemInfo->name + " has not Battle Pet abilities to splice.", false);
+                return;
+            }
 
-                PlayerProgress& progressData = pPlayer->GetProgressData();
-                if(progressData.GetProgress(PLAYER_PROGRESS_PET_1_0) == ITEM_ID_BLANK)
-                    return;
+            if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_WORLD_LOCK) < 10)
+            {
+                pPlayer->SendOnTalkBubble("You don't have 10 World Locks!", false);
+                return;
+            }
 
-                pTileExtra->basePet = progressData.GetProgress(PLAYER_PROGRESS_PET_1_0);
-                pTileExtra->secondPet = progressData.GetProgress(PLAYER_PROGRESS_PET_1_1);
-                pTileExtra->thirdPet = progressData.GetProgress(PLAYER_PROGRESS_PET_1_2);
+            if(pPlayer->GetInventory().GetCountOfItem(itemToUse) < 1)
+            {
+                pPlayer->SendOnTalkBubble("You don't have that item", false);
+                return;
+            }
 
-                progressData.SetProgress(PLAYER_PROGRESS_PET_1_0, ITEM_ID_BLANK);
-                progressData.SetProgress(PLAYER_PROGRESS_PET_1_1, ITEM_ID_BLANK);
-                progressData.SetProgress(PLAYER_PROGRESS_PET_1_2, ITEM_ID_BLANK);
+            pPlayer->ModifyInventoryItem(itemToUse, -1);
+            pPlayer->ModifyInventoryItem(ITEM_ID_WORLD_LOCK, -10);
 
-                if(pTileExtra->cageName.empty())
+            BattlePetInfo* pBasePetInfo = GetItemInfoManager()->GetBattlePetInfo(pTileExtra->basePet);
+            if(!pBasePetInfo)
+                return;
+
+            if(pBasePetInfo->element != pPetInfo->element)
+            {
+                if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_CRISPR_TECHNOLOGY) < 1)
                 {
-                    pTileExtra->cageName = GetRandomGrowNamePart() + GetRandomGrowNamePart();
+                    pPlayer->SendOnTalkBubble("You need CRISPR Technology!", false);
+                    return;
                 }
 
-                pWorld->SendTileUpdate(pTile);
+                pPlayer->ModifyInventoryItem(ITEM_ID_CRISPR_TECHNOLOGY, -1);
+            }
+
+            if(replace2 != ITEM_ID_BLANK)
+            {
+                pTileExtra->thirdPet = itemToUse;
+            }
+            else if(replace2 == ITEM_ID_BLANK && replace1 != ITEM_ID_BLANK)
+            {
+                pTileExtra->secondPet = itemToUse;
+            }
+            else
+                return;
+
+            string notfiyMsg = "You spent 10 World Locks";
+            if(pBasePetInfo->element != pPetInfo->element)
+            {
+                notfiyMsg += ", 1 CRISPR Technology";
+            }
+            notfiyMsg += " and 1 " + pPetItemInfo->name + " to gene-splice the ability '" + pPetInfo->powerName + "' into your Battle Pet " + pTileExtra->cageName + "!";
+
+            pPlayer->SendOnTalkBubble(notfiyMsg, false);
+            pWorld->SendTileUpdate(pTile);
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPos());
+            return;
+        }
+
+        case "pickitup"_hash:
+        {
+            if(pTileExtra->thirdPet == ITEM_ID_BLANK)
+            {
+                pPlayer->SendOnTalkBubble("A pet needs 3 powers to be put in a Battle Leash!", false);
+                return;
+            }
+
+            if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_BATTLE_LEASH) < 1)
+            {
+                pPlayer->SendOnTalkBubble("You don't have a Battle Leash!", false);
+                return;
+            }
+
+            PlayerProgress& progressData = pPlayer->GetProgressData();
+            if(progressData.GetProgress(PLAYER_PROGRESS_PET_1_0) != ITEM_ID_BLANK && progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) != ITEM_ID_BLANK)
+            {
+                pPlayer->SendOnTalkBubble("Your Battle Leash is full, take somebody out of it!", false);
+                return;
+            }
+
+            int32 freeSlotIdx = (progressData.GetProgress(PLAYER_PROGRESS_PET_1_0) == ITEM_ID_BLANK) ? PLAYER_PROGRESS_PET_1_0 : PLAYER_PROGRESS_PET_2_0;
+            progressData.SetProgress((ePlayerProgress)freeSlotIdx, pTileExtra->basePet);
+            progressData.SetProgress((ePlayerProgress)(freeSlotIdx + 1), pTileExtra->secondPet);
+            progressData.SetProgress((ePlayerProgress)(freeSlotIdx + 2), pTileExtra->thirdPet);
+
+            pTileExtra->basePet = ITEM_ID_BLANK;
+            pTileExtra->secondPet = ITEM_ID_BLANK;
+            pTileExtra->thirdPet = ITEM_ID_BLANK;
+
+            pPlayer->SendOnTalkBubble("I stuffed " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(freeSlotIdx) + " into my Battle Leash!", false);
+            pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o put " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(freeSlotIdx) + " in their Battle Leash");
+            pWorld->SendTileUpdate(pTile);
+
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPosCenter());
+
+            if(pPlayer->GetInventory().GetClothByPart(BODY_PART_HAND) == ITEM_ID_BATTLE_LEASH)
+            {
                 pPlayer->ToggleBattlePetLeash(true);
-
-                pPlayer->SendOnTalkBubble("I caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(0), false);
-                pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(0));
-
-                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPosCenter());
-                return;
             }
 
-            case "dropoff2"_hash:
+            return;
+        }
+
+        case "dropoff1"_hash:
+        {
+            if(pTileExtra->basePet != ITEM_ID_BLANK)
+                return;
+
+            PlayerProgress& progressData = pPlayer->GetProgressData();
+            if(progressData.GetProgress(PLAYER_PROGRESS_PET_1_0) == ITEM_ID_BLANK)
+                return;
+
+            pTileExtra->basePet = progressData.GetProgress(PLAYER_PROGRESS_PET_1_0);
+            pTileExtra->secondPet = progressData.GetProgress(PLAYER_PROGRESS_PET_1_1);
+            pTileExtra->thirdPet = progressData.GetProgress(PLAYER_PROGRESS_PET_1_2);
+
+            progressData.SetProgress(PLAYER_PROGRESS_PET_1_0, ITEM_ID_BLANK);
+            progressData.SetProgress(PLAYER_PROGRESS_PET_1_1, ITEM_ID_BLANK);
+            progressData.SetProgress(PLAYER_PROGRESS_PET_1_2, ITEM_ID_BLANK);
+
+            if(pTileExtra->cageName.empty())
             {
-                if(pTileExtra->basePet != ITEM_ID_BLANK)
-                    return;
-
-                PlayerProgress& progressData = pPlayer->GetProgressData();
-                if(progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) == ITEM_ID_BLANK)
-                    return;
-
-                pTileExtra->basePet = progressData.GetProgress(PLAYER_PROGRESS_PET_2_0);
-                pTileExtra->secondPet = progressData.GetProgress(PLAYER_PROGRESS_PET_2_1);
-                pTileExtra->thirdPet = progressData.GetProgress(PLAYER_PROGRESS_PET_2_2);
-
-                progressData.SetProgress(PLAYER_PROGRESS_PET_2_0, ITEM_ID_BLANK);
-                progressData.SetProgress(PLAYER_PROGRESS_PET_2_1, ITEM_ID_BLANK);
-                progressData.SetProgress(PLAYER_PROGRESS_PET_2_2, ITEM_ID_BLANK);
-
-                if(pTileExtra->cageName.empty())
-                {
-                    pTileExtra->cageName = GetRandomGrowNamePart() + GetRandomGrowNamePart();
-                }
-
-                pWorld->SendTileUpdate(pTile);
-                if(pPlayer->GetActiveBattlePetSlot() == 1)
-                {
-                    pPlayer->ToggleBattlePetLeash(false);
-                }
-
-                pPlayer->SendOnTalkBubble("I caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(1), false);
-                pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(1));
-
-                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPosCenter());
-                return;
+                pTileExtra->cageName = GetRandomGrowNamePart() + GetRandomGrowNamePart();
             }
 
-            default:
+            pWorld->SendTileUpdate(pTile);
+            pPlayer->ToggleBattlePetLeash(true);
+
+            pPlayer->SendOnTalkBubble("I caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(0), false);
+            pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(0));
+
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPosCenter());
+            return;
+        }
+
+        case "dropoff2"_hash:
+        {
+            if(pTileExtra->basePet != ITEM_ID_BLANK)
                 return;
+
+            PlayerProgress& progressData = pPlayer->GetProgressData();
+            if(progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) == ITEM_ID_BLANK)
+                return;
+
+            pTileExtra->basePet = progressData.GetProgress(PLAYER_PROGRESS_PET_2_0);
+            pTileExtra->secondPet = progressData.GetProgress(PLAYER_PROGRESS_PET_2_1);
+            pTileExtra->thirdPet = progressData.GetProgress(PLAYER_PROGRESS_PET_2_2);
+
+            progressData.SetProgress(PLAYER_PROGRESS_PET_2_0, ITEM_ID_BLANK);
+            progressData.SetProgress(PLAYER_PROGRESS_PET_2_1, ITEM_ID_BLANK);
+            progressData.SetProgress(PLAYER_PROGRESS_PET_2_2, ITEM_ID_BLANK);
+
+            if(pTileExtra->cageName.empty())
+            {
+                pTileExtra->cageName = GetRandomGrowNamePart() + GetRandomGrowNamePart();
+            }
+
+            pWorld->SendTileUpdate(pTile);
+            if(pPlayer->GetActiveBattlePetSlot() == 1)
+            {
+                pPlayer->ToggleBattlePetLeash(false);
+            }
+
+            pPlayer->SendOnTalkBubble("I caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(1), false);
+            pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o caged " + pTileExtra->cageName + " the " + progressData.GetBattlePetName(1));
+
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_TRANSFORM_FX, pTile->GetWorldPosCenter());
+            return;
+        }
+
+        default:
+            return;
         }
     }
 

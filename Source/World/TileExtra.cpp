@@ -21,6 +21,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_MAILBOX:
             return TILE_EXTRA_TYPE_MAILBOX;
 
+        case ITEM_TYPE_BULLETIN:
+            return TILE_EXTRA_TYPE_BULLETIN;
+
         case ITEM_TYPE_PROVIDER:
             return TILE_EXTRA_TYPE_PROVIDER;
 
@@ -68,6 +71,9 @@ TileExtra* CreateTileExtra(uint8 type)
 
         case TILE_EXTRA_TYPE_MAILBOX:
             return new TileExtra_Mailbox();
+
+        case TILE_EXTRA_TYPE_BULLETIN:
+            return new TileExtra_Bulletin();
 
         case TILE_EXTRA_TYPE_COMPONENT:
             return new TileExtra_Component();
@@ -450,5 +456,37 @@ void TileExtra_Crystal::Serialize(MemoryBuffer& memBuffer, bool write, bool data
     if(database)
     {
         memBuffer.ReadWriteRaw(chi, 4 * sizeof(int16), write);
+    }
+}
+
+void TileExtra_Bulletin::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    
+    if(!database)
+    {
+        string data;
+        memBuffer.ReadWriteString(data, write);
+        memBuffer.ReadWriteString(data, write);
+        memBuffer.ReadWriteString(data, write);
+
+        uint8 flags = 0;
+        memBuffer.ReadWrite(flags, write);
+    }
+    else
+    {
+        uint8 letterSize = letters.size();
+        memBuffer.ReadWrite(letterSize, write);
+
+        if(!write)
+        {
+            letters.resize(letterSize);
+        }
+
+        for(auto& letter : letters)
+        {
+            memBuffer.ReadWrite(letter.userID, write);
+            memBuffer.ReadWriteString(letter.message, write);
+        }
     }
 }

@@ -12,48 +12,50 @@
 #include "../../../Player/Dialog/BattleCageDialog.h"
 #include "../../../Player/Dialog/XenoniteDialog.h"
 #include "../../../Player/Dialog/MailboxBlockDialog.h"
+#include "../../../Player/Dialog/WrenchSelfDialog.h"
+#include "../../../Player/Dialog/BulletinBlockDialog.h"
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(!pPlayer)
+    if (!pPlayer)
         return;
 
     auto pDialogName = packet.Find("dialog_name"_hash);
-    if(!pDialogName || pDialogName->size > 50)
+    if (!pDialogName || pDialogName->valueSize > 50)
         return;
 
-    uint32 hashedDialogName = HashString(pDialogName->value, pDialogName->size);
+    uint32 hashedDialogName = HashString(pDialogName->value, pDialogName->valueSize);
 
-    switch(hashedDialogName) 
+    switch (hashedDialogName)
     {
-        case "sign_edit"_hash: 
+        case "sign_edit"_hash:
         {
             SignDialog::Handle(pPlayer, packet);
             break;
         }
 
         case "trash_item"_hash:
-        case "trash_item2"_hash: 
+        case "trash_item2"_hash:
         {
             auto pItemID = packet.Find("itemID"_hash);
             auto pCount = packet.Find("count"_hash);
 
-            if(!pItemID || !pCount)
+            if (!pItemID || !pCount)
                 return;
 
             uint32 itemID = 0;
-            if(ToUInt(string(pItemID->value, pItemID->size), itemID) != TO_INT_SUCCESS)
+            if (ToUInt(string(pItemID->value, pItemID->valueSize), itemID) != TO_INT_SUCCESS)
                 return;
 
             int32 count = 0;
-            if(ToInt(string(pCount->value, pCount->size), count) != TO_INT_SUCCESS)
+            if (ToInt(string(pCount->value, pCount->valueSize), count) != TO_INT_SUCCESS)
                 return;
 
-            if(hashedDialogName == "trash_item2"_hash) 
+            if (hashedDialogName == "trash_item2"_hash)
             {
                 TrashDialog::HandleUntradeable(pPlayer, itemID, count);
             }
-            else 
+            else
             {
                 TrashDialog::Handle(pPlayer, itemID, count);
             }
@@ -61,19 +63,19 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
             break;
         }
 
-        case "lock_edit"_hash: 
+        case "lock_edit"_hash:
         {
             LockDialog::Handle(pPlayer, packet);
             break;
         }
 
-        case "render_reply"_hash: 
+        case "render_reply"_hash:
         {
             RenderWorldDialog::Handle(pPlayer);
             break;
         }
 
-        case "growid_apply"_hash: 
+        case "growid_apply"_hash:
         {
             RegisterDialog::Handle(pPlayer, packet);
             break;
@@ -112,6 +114,30 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         case "mailbox_edit"_hash:
         {
             MailboxBlockDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "plyr_wrench"_hash:
+        {
+            WrenchSelfDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "acceptaccess"_hash:
+        {
+            pPlayer->AcceptLockAccess();
+            break;
+        }
+
+        case "bulletin_edit"_hash:
+        {
+            BulletinBlockDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "remove_bulletin"_hash:
+        {
+            BulletinBlockDialog::HandleDeleteEntry(pPlayer, packet);
             break;
         }
     }

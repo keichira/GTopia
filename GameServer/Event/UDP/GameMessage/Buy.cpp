@@ -3,23 +3,23 @@
 
 void Buy::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(!pPlayer)
+    if (!pPlayer)
         return;
 
     auto pItem = packet.Find("item"_hash);
-    if(!pItem)
+    if (!pItem)
         return;
 
-    if(pItem->size > 50)
+    if (pItem->valueSize > 50)
         return;
 
     StoreManager* pStoreMgr = GetStoreManager();
 
     StoreEntry* pStoreEntry = pStoreMgr->GetStoreEntryByCode(pItem->GetString());
-    if(!pStoreEntry)
+    if (!pStoreEntry)
         return;
 
-    if(pStoreEntry->isTab)
+    if (pStoreEntry->isTab)
     {
         eStoreTab storeTab = pStoreMgr->GetTabTypeByCode(pStoreEntry->code);
         pStoreMgr->NavigatePlayer(pPlayer, storeTab);

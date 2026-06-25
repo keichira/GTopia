@@ -71,7 +71,7 @@ public:
     void SendOnTalkBubble(const string& message, bool stackMessages, Player* pPlayer = nullptr);
     void SendOnSetCurrentWeather(int32 weatherID);
     void SendOnRemove(int32 netID);
-    void SendOnDialogRequest(const string& dialogData);
+    void SendOnDialogRequest(const string& dialogData, int32 delayMS = -1);
     void SendOnTextOverlay(const string& message);
     void SendOnPlayPositioned(const string& fileName, Player* pPlayer = nullptr);
     void SendOnNameChanged(const string& name, Player* pPlayer);

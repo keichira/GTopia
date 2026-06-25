@@ -112,6 +112,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/XenoniteDialog.cpp
     ${GAME_DIALOG}/MailboxBlockDialog.cpp
     ${GAME_DIALOG}/CrystalBlockDialog.cpp
+    ${GAME_DIALOG}/BulletinBlockDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

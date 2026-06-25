@@ -19,6 +19,7 @@ enum eKeyTile
     KEY_TILE_ANTIGRAVITY,
     KEY_TILE_GHOST_CHARM,
     KEY_TILE_XENONITE,
+    KEY_TILE_FIREHOUSE,
 
     KEY_TILE_SIZE
 };
@@ -53,6 +54,14 @@ public:
     TileInfo* GetTile(int32 index);
     TileInfo* GetTileByWorldPos(float x, float y);
     TileInfo* GetTileByWorldPos(const Vector2Float& pos);
+
+    TileInfo* GetTileParentTileWithWorldLock(TileInfo* pTile);
+    bool IsTileLockedWithLock(TileInfo* pTile);
+    bool IsTileLockedWithLockButPublic(TileInfo* pTile);
+    TileExtra_Lock* GetTileParentLockExtra(TileInfo* pTile);
+    bool IsPlayerOwnerOfTheTile(TileInfo* pTile, int32 userID);
+
+    TileInfo* GetTileInfoFlaggedWith(eItemFlag flag, uint32 skipItemID = 0);
 
     int32 GetTileIndex(TileInfo* pTile);
     bool CanPlantTreeHere(TileInfo* pTile);

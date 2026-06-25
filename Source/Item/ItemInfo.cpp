@@ -260,6 +260,12 @@ bool IsJammer(uint16 itemID)
     || itemID == ITEM_ID_ANTIGRAVITY_GENERATOR || itemID == ITEM_ID_MINI_MOD;
 }
 
+bool IsGaunletOfElements(uint16 itemID)
+{
+    return itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_I || itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_II || itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_III
+    || itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_IV || itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_V;
+}
+
 uint16 GetMaxTilesToLock(uint16 itemID)
 {
     switch(itemID) {
@@ -270,6 +276,9 @@ uint16 GetMaxTilesToLock(uint16 itemID)
             return 48;
 
         case ITEM_ID_HUGE_LOCK:
+            return 200;
+
+        case ITEM_ID_BUILDERS_LOCK:
             return 200;
 
         default:

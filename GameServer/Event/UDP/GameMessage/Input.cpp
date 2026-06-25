@@ -9,24 +9,24 @@
 
 void Input::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(!pPlayer)
+    if (!pPlayer)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     auto pText = packet.Find("text"_hash);
-    if(!pText)
+    if (!pText)
         return;
 
-    string text(pText->value, pText->size);
-    
+    string text(pText->value, pText->valueSize);
+
     RemoveExtraWhiteSpaces(text);
-    if(text.empty())
+    if (text.empty())
         return;
 
-    if(text[0] == '/') 
+    if (text[0] == '/')
     {
         pPlayer->SendOnConsoleMessage("`o" + text);
 
@@ -38,7 +38,7 @@ void Input::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
     char colorCode = pPlayer->GetRole()->GetChatColor();
 
     string consoleText = "<" + pPlayer->GetDisplayName(true) + "``> ";
-    if(colorCode != 0) 
+    if (colorCode != 0)
     {
         consoleText += "`" + string(1, colorCode);
     }
