@@ -254,6 +254,6 @@ void GamePlayer::SendToGame()
     session.ip = string(GetAddress());
 
     GetPlayerManager()->CreateSession(session);
-    SendOnSendToServer(pServer->port, session.loginToken, m_userID, pServer->wanIP, LOGON_MODE_WELCOME);
+    SendOnSendToServer(pServer->port, session.loginToken, m_userID, pServer->wanIP, LOGON_MODE_WELCOME, "");
     SetState(PLAYER_STATE_IDLE);
 }

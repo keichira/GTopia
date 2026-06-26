@@ -51,22 +51,58 @@ void WrenchSelfDialog::Request(GamePlayer* pPlayer)
         }
     }
 
-    db.AddPlayerInfo(pPlayer->GetDisplayName(true), pPlayer->GetPlayerLevel(), progressData.GetProgress(PLAYER_PROGRESS_XP), pPlayer->GetPlayerNextLevelXP());
+    db.AddPlayerInfo(pPlayer->GetDisplayName(true), pPlayer->GetPlayerLevel(), progressData.GetProgress(PLAYER_PROGRESS_XP), pPlayer->GetPlayerNextLevelXP())
+    ->AddSpacer();
 
-    if (loginDetail.protocol > 96)
+    uint8 onlineStatus = progressData.GetProgress(PLAYER_PROGRESS_ONLINE_STATUS) & 3;
+
+    if(loginDetail.protocol > 127)
     {
-        if (loginDetail.protocol > 127)
-        {
-            db.AddCustomButton("title_edit", "image:interface/large/gui_wrench_title.rttex;image_size:400,260;width:0.19;");
-        }
-        else
-        {
-            db.AddButton("title_edit", "`$Title``");
-        }
-    }
-    db.AddButton("goals", "`$Goals & Quests``");
+        db.AddCustomButton("title_edit", "image:interface/large/gui_wrench_title.rttex;image_size:400,260;width:0.19;");
 
-    if (modController.GetActiveModCount() > 0)
+        if(onlineStatus == PLAYER_ONLINE_STATUS_DEFAULT)
+            db.AddCustomButton("set_online_status", "image:interface/large/gui_wrench_online_status_1green.rttex;image_size:400,260;width:0.19;");
+        else if(onlineStatus == PLAYER_ONLINE_STATUS_AWAY)
+            db.AddCustomButton("set_online_status", "image:interface/large/gui_wrench_online_status_2yellow.rttex;image_size:400,260;width:0.19;");
+        else
+            db.AddCustomButton("set_online_status", "image:interface/large/gui_wrench_online_status_3red.rttex;image_size:400,260;width:0.19;");
+
+        if(pPlayer->HasFlag(PLAYER_FLAG_SUPPORTER) || pPlayer->HasFlag(PLAYER_FLAG_SUPER_SUPPORTER))
+            db.AddCustomButton("billboard_edit", "image:interface/large/gui_wrench_edit_billboard.rttex;image_size:400,260;width:0.19");
+
+        db.AddCustomButton("notebook_edit", "image:interface/large/gui_wrench_notebook.rttex;image_size:400,260;width:0.19;");
+        db.AddCustomButton("goals", "image:interface/large/gui_wrench_goals_quests.rttex;image_size:400,260;width:0.19;");
+        db.AddCustomButton("my_worlds", "image:interface/large/gui_wrench_my_worlds.rttex;image_size:400,260;width:0.19;");
+        db.AddCustomButton("alist", "image:interface/large/gui_wrench_achievements.rttex;image_size:400,260;width:0.19;");
+
+        if(inventory.GetClothByPart(BODY_PART_HAND) == ITEM_ID_BATTLE_LEASH && progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) != 0)
+            db.AddCustomButton("pets", "image:interface/large/gui_wrench_battle_pets.rttex;image_size:400,260;width:0.19;");
+    }
+    else
+    {
+        db.AddButton("title_edit", "`$Title``");
+
+        // convert status to textureX
+        if(onlineStatus == PLAYER_ONLINE_STATUS_BUSY) onlineStatus = 30;
+        else if(onlineStatus = PLAYER_ONLINE_STATUS_AWAY) onlineStatus = 29;
+        else onlineStatus = 28;
+        db.AddInnerImageLabelButton("set_online_status", "`$Set Online Status``", "game/tiles_page14.rttex", onlineStatus, 23);
+
+        if(pPlayer->HasFlag(PLAYER_FLAG_SUPPORTER) || pPlayer->HasFlag(PLAYER_FLAG_SUPER_SUPPORTER))
+            db.AddButton("billboard_edit", "`$Edit Billboard``");
+
+        db.AddButton("notebook_edit", "`$Notebook``");
+        db.AddButton("goals", "`$Goals & Quests``");
+        // check daily bonus
+
+        db.AddButton("my_worlds", "`$My Worlds``");
+        db.AddButton("alist", "`$Challanges (" + ToString(progressData.GetCountOfCompletedAchieves()) + "`5/``" + ToString(ACHIEVEMENT_COUNT) + ")");
+
+        if(inventory.GetClothByPart(BODY_PART_HAND) == ITEM_ID_BATTLE_LEASH && progressData.GetProgress(PLAYER_PROGRESS_PET_2_0) != 0)
+            db.AddButton("pets", "`wBattle Pets!``");
+    }
+
+    if(modController.GetActiveModCount() > 0)
     {
         db.AddTextBox("`wActive effects:``");
         modController.BuildActiveModsDialog(db);
@@ -80,7 +116,7 @@ void WrenchSelfDialog::Request(GamePlayer* pPlayer)
     int32 posY = vPlayerWorldPos.y / 32;
 
     string worldInfo = "`oCurrent world: `w" + pWorld->GetWorlName() + "`` (`w" + ToString(posX) + "``, `w" + ToString(posY) + "``) (`w" + ToString(pWorld->GetPlayerCount()) + "`` ";
-    if (pWorld->GetPlayerCount() == 1)
+    if(pWorld->GetPlayerCount() == 1)
         worldInfo += "person)";
     else
         worldInfo += "people)";
@@ -93,19 +129,23 @@ void WrenchSelfDialog::Request(GamePlayer* pPlayer)
 
 void WrenchSelfDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if (!pPlayer)
+    if(!pPlayer)
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if (!pWorld)
         return;
 
     auto pButtonClicked = packet.Find("buttonClicked"_hash);
-    if (!pButtonClicked)
+    if(!pButtonClicked)
         return;
 
-    if (pButtonClicked->valueSize == 0 || pButtonClicked->valueSize > 35)
+    if(pButtonClicked->valueSize == 0 || pButtonClicked->valueSize > 35)
         return;
 
     std::string_view clickedButton = pButtonClicked->GetStringView();
 
-    if (clickedButton == "acceptlock")
+    if(clickedButton == "acceptlock")
     {
         TileInfo* pLockAcessTile = pPlayer->GetLockAcessTile();
         if (!pLockAcessTile)
@@ -132,4 +172,104 @@ void WrenchSelfDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         pPlayer->SendOnDialogRequest(db.Get());
         return;
     }
+
+    if(clickedButton == "title_edit")
+    {
+        RequestTitleEdit(pPlayer);
+        return;
+    }
+}
+
+void WrenchSelfDialog::HandleTitleEdit(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
+{
+    if(!pPlayer)
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if (!pWorld)
+        return;
+
+    PlayerProgress& progressData = pPlayer->GetProgressData();
+
+    if(auto pLegendary = packet.Find("checkbox_legendary_title"_hash))
+    {
+        bool val;
+        if(pLegendary->GetBool(val) != TO_INT_SUCCESS)
+            return;
+        progressData.ModifyTitleActivation(PLAYER_TITLE_LEGEND, val);
+    }
+
+    if(auto pDoctor = packet.Find("checkbox_doctor_title"_hash))
+    {
+        bool val;
+        if(pDoctor->GetBool(val) != TO_INT_SUCCESS)
+            return;
+        progressData.ModifyTitleActivation(PLAYER_TITLE_DOCTOR, val);
+    }
+
+    if(auto pMaxLvl = packet.Find("checkbox_max_level_title"_hash))
+    {
+        bool val;
+        if(pMaxLvl->GetBool(val) != TO_INT_SUCCESS)
+            return;
+        progressData.ModifyTitleActivation(PLAYER_TITLE_MAX_LVL, val);
+    }
+
+    if(auto pMaster = packet.Find("checkbox_master_title"_hash))
+    {
+        bool val;
+        if(pMaster->GetBool(val) != TO_INT_SUCCESS)
+            return;
+        progressData.ModifyTitleActivation(PLAYER_TITLE_MASTER, val);
+    }
+
+    if(auto pG4g = packet.Find("checkbox_g4g_title"_hash))
+    {
+        bool val;
+        if(pG4g->GetBool(val) != TO_INT_SUCCESS)
+            return;
+        progressData.ModifyTitleActivation(PLAYER_TITLE_G4G, val);
+    }
+
+    pWorld->SendNameChangeToAll(pPlayer);
+    pWorld->SendOnCountryStateToAll(pPlayer);
+}
+
+void WrenchSelfDialog::RequestTitleEdit(GamePlayer* pPlayer)
+{
+    if(!pPlayer)
+        return;
+
+    DialogBuilder db;
+    db.SetDefaultColor('o')
+    ->AddLabel("Select Title:", true);
+    
+    PlayerProgress& progressData = pPlayer->GetProgressData();
+    if(progressData.GetProgress(PLAYER_PROGRESS_TITLES) == 0)
+    {
+        db.AddLabel("No Titles Obtained", true);
+    }
+    else
+    {
+        if(progressData.HasTitle(PLAYER_TITLE_LEGEND))
+            db.AddCheckBox("checkbox_legendary_title", "' of Legend'", progressData.IsTitleActive(PLAYER_TITLE_LEGEND));
+
+        if(progressData.HasTitle(PLAYER_TITLE_DOCTOR))
+            db.AddCheckBox("checkbox_doctor_title", "'Dr.'", progressData.IsTitleActive(PLAYER_TITLE_DOCTOR));
+
+        if(progressData.HasTitle(PLAYER_TITLE_MAX_LVL))
+            db.AddCheckBox("checkbox_max_level_title", "Level 125", progressData.IsTitleActive(PLAYER_TITLE_MAX_LVL));
+
+        if(progressData.HasTitle(PLAYER_TITLE_MASTER))
+            db.AddCheckBox("checkbox_master_title", "Master", progressData.IsTitleActive(PLAYER_TITLE_MASTER));
+
+        if(progressData.HasTitle(PLAYER_TITLE_G4G))
+            db.AddCheckBox("checkbox_g4g_title", "Grow4Good Title", progressData.IsTitleActive(PLAYER_TITLE_G4G));
+    }
+
+    db.AddSpacer()
+    ->AddButton("", "OK")
+    ->EndDialog("title_edit", "", "");
+
+    pPlayer->SendOnDialogRequest(db.Get());
 }

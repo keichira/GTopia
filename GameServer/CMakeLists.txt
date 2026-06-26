@@ -78,6 +78,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/State.cpp
     ${GAME_EVENT}/UDP/GamePacket/ObjectActivateRequest.cpp
+    ${GAME_EVENT}/UDP/GamePacket/TileActivateRequest.cpp
 
     ${GAME_COMMAND}/RenderWorld.cpp
     ${GAME_COMMAND}/GiveItem.cpp
@@ -86,6 +87,7 @@ set(GAME_FILES PRIVATE
     ${GAME_COMMAND}/Magic.cpp
     ${GAME_COMMAND}/AgeWorld.cpp
     ${GAME_COMMAND}/Emotes.cpp
+    ${GAME_COMMAND}/FindItem.cpp
 
     ${SOURCE_WORLD}/TileExtra.cpp
     ${SOURCE_WORLD}/TileInfo.cpp
@@ -113,6 +115,8 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/MailboxBlockDialog.cpp
     ${GAME_DIALOG}/CrystalBlockDialog.cpp
     ${GAME_DIALOG}/BulletinBlockDialog.cpp
+    ${GAME_DIALOG}/DoorDialog.cpp
+    ${GAME_DIALOG}/ItemFinderDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

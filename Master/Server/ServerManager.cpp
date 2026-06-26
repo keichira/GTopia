@@ -162,21 +162,22 @@ void ServerManager::SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 player
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& serverIP, uint16 serverPort)
+void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& doorID, const string& serverIP, uint16 serverPort)
 {
     if(!pServer || !pServer->pClient) {
         return;
     }
 
-    VariantVector data(7);
+    VariantVector data(8);
 
     data[0] = TCP_PACKET_WORLD_SEND_PLAYER;
     data[1] = TCP_RESULT_OK;   
     data[2] = playerUserID;
     data[3] = serverID;
     data[4] = instanceID;
-    data[5] = serverIP;
-    data[6] = (uint32)serverPort;
+    data[5] = doorID;
+    data[6] = serverIP;
+    data[7] = (uint32)serverPort;
 
     pServer->pClient->Send(data);
 }
@@ -379,7 +380,7 @@ ServerInfo* ServerManager::GetBestGameServer()
             continue;
         }
 
-        float score = 1.0f * pServer->playerCount / (pServer->worldCount + 1);
+        float score = (float)pServer->playerCount / (float)(pServer->worldCount + 1.0f);
         if(score < bestScore) {
             bestScore = score;
             pBestServer = pServer;

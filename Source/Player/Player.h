@@ -9,6 +9,11 @@
 #include "ParticleEffect.h"
 #include <enet/enet.h>
 
+#ifdef SERVER_GAME
+    #include "../Utils/DialogPagination.h"
+    #include <memory>
+#endif
+
 enum ePlayerLogonMode
 {
     LOGON_MODE_WELCOME = 1,
@@ -38,6 +43,26 @@ enum eClientFeatureFlag
     FEATURE_FLAG_COUNT
 };
 
+enum ePlayerOnlineStatus
+{
+    PLAYER_ONLINE_STATUS_DEFAULT,
+    PLAYER_ONLINE_STATUS_BUSY,
+    PLAYER_ONLINE_STATUS_AWAY,
+    PLAYER_ONLINE_STATUS_COUNT
+};
+
+enum ePlayerTitle
+{
+    PLAYER_TITLE_LEGEND = 1 << 0,
+    PLAYER_TITLE_DOCTOR = 1 << 1,
+    PLAYER_TITLE_MAX_LVL = 1 << 2,
+    PLAYER_TITLE_MASTER = 1 << 3,
+    PLAYER_TITLE_G4G = 1 << 4,
+    PLAYER_TITLE_THANKSGIVING = 1 << 5,
+    PLAYER_TITLE_ANNIVERSARY = 1 << 6,
+    PLAYER_TITLE_PARTY = 1 << 7 
+};
+
 enum ePlayerFreezeState
 {
     PLAYER_FREEZE_STATE_NONE, // can move
@@ -62,7 +87,7 @@ public:
     void SendHelloPacket();
     void SendLogonFailWithLog(const string& message);
     void SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings, uint32 tributeHash);
-    void SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode);
+    void SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode, const string& doorID);
     void SendOnConsoleMessage(const string& message);
     void SendOnRequestWorldSelectMenu(const string& worldMenu);
     void SendOnFailedToEnterWorld();
@@ -71,7 +96,7 @@ public:
     void SendOnTalkBubble(const string& message, bool stackMessages, Player* pPlayer = nullptr);
     void SendOnSetCurrentWeather(int32 weatherID);
     void SendOnRemove(int32 netID);
-    void SendOnDialogRequest(const string& dialogData, int32 delayMS = -1);
+    void SendOnDialogRequest(const string& dialogData, int32 delayMS = -1, bool isPaginated = false);
     void SendOnTextOverlay(const string& message);
     void SendOnPlayPositioned(const string& fileName, Player* pPlayer = nullptr);
     void SendOnNameChanged(const string& name, Player* pPlayer);
@@ -86,6 +111,8 @@ public:
     void SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip);
     void SendOnSetFeatureEnableFlags();
     void SendOnSetFreezeState(ePlayerFreezeState state, uint32 delayMS);
+    void SendOnZoomCamera(float zoom, int32 durationMS = 1000);
+    void SendOnCountryState(const string& countryData);
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);
@@ -114,6 +141,9 @@ public:
     PlayerInventory& GetInventory() { return m_inventory; }
     void SendInventoryPacket();
 
+    void ClosePaginatedDialog() { m_dialogPagination.reset(); }
+    DialogPagination* GetActivePaginatedDialog() const { return m_dialogPagination.get(); };
+
     CharacterData& GetCharData() { return m_characterData; }
     void SendOnSetClothing(Player* pPlayer = nullptr);
     void SendCharacterState(Player* pPlayer = nullptr);
@@ -134,5 +164,6 @@ protected:
 #ifdef SERVER_GAME
     PlayerInventory m_inventory;
     CharacterData m_characterData;
+    std::unique_ptr<DialogPagination> m_dialogPagination;
 #endif
 };

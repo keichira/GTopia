@@ -224,20 +224,12 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     pPlayer->SetCurrentWorld(m_instanceID);
     m_players.push_back(pPlayer);
 
-    TileInfo* pMainDoorTile = GetTileManager()->GetKeyTile(KEY_TILE_MAIN_DOOR);
-    if(!pMainDoorTile) 
-    {
-        pPlayer->SetWorldPos(0, 0);
-        pPlayer->SetRespawnPos(0, 0);
-    }
-    else 
-    {
-        Vector2Int mainDoorPos = pMainDoorTile->GetPos();
-        pPlayer->SetWorldPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
-        pPlayer->SetRespawnPos(mainDoorPos.x * 32, mainDoorPos.y * 32);
-    }
-    
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    Vector2Float vWorldMapStart = GetTileManager()->GetMapStartWorldPos(loginDetail.doorID);
+    pPlayer->SetWorldPos(vWorldMapStart.x, vWorldMapStart.y);
+    loginDetail.doorID = "";
+    pPlayer->ClosePaginatedDialog();
+    
     uint32 worldMemSize = GetMemEstimate(false, loginDetail.gameVersion);
     uint8* pWorldData = new uint8[worldMemSize];
 
@@ -340,10 +332,12 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         }
         else
         {
-            pWorldPlayer->SendOnTalkBubble("<" + pPlayer->GetDisplayName(true) + "`` left. `w " + ToString(GetPlayerCount() - 1) + "`` others here>``", false, pPlayer);
+            pWorldPlayer->SendOnTalkBubble("<" + pPlayer->GetDisplayName(true) + "`5 left. `w" + ToString(GetPlayerCount() - 1) + "`5 others here>``", false, pPlayer);
             pWorldPlayer->PlaySFX("door_shut.wav");
         }
     }
+
+    pPlayer->ClosePaginatedDialog();
 
     if(playerIdx != -1) 
     {
@@ -746,6 +740,46 @@ void World::SendOnAddNotificationToAll(const string& image, const string& messag
     }
 }
 
+void World::SendOnCountryStateToAll(GamePlayer* pPlayer)
+{
+    if(!pPlayer)
+        return;
+
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnCountryState(pPlayer->GetCountryData()), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
+    }
+
+    SAFE_DELETE_ARRAY(pData);
+}
+
+void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos)
+{
+    if(!pPlayer)
+        return;
+
+    pPlayer->SetWorldPos(worldPos.x, worldPos.y);
+
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnSetPos(worldPos.x, worldPos.y), &size, nullptr);
+
+    for(auto& pWorldPlayer : m_players) 
+    {
+        if(!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
+    }
+
+    SAFE_DELETE_ARRAY(pData);
+}
+
 void World::SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2)
 {
     GameUpdatePacket packet;
@@ -989,7 +1023,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 pTile->RemoveFlag(TILE_FLAG_IS_SEEDLING);
             }
 
-            pTileExtra->growTime = pGamePacket->field_4;
+            pTileExtra->growTime = pGamePacket->field_5;
             break;
         }
     }
@@ -2161,10 +2195,23 @@ void World::OnPunchedAchievementBlock(GamePlayer* pPlayer, TileInfo* pTile, Item
     );
 }
 
+
+/**
+ * manage field_5 for tree sizes
+ */
 void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, GameUpdatePacket* pPacket)
 {
     if(!pPlayer || !pTile || !pSeed || !pPacket)
         return;
+
+    if(!pTile->IsTree() && !pTile->IsCrystal() && pTile->GetFG() != ITEM_ID_BLANK && pTile->GetFG() != ITEM_ID_BUNNY_EGG)
+    {
+        if(pSeed->type == ITEM_TYPE_SEED)
+            pPlayer->SendOnTalkBubble("You can only use seeds on blank tiles or existing trees.", false);
+        else if(pSeed->type == ITEM_TYPE_CRYSTAL)
+            pPlayer->SendOnTalkBubble("You can only use crystals on blank tiles or existing crystals.", false);
+        return;
+    }
 
     if(pSeed->type == ITEM_TYPE_CRYSTAL)
     {
@@ -2203,9 +2250,6 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         SendTileUpdate(pTile);
         return;
     }
-
-    if(!(pTile->IsTree() || pTile->GetDisplayedItem() == ITEM_ID_BLANK))
-        return;
     
     if(!GetTileManager()->CanPlantTreeHere(pTile))
     {
@@ -2213,7 +2257,7 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         return;
     }
 
-    if(pTile->GetDisplayedItem() == ITEM_ID_BLANK)
+    if(pTile->GetFG() == ITEM_ID_BLANK)
     {
         uint32 fruitCount = 0;
         bool dropSeed = false;
@@ -2227,13 +2271,9 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         pTile->SetFG(pSeed->id, GetTileManager());
 
         if(pPacket->field_2 == 1)
-        {
             pTile->SetFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
-        }
         else
-        {
             pTile->RemoveFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO);
-        }
 
         pTile->SetFlag(TILE_FLAG_IS_SEEDLING);
 
@@ -2469,7 +2509,8 @@ void World::OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile)
 
     if(pItem->type == ITEM_TYPE_SEED)
     {
-        OnHarvestTree(pPlayer, pTile);
+        //OnHarvestTree(pPlayer, pTile);
+        //todo
         return;
     }
 

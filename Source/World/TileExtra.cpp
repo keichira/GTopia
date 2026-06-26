@@ -217,27 +217,83 @@ void TileExtra_Door::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
 {
     TileExtra::Serialize(memBuffer, write);
 
-    if(IsMainDoor(pTile->GetFG())) 
+    if(database)
     {
-        name = "EXIT";
-    }
+        if(IsMainDoor(pTile->GetFG())) 
+        {
+            name = "";
+            text = "EXIT";
+            id = "";
+        }
 
-    memBuffer.ReadWriteString(name, write);
-
-    if(database) {
+        memBuffer.ReadWriteString(name, write);
         memBuffer.ReadWriteString(text, write);
         memBuffer.ReadWriteString(id, write);
     }
+    else
+    {
+        if(write)
+        {
+            bool isSpecial = false;
+            if(pTile && (pTile->GetFG() == ITEM_ID_GATEWAY_TO_ADVENTURE))
+            {
+                isSpecial = true;
+            }
 
-    int8 unk = 0;
-    memBuffer.ReadWrite(unk, write);
+            if(!isSpecial)
+            {
+                if(name.empty())
+                {
+                    string temp = text;
+
+                    usize pos = temp.find_first_of(':');
+                    if(pos != string::npos)
+                    {
+                        temp.erase(pos);
+                        temp = "...";
+                    }
+
+                    memBuffer.ReadWriteString(temp, write);
+                }
+                else
+                {
+                    memBuffer.ReadWriteString(name, write);
+                }
+            }
+            else
+            {
+                memBuffer.ReadWriteString(text, write);
+            }
+        }
+        else
+        {
+            memBuffer.ReadWriteString(text, write);
+        }
+    }
+
+    memBuffer.ReadWrite(flags, write);
 }
 
 void TileExtra_Sign::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
 
-    memBuffer.ReadWriteString(text, write);
+    if(pTile && IsPathMarker(pTile->GetFG()))
+    {
+        if(!database && write)
+        {
+            string temp;
+            memBuffer.ReadWriteString(temp, write);
+        }
+        else
+        {
+            memBuffer.ReadWriteString(text, write);
+        }
+    }
+    else
+    {
+        memBuffer.ReadWriteString(text, write);
+    }
 
     int32 unk = -1; // something with owner union but eh
     memBuffer.ReadWrite(unk, write);

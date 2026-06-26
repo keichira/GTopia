@@ -174,7 +174,7 @@ DialogBuilder* DialogBuilder::AddItemPicker(const string& id, const string& butt
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddLabelWithIconButton(string buttonID, string label, uint32 itemID, bool big, bool center)
+DialogBuilder* DialogBuilder::AddLabelWithIconButton(const string& buttonID, const string& label, uint32 itemID, bool big, bool center)
 {
     m_str += "add_label_with_icon_button|";
 
@@ -187,6 +187,18 @@ DialogBuilder* DialogBuilder::AddLabelWithIconButton(string buttonID, string lab
     else m_str += "|left|";
 
     m_str += ToString(itemID) + "|" + buttonID + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddInnerImageLabelButton(const string& buttonID, const string& label, const string& texture, int32 textureX, int32 textureY)
+{
+    m_str += "add_inner_image_label_button|" + buttonID + "|" + label + "|" + texture + "|" + ToString(textureX) + "|" + ToString(textureY) + "|\n";
+    return this;
+}
+
+DialogBuilder* DialogBuilder::AddButtonWithIcon(const string& buttonID, const string& label, uint32 itemID)
+{
+    m_str += "add_button_with_icon|" + buttonID + "|" + label + "|left|" + ToString(itemID) + "|\n";
     return this;
 }
 

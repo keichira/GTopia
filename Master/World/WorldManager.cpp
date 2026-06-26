@@ -21,6 +21,7 @@ void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& 
 
     uint32 userID = result[1].GetUINT();
     string worldName = ToUpper(result[2].GetString());
+    string doorID = ToUpper(result[3].GetString());
 
     WorldSession* pWorld = GetWorldByName(worldName);
     if(pWorld) {
@@ -30,11 +31,11 @@ void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& 
         }
 
         if(pWorld->state == WORLD_STATE_LOADING) {
-            AttachPending(pWorld, pServer->serverID, userID);
+            AttachPending(pWorld, pServer->serverID, userID, doorID);
             return;
         }
 
-        RoutePlayerToExistingWorld(pServer, userID, *pWorld);
+        RoutePlayerToExistingWorld(pServer, userID, doorID, *pWorld);
         return;
     }
 
@@ -204,6 +205,7 @@ void WorldManager::HandleWorldInit(VariantVector&& result)
             pending.userID,
             pWorld->serverID,
             pWorld->instanceID,
+            pending.doorID,
             pTargetServer->wanIP,
             pTargetServer->port
         );
@@ -246,7 +248,7 @@ void WorldManager::EndSessionsByServerID(uint32 serverID)
     }
 }
 
-void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, WorldSession& world)
+void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, const string& doorID, WorldSession& world)
 {
     if(!pSourceServer)
         return;
@@ -274,12 +276,13 @@ void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 
         userID,
         world.serverID,
         world.instanceID,
+        doorID,
         pTargetServer->wanIP,
         pTargetServer->port
     );
 }
 
-void WorldManager::AttachPending(WorldSession* pWorld, uint32 sourceServerID, uint32 userID)
+void WorldManager::AttachPending(WorldSession* pWorld, uint32 sourceServerID, uint32 userID, const string& doorID)
 {
     if(!pWorld)
         return;
@@ -297,6 +300,7 @@ void WorldManager::AttachPending(WorldSession* pWorld, uint32 sourceServerID, ui
     pending.worldDatabaseID = pWorld->databaseID;
     pending.worldInstanceID = pWorld->instanceID;
     pending.worldName = pWorld->worldName;
+    pending.doorID = doorID;
 
     pWorld->waitingPlayers.push_back(pending);
 

@@ -126,6 +126,7 @@ void RunGameLoop()
         now = loopIterStart;
         uint32 loops = 0;
 
+        pServerMgr->UpdateServers();
         pServerMgr->UpdateTCPLogic(NETWORK_BUDGET_MS);
         ProcessDatabaseResults(DB_RESULT_BUDGET_MS);
 

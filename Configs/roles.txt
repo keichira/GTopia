@@ -12,7 +12,7 @@ add_role|Developer|1|@||
 set_name_color|6|
 set_chat_color|#|
 set_inherits|2|
-set_perms|state.smod|command.toggleplaymod|command.giveitem|
+set_perms|state.smod|command.toggleplaymod|command.giveitem|command.finditem|
 
 add_role|Moderator|2|@||
 set_name_color|#|

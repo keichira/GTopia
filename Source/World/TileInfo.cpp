@@ -98,6 +98,12 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
         m_pExtraData = CreateTileExtra(tileExtraType);
     }
 
+    if(TileExtra_Door* pExtraDoor = GetExtra<TileExtra_Door>())
+    {
+        if(IsMainDoor(itemID))
+            pExtraDoor->name = "EXIT";
+    }
+
     m_tileData->fg = itemID;
     pTileMgr->ModifyKeyTile(this, false);
 }
@@ -218,6 +224,18 @@ float TileInfo::GetHealthPercent()
     return 1.0f - ((float)m_damage / pItem->hp);
 }
 
+bool TileInfo::IsCrystal()
+{
+    if(m_tileData->fg == ITEM_ID_BLANK)
+        return false;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(m_tileData->fg);
+    if(!pItem)
+        return false;
+
+    return pItem->type == ITEM_TYPE_CRYSTAL;
+}
+
 bool TileInfo::IsTree()
 {
     if(m_tileData->fg == ITEM_ID_BLANK)
@@ -294,4 +312,12 @@ void TileInfo::AgeTile(uint32 ageMS)
         return;
 
     ModGrowth(ageMS/1000, pItem->growTime);
+}
+
+bool TileInfo::IsTileExtraType(eTileExtraType type)
+{
+    if(!m_pExtraData)
+        return false;
+
+    return (m_pExtraData->type == type);
 }

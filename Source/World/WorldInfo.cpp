@@ -2,12 +2,12 @@
 #include "../Utils/StringUtils.h"
 #include "../Math/Random.h"
 
-bool IsValidWorldName(const string& worldName)
+bool IsValidWorldName(const string& worldName, bool allowColon)
 {
     const char* src = worldName.c_str();
 
     while(*src) {
-        if((IsAlpha(*src) && IsUpper(*src)) || IsDigit(*src)) {
+        if((IsAlpha(*src) && IsUpper(*src)) || IsDigit(*src) || (allowColon && *src == ':')) {
             src++;
             continue;
         }

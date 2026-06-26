@@ -30,14 +30,14 @@ namespace VariantPacket {
         return data;
     }
 
-    VariantVector OnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode)
+    VariantVector OnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode, const string& doorID)
     {
         VariantVector data(6);
         data[0] = "OnSendToServer";
         data[1] = (uint32)port;
         data[2] = token;
         data[3] = userID;
-        data[4] = serverIP + "||";
+        data[4] = serverIP + "|" + doorID + "|";
         data[5] = logonMode;
         return data;
     }
@@ -144,6 +144,16 @@ namespace VariantPacket {
     VariantVector OnSetFreezeState(uint32 state)
     {
         return { "OnSetFreezeState", state };
+    }
+
+    VariantVector OnCountryState(const string& countryData)
+    {
+        return { "OnCountryState", countryData };
+    }
+
+    VariantVector OnZoomCamera(float zoom, int32 durationMS)
+    {
+        return { "OnZoomCamera", zoom, durationMS };
     }
 
     VariantVector OnStoreRequest(const string& storeData) {

@@ -14,15 +14,35 @@
 #include "../../../Player/Dialog/MailboxBlockDialog.h"
 #include "../../../Player/Dialog/WrenchSelfDialog.h"
 #include "../../../Player/Dialog/BulletinBlockDialog.h"
+#include "../../../Player/Dialog/DoorDialog.h"
 
 void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if (!pPlayer)
+    if(!pPlayer)
         return;
 
     auto pDialogName = packet.Find("dialog_name"_hash);
-    if (!pDialogName || pDialogName->valueSize > 50)
+    if(!pDialogName || pDialogName->valueSize > 50)
         return;
+
+    std::string_view dialogNameStr = pDialogName->GetStringView();
+
+    if(DialogPagination* pActivePagination = pPlayer->GetActivePaginatedDialog())
+    {
+        if(pActivePagination->GetDialogName() == dialogNameStr)
+        {
+            auto pButtonClicked = packet.Find("buttonClicked"_hash);
+            if(pButtonClicked)
+            {
+                if(pActivePagination->ProcessButton(pPlayer, pButtonClicked))
+                    return;
+            }
+        }
+        else
+        {
+            pPlayer->ClosePaginatedDialog();
+        }
+    }
 
     uint32 hashedDialogName = HashString(pDialogName->value, pDialogName->valueSize);
 
@@ -138,6 +158,24 @@ void DialogReturn::Execute(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         case "remove_bulletin"_hash:
         {
             BulletinBlockDialog::HandleDeleteEntry(pPlayer, packet);
+            break;
+        }
+
+        case "title_edit"_hash:
+        {
+            WrenchSelfDialog::HandleTitleEdit(pPlayer, packet);
+            break;
+        }
+
+        case "door_edit"_hash:
+        {
+            DoorDialog::Handle(pPlayer, packet);
+            break;
+        }
+
+        case "password_reply"_hash:
+        {
+            DoorDialog::HandlePasswordReply(pPlayer, packet);
             break;
         }
     }

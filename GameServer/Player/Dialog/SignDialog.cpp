@@ -13,19 +13,31 @@ void SignDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     if(!pTileExtra)
         return;
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-    if(pItem->type != ITEM_TYPE_SIGN)
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
         return;
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
-        ->AddSpacer()
-        ->AddTextBox("What would you like to write on this sign?")
-        ->AddTextInput("sign_text", "", pTileExtra->text, 128)
-        ->EmbedData("tilex", pTile->GetPos().x)
-        ->EmbedData("tiley", pTile->GetPos().y)
-        ->EndDialog("sign_edit", "OK", "Cancel");
+    ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true);
+
+    if(pItem->type == ITEM_TYPE_CHAL_FLAG)
+    {
+        db.AddTextBox("Enter an ID. This flag will be connected to the Challenge Timer with the same ID.``");
+    }
+    else if(IsPathMarker(pItem->id))
+    {
+        db.AddTextBox("Enter an ID. You can use this as a destination for Doors.``");
+    }
+    else
+    {
+        db.AddTextBox("What would you like to write on this sign?``");
+    }
+   
+    db.AddTextInput("sign_text", "", pTileExtra->text, 128)
+    ->EmbedData("tilex", pTile->GetPos().x)
+    ->EmbedData("tiley", pTile->GetPos().y)
+    ->EndDialog("sign_edit", "OK", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get());
 }
@@ -45,6 +57,9 @@ void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
     auto pSignText = packet.Find("sign_text"_hash);
     if(!pSignText)
+        return;
+
+    if(pSignText->valueSize > 128)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
@@ -70,18 +85,49 @@ void SignDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         return;
     }
 
-    if(pSignText->valueSize == 0)
+    if(!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
         return;
 
-    if(pSignText->valueSize > 128)
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if(!pItem)
+        return;
+
+    if(pItem->type == ITEM_TYPE_RACE_FLAG)
     {
-        pPlayer->SendOnTalkBubble("That text is too long!", false);
-        return;
+        if(pSignText->valueSize > 11)
+        {
+            pPlayer->SendOnTalkBubble("That ID is too long!", false);
+            return;
+        }
+
+        string raceID = ToUpper(pSignText->GetString());
+        RemoveGTColorCodes(raceID);
+        pTileExtra->text = raceID;
     }
+    else if(IsPathMarker(pItem->id))
+    {
+        if(pSignText->valueSize > 11)
+        {
+            pPlayer->SendOnTalkBubble("That door ID is too long!", false);
+            return;
+        }
 
-    string text = pSignText->GetString();
-    RemoveExtraWhiteSpaces(text);
+        string doorID = ToUpper(pSignText->GetString());
+        RemoveGTColorCodes(doorID);
+        pTileExtra->text = doorID;
+    }
+    else
+    {
+        if(pSignText->GetStringView().find("__&%@PL@%&__") != string::npos)
+        {
+            pPlayer->SendOnTalkBubble("You try to write the magic symbols down but they disappear!", false);
+            return;
+        }
 
-    pTileExtra->text = text;
-    pWorld->SendTileUpdate(tileX, tileY);
+        string text = pSignText->GetString();
+        RemoveGTColorCodes(text);
+
+        pTileExtra->text = text;
+        pWorld->SendTileUpdate(tileX, tileY);
+    }
 }

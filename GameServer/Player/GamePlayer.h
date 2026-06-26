@@ -62,6 +62,8 @@ public:
 
     void Update();
 
+    void SetTargetJoinWorld(const string& worldName, const string& doorID = "");
+    void SendEnterDoorPacket(Vector2Float doorWorldPos);
     void SetJoiningWorld(bool joining) { m_joiningWorld = joining; }
     bool IsJoiningWorld() { return m_joiningWorld; }
     
@@ -84,6 +86,7 @@ public:
     void SetRole(Role* pRole) { m_pRole = pRole; }
 
     void SetGuestID(uint32 id) { m_guestID = id; }
+    void OpenPaginatedDialog(std::unique_ptr<DialogPagination> newDialog);
 
     void ToggleCloth(uint16 itemID);
 
@@ -105,6 +108,7 @@ public:
     static void CreateAccountFinalCB(QueryTaskResult&& result);
 
     void SendPositionToWorldPlayers();
+    string GetCountryData();
     float GetDistToTile(TileInfo* pGoalTile);
     uint32 GetDistToTileInTiles(TileInfo* pGoalTile);
     bool HasLOSToTile(TileInfo* pGoalTile);
@@ -145,7 +149,9 @@ private:
     uint64 m_lastItemActivateTime;
     Timer m_lastActionTime;
 
+    string m_targetJoinWorld;
     Timer m_lastJoinRequestTime;
+
     Timer m_lastTileChangeTime;
 
     uint32 m_guestID;

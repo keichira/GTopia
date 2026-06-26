@@ -227,7 +227,7 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
                 LOGGER_LOG_WARN("[LOGIN_FAIL] Missing SID for Windows client v%.2f. IP: %s", gameVersion, playerIP.data());
                 return false;
             }
-            sid = string(pSid->value, pSid->valueSize);
+            sid = pSid->GetString();
         }
     }
 
@@ -237,12 +237,17 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
         auto pUser = packet.Find("user"_hash);
         auto pLMode = packet.Find("lmode"_hash);
 
-        if (!pToken || ToUInt(pToken->value, pToken->valueSize, token) != TO_INT_SUCCESS ||
-            !pUser || ToUInt(pUser->value, pUser->valueSize, user) != TO_INT_SUCCESS ||
-            !pLMode || ToUInt(pLMode->value, pLMode->valueSize, loginMode) != TO_INT_SUCCESS)
+        if (!pToken || pToken->GetUInt(token) != TO_INT_SUCCESS ||
+            !pUser || pUser->GetUInt(user) != TO_INT_SUCCESS ||
+            !pLMode || pLMode->GetUInt(loginMode) != TO_INT_SUCCESS)
         {
             LOGGER_LOG_ERROR("[LOGIN_FAIL] Sub-server login token handshake failure. IP: %s", playerIP.data());
             return false;
+        }
+
+        if(auto pDoorID = packet.Find("doorID"_hash))
+        {
+            doorID = pDoorID->GetString();
         }
     }
 

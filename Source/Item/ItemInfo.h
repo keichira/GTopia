@@ -135,6 +135,7 @@ bool IsMainDoor(uint16 itemID);
 bool IsFuelPack(uint16 itemID);
 bool IsJammer(uint16 itemID);
 bool IsGaunletOfElements(uint16 itemID);
+bool IsPathMarker(uint16 itemID);
 
 uint16 GetMaxTilesToLock(uint16 itemID);
 

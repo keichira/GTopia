@@ -266,6 +266,11 @@ bool IsGaunletOfElements(uint16 itemID)
     || itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_IV || itemID == ITEM_ID_GAUNTLET_OF_ELEMENTS_TIER_V;
 }
 
+bool IsPathMarker(uint16 itemID)
+{
+    return itemID == ITEM_ID_PATH_MARKER || itemID == ITEM_ID_CARNIVAL_LANDING || itemID == ITEM_ID_GRUESOME_MARKER || itemID == ITEM_ID_OBJECTIVE_MARKER;
+}
+
 uint16 GetMaxTilesToLock(uint16 itemID)
 {
     switch(itemID) {

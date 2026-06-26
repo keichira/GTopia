@@ -11,6 +11,10 @@ Player::Player()
     m_freezeState = PLAYER_FREEZE_STATE_NONE;
     SetAddress("0.0.0.0");
     m_iconState = ICON_STATE_NONE;
+
+#ifdef SERVER_GAME
+    m_dialogPagination = nullptr;
+#endif
 }
 
 Player::~Player()
@@ -43,12 +47,12 @@ void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, con
     );
 }
 
-void Player::SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode)
+void Player::SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode, const string& doorID)
 {
     SendCallFunctionPacket(
         GetNetID(),
         VariantPacket::OnSendToServer(
-            port, token, userID, serverIP, logonMode
+            port, token, userID, serverIP, logonMode, doorID
         )
     );
 }
@@ -75,6 +79,7 @@ void Player::SendOnFailedToEnterWorld()
         GetNetID(),
         VariantPacket::OnFailedToEnterWorld()
     );
+    m_loginDetail.doorID = "";
 }
 
 void Player::SendOnSpawn(const string& spawnData)
@@ -123,8 +128,13 @@ void Player::SendOnRemove(int32 netID)
     );
 }
 
-void Player::SendOnDialogRequest(const string& dialogData, int32 delayMS)
+void Player::SendOnDialogRequest(const string& dialogData, int32 delayMS, bool isPaginated)
 {
+#ifdef SERVER_GAME
+    if(!isPaginated)
+        m_dialogPagination.reset();
+#endif
+
     SendCallFunctionPacket(
         GetNetID(),
         VariantPacket::OnDialogRequest(dialogData),
@@ -252,10 +262,26 @@ void Player::SendOnSetFreezeState(ePlayerFreezeState state, uint32 delayMS)
 {
     SendCallFunctionPacket(
         GetNetID(),
-        VariantPacket::OnSetFreezeState(state), -1, delayMS
+        VariantPacket::OnSetFreezeState((uint32)state), GetNetID(), delayMS
     );
 
     m_freezeState = state;
+}
+
+void Player::SendOnZoomCamera(float zoom, int32 durationMS)
+{
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnZoomCamera(zoom, durationMS)
+    );
+}
+
+void Player::SendOnCountryState(const string& countryData)
+{
+    SendCallFunctionPacket(
+        GetNetID(),
+        VariantPacket::OnCountryState(countryData)
+    );
 }
 
 void Player::SendFakePingReply()

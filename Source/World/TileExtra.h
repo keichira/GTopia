@@ -40,7 +40,7 @@ protected:                               \
     ) override;                          \
 public:
 
-enum eTileExtraTypes 
+enum eTileExtraType 
 {
     TILE_EXTRA_TYPE_NONE = 0,
     TILE_EXTRA_TYPE_DOOR = 1,
@@ -144,7 +144,9 @@ enum eTileExtraFlags
     TILE_EXTRA_CAMERA_DONT_SHOW_ADMINS = 1 << 7,
 
     TILE_EXTRA_BULLETIN_READ_ONLY = 1 << 3,
-    TILE_EXTRA_BULLETIN_HIDE_NAMES = 1 << 4
+    TILE_EXTRA_BULLETIN_HIDE_NAMES = 1 << 4,
+
+    TILE_EXTRA_LOCKED = 1 << 3
 };
 
 uint8 GetTileExtraType(uint8 itemType);
@@ -189,6 +191,11 @@ TILE_EXTRA(TileExtra_Door, TILE_EXTRA_TYPE_DOOR)
     string name;
     string text;
     string id;
+    uint8 flags = 0;
+
+    void SetFlag(uint8 flag) { flags |= flag; }
+    void RemoveFlag(uint8 flag) { flags &= ~flag; }
+    bool HasFlag(uint8 flag) { return flags & flag; };
 };
 
 TILE_EXTRA(TileExtra_Sign, TILE_EXTRA_TYPE_SIGN)

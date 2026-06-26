@@ -79,6 +79,8 @@ public:
     void SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio);
     void SendOnActionToAll(GamePlayer* pPlayer, const string& action);
     void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
+    void SendOnCountryStateToAll(GamePlayer* pPlayer);
+    void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos);
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
 

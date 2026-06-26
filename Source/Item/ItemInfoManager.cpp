@@ -749,6 +749,29 @@ ItemsClientData* ItemInfoManager::GetClientData(uint8 platformType, float gameVe
     return &m_itemDataOgg[supportedVersion];
 }
 
+std::vector<uint16> ItemInfoManager::GetSortedItemIdsByName(const string& name, bool skipSeeds)
+{
+    std::vector<uint16> sortedItems;
+    if(name.empty())
+        return sortedItems;
+
+    string lowerName = ToLower(name);
+
+    for(auto& item : m_items)
+    {
+        if(skipSeeds && item.id % 2 != 0)
+            continue;
+
+        if(item.name.size() < lowerName.size())
+            continue;
+
+        if(ToLower(item.name).find(lowerName) != string::npos)
+            sortedItems.push_back(item.id);
+    }
+
+    return sortedItems;
+}
+
 uint32 ItemInfoManager::GetItemRarity(uint32 itemID)
 {
     ItemInfo* pItem = GetItemByID(itemID);

@@ -146,6 +146,37 @@ void PlayerProgress::CheckAchieveAndUnlockIfPossibleByProgress(ePlayerProgress p
     }
 }
 
+uint32 PlayerProgress::GetCountOfCompletedAchieves()
+{
+    return 0;
+}
+
+bool PlayerProgress::HasTitle(ePlayerTitle title)
+{
+    return (m_progressData[PLAYER_PROGRESS_TITLES] & title);
+}
+
+void PlayerProgress::ModifyOwnedTitle(ePlayerTitle title, bool add)
+{
+    if(add)
+        m_progressData[PLAYER_PROGRESS_TITLES] |= title;
+    else
+        m_progressData[PLAYER_PROGRESS_TITLES] &= ~title;
+}
+
+bool PlayerProgress::IsTitleActive(ePlayerTitle title)
+{
+    return (m_progressData[PLAYER_PROGRESS_ACTIVE_TITLES] & title);
+}
+
+void PlayerProgress::ModifyTitleActivation(ePlayerTitle title, bool activate)
+{
+    if(activate)
+        m_progressData[PLAYER_PROGRESS_ACTIVE_TITLES] |= title;
+    else
+        m_progressData[PLAYER_PROGRESS_ACTIVE_TITLES] &= ~title;
+}
+
 uint16 PlayerProgress::BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved)
 {
     uint32 count = 0;

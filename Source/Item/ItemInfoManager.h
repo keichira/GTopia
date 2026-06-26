@@ -100,6 +100,7 @@ public:
     void SetupItemExtras();
 
     ItemsClientData* GetClientData(uint8 platformType, float gameVersion);
+    std::vector<uint16> GetSortedItemIdsByName(const string& name, bool skipSeeds);
 
 private:
     uint32 GetItemRarity(uint32 itemID);

@@ -12,6 +12,7 @@
 #include "MailboxBlockDialog.h"
 #include "CrystalBlockDialog.h"
 #include "BulletinBlockDialog.h"
+#include "DoorDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
@@ -74,6 +75,12 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if(pItem->type == ITEM_TYPE_BULLETIN)
     {
         BulletinBlockDialog::Request(pPlayer, pTile, pItem);
+        return;
+    }
+
+    if(pTile->IsTileExtraType(TILE_EXTRA_TYPE_DOOR))
+    {
+        DoorDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 }

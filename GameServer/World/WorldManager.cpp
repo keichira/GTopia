@@ -10,6 +10,7 @@
 #include "../Event/UDP/GamePacket/TileChangeRequest.h"
 #include "../Event/UDP/GamePacket/State.h"
 #include "../Event/UDP/GamePacket/ObjectActivateRequest.h"
+#include "../Event/UDP/GamePacket/TileActivateRequest.h"
 
 WorldManager::WorldManager()
 {
@@ -73,7 +74,7 @@ void WorldManager::StartWorldLoad(World* pWorld)
 
 void WorldManager::HandlePlayerJoin(VariantVector&& result)
 {
-    if(result.size() < 7)
+    if(result.size() < 4)
         return;
 
     int32 oprResult = result[1].GetINT();
@@ -90,6 +91,9 @@ void WorldManager::HandlePlayerJoin(VariantVector&& result)
         return;
     }
 
+    if(result.size() < 7)
+        return;
+
     uint32 serverID = result[3].GetUINT();
     uint32 worldID = result[4].GetUINT();
 
@@ -97,10 +101,12 @@ void WorldManager::HandlePlayerJoin(VariantVector&& result)
     if(!pPlayer)
         return;
 
+    pPlayer->GetLoginDetail().doorID = result[5].GetString();
+
     if(serverID != GetContext()->GetID())
     {
-        string serverIP = result[5].GetString();
-        uint16 serverPort  = (uint16)result[6].GetUINT();
+        string serverIP = result[6].GetString();
+        uint16 serverPort  = (uint16)result[7].GetUINT();
 
         PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
         loginDetail.loginMode = LOGON_MODE_TRANSFER;
@@ -110,10 +116,11 @@ void WorldManager::HandlePlayerJoin(VariantVector&& result)
             loginDetail.token,
             pPlayer->GetUserID(),
             serverIP,
-            loginDetail.loginMode
+            loginDetail.loginMode,
+            loginDetail.doorID
         );
 
-        pPlayer->LogOff(false, false, false);
+        pPlayer->LogOff(true, false, false, false);
         return;
     }
 
@@ -132,12 +139,12 @@ void WorldManager::HandlePlayerJoin(VariantVector&& result)
         return;
     }
 
-    pWorld->AddPlayer(pPlayer, true);
+    OnPlayerJoinRequest(pPlayer, pWorld);
 }
 
 void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldName)
 {
-    if(!pPlayer || pPlayer->IsJoiningWorld())
+    if(!pPlayer || pPlayer->IsJoiningWorld() || worldName.empty())
         return;
 
     if(!gPacketPool.IsHugeSlotAvailable())
@@ -149,6 +156,12 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
 
     string targetWorldName = ToUpper(worldName);
     RemoveGTColorCodes(targetWorldName);
+
+    auto targetWorld = Split(targetWorldName, '|');
+    if(targetWorld.empty())
+        return;
+
+    targetWorldName = targetWorld[0];
 
     if(targetWorldName.empty() || targetWorldName.size() > 18)
     {
@@ -166,15 +179,35 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
 
     if(targetWorldName == "EXIT")
     {
-        pPlayer->SendOnConsoleMessage("Exit from what? Click back if you're done playing.");
-        pPlayer->SendOnFailedToEnterWorld();
+        if(pPlayer->GetCurrentWorld() == 0)
+        {
+            pPlayer->SendOnConsoleMessage("Exit from what? Click back if you're done playing.");
+            pPlayer->SendOnFailedToEnterWorld();
+        }
+        else
+        {
+            World* pPlayerWorld = GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+            if(!pPlayerWorld)
+                return;
+
+            pPlayerWorld->PlayerLeaveWorld(pPlayer, true);
+            pPlayer->SendOnRequestWorldSelectMenu("");
+        }
         return;
     }
 
     World* pWorld = GetWorldByName(targetWorldName);
     if(!pWorld)
     {
-        GetMasterBroadway()->SendPlayerWorldJoin(pPlayer->GetUserID(), targetWorldName);
+        // is it safe?
+        GetMasterBroadway()->SendPlayerWorldJoin(pPlayer->GetUserID(), targetWorldName, targetWorld.size() > 1 ? targetWorld[1] : "");
+        return;
+    }
+    else if(pPlayer->GetCurrentWorld() == pWorld->GetInstanceID())
+    {
+        string doorID = (targetWorld.size() > 1 ? targetWorld[1] : "");
+        Vector2Float vDoorPos = pWorld->GetTileManager()->GetMapStartWorldPos(doorID);
+        pPlayer->SendEnterDoorPacket(vDoorPos);
         return;
     }
 
@@ -331,7 +364,17 @@ void WorldManager::OnPlayerJoinRequest(GamePlayer* pPlayer, World* pWorld)
 
     if(pWorld->GetState() != WORLD_STATE_READY)
     {
+        pPlayer->SendOnFailedToEnterWorld();
         return;
+    }
+
+    World* pPlayerWorld = GetWorldByInstanceID(pPlayer->GetCurrentWorld());
+    if(pPlayerWorld)
+    {
+        if(pPlayerWorld == pWorld)
+            return;
+
+        pPlayerWorld->PlayerLeaveWorld(pPlayer, true);
     }
 
     pWorld->AddPlayer(pPlayer, true);
@@ -401,6 +444,7 @@ void WorldManager::RegisterEvents()
     RegisterPacketEvent<TileChangeRequest>(NET_GAME_PACKET_TILE_CHANGE_REQUEST);
     RegisterPacketEvent<State>(NET_GAME_PACKET_STATE);
     RegisterPacketEvent<ObjectActivateRequest>(NET_GAME_PACKET_ITEM_ACTIVATE_OBJECT_REQUEST);
+    RegisterPacketEvent<TileActivateRequest>(NET_GAME_PACKET_TILE_ACTIVATE_REQUEST);
 }
 
 WorldManager* GetWorldManager() { return WorldManager::GetInstance(); }

@@ -30,6 +30,9 @@ m_lockAccessTileIndex(-1), m_lockAccessOwnerID(-1)
 
 GamePlayer::~GamePlayer()
 {
+    // todo close pagination on some packets like game packets?
+    // timer would be bad practice probably
+    ClosePaginatedDialog();
 }
 
 void GamePlayer::SendGems(bool skipAnim)
@@ -100,7 +103,7 @@ uint32 GamePlayer::GetPlayerLevel()
 uint32 GamePlayer::GetPlayerNextLevelXP()
 {
     uint32 currentLevel = GetPlayerLevel();
-    return 50 * ((currentLevel + 1) * (currentLevel + 1) + 2);
+    return ((currentLevel) * (currentLevel) * 50) + 100;
 }
 
 void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
@@ -367,6 +370,35 @@ void GamePlayer::Update()
         /**
          * todo ping request
          */
+        if(!m_targetJoinWorld.empty())
+        {
+            GetWorldManager()->PlayerJoinRequest(this, m_targetJoinWorld + "|" + m_loginDetail.doorID);
+            m_targetJoinWorld = "";
+            m_loginDetail.doorID = "";
+        }
+    }
+}
+
+void GamePlayer::SetTargetJoinWorld(const string& worldName, const string& doorID)
+{
+    m_targetJoinWorld = worldName;
+    m_loginDetail.doorID = doorID;
+}
+
+void GamePlayer::SendEnterDoorPacket(Vector2Float doorWorldPos)
+{
+    m_worldPos = doorWorldPos;
+
+    SendOnZoomCamera(10000.0f);
+    SendOnSetFreezeState(PLAYER_FREEZE_STATE_NONE, 0);
+
+    if(m_currentWorldID != 0)
+    {
+        if(World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID))
+        {
+            pWorld->SendPositionCorrectionToAll(this, doorWorldPos);
+            pWorld->SendPlayPositionedToAll(this, "door_open.wav");
+        }
     }
 }
 
@@ -394,8 +426,18 @@ string GamePlayer::GetDisplayName(bool checkWorld)
             }
         }
     }
+
+    if(m_progressData.IsTitleActive(PLAYER_TITLE_DOCTOR))
+    {
+        displayName += "`4Dr. ";
+    }
     
     displayName += m_pRole->GetPrefix() + GetRawName() + m_pRole->GetSuffix();
+    
+    if(m_progressData.IsTitleActive(PLAYER_TITLE_LEGEND))
+    {
+        displayName += " of Legend";
+    }
     return displayName;
 }
 
@@ -415,7 +457,7 @@ string GamePlayer::GetSpawnData(bool local)
     spawnData += "colrect|0|0|20|30\n"; //its ok to hardcoded (for now?)
     spawnData += "posXY|" + ToString(m_worldPos.x)  + "|" + ToString(m_worldPos.y) + "\n"; 
     spawnData += "name|" + GetDisplayName(true) + "``\n";
-    spawnData += "country|" + m_loginDetail.country + "\n";
+    spawnData += "country|" + GetCountryData() + "\n";
     spawnData += "invis|0\n"; // todo
     spawnData += "mstate|";
     spawnData += m_pRole->HasPerm("state.mod"_hash) ? "1\n" : "0\n";
@@ -439,6 +481,15 @@ Vector2Float GamePlayer::GetWorldPosCenter()
 RectFloat GamePlayer::GetPlayerWorldRect()
 {
     return RectFloat(m_worldPos.x, m_worldPos.y, m_worldPos.x + 20, m_worldPos.y + 30);
+}
+
+void GamePlayer::OpenPaginatedDialog(std::unique_ptr<DialogPagination> newDialog)
+{
+    m_dialogPagination = std::move(newDialog);
+    if(m_dialogPagination)
+    {
+        m_dialogPagination->Render(this);
+    }
 }
 
 void GamePlayer::ToggleCloth(uint16 itemID)
@@ -840,6 +891,25 @@ void GamePlayer::SendPositionToWorldPlayers()
     }
 
     pWorld->SendGamePacketToAll(&packet, this);
+}
+
+string GamePlayer::GetCountryData()
+{
+    string out = m_loginDetail.country;
+
+    if(m_progressData.IsTitleActive(PLAYER_TITLE_MAX_LVL))
+        out += "|maxLevel";
+        
+    if(m_progressData.IsTitleActive(PLAYER_TITLE_DOCTOR))
+        out += "|doctor";
+
+    if(m_progressData.IsTitleActive(PLAYER_TITLE_MASTER))
+        out += "|master";
+
+    if(m_progressData.IsTitleActive(PLAYER_TITLE_G4G))
+        out += "|g4g";
+
+    return out;
 }
 
 float GamePlayer::GetDistToTile(TileInfo* pGoalTile)

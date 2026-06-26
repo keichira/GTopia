@@ -11,7 +11,7 @@ namespace VariantPacket {
                                    const string& settings, uint32 tributeHash);
                                    
     VariantVector OnSendToServer(uint16 port, uint32 token, uint32 userID, 
-                                    const string& serverIP, int32 logonMode);
+                                    const string& serverIP, int32 logonMode, const string& doorID = "");
 
     VariantVector OnConsoleMessage(const string& message);
     VariantVector OnRequestWorldSelectMenu(const string& worldMenu);
@@ -39,4 +39,6 @@ namespace VariantPacket {
     VariantVector OnParticleEffect(int32 effectType, const Vector2Float& pos, float angle);
     VariantVector OnSetFeatureEnableFlags(const string& str);
     VariantVector OnSetFreezeState(uint32 state);
+    VariantVector OnCountryState(const string& countryData);
+    VariantVector OnZoomCamera(float zoom, int32 durationMS);
 }

@@ -8,6 +8,7 @@
 #define PLAYER_PROGRESS_VERSION 1
 
 class GamePlayer;
+enum ePlayerTitle;
 
 class PlayerProgress {
 public:
@@ -28,6 +29,12 @@ public:
     float GetAchievementProgress(eAchievement achievement);
     void UnlockAchievement(eAchievement achievement);
     void CheckAchieveAndUnlockIfPossibleByProgress(ePlayerProgress progress);
+    uint32 GetCountOfCompletedAchieves();
+
+    bool HasTitle(ePlayerTitle title);
+    void ModifyOwnedTitle(ePlayerTitle title, bool add);
+    bool IsTitleActive(ePlayerTitle title);
+    void ModifyTitleActivation(ePlayerTitle title, bool activate);
 
     uint16 BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved);
     string GetBattlePetName(int32 slot);

@@ -82,6 +82,7 @@ public:
     bool AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTargetTile, bool ignoreEmpty);
     bool ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty, std::vector<TileInfo*>& outTiles);
 
+    Vector2Float GetMapStartWorldPos(const string& doorID);
     void AgeTiles(uint32 ageMS);
     bool RandomizeOuijaBoardTile(TileInfo* pTile);
 

@@ -59,7 +59,7 @@ public:
     ServerInfo* GetServerByID(uint16 serverID);
 
     void SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID, const string& message);
-    void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& serverIP, uint16 serverPort);
+    void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& doorID, const string& serverIP, uint16 serverPort);
     void SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID, uint32 databaseID);
     void SendAuthPacket(ServerInfo* pServer, bool succeed);
     void SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, uint32 databaseID);

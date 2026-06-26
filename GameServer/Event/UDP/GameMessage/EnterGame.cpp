@@ -27,7 +27,7 @@ void CheckAndSendToWorldIfPossible(QueryTaskResult&& result)
     pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
     pPlayer->SetState(PLAYER_STATE_IN_GAME);
     
-    GetWorldManager()->PlayerJoinRequest(pPlayer, worldName);
+    pPlayer->SetTargetJoinWorld(worldName, pPlayer->GetLoginDetail().doorID);
 }
 
 void LoadAccount(QueryTaskResult&& result)
@@ -178,13 +178,15 @@ void LoadAccount(QueryTaskResult&& result)
         pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
         pPlayer->SetState(PLAYER_STATE_IN_GAME);
 
-        GetWorldManager()->PlayerJoinRequest(pPlayer, pWorld->GetWorlName());
+        pPlayer->SetTargetJoinWorld(pWorld->GetWorlName(), pPlayer->GetLoginDetail().doorID);
+        pPlayer->SetCurrentWorld(0);
     }
     else 
     {
         pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
         pPlayer->SetState(PLAYER_STATE_IN_GAME);
         pPlayer->SendOnRequestWorldSelectMenu("");
+        pPlayer->SetCurrentWorld(0);
     }
 }
 

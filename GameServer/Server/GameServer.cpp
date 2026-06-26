@@ -34,6 +34,7 @@
 #include "../Command/Magic.h"
 #include "../Command/AgeWorld.h"
 #include "../Command/Emotes.h"
+#include "../Command/FindItem.h"
 
 static const uint32 SMALL_PACKET_SIZE = 80;
 static const uint32 MED_PACKET_SIZE = 800;
@@ -213,6 +214,7 @@ void GameServer::RegisterEvents()
     RegisterCommand<Magic>();
     RegisterCommand<AgeWorld>();
     RegisterCommand<Emotes>();
+    RegisterCommand<FindItem>();
 }
 
 void GameServer::UpdateGameLogic(uint64 maxTimeMS)

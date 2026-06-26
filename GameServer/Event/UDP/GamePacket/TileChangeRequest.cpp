@@ -3,12 +3,6 @@
 #include "../../../Player/Dialog/PlayerDialog.h"
 #include "../../../Item/HarmonicCrystal.h"
 
-/**
- *
- * todo here ;-;
- *
- */
-
 void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
     if(!pPlayer || !pWorld || !pPacket)
@@ -455,7 +449,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
     if(pPacket->field_7 != ITEM_ID_FIST)
     {
-        if(pTile->GetDisplayedItem() != ITEM_ID_BLANK && !pItem->IsBackground() && pItem->type != ITEM_TYPE_SEED && pItem->type != ITEM_TYPE_CRYSTAL)
+        if(pTile->GetFG() != ITEM_ID_BLANK && !pItem->IsBackground() && pItem->type != ITEM_TYPE_SEED && pItem->type != ITEM_TYPE_CRYSTAL)
         {
             pPlayer->PlaySFX("cant_place_tile.wav");
             return;
@@ -620,7 +614,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
         if(pTileItem->type == ITEM_TYPE_SEED)
         {
-            if(pTile->GetGrowthPercent() >= 100.0f) {
+            if(pTile->GetGrowthPercent() >= 100.0f) { // fix ungrown harvest
                 if(pTileItem->rarity < 999)
                 {
                     pPlayer->GiveXP(pTileItem->rarity / 5 + 1);

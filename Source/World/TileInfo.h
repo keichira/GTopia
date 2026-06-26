@@ -79,6 +79,7 @@ public:
     bool WillBreak(uint8 damage);
     float GetHealthPercent();
 
+    bool IsCrystal();
     bool IsTree();
     bool IsFlammable();
 
@@ -99,6 +100,7 @@ public:
     }
 
     bool HasExtra() { return m_pExtraData != nullptr; }
+    bool IsTileExtraType(eTileExtraType type);
 
 private:
     TempTileData* m_tileData;

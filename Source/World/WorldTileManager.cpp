@@ -725,6 +725,44 @@ bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock,
     return true;
 }
 
+Vector2Float WorldTileManager::GetMapStartWorldPos(const string& doorID)
+{
+    if(!doorID.empty())
+    {
+        for(auto& tile : m_tiles)
+        {
+            if(!tile.HasExtra() || !(tile.IsTileExtraType(TILE_EXTRA_TYPE_DOOR) || (IsPathMarker(tile.GetFG()) && tile.IsTileExtraType(TILE_EXTRA_TYPE_SIGN))))
+                continue;
+
+            if(tile.IsTileExtraType(TILE_EXTRA_TYPE_DOOR))
+            {
+                TileExtra_Door* pTileExtra = tile.GetExtra<TileExtra_Door>();
+                if(!pTileExtra || pTileExtra->id.empty() || pTileExtra->HasFlag(TILE_EXTRA_LOCKED))
+                    continue;
+
+                if(pTileExtra->id == doorID)
+                    return tile.GetWorldPos();
+            }
+            else if(IsPathMarker(tile.GetFG()))
+            {
+                TileExtra_Sign* pTileExtra = tile.GetExtra<TileExtra_Sign>();
+                if(!pTileExtra || pTileExtra->text.empty())
+                    continue;
+
+                if(pTileExtra->text == doorID)
+                    return tile.GetWorldPos();
+            }
+        }
+    }
+
+    if(TileInfo* pMainDoorTile = GetKeyTile(KEY_TILE_MAIN_DOOR))
+    {
+        return pMainDoorTile->GetWorldPos();
+    }
+
+    return Vector2Float(64, 64);
+}
+
 void WorldTileManager::AgeTiles(uint32 ageMS)
 {
     for(auto& tile : m_tiles)
