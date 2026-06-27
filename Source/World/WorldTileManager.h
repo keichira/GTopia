@@ -36,7 +36,7 @@ class WorldInfo;
 
 class WorldTileManager {
 public:
-    WorldTileManager();
+    WorldTileManager(WorldInfo* pParent);
     ~WorldTileManager();
 
 public:
@@ -81,6 +81,8 @@ public:
     std::vector<TileInfo*> RemoveTileParentsLockedBy(TileInfo* pLockTile);
     bool AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTargetTile, bool ignoreEmpty);
     bool ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty, std::vector<TileInfo*>& outTiles);
+    bool HasLockOwnerOtherThan(uint32 userID);
+    uint32 GetLockCount() const { return m_lockCount; }
 
     Vector2Float GetMapStartWorldPos(const string& doorID);
     void AgeTiles(uint32 ageMS);
@@ -91,6 +93,8 @@ public:
     void RebuildPowerNodeGroups();
     TileInfo* GetClosestPowerNodeFromWorldPos(const Vector2Float& pos);
     bool CheckIfPointInsidePowerNodeGroups(const Vector2Float& pos);
+
+    std::vector<TileInfo*>& GetHeartMonitors() { return m_heartMonitors; }
 
 private:
     void FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
@@ -103,8 +107,12 @@ private:
 
     std::vector<TileInfo*> m_keyTiles;
     std::vector<Vector2Int> m_onFireTiles;
+    std::vector<TileInfo*> m_heartMonitors;
 
     std::vector<TileInfo*> m_powerNodes;
     std::vector<std::vector<TileInfo*>>  m_powerNodeGroups;
     std::unordered_map<TileInfo*, uint32> m_nodeToGroup;
+
+    uint32 m_lockCount;
+    WorldInfo* m_pWorld;
 };

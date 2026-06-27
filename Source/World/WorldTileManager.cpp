@@ -6,8 +6,8 @@
 #include "../Utils/StringUtils.h"
 #include "../Utils/GrowUtils.h"
 
-WorldTileManager::WorldTileManager()
-: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT)
+WorldTileManager::WorldTileManager(WorldInfo* pParent)
+: m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT), m_lockCount(0), m_pWorld(pParent)
 {
     m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
     m_tempTiles.resize(m_size.x * m_size.y);
@@ -329,8 +329,6 @@ bool WorldTileManager::CanPlantTreeHere(TileInfo *pTile)
 
 void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
 {
-    TileInfo* pKeyTile = nullptr;
-
     uint32 fgItem = pTile->GetFG();
 
     if(IsMainDoor(fgItem)) {
@@ -362,6 +360,25 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
     }
     else if(fgItem == ITEM_ID_FIREHOUSE) {
         m_keyTiles[KEY_TILE_FIREHOUSE] = remove ? nullptr : pTile;
+    }
+    else if(fgItem == ITEM_ID_HEART_MONITOR) {
+        if(m_pWorld)
+        {
+            if(remove)
+            {
+                m_pWorld->OnHeartMonitorRemoved(pTile);
+
+                if(pTile != m_heartMonitors.back()) {
+                    pTile = std::move(m_heartMonitors.back());
+                }
+                m_heartMonitors.pop_back();
+            }
+            else
+            {
+                //m_pWorld->OnHeartMonitorAdded(pTile);
+                m_heartMonitors.push_back(pTile);
+            }
+        }
     }
     else if(fgItem == ITEM_ID_CONTAINMENT_FIELD_POWER_NODE)
     {
@@ -409,6 +426,17 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
         {
             CheckPowerNodeToKill(pTile);
         }
+    }
+
+    if(pTile->GetType() == ITEM_TYPE_LOCK)
+    {
+        if(remove)
+        {
+            if(m_lockCount > 0)
+                --m_lockCount;
+        }
+        else
+            ++m_lockCount;
     }
 }
 
@@ -723,6 +751,23 @@ bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock,
 
     outTiles = std::move(lockedTiles);
     return true;
+}
+
+bool WorldTileManager::HasLockOwnerOtherThan(uint32 userID)
+{
+    for(auto& tile : m_tiles)
+    {
+        if(tile.GetType() != ITEM_TYPE_LOCK)
+            continue;
+
+        if(TileExtra_Lock* pTileExtra = tile.GetExtra<TileExtra_Lock>())
+        {
+            if(pTileExtra->ownerID != userID)
+                return true;
+        }
+    }
+
+    return false;
 }
 
 Vector2Float WorldTileManager::GetMapStartWorldPos(const string& doorID)

@@ -3,6 +3,7 @@
 #include "Player/Player.h"
 #include "Packet/PacketUtils.h"
 #include "Database/QueryUtils.h"
+#include "Utils/Timer.h"
 
 enum ePlayerState
 {
@@ -29,6 +30,12 @@ public:
 
     void SendToGame();
 
+    void Update();
+
+    void SetSessionName(const string& name) { m_sessionName = name; };
+
 private:
     ePlayerState m_state;
+    Timer m_loginStartTime;
+    string m_sessionName;
 };

@@ -21,13 +21,21 @@ bool IsValidWorldName(const string& worldName, bool allowColon)
 WorldInfo::WorldInfo()
 : m_version(14), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
 {
-    m_pTileMgr = new WorldTileManager();
+    m_pTileMgr = new WorldTileManager(this);
     m_pObjMgr = new WorldObjectManager();
 }
 
 WorldInfo::~WorldInfo()
 {
     Kill();
+}
+
+void WorldInfo::OnHeartMonitorAdded(TileInfo *pTile)
+{
+}
+
+void WorldInfo::OnHeartMonitorRemoved(TileInfo *pTile)
+{
 }
 
 void WorldInfo::Kill()

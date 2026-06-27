@@ -5,6 +5,7 @@
 #include "Database/Table/WorldDBTable.h"
 #include "../Player/PlayerManager.h"
 #include "IO/File.h"
+#include "../Player/PlayerPresenceManager.h"
 
 #include "../Event/UDP/GamePacket/ItemActivateRequest.h"
 #include "../Event/UDP/GamePacket/TileChangeRequest.h"
@@ -61,15 +62,23 @@ void WorldManager::StartWorldLoad(World* pWorld)
     if(!pWorld->InitWorld())
     {
         pWorld->GenerateWorld(WORLD_GENERATION_DEFAULT);
-        pWorld->SetState(WORLD_STATE_READY);
         pWorld->SaveToDatabase();
+    }
+    
+    auto& presenceUserIDs = pWorld->GetRequiredPresenceUserIDs();
+    if(presenceUserIDs.empty())
+    {
+        pWorld->SetState(WORLD_STATE_READY);
+        pWorld->UpdatePresenceNeededThings(false);
+        GetMasterBroadway()->SendWorldInitResult(true, pWorld->GetInstanceID());
     }
     else
     {
-        pWorld->SetState(WORLD_STATE_READY);
-    }
+        pWorld->SetState(WORLD_STATE_LOADING);
 
-    GetMasterBroadway()->SendWorldInitResult(true, pWorld->GetInstanceID());
+        GetPlayerPresenceManager()->RequestPresenceForWorld(pWorld->GetInstanceID(), presenceUserIDs);
+        LOGGER_LOG_DEBUG("World %s is waiting for %d presence snapshots before going READY.", pWorld->GetWorlName().c_str(), (int32)presenceUserIDs.size());
+    }
 }
 
 void WorldManager::HandlePlayerJoin(VariantVector&& result)
@@ -243,7 +252,7 @@ void WorldManager::UpdateWorlds()
     std::vector<uint32> deleteList;
     deleteList.reserve(m_worlds.size());
 
-    for (auto& [worldID, pWorld] : m_worlds)
+    for(auto& [worldID, pWorld] : m_worlds)
     {
         if(!pWorld)
             continue;
@@ -260,14 +269,17 @@ void WorldManager::UpdateWorlds()
         }
     }
 
-    for (uint32 worldID : deleteList)
+    for(uint32 worldID : deleteList)
     {
         auto it = m_worlds.find(worldID);
-        if (it == m_worlds.end())
+        if(it == m_worlds.end())
             continue;
 
-        if (it->second)
+        if(it->second)
+        {
+            it->second->OnWorldDelete();
             SAFE_DELETE(it->second);
+        }
 
         m_worldNameCache.erase(ToLower(it->second->GetWorlName()));
         m_worlds.erase(it);
@@ -300,6 +312,17 @@ void WorldManager::UpdatePendingLoadWorlds()
             pWorld->SaveToDatabase();
         }
     }
+}
+
+void WorldManager::OnWorldPresenceReady(uint32 worldID)
+{
+    World* pWorld = GetWorldByInstanceID(worldID);
+    if(!pWorld)
+        return;
+
+    pWorld->SetState(WORLD_STATE_READY);
+    pWorld->UpdatePresenceNeededThings(false);
+    GetMasterBroadway()->SendWorldInitResult(true, worldID);
 }
 
 World* WorldManager::GetWorldByName(const string& worldName)

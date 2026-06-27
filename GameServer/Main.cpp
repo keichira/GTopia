@@ -16,6 +16,7 @@
 #include "Player/AchievementManager.h"
 #include "Store/StoreManager.h"
 #include "Server/UserCacheManager.h"
+#include "Player/PlayerPresenceManager.h"
 
 bool firstCallShutdown = false;
 
@@ -301,6 +302,7 @@ void RunGameLoop()
 
             pGameServer->UpdateGameLogic(GAME_TICK_MS);
             GetUserCacheManager()->Update();
+            GetPlayerPresenceManager()->Update();
 
             uint64 tickEnd = Time::GetSystemTime();
             uint32 tickDur = (uint32)(tickEnd - tickStart);

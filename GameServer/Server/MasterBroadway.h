@@ -35,6 +35,9 @@ public:
     void SendServerKillPacket();
     void SendPlayerJoinedWorld(uint32 playerUserID, uint32 worldInstanceID);
     void SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstanceID);
+    void SendPlayerPresenceSubscribe(const std::vector<uint32>& ids);
+    void SendPlayerPresenceUnsubscribe(const std::vector<uint32>& ids);
+
     bool IsConnected() { return m_pNetClient != nullptr; }
     bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag = nullptr);
 

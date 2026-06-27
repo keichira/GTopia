@@ -12,6 +12,7 @@
 #include "../Server/UserCacheManager.h"
 #include "Math/WeightRand.h"
 #include "../Item/HarmonicCrystal.h"
+#include "../Player/PlayerPresenceManager.h"
 
 World::World()
 : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0)
@@ -24,6 +25,34 @@ World::~World()
 {
     SAFE_DELETE(m_pNpcManager);
     SAFE_DELETE(m_pBossManager);
+}
+
+void World::OnHeartMonitorAdded(TileInfo* pTile)
+{
+    if(!pTile)
+        return;
+
+    if(TileExtra_HeartMonitor* pTileExtra = pTile->GetExtra<TileExtra_HeartMonitor>())
+    {
+        if(pTileExtra->ownerID > 0)
+        {
+            GetPlayerPresenceManager()->RequestPresence({ (uint32)pTileExtra->ownerID }, false);
+        }
+    }
+}
+
+void World::OnHeartMonitorRemoved(TileInfo* pTile)
+{
+    if(!pTile)
+        return;
+
+    if(TileExtra_HeartMonitor* pTileExtra = pTile->GetExtra<TileExtra_HeartMonitor>())
+    {
+        if(pTileExtra->ownerID > 0)
+        {
+            GetPlayerPresenceManager()->ReleasePresence({ (uint32)pTileExtra->ownerID });
+        }
+    }
 }
 
 bool World::InitWorld()
@@ -55,6 +84,26 @@ bool World::InitWorld()
 
     SAFE_DELETE_ARRAY(pData);
     return true;
+}
+
+void World::OnWorldDelete()
+{
+    std::vector<uint32> presences;
+
+    auto& heartMonitors = GetTileManager()->GetHeartMonitors();
+    for(auto& heartMonitor : heartMonitors)
+    {
+        if(TileExtra_HeartMonitor* pTileExtra = heartMonitor->GetExtra<TileExtra_HeartMonitor>())
+        {
+            if(pTileExtra->ownerID > 0)
+            {
+                presences.push_back(pTileExtra->ownerID);
+            }
+        }
+    }
+
+    presences.erase(std::unique(presences.begin(), presences.end()), presences.end());
+    GetPlayerPresenceManager()->ReleasePresence(presences);
 }
 
 void World::SaveToDatabaseCB(QueryTaskResult&& result)
@@ -135,6 +184,11 @@ void World::Update()
         if(m_pBossManager)
         {
             m_pBossManager->Update();
+        }
+
+        if(m_lastPresenceUpdateTime.GetElapsedTime() > 5000)
+        {
+            UpdatePresenceNeededThings(true);
         }
     }
 
@@ -2031,49 +2085,57 @@ bool World::TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile)
 
 void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
 {
-    if(!pPlayer || !pTile) {
+    if(!pPlayer || !pTile)
         return;
-    }
 
-    if(pPlayer->GetInventory().GetCountOfItem(lockID) == 0) {
+    if(pPlayer->GetInventory().GetCountOfItem(lockID) < 1)
         return;
-    }
 
-    if(pTile->GetFG() != ITEM_ID_BLANK) {
+    if(pTile->GetFG() != ITEM_ID_BLANK) 
+    {
         pPlayer->SendOnTalkBubble("Use a lock on blank tile next to the things you want to lock.", true);
         return;
     }
 
-    if(IsWorldLock(lockID) && GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK)) {
+    if(IsWorldLock(lockID) && GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK)) 
+    {
         pPlayer->SendOnTalkBubble("Only one `$World Lock`` can be placed in a world, you'd have to remove the other one first.", true);
         return;
     }
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(lockID);
-    if(!pItem) {
+    if(IsWorldLock(lockID) && GetTileManager()->GetLockCount() > 0 && GetTileManager()->HasLockOwnerOtherThan(pPlayer->GetUserID()))
+    {
+        pPlayer->SendOnTalkBubble("Your `$World Lock`` can't be placed in this world unless everyone else's locks are removed.", false);
         return;
     }
 
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(lockID);
+    if(!pItem)
+        return;
+
     std::vector<TileInfo*> lockedTiles;
 
-    if(!IsWorldLock(lockID)) {
+    if(!IsWorldLock(lockID)) 
+    {
         bool lockSuccsess = GetTileManager()->ApplyLockTiles(pTile, GetMaxTilesToLock(lockID), false, lockedTiles);
-        if(!lockSuccsess) {
+        if(!lockSuccsess) 
+        {
             pPlayer->SendOnTalkBubble("Something went wrong, unable to place lock in here", true);
             return;
         }
     }
 
-    if(pTile->HasFlag(TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE)) 
+    if(pTile->HasFlag(TILE_FLAG_PAINTED_WHITE)) 
     {
-        pTile->RemoveFlag(TILE_FLAG_PAINTED_RED | TILE_FLAG_PAINTED_GREEN | TILE_FLAG_PAINTED_BLUE);
+        pTile->RemoveFlag(TILE_FLAG_PAINTED_WHITE);
     }
     pTile->RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
 
     SendLockPacketToAll((int32)pPlayer->GetUserID(), (int32)lockID, lockedTiles, pTile);
     pPlayer->ModifyInventoryItem(lockID, -1);
 
-    if(IsWorldLock(lockID)) {
+    if(IsWorldLock(lockID)) 
+    {
         string playerName = pPlayer->GetDisplayName(false);
 
         SendTalkBubbleAndConsoleToAll("`5[`w" + GetWorlName() +  " has been `$World Locked`` by " + playerName + "`5]``", true, pPlayer);
@@ -2081,7 +2143,8 @@ void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
 
         SendNameChangeToAll(pPlayer);
     }
-    else {
+    else 
+    {
         pPlayer->SendOnTalkBubble("Area locked.", true);
         pPlayer->SendOnPlayPositioned("use_lock.wav");
     }
@@ -3135,7 +3198,105 @@ void World::DropObject(uint16 itemID, uint8 count, const Vector2Float& pos)
     SendGamePacketToAll(&packet);
 }
 
-void World::DropObject(const WorldObject& obj)
+std::vector<uint32> World::GetRequiredPresenceUserIDs()
+{
+    std::vector<uint32> presences;
+
+    auto& heartMonitors = GetTileManager()->GetHeartMonitors();
+    if(heartMonitors.empty())
+        return presences;
+
+    PlayerPresenceManager* pPresenceMgr = GetPlayerPresenceManager();
+
+    for(auto& heartMonitor : heartMonitors)
+    {
+        if(TileExtra_HeartMonitor* pTileExtra = heartMonitor->GetExtra<TileExtra_HeartMonitor>())
+        {
+            if(pTileExtra->ownerID < 1 || pPresenceMgr->IsSubscribedTo(pTileExtra->ownerID))
+                continue;
+
+            presences.push_back(pTileExtra->ownerID);
+        }
+    }
+
+    presences.erase(std::unique(presences.begin(), presences.end()), presences.end());
+    return presences;
+}
+
+std::vector<uint32> World::GetActivePresenceUserIDs()
+{
+    std::vector<uint32> presences;
+
+    auto& heartMonitors = GetTileManager()->GetHeartMonitors();
+    if(heartMonitors.empty())
+        return presences;
+
+    for(auto& heartMonitor : heartMonitors)
+    {
+        if(TileExtra_HeartMonitor* pTileExtra = heartMonitor->GetExtra<TileExtra_HeartMonitor>())
+        {
+            if(pTileExtra->ownerID < 1)
+                continue;
+
+            presences.push_back(pTileExtra->ownerID);
+        }
+    }
+
+    presences.erase(std::unique(presences.begin(), presences.end()), presences.end());
+    return presences;
+}
+
+void World::UpdatePresenceNeededThings(bool sendUpdateToNetwork)
+{
+    auto& heartMonitors = GetTileManager()->GetHeartMonitors();
+    if(heartMonitors.empty())
+        return;
+
+    PlayerPresenceManager* pPresenceMgr = GetPlayerPresenceManager();
+
+    std::vector<TileInfo*> tiles;
+
+    for(auto& heartMonitor : heartMonitors)
+    {
+        if(TileExtra_HeartMonitor* pTileExtra = heartMonitor->GetExtra<TileExtra_HeartMonitor>())
+        {
+            PlayerPresenceData* pPresence = pPresenceMgr->GetPlayerPresenceData(pTileExtra->ownerID);
+            bool isTargetOnline = (pPresence && (pPresence->status == 1));
+            bool currentTileState = heartMonitor->HasFlag(TILE_FLAG_IS_ON);
+            bool stateChanged = false;
+
+            if(currentTileState != isTargetOnline)
+            {
+                stateChanged = true;
+
+                if(!isTargetOnline)
+                {
+                    heartMonitor->RemoveFlag(TILE_FLAG_IS_ON);
+                }
+                else
+                {
+                    if(pPresence)
+                    {
+                        pTileExtra->playerDisplayName = pPresence->name;
+                    }
+                    heartMonitor->SetFlag(TILE_FLAG_IS_ON);
+                }
+            }
+
+            if(stateChanged && sendUpdateToNetwork)
+            {
+                tiles.push_back(heartMonitor);
+            }
+        }
+    }
+
+    if(sendUpdateToNetwork && !tiles.empty())
+    {
+        SendTileUpdateMultiple(tiles);
+    }
+}
+
+void World::DropObject(const WorldObject &obj)
 {
     DropObject(obj.itemID, obj.count, obj.pos);
 }

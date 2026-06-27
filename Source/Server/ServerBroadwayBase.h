@@ -9,6 +9,9 @@
 struct TCPPacketEvent
 {
     NetClient* pClient;
+    bool isRaw = false;
+    uint16 packetType = 0;
+    std::vector<uint8> rawData;
     VariantVector data;
     uint64 reqTime;
 };

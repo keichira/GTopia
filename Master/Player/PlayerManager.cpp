@@ -1,6 +1,7 @@
 #include "PlayerManager.h"
 #include "GamePlayer.h"
 #include "../Server/ServerManager.h"
+#include "PlayerPresenceManager.h"
 
 PlayerManager* GetPlayerManager()
 {
@@ -30,17 +31,20 @@ PlayerSession* PlayerManager::GetSessionByID(uint32 userID)
 void PlayerManager::CreateSession(const PlayerSession& session)
 {
     m_sessions.insert_or_assign(session.userID, session);
+    GetPlayerPresenceManager()->OnPlayerStatusChanged(session.userID, true);
 }
 
 void PlayerManager::EndSessionByID(uint32 userID)
 {
     m_sessions.erase(userID);
+    GetPlayerPresenceManager()->OnPlayerStatusChanged(userID, false);
 }
 
 void PlayerManager::EndSessionsByServer(uint16 serverID)
 {
     for(auto it = m_sessions.begin(); it != m_sessions.end();) {
         if(it->second.serverID == serverID) {
+            GetPlayerPresenceManager()->OnPlayerStatusChanged(it->second.serverID, false);
             it = m_sessions.erase(it);
             continue;
         }

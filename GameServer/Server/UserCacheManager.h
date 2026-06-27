@@ -6,6 +6,11 @@
 #include "Database/Table/PlayerDBTable.h"
 #include "Utils/Timer.h"
 
+/**
+ * gonna used for datbaase parts only
+ * to fetch some details from database player, worlds or any
+ */
+
 class GamePlayer;
 
 enum eCacheRequestType : uint8

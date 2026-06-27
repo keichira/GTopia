@@ -5,7 +5,7 @@
 #include "WorldInfo.h"
 
 TileInfo::TileInfo()
-: m_pExtraData(nullptr), m_tileData(nullptr), m_damage(0)
+: m_pExtraData(nullptr), m_tileData(nullptr), m_damage(0), m_type(0)
 {
 }
 
@@ -52,6 +52,15 @@ void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, uin
             }
         }
     }
+
+    if(database && !write && m_tileData->fg != ITEM_ID_BLANK)
+    {
+        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(m_tileData->fg);
+        if(!pItem)
+            return;
+        
+        m_type = pItem->type;
+    }
 }
 
 void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
@@ -75,6 +84,8 @@ void TileInfo::SetFG(uint16 itemID, WorldTileManager* pTileMgr)
         SAFE_DELETE(m_pExtraData);
         RemoveFlag(TILE_FLAG_HAS_EXTRA_DATA);
     }
+
+    m_type = pItem->type;
 
     if(itemID == ITEM_ID_BLANK) 
     {
@@ -182,23 +193,6 @@ void TileInfo::PunchTile(uint32 damage)
     ) {
         ToggleFlag(TILE_FLAG_IS_ON);
     }
-}
-
-bool TileInfo::WillBreak(uint8 damage)
-{
-    uint16 itemToDamage = GetDisplayedItem();
-
-    if(itemToDamage == ITEM_ID_BLANK)
-        return false;
-
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemToDamage);
-    if(!pItem)
-        return false;
-
-    if(m_lastDamageTime.GetElapsedTime() >= pItem->restoreTime * 1000)
-        return false;
-
-    return m_damage + damage >= pItem->hp;
 }
 
 float TileInfo::GetHealthPercent()

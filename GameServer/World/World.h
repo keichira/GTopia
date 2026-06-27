@@ -31,6 +31,10 @@ public:
     ~World();
 
 public:
+    void OnHeartMonitorAdded(TileInfo* pTile) override;
+    void OnHeartMonitorRemoved(TileInfo* pTile) override;
+
+public:
     void SetDatabaseID(uint32 id) { m_databaseID = id; }
     uint32 GetDatabaseID() const { return m_databaseID; }
 
@@ -44,6 +48,7 @@ public:
     WorldBossManager* GetBossManager() const { return m_pBossManager; }
 
     bool InitWorld();
+    void OnWorldDelete();
 
     static void SaveToDatabaseCB(QueryTaskResult&& result);
     static void SaveToFile(World* pWorld);
@@ -141,6 +146,10 @@ public:
     Timer& GetLastSaveTime() { return m_worldLastSaveTime; }
     Timer& GetOfflineTime() { return m_worldOfflineTime; }
 
+    std::vector<uint32> GetRequiredPresenceUserIDs();
+    std::vector<uint32> GetActivePresenceUserIDs();
+    void UpdatePresenceNeededThings(bool sendUpdatesToNetwork);
+
 private:
     void DropObject(const WorldObject& obj);
     void RemoveObject(uint32 objectID);
@@ -158,4 +167,5 @@ private:
 
     Timer m_worldOfflineTime;
     Timer m_worldLastSaveTime;
+    Timer m_lastPresenceUpdateTime;
 };

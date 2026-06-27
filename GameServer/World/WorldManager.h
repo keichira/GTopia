@@ -6,6 +6,7 @@
 #include "Packet/NetPacket.h"
 #include "Event/EventDispatcher.h"
 #include <queue>
+#include <unordered_set>
 
 class WorldManager {
 public:
@@ -28,6 +29,7 @@ public:
 
     void UpdateWorlds();
     void UpdatePendingLoadWorlds();
+    void OnWorldPresenceReady(uint32 worldID);
 
     World* GetWorldByInstanceID(uint32 worldID);
     World* GetWorldByName(const string& worldName);

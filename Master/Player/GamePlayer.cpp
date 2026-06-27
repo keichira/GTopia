@@ -9,7 +9,7 @@
 #include "PlayerManager.h"
 
 GamePlayer::GamePlayer()
-: m_state(PLAYER_STATE_IDLE)
+: m_state(PLAYER_STATE_IDLE), m_sessionName("`4<UNKNOWN>")
 {
 }
 
@@ -20,6 +20,8 @@ GamePlayer::~GamePlayer()
 void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
 {
     SetState(PLAYER_STATE_LOGIN_REQUEST);
+
+    m_loginStartTime.Reset();
 
     if(!m_loginDetail.Serialize(packet, this, false)) 
     {
@@ -114,7 +116,6 @@ void GamePlayer::LoginGetAccount()
     }
 
     req.callback = &GamePlayer::CheckAccountCB;
-
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
 }
 
@@ -131,8 +132,34 @@ void GamePlayer::CheckAccountCB(QueryTaskResult&& result)
 
         if(!pID || pID->GetUINT() < 1) {
             pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
-            LOGGER_LOG_WARN("Got player but rows are null or id is not valid");
+            LOGGER_LOG_WARN("Got player but rows are null or ID is not valid");
             return;
+        }
+
+        PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+        if(!loginDetail.tankIDName.empty())
+        {
+            Variant* pName = result.result->GetFieldSafe("Name", 0);
+            if(!pName || pName->GetString().empty())
+            {
+                pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
+                LOGGER_LOG_WARN("Got player but rows are null or Name is not valid");
+                return;
+            }
+
+            pPlayer->SetSessionName(pName->GetString());
+        }
+        else
+        {
+            Variant* pGuestID = result.result->GetFieldSafe("GuestID", 0);
+            if(!pGuestID || pGuestID->GetINT() < 100)
+            {
+                pPlayer->SendLogonFailWithLog("`4OOPS! ``Something went wrong please re-connect");
+                LOGGER_LOG_WARN("Got guest player but rows are null or GuestID is not valid");
+                return;
+            }
+
+            pPlayer->SetSessionName(loginDetail.requestedName + "_" + ToString(pGuestID->GetINT()));
         }
 
         pPlayer->SetUserID(pID->GetUINT());
@@ -179,10 +206,14 @@ void GamePlayer::CheckCountOfIPCB(QueryTaskResult&& result)
     }
 
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
+    int32 guestID = RandomRangeInt(100, 999);
+
+    pPlayer->SetSessionName(loginDetail.requestedName + "_" + ToString(guestID));
+
     QueryRequest req = PlayerDB::Create(
         loginDetail.requestedName,
         loginDetail.platformType,
-        RandomRangeInt(100, 999),
+        guestID,
         loginDetail.mac,
         pPlayer->GetAddress(),
         pPlayer->GetNetID()
@@ -252,8 +283,20 @@ void GamePlayer::SendToGame()
     session.userID = m_userID;
     session.loginToken = RandomRangeInt(100000, 9999999);
     session.ip = string(GetAddress());
+    session.name = m_sessionName; 
 
     GetPlayerManager()->CreateSession(session);
     SendOnSendToServer(pServer->port, session.loginToken, m_userID, pServer->wanIP, LOGON_MODE_WELCOME, "");
     SetState(PLAYER_STATE_IDLE);
+}
+
+void GamePlayer::Update()
+{
+    // todo here just template rn
+
+    if(m_loginStartTime.GetElapsedTime() > 30000)
+    {
+        SendUDPDisconnectPacket(GetNetID());
+        return;
+    }
 }

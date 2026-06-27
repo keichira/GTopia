@@ -4,6 +4,7 @@
 #include "../Context.h"
 #include "../Player/PlayerManager.h"
 #include "../World/WorldManager.h"
+#include "../Player/PlayerPresenceManager.h"
 
 #include "../Event/TCP/TCPEventHello.h"
 #include "../Event/TCP/TCPEventAuth.h"
@@ -72,42 +73,45 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
     TCPPacketEvent event;
 
     while(m_packetQueue.try_dequeue(event)) {
-        if(!event.pClient) {
+        if(!event.pClient)
             continue;
-        }
 
         ServerInfo* pServerInfo = (ServerInfo*)event.pClient->data;
-        if(!pServerInfo) {
+        if(!pServerInfo) 
+        {
             event.pClient->status = SOCKET_CLIENT_CLOSE;
             continue;
         }
 
-        int8 type = event.data[0].GetINT();
-        if(type != TCP_PACKET_HEARTBEAT) {
-            LOGGER_LOG_DEBUG("GOT TCP PACKET %d", type);
+        if(event.packetType != TCP_PACKET_HEARTBEAT) 
+        {
+            LOGGER_LOG_DEBUG("Received TCP Packet %d (Raw: %d)", event.packetType, event.isRaw ? 1 : 0);
         }
 
-        switch(type) {
-            case TCP_PACKET_HELLO: 
-            case TCP_PACKET_AUTH: {
-                m_events.Dispatch(type, event.pClient, event.data);
-                break;
-            }
-
-            default: {
-                if(!pServerInfo->authed) {
-                    LOGGER_LOG_WARN("Client trying to access un-authorized packets?! CLOSING!");
-                    event.pClient->status = SOCKET_CLIENT_CLOSE;
-                    continue;
-                }
-
-                m_events.Dispatch(type, event.pClient, event.data);
+        if(event.packetType != TCP_PACKET_HELLO && event.packetType != TCP_PACKET_AUTH) 
+        {
+            if(!pServerInfo->authed) 
+            {
+                LOGGER_LOG_WARN("Client trying to access un-authorized packets?! CLOSING!");
+                event.pClient->status = SOCKET_CLIENT_CLOSE;
+                continue;
             }
         }
 
-        if(startTime.GetElapsedTime() >= maxTimeMS) {
+        if(event.isRaw)
+        {
+            if(event.packetType == TCP_PACKET_ONLINE_DATA_SUBSCRIBE || event.packetType == TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE)
+            {
+                GetPlayerPresenceManager()->OnTCPPacket(event.pClient, event.packetType, event.rawData);
+            }
+        }
+        else
+        {
+            m_events.Dispatch(event.packetType, event.pClient, event.data);
+        }
+
+        if(startTime.GetElapsedTime() >= maxTimeMS)
             break;
-        }
     }
 }
 
@@ -304,6 +308,24 @@ void ServerManager::SendHelloPacket(ServerInfo* pServer, const string& authKey)
     pServer->pClient->Send(data);
 }
 
+void ServerManager::SendPlayerPresenceSnapshot(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements)
+{
+    if(!pServer || !pServer->pClient || elements.empty())
+        return;
+
+    uint32 totalByteSize = (uint32)(elements.size() * sizeof(PlayerPresencePacketElement));
+    pServer->pClient->Send(TCP_PACKET_ONLINE_DATA_SNAPSHOT, elements.data(), totalByteSize);
+}
+
+void ServerManager::SendPlayerPresenceUpdate(ServerInfo *pServer, const std::vector<PlayerPresencePacketElement>& elements)
+{
+    if(!pServer || !pServer->pClient)
+        return;
+
+    uint32 totalByteSize = (uint32)(elements.size() * sizeof(PlayerPresencePacketElement));
+    pServer->pClient->Send(TCP_PACKET_ONLINE_DATA_UPDATE, elements.data(), totalByteSize);
+}
+
 void ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverType)
 {
     if(!pServer || !pServer->pClient) {
@@ -435,6 +457,8 @@ void ServerManager::UpdateServers()
 {
     if(m_lastServerUpdateTime.GetElapsedTime() < 1000)
         return;
+
+    GetPlayerPresenceManager()->Update();
 
     if(m_lastHeartBeatTime.GetElapsedTime() >= 5000)
     {

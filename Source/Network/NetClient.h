@@ -41,8 +41,13 @@ struct NetClient
     eSocketClientStatus status = SOCKET_CLIENT_UNKNOWN;
     string ip;
 
+#ifdef SERVER_MASTER
+    RingBuffer sendQueue = RingBuffer(32 * 1024);
+    RingBuffer recvQueue = RingBuffer(32 * 1024);
+#else
     RingBuffer sendQueue = RingBuffer(8 * 1024);
     RingBuffer recvQueue = RingBuffer(8 * 1024);
+#endif
 
     NetSocket* pNetSocket = nullptr;
     void* data = nullptr;
@@ -58,4 +63,5 @@ struct NetClient
 
     bool Send(const VariantVector& data);
     bool Send(void* pData, uint32 size);
+    bool Send(uint16 packetID, const void* pData, uint32 size);
 };

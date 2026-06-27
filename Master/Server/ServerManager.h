@@ -69,6 +69,9 @@ public:
     void SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID, uint32 worldInstanceID);
     void SendHelloPacket(ServerInfo* pServer, const string& authKey);
 
+    void SendPlayerPresenceSnapshot(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements);
+    void SendPlayerPresenceUpdate(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements);
+
 private:
     template<class T>
     void RegisterEvent(eTCPPacketType packet)

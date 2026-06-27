@@ -5,6 +5,13 @@
 
 class GamePlayer;
 
+struct PlayerOnlineData
+{
+    uint32 userID = 0;
+    bool online = false;
+    uint16 refCount = 0;
+};
+
 class PlayerManager {
 public:
     PlayerManager();
@@ -41,6 +48,10 @@ private:
     Timer m_lastUpdateTime;
 
     uint32 m_totalPlayerCount;
+
+    std::vector<uint32> m_pendingSubOnlineData;
+    std::vector<uint32> m_pendingUnSubOnlineData;
+    std::unordered_map<uint32, PlayerOnlineData> m_onlineData;
 };
 
 PlayerManager* GetPlayerManager();

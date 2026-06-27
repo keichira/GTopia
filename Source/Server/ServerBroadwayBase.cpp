@@ -35,50 +35,72 @@ void ServerBroadwayBase::OnClientConnect(NetClient* pClient)
 
 void ServerBroadwayBase::OnClientReceive(NetClient* pClient)
 {
-    if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE) {
+    if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE)
         return;
-    }
-
-    {
-        std::lock_guard<std::mutex> lock(pClient->recvMutex);
-        if(pClient->recvQueue.GetDataSize() <= sizeof(uint32)) {
-            return;
-        }
-
-        uint32 packetSize = 0;
-        pClient->recvQueue.Peek(&packetSize, sizeof(uint32));
-
-        if(pClient->recvQueue.GetDataSize() < packetSize + sizeof(uint32)) {
-            return;
-        }
-        else if(packetSize >= 1024 * 2) {
-            pClient->status = SOCKET_CLIENT_CLOSE;
-            return;
-        }
-    }
-
-    VariantVector data;
-    {
-        std::lock_guard<std::mutex> lock(pClient->recvMutex);
-        
-        uint32 packetSize = 0;
-        pClient->recvQueue.Read(&packetSize, sizeof(uint32));
-
-        uint8* pPacketData = new uint8[packetSize];
-        pClient->recvQueue.Read(pPacketData, packetSize);
-
-        MemoryBuffer memBuffer(pPacketData, packetSize);
-
-        DeSerializeVariantVectorForTCP(memBuffer, data);
-        SAFE_DELETE_ARRAY(pPacketData);
-    }
 
     TCPPacketEvent packet;
-    packet.data = std::move(data);
     packet.pClient = pClient;
     packet.reqTime = Time::GetSystemTime();
 
+    uint32 packetSize = 0;
+    uint8* pPacketData = nullptr;
+    bool hasFullPacket = false;
+
+    {
+        std::lock_guard<std::mutex> lock(pClient->recvMutex);
+        
+        if(pClient->recvQueue.GetDataSize() <= sizeof(uint32))
+            return;
+
+        pClient->recvQueue.Peek(&packetSize, sizeof(uint32));
+
+        if(pClient->recvQueue.GetDataSize() < packetSize + sizeof(uint32))
+            return;
+            
+        if(packetSize >= 1024 * 6 || packetSize == 0) 
+        {
+            pClient->status = SOCKET_CLIENT_CLOSE;
+            return;
+        }
+
+        uint32 dummySize = 0;
+        pClient->recvQueue.Read(&dummySize, sizeof(uint32));
+
+        pPacketData = new uint8[packetSize];
+        pClient->recvQueue.Read(pPacketData, packetSize);
+        hasFullPacket = true;
+    }
+
+    if(!hasFullPacket)
+        return;
+
+    if(packetSize >= 3 && pPacketData[0] == 0xFF) 
+    {
+        packet.isRaw = true;
+        packet.packetType = *(uint16*)(pPacketData + 1); 
+        
+        uint32 rawPayloadSize = packetSize - 3;
+        if(rawPayloadSize > 0) 
+        {
+            packet.rawData.assign(pPacketData + 3, pPacketData + packetSize);
+        }
+    }
+    else 
+    {
+        packet.isRaw = false;
+        MemoryBuffer memBuffer(pPacketData, packetSize);
+        DeSerializeVariantVectorForTCP(memBuffer, packet.data);
+        
+        if(!packet.data.empty() && packet.data[0].GetType() == VARIANT_TYPE_INT) 
+            packet.packetType = (uint16)packet.data[0].GetINT();
+        else
+            packet.packetType = 0;
+    }
+
+    SAFE_DELETE_ARRAY(pPacketData);
     m_packetQueue.enqueue(std::move(packet));
+
+    OnClientReceive(pClient);
 }
 
 void ServerBroadwayBase::OnClientDisconnect(NetClient* pClient)

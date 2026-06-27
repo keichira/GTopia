@@ -7,6 +7,7 @@
 
 enum eTCPPacketType
 {
+    TCP_PACKET_NONE,
     TCP_PACKET_HELLO,
     TCP_PACKET_AUTH,
     TCP_PACKET_PLAYER_CHECK_SESSION,
@@ -18,6 +19,11 @@ enum eTCPPacketType
     TCP_PACKET_KILL_SERVER,
     TCP_PACKET_ADMIN_COMMAND,
     TCP_PACKET_WORLD_PLAYER_SESSION,
+
+    TCP_PACKET_ONLINE_DATA_SUBSCRIBE,
+    TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE,
+    TCP_PACKET_ONLINE_DATA_UPDATE,
+    TCP_PACKET_ONLINE_DATA_SNAPSHOT,
 
     TCP_RENDER_REQUEST = 1000,
     TCP_RENDER_RESULT = 1001,
@@ -152,5 +158,14 @@ struct GameUpdatePacket
 
     bool HasFlag(eGamePacketFlags flag) { return flags & flag; }
     void SetFlag(eGamePacketFlags flag) { flags |= flag; }
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PlayerPresencePacketElement
+{
+    uint32 userID;
+    uint8 status;
+    char name[32];
 };
 #pragma pack(pop)

@@ -57,7 +57,6 @@ HarmonicCrystal::HarmonicCrystal()
     AddRecipe({ "11335", ITEM_ID_AMETHYST_BLOCK, 1 });
     AddRecipe({ "22244", ITEM_ID_EMERALD_CHOKER, 1 });
     AddRecipe({ "11223", ITEM_ID_STEAM_LAMP, 3 });
-    
 
     //AddRecipe({ "11145", ITEM_ID_HEARTSTONE, 1 });
 }

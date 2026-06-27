@@ -131,6 +131,7 @@ set(GAME_FILES PRIVATE
     ${GAME_PLAYER}/AchievementManager.cpp
     ${GAME_PLAYER}/PlayerProgress.cpp
     ${GAME_PLAYER}/PlayerPlayModController.cpp
+    ${GAME_PLAYER}/PlayerPresenceManager.cpp
 
     ${GAME_STORE}/StoreManager.cpp
 

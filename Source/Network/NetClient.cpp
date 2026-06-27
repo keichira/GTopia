@@ -25,6 +25,31 @@ bool NetClient::Send(void* pData, uint32 size)
     return pNetSocket->Send(this, pData, size);
 }
 
+bool NetClient::Send(uint16 packetID, const void* pData, uint32 size)
+{
+    if(socket < 0 || !pNetSocket)
+        return false;
+
+    uint32 payloadSize = 1 + 2 + size;
+    uint32 totalBufferSize = sizeof(uint32) + payloadSize;
+
+    uint8* pBuffer = new uint8[totalBufferSize];
+
+    *(uint32*)(pBuffer) = payloadSize;
+    pBuffer[4] = 0xFF;
+    *(uint16*)(pBuffer + 5) = packetID;
+
+    if(size > 0 && pData != nullptr) 
+    {
+        memcpy(pBuffer + 7, pData, size);
+    }
+
+    bool succeed = pNetSocket->Send(this, pBuffer, totalBufferSize);
+
+    SAFE_DELETE_ARRAY(pBuffer);
+    return succeed;
+}
+
 uint8* SerializeVariantVectorForTCP(const VariantVector& varVector, uint32& outSize)
 {
     uint32 size = 5;

@@ -30,6 +30,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_ACHIEVEMENT:
             return TILE_EXTRA_TYPE_ACHIEVEMENT;
 
+        case ITEM_TYPE_HEART_MONITOR:
+            return TILE_EXTRA_TYPE_HEART_MONITOR;
+
         case ITEM_TYPE_XENONITE:
             return TILE_EXTRA_TYPE_XENONITE;
 
@@ -391,7 +394,7 @@ void TileExtra_HeartMonitor::Serialize(MemoryBuffer& memBuffer, bool write, bool
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(ownerID, write);
-    memBuffer.ReadWrite(playerDisplayName, write);
+    memBuffer.ReadWriteString(playerDisplayName, write);
 }
 
 void TileExtra_Xenonite::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)

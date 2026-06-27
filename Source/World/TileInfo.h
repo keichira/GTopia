@@ -76,7 +76,6 @@ public:
     void ToggleFlag(uint16 flag) { m_tileData->flags ^= flag; }
 
     void PunchTile(uint32 damage);
-    bool WillBreak(uint8 damage);
     float GetHealthPercent();
 
     bool IsCrystal();
@@ -88,6 +87,8 @@ public:
     void ModGrowth(int32 deltaAgeSec, int32 ageSec);
 
     uint16 GetDisplayedItem();
+    uint8 GetType() const { return m_type; };
+
     void AgeTile(uint32 ageMS);
         
     template<class T>
@@ -109,6 +110,9 @@ private:
 
     uint8 m_damage;
     Timer m_lastDamageTime;
+    uint8 m_type;
+
+    Timer m_lastInteractionTime; // todo
 
     TileExtra* m_pExtraData;
 };

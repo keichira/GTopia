@@ -31,6 +31,10 @@ public:
     virtual ~WorldInfo();
 
 public:
+    virtual void OnHeartMonitorAdded(TileInfo* pTile);
+    virtual void OnHeartMonitorRemoved(TileInfo* pTile);
+
+public:
     void Kill();
 
     bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, float gameVersion = 0.0f);

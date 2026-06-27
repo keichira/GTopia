@@ -5,6 +5,7 @@
 #include "GameServer.h"
 #include "../World/WorldManager.h"
 #include "../Context.h"
+#include "../Player/PlayerPresenceManager.h"
 
 #include "../Event/TCP/TCPEventHello.h"
 #include "../Event/TCP/TCPEventAuth.h"
@@ -46,16 +47,25 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
     TCPPacketEvent event;
 
     while(m_packetQueue.try_dequeue(event)) {
-        if(!event.pClient || event.data.empty())
+        if(!event.pClient)
             continue;
 
-        int32 type = event.data[0].GetINT();
-        if(type != TCP_PACKET_HEARTBEAT) 
+        if(event.packetType != TCP_PACKET_HEARTBEAT) 
         {
-            LOGGER_LOG_DEBUG("Received TCP Packet type %d", type);
+            LOGGER_LOG_DEBUG("Received TCP Packet %d (Raw: %d)", event.packetType, event.isRaw ? 1 : 0);
         }
 
-        m_events.Dispatch(type, event.pClient, event.data);
+        if(event.isRaw)
+        {
+            if(event.packetType == TCP_PACKET_ONLINE_DATA_UPDATE || event.packetType == TCP_PACKET_ONLINE_DATA_SNAPSHOT)
+            {
+                GetPlayerPresenceManager()->OnTCPPacket(event.packetType, event.rawData);
+            }
+        }
+        else if(!event.data.empty())
+        {
+            m_events.Dispatch(event.packetType, event.pClient, event.data);
+        }
 
         if(startTime.GetElapsedTime() >= maxTimeMS)
             break;
@@ -226,6 +236,24 @@ void MasterBroadway::SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstan
     data[3] = worldInstanceID;
 
     m_pNetClient->Send(data);   
+}
+
+void MasterBroadway::SendPlayerPresenceSubscribe(const std::vector<uint32> &ids)
+{
+    if(!m_pNetClient || ids.empty())
+        return;
+
+    uint32 totalByteSize = (uint32)(ids.size() * sizeof(uint32));
+    m_pNetClient->Send(TCP_PACKET_ONLINE_DATA_SUBSCRIBE, ids.data(), totalByteSize);
+}
+
+void MasterBroadway::SendPlayerPresenceUnsubscribe(const std::vector<uint32>& ids)
+{
+    if(!m_pNetClient || ids.empty())
+        return;
+
+    uint32 totalByteSize = (uint32)(ids.size() * sizeof(uint32));
+    m_pNetClient->Send(TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE, ids.data(), totalByteSize);
 }
 
 bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)

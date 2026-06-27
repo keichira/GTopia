@@ -224,7 +224,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         }
     }
 
-    if((pItem->type == ITEM_TYPE_WRENCH || pItem->IsLOSBlocking()) && !pPlayer->HasLOSToTile(pTile))
+    if((pItem->id == ITEM_ID_WRENCH || pItem->IsLOSBlocking()) && !pPlayer->HasLOSToTile(pTile))
     {
         pPlayer->SendOnTalkBubble("Something is blocking the way, get closer.", false);
         pWorld->SendPlayPositionedToAll(pPlayer, "punch_locked.wav");
@@ -234,6 +234,27 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     /**
      * handle tile punch message
      */
+    float tileHealthPercent = pTile->GetHealthPercent();
+    if(pItem->id == ITEM_ID_FIST)
+    {
+        if(pTileItem->type == ITEM_TYPE_ACHIEVEMENT && tileHealthPercent >= 1.0f)
+        {
+            if(TileExtra_Achievement* pAchiExtra = pTile->GetExtra<TileExtra_Achievement>())
+            {
+                if(pAchiExtra->achievementID == 127)
+                {
+                    pPlayer->SendOnTalkBubble("It's blank. Will no hero step up to etch it?", true);
+                }
+                else
+                {
+                    if(pAchiExtra->achievementID > ACHIEVEMENT_COUNT || !GetAchievementManager()->GetAchievement((eAchievement)pAchiExtra->achievementID))
+                        pPlayer->SendOnTalkBubble("Invalid achievement.", true);
+                    else
+                        pWorld->OnPunchedAchievementBlock(pPlayer, pTile, pTileItem);
+                }
+            }
+        }
+    }
 
     bool allowPunchInteraction = false;
 
@@ -531,6 +552,13 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
+        if(pItem->id == ITEM_ID_HEART_MONITOR && pWorld->GetTileManager()->GetHeartMonitors().size() >= 30)
+        {
+            pPlayer->SendOnTalkBubble("``Due to wiring concerns, you can only place 30 Heart Monitors in a world.", false);
+            pWorld->SendPlayPositionedToAll(pPlayer, "punch_locked.wav");
+            return;
+        }
+
         /*if(pItem->IsBackground() && pTile->GetBG() != ITEM_ID_BLANK)
         {
             ItemInfo* pTileBgItem = GetItemInfoManager()->GetItemByID(pTile->GetBG());
@@ -569,6 +597,17 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         if(pItem->type == ITEM_TYPE_XENONITE)
         {
             pWorld->ToggleXenoniteCrystal(true);
+        }
+
+        if(pItem->id == ITEM_ID_HEART_MONITOR)
+        {
+            if(TileExtra_HeartMonitor* pMonitorExtra = pTile->GetExtra<TileExtra_HeartMonitor>())
+            {
+                pMonitorExtra->ownerID = pPlayer->GetUserID();
+                pMonitorExtra->playerDisplayName = pPlayer->GetDisplayName(false) + "`w";
+                pWorld->OnHeartMonitorAdded(pTile);
+            }
+            pTile->SetFlag(TILE_FLAG_IS_ON);
         }
 
         if(pTile->HasFlag(TILE_FLAG_PAINTED_WHITE))
@@ -611,6 +650,8 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
          * handle punching special tiles like mannequin, lobster traps
          * 
          */
+
+        tileHealthPercent = pTile->GetHealthPercent();
 
         if(pTileItem->type == ITEM_TYPE_SEED)
         {
@@ -663,8 +704,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             }
         }
 
-        float tileHealthPercent = pTile->GetHealthPercent();
-
         if(pTileItem->HasFlag(ITEM_FLAG_AUTOPICKUP) && !inventory.HaveRoomForItem(pTileItem->id, 1) && tileHealthPercent < 1.0f)
         {
             pPlayer->SendOnTalkBubble("I better not break that, I have no room to pick it up!", false);
@@ -687,10 +726,61 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
         pTile->PunchTile(punchDamage);
 
-        // lab
+        if(pTileItem->type == ITEM_TYPE_LAB)
+        {
+            
+        }
+        else if(pTileItem->id == ITEM_ID_CASH_REGISTER)
+        {
+            pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_COIN, pTile->GetWorldPosCenter() + RandomRangeFloat(250.0, 250.0), 250, 30);
+        }
+        else if(pTileItem->id == ITEM_ID_ROULETTE_WHEEL)
+        {
+            int32 randVal = RandomRangeInt(0, 36);
+            string spinResult = "`7[``" + pPlayer->GetDisplayName(true) + "`` spun the wheel and got ";
+
+            if(randVal == 0)
+            {
+                spinResult += "`2";
+            }
+            else
+            {
+                bool even = (randVal % 2) == 0;
+                bool firstGroup =
+                    (randVal >= 1 && randVal <= 10) ||
+                    (randVal >= 19 && randVal <= 28);
+
+                if (firstGroup)
+                    spinResult += even ? "`b" : "`4";
+                else
+                    spinResult += even ? "`4" : "`b";
+            }
+
+            spinResult += ToString(randVal) + "`7]``";
+
+            pWorld->SendTalkBubbleAndConsoleToAll(spinResult, false, pPlayer);
+        }
+        else if(pTileItem->id == ITEM_ID_SLOT_MACHINE)
+        {
+            int32 randVal = RandomRangeInt(0, 9);
+            if(randVal == 0)
+            {
+                pWorld->SendTalkBubbleAndConsoleToAll("`7[``" + pPlayer->GetDisplayName(true) + " `2wins at slots!`7]``", false, pPlayer);
+                pWorld->SendPlayPositionedToAll(pPlayer, "slot_win.wav");
+                pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_COIN_SPRAY, pTile->GetWorldPosCenter());
+            }
+            else
+            {
+                pWorld->SendTalkBubbleAndConsoleToAll("`7[``" + pPlayer->GetDisplayName(true) + " `4loses at slots!`7]``", false, pPlayer);
+                pWorld->SendPlayPositionedToAll(pPlayer, "slot_lose.wav");
+            }
+        }
+        else if(pTileItem->type == ITEM_TYPE_CRYSTAL && pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
+        {
+
+        }
 
         tileHealthPercent = pTile->GetHealthPercent();
-
         if(tileHealthPercent > 0.0f)
         {
 
