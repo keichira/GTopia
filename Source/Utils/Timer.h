@@ -2,7 +2,8 @@
 
 #include "../Precompiled.h"
 
-class Timer {
+class Timer
+{
 public:
     Timer();
 
@@ -19,7 +20,8 @@ private:
     uint64 m_startTime;
 };
 
-class Time {
+class Time
+{
 public:
     Time();
 

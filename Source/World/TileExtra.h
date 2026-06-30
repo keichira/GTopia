@@ -1,14 +1,16 @@
 #pragma once
 
-#include "../Precompiled.h"
-#include "../Memory/MemoryBuffer.h"
-#include "Utils/Timer.h"
 #include "../Item/ItemInfoManager.h"
 #include "../Math/Random.h"
+#include "../Memory/MemoryBuffer.h"
+#include "../Precompiled.h"
+#include "Utils/Timer.h"
 #include <deque>
 
 class TileExtra;
 class TileExtraGrowth;
+
+// clang-format off
 
 #define TILE_EXTRA(CLASS, TYPEID)        \
 class CLASS : public TileExtra {         \

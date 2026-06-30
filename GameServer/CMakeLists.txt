@@ -48,31 +48,15 @@ set(GAME_FILES PRIVATE
     ${SOURCE_ITEM}/ItemUtils.cpp
     ${SOURCE_ITEM}/BattlePetInfo.cpp
 
-    ${GAME_EVENT}/TCP/TCPEventHello.cpp
-    ${GAME_EVENT}/TCP/TCPEventAuth.cpp
-    ${GAME_EVENT}/TCP/TCPEventPlayerSession.cpp
-    ${GAME_EVENT}/TCP/TCPEventWorldInit.cpp
-    ${GAME_EVENT}/TCP/TCPEventRenderWorld.cpp
-    ${GAME_EVENT}/TCP/TCPEventWorldSendPlayer.cpp
-    ${GAME_EVENT}/TCP/TCPEventKillServer.cpp
-    ${GAME_EVENT}/TCP/TCPEventHeartBeat.cpp
-    ${GAME_EVENT}/TCP/TCPEventCommand.cpp
+    ${GAME_EVENT}/TCP/TCPEvent_Command.cpp
+    ${GAME_EVENT}/TCP/TCPEvent_Player.cpp
+    ${GAME_EVENT}/TCP/TCPEvent_Server.cpp
+    ${GAME_EVENT}/TCP/TCPEvent_World.cpp
 
-    ${GAME_EVENT}/UDP/GameMessage/RefreshItemData.cpp
-    ${GAME_EVENT}/UDP/GameMessage/EnterGame.cpp
-    ${GAME_EVENT}/UDP/GameMessage/RefreshTributeData.cpp
-    ${GAME_EVENT}/UDP/GameMessage/JoinRequest.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Input.cpp
-    ${GAME_EVENT}/UDP/GameMessage/QuitToExit.cpp
-    ${GAME_EVENT}/UDP/GameMessage/DialogReturn.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Trash.cpp
-    ${GAME_EVENT}/UDP/GameMessage/GrowID.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Quit.cpp
-    ${GAME_EVENT}/UDP/GameMessage/SetSkin.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Drop.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Wrench.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Buy.cpp
-    ${GAME_EVENT}/UDP/GameMessage/Store.cpp
+    ${GAME_EVENT}/UDP/GameMessage/GameMessage_Input.cpp
+    ${GAME_EVENT}/UDP/GameMessage/GameMessage_Item.cpp
+    ${GAME_EVENT}/UDP/GameMessage/GameMessage_Player.cpp
+    ${GAME_EVENT}/UDP/GameMessage/GameMessage_Trade.cpp
 
     ${GAME_EVENT}/UDP/GamePacket/ItemActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileChangeRequest.cpp
@@ -94,6 +78,7 @@ set(GAME_FILES PRIVATE
     ${SOURCE_WORLD}/WorldInfo.cpp
     ${SOURCE_WORLD}/WorldTileManager.cpp
     ${SOURCE_WORLD}/WorldObjectManager.cpp
+    ${SOURCE_WORLD}/WorldBalancer.cpp
     ${GAME_WORLD}/WorldManager.cpp
     ${GAME_WORLD}/World.cpp
     ${GAME_WORLD}/WorldNPC.cpp
@@ -117,6 +102,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/BulletinBlockDialog.cpp
     ${GAME_DIALOG}/DoorDialog.cpp
     ${GAME_DIALOG}/ItemFinderDialog.cpp
+    ${GAME_DIALOG}/TradeDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
@@ -132,6 +118,7 @@ set(GAME_FILES PRIVATE
     ${GAME_PLAYER}/PlayerProgress.cpp
     ${GAME_PLAYER}/PlayerPlayModController.cpp
     ${GAME_PLAYER}/PlayerPresenceManager.cpp
+    ${GAME_PLAYER}/PlayerTrade.cpp
 
     ${GAME_STORE}/StoreManager.cpp
 

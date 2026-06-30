@@ -1,19 +1,6 @@
 #include "ItemActivateRequest.h"
 #include "Item/ItemInfoManager.h"
 
-bool ConvertItem(uint16 convertThis, uint16 toThis) 
-{
-    ItemInfo* pConvItem = GetItemInfoManager()->GetItemByID(convertThis);
-    if(!pConvItem)
-        return false;
-
-    ItemInfo* pTargetItem = GetItemInfoManager()->GetItemByID(toThis);
-    if(!pTargetItem)
-        return false;
-
-    return true;
-}
-
 void ItemActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
     if(!pPlayer || !pWorld || !pPacket)

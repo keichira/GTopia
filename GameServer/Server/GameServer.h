@@ -6,6 +6,8 @@
 #include "../Command/CommandBase.h"
 #include "../Player/PlayerManager.h"
 
+class GameMessage_DialogReturn;
+
 class GameServer : public ServerBase {
 public:
     GameServer();
@@ -32,12 +34,12 @@ public:
     void ForceSaveEverything();
 
 private:
-    template<class T>
+    template<void(*Function)(GamePlayer*, ParsedTextPacket<38>&)>
     void RegisterMessagePacket(uint32 eventHash)
     {
         m_messagePacket.Register(
             eventHash,
-            Delegate<GamePlayer*, ParsedTextPacket<38>&>::Create<&T::Execute>()
+            Delegate<GamePlayer*, ParsedTextPacket<38>&>::Create<Function>()
         );
     }
 

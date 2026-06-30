@@ -1,16 +1,14 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Math/Color.h"
+#include "../Precompiled.h"
 
 // dont use this use "_hash" opr
 constexpr uint32 CompileTimeHashString(const char* str, uint32 h = 0x12668559)
 {
     return (str[0] == '\0') ? h
-        : CompileTimeHashString(
-            str + 1, 
-            ( (h ^ static_cast<uint8>(str[0])) * 0x5bd1e995 ) ^ ( ((h ^ static_cast<uint8>(str[0])) * 0x5bd1e995) >> 15 )
-        );
+                            : CompileTimeHashString(str + 1, ((h ^ static_cast<uint8>(str[0])) * 0x5bd1e995) ^
+                                                                 (((h ^ static_cast<uint8>(str[0])) * 0x5bd1e995) >> 15));
 }
 
 constexpr uint32 operator"" _hash(const char* str, usize len)
@@ -59,7 +57,7 @@ void StripWhiteSpace(string& str);
 void RemoveGTColorCodes(string& str);
 void RemoveGTColorCodes(char* str);
 
-enum eToIntResult 
+enum eToIntResult
 {
     TO_INT_FAIL,
     TO_INT_SUCCESS,
@@ -101,6 +99,9 @@ std::vector<std::string_view> SplitView(const string& str, char delim);
 std::vector<std::string_view> SplitView(const char* str, uint32 size, char delim);
 
 string JoinString(const std::vector<string>& strs, const string& delim, uint32 startIdx = 0, uint32 endIdx = 0);
+void XorCipher(string& data, const string& key);
 
-template<typename T>
-string ToString(const T& value) { return std::to_string(value); }
+template <typename T> string ToString(const T& value)
+{
+    return std::to_string(value);
+}

@@ -1,21 +1,18 @@
 #include "WorldManager.h"
-#include "Utils/StringUtils.h"
-#include "Database/Table/WorldDBTable.h"
 #include "../Context.h"
-#include "../Server/ServerManager.h"
 #include "../Player/PlayerManager.h"
+#include "../Server/ServerManager.h"
+#include "Database/Table/WorldDBTable.h"
+#include "Utils/StringUtils.h"
 
-WorldManager::WorldManager()
-{
-}
+WorldManager::WorldManager() {}
 
-WorldManager::~WorldManager()
-{
-}
+WorldManager::~WorldManager() {}
 
 void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& result)
 {
-    if(!pServer || result.size() < 3) {
+    if (!pServer || result.size() < 3)
+    {
         return;
     }
 
@@ -24,13 +21,16 @@ void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& 
     string doorID = ToUpper(result[3].GetString());
 
     WorldSession* pWorld = GetWorldByName(worldName);
-    if(pWorld) {
-        if(pWorld->state == WORLD_STATE_DELETE) {
+    if (pWorld)
+    {
+        if (pWorld->state == WORLD_STATE_DELETE)
+        {
             FailPlayerJoin(pServer, userID, "Unable to move you to this world, please try again in a few seconds.");
             return;
         }
 
-        if(pWorld->state == WORLD_STATE_LOADING) {
+        if (pWorld->state == WORLD_STATE_LOADING)
+        {
             AttachPending(pWorld, pServer->serverID, userID, doorID);
             return;
         }
@@ -51,35 +51,30 @@ void WorldManager::CheckWorldExistCB(QueryTaskResult&& result)
     Variant* pPlayerID = result.GetExtraData(1);
     Variant* pWorldName = result.GetExtraData(2);
 
-    if(!pServerID || !pPlayerID || !pWorldName)
+    if (!pServerID || !pPlayerID || !pWorldName)
         return;
 
     ServerInfo* pServer = GetServerManager()->GetServerByID(pServerID->GetUINT());
-    if(!pServer)
+    if (!pServer)
         return;
 
-    if(!result.result)
+    if (!result.result)
     {
         GetServerManager()->SendWorldPlayerFailPacket(pServer, pPlayerID->GetUINT(), "");
         return;
     }
 
-    if(result.result->GetRowCount() > 0)
+    if (result.result->GetRowCount() > 0)
     {
         Variant* pID = result.result->GetFieldSafe("ID", 0);
-        if(!pID)
+        if (!pID)
         {
             GetServerManager()->SendWorldPlayerFailPacket(pServer, pPlayerID->GetUINT(), "");
             return;
         }
 
-        GetWorldManager()->CreateWorldSessionAndNotice(
-            NetEntity(ENTITY_TYPE_WORLD).GetNetID(),
-            pID->GetUINT(),
-            pWorldName->GetString(),
-            pPlayerID->GetUINT(),
-            pServerID->GetUINT()
-        );
+        GetWorldManager()->CreateWorldSessionAndNotice(NetEntity(ENTITY_TYPE_WORLD).GetNetID(), pID->GetUINT(), pWorldName->GetString(),
+                                                       pPlayerID->GetUINT(), pServerID->GetUINT());
         return;
     }
 
@@ -91,39 +86,35 @@ void WorldManager::CheckWorldExistCB(QueryTaskResult&& result)
 
 void WorldManager::CreateWorldCB(QueryTaskResult&& result)
 {
-    Variant* pServerID  = result.GetExtraData(0);
-    Variant* pPlayerID  = result.GetExtraData(1);
+    Variant* pServerID = result.GetExtraData(0);
+    Variant* pPlayerID = result.GetExtraData(1);
     Variant* pWorldName = result.GetExtraData(2);
 
-    if(!pServerID || !pPlayerID || !pWorldName)
+    if (!pServerID || !pPlayerID || !pWorldName)
         return;
 
     ServerInfo* pServer = GetServerManager()->GetServerByID(pServerID->GetUINT());
-    if(!pServer)
+    if (!pServer)
         return;
 
-    if(result.increment == 0)
+    if (result.increment == 0)
     {
         GetServerManager()->SendWorldPlayerFailPacket(pServer, pPlayerID->GetUINT(), "");
         return;
     }
 
-    GetWorldManager()->CreateWorldSessionAndNotice(
-        NetEntity(ENTITY_TYPE_WORLD).GetNetID(),
-        result.increment,
-        pWorldName->GetString(),
-        pPlayerID->GetUINT(),
-        pServerID->GetUINT()
-    );
+    GetWorldManager()->CreateWorldSessionAndNotice(NetEntity(ENTITY_TYPE_WORLD).GetNetID(), result.increment, pWorldName->GetString(),
+                                                   pPlayerID->GetUINT(), pServerID->GetUINT());
 }
 
-void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName, uint32 playerUserID, uint32 sourceServerID)
+void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName, uint32 playerUserID,
+                                               uint32 sourceServerID)
 {
     ServerInfo* pTargetServer = GetServerManager()->GetBestGameServer();
-    if(!pTargetServer)
+    if (!pTargetServer)
     {
         ServerInfo* pSourceServer = GetServerManager()->GetServerByID(sourceServerID);
-        if(pSourceServer)
+        if (pSourceServer)
         {
             GetServerManager()->SendWorldPlayerFailPacket(pSourceServer, playerUserID, "");
         }
@@ -154,23 +145,23 @@ void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databas
 
 void WorldManager::HandleWorldInit(VariantVector&& result)
 {
-    if(result.size() < 3)
+    if (result.size() < 3)
         return;
 
     int32 initResult = result[1].GetINT();
     uint32 instanceID = result[2].GetUINT();
 
     WorldSession* pWorld = GetWorldByInstanceID(instanceID);
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     ServerManager* pServerMgr = GetServerManager();
-    if(initResult != TCP_RESULT_OK)
+    if (initResult != TCP_RESULT_OK)
     {
-        for(auto& pending : pWorld->waitingPlayers)
+        for (auto& pending : pWorld->waitingPlayers)
         {
             ServerInfo* pSourceServer = pServerMgr->GetServerByID(pending.sourceServerID);
-            if(pSourceServer)
+            if (pSourceServer)
             {
                 pServerMgr->SendWorldPlayerFailPacket(pSourceServer, pending.userID, "");
             }
@@ -184,31 +175,24 @@ void WorldManager::HandleWorldInit(VariantVector&& result)
     pWorld->state = WORLD_STATE_READY;
 
     ServerInfo* pTargetServer = pServerMgr->GetServerByID(pWorld->serverID);
-    if(!pTargetServer)
+    if (!pTargetServer)
         return;
 
-    for(auto& pending : pWorld->waitingPlayers)
+    for (auto& pending : pWorld->waitingPlayers)
     {
         PlayerSession* pSession = GetPlayerManager()->GetSessionByID(pending.userID);
-        if(!pSession)
+        if (!pSession)
             continue;
 
         pSession->worldInstanceID = pWorld->instanceID;
         pSession->serverID = pWorld->serverID;
 
         ServerInfo* pSourceServer = pServerMgr->GetServerByID(pending.sourceServerID);
-        if(!pSourceServer)
+        if (!pSourceServer)
             continue;
 
-        pServerMgr->SendWorldPlayerSuccessPacket(
-            pSourceServer,
-            pending.userID,
-            pWorld->serverID,
-            pWorld->instanceID,
-            pending.doorID,
-            pTargetServer->wanIP,
-            pTargetServer->port
-        );
+        pServerMgr->SendWorldPlayerSuccessPacket(pSourceServer, pending.userID, pWorld->serverID, pWorld->instanceID, pending.doorID,
+                                                 pTargetServer->wanIP, pTargetServer->port);
     }
 
     pWorld->waitingPlayers.clear();
@@ -217,10 +201,10 @@ void WorldManager::HandleWorldInit(VariantVector&& result)
 WorldSession* WorldManager::GetWorldByName(const string& worldName)
 {
     auto it = m_worldInstanceByName.find(worldName);
-    if(it == m_worldInstanceByName.end())
+    if (it == m_worldInstanceByName.end())
         return nullptr;
 
-    if(it->second.empty())
+    if (it->second.empty())
         return nullptr;
 
     return GetWorldByInstanceID(it->second[0]);
@@ -229,7 +213,7 @@ WorldSession* WorldManager::GetWorldByName(const string& worldName)
 WorldSession* WorldManager::GetWorldByInstanceID(uint32 instanceID)
 {
     auto it = m_worldSessionsByInstance.find(instanceID);
-    if(it != m_worldSessionsByInstance.end()) 
+    if (it != m_worldSessionsByInstance.end())
         return &it->second;
 
     return nullptr;
@@ -237,8 +221,10 @@ WorldSession* WorldManager::GetWorldByInstanceID(uint32 instanceID)
 
 void WorldManager::EndSessionsByServerID(uint32 serverID)
 {
-    for(auto it = m_worldSessionsByInstance.begin(); it != m_worldSessionsByInstance.end();) {
-        if(it->second.serverID == serverID) {
+    for (auto it = m_worldSessionsByInstance.begin(); it != m_worldSessionsByInstance.end();)
+    {
+        if (it->second.serverID == serverID)
+        {
             m_worldInstanceByName.erase(it->second.worldName);
             it = m_worldSessionsByInstance.erase(it);
             continue;
@@ -250,46 +236,39 @@ void WorldManager::EndSessionsByServerID(uint32 serverID)
 
 void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, const string& doorID, WorldSession& world)
 {
-    if(!pSourceServer)
+    if (!pSourceServer)
         return;
 
     ServerManager* pServerMgr = GetServerManager();
-    if(!pServerMgr)
+    if (!pServerMgr)
         return;
 
     ServerInfo* pTargetServer = pServerMgr->GetServerByID(world.serverID);
-    if(!pTargetServer)
+    if (!pTargetServer)
     {
         FailPlayerJoin(pSourceServer, userID, "Target server is offline.");
         return;
     }
 
     PlayerSession* pSession = GetPlayerManager()->GetSessionByID(userID);
-    if(pSession)
+    if (pSession)
     {
         pSession->serverID = world.serverID;
         pSession->worldInstanceID = world.instanceID;
     }
 
-    pServerMgr->SendWorldPlayerSuccessPacket(
-        pSourceServer,
-        userID,
-        world.serverID,
-        world.instanceID,
-        doorID,
-        pTargetServer->wanIP,
-        pTargetServer->port
-    );
+    pServerMgr->SendWorldPlayerSuccessPacket(pSourceServer, userID, world.serverID, world.instanceID, doorID, pTargetServer->wanIP,
+                                             pTargetServer->port);
 }
 
 void WorldManager::AttachPending(WorldSession* pWorld, uint32 sourceServerID, uint32 userID, const string& doorID)
 {
-    if(!pWorld)
+    if (!pWorld)
         return;
 
-    for(auto& pending : pWorld->waitingPlayers) 
+    for (auto& pending : pWorld->waitingPlayers)
     {
-        if(pending.userID == userID)
+        if (pending.userID == userID)
             return;
     }
 
@@ -305,36 +284,35 @@ void WorldManager::AttachPending(WorldSession* pWorld, uint32 sourceServerID, ui
     pWorld->waitingPlayers.push_back(pending);
 
     PlayerSession* pSession = GetPlayerManager()->GetSessionByID(userID);
-    if(pSession)
+    if (pSession)
     {
         pSession->serverID = sourceServerID;
         pSession->worldInstanceID = pWorld->instanceID;
-
     }
 }
 
 void WorldManager::FailPlayerJoin(ServerInfo* pServer, uint32 userID, const string& message)
 {
-    if(!pServer)
+    if (!pServer)
         return;
 
     ServerManager* pServerMgr = GetServerManager();
-    if(!pServerMgr)
+    if (!pServerMgr)
         return;
 
     bool found = false;
-    for(auto& [_, world] : m_worldSessionsByInstance) 
+    for (auto& [_, world] : m_worldSessionsByInstance)
     {
-        if(found)
+        if (found)
             break;
 
         auto& pending = world.waitingPlayers;
-        for(auto& player : pending) 
+        for (auto& player : pending)
         {
-            if(player.userID == userID)
+            if (player.userID == userID)
             {
                 found = true;
-                if(&player != &world.waitingPlayers.back())
+                if (&player != &world.waitingPlayers.back())
                 {
                     player = std::move(world.waitingPlayers.back());
                 }
@@ -348,4 +326,7 @@ void WorldManager::FailPlayerJoin(ServerInfo* pServer, uint32 userID, const stri
     pServerMgr->SendWorldPlayerFailPacket(pServer, userID, message);
 }
 
-WorldManager* GetWorldManager() { return WorldManager::GetInstance(); }
+WorldManager* GetWorldManager()
+{
+    return WorldManager::GetInstance();
+}

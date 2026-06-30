@@ -16,7 +16,15 @@ struct TCPPacketEvent
     uint64 reqTime;
 };
 
-class ServerBroadwayBase {
+enum eBroadwayAuthState
+{
+    BROADWAY_AUTH_NONE,
+    BROADWAY_AUTH_SUCCESS,
+    BROADWAY_AUTH_FAILED
+};
+
+class ServerBroadwayBase
+{
 public:
     ServerBroadwayBase();
     virtual ~ServerBroadwayBase();

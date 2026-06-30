@@ -30,10 +30,13 @@ struct DatabaseConfigSchema
 
 struct WorldBalanceConfigSchema
 {
+    uint32 id = 0;
     string worldName;
     string fileName;
     int32 maxInstance = 2;
     bool keepExactId = false;
+    bool alwaysCreate = false;
+    uint32 maxPlayerCount = 20;
 };
 
 struct NetThresholdConfigSchema
@@ -47,7 +50,8 @@ struct NetThresholdConfigSchema
     uint32 panicBurst = 0;
 };
 
-class GameConfig {
+class GameConfig
+{
 public:
     GameConfig();
 

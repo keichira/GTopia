@@ -2,9 +2,7 @@
 #include "../Utils/Timer.h"
 #include "IO/Log.h"
 
-ServerBroadwayBase::ServerBroadwayBase()
-{
-}
+ServerBroadwayBase::ServerBroadwayBase() {}
 
 ServerBroadwayBase::~ServerBroadwayBase()
 {
@@ -16,7 +14,8 @@ bool ServerBroadwayBase::Init(const string& host, uint16 port, int32 backLog)
     SAFE_DELETE(m_pNetSocket);
     m_pNetSocket = new NetSocket();
 
-    if(!m_pNetSocket->Init(host, port, backLog)) {
+    if (!m_pNetSocket->Init(host, port, backLog))
+    {
         return false;
     }
 
@@ -25,17 +24,15 @@ bool ServerBroadwayBase::Init(const string& host, uint16 port, int32 backLog)
 }
 
 void ServerBroadwayBase::Kill()
-{    
+{
     SAFE_DELETE(m_pNetSocket);
 }
 
-void ServerBroadwayBase::OnClientConnect(NetClient* pClient)
-{
-}
+void ServerBroadwayBase::OnClientConnect(NetClient* pClient) {}
 
 void ServerBroadwayBase::OnClientReceive(NetClient* pClient)
 {
-    if(!pClient || pClient->status == SOCKET_CLIENT_CLOSE)
+    if (!pClient || pClient->status == SOCKET_CLIENT_CLOSE)
         return;
 
     TCPPacketEvent packet;
@@ -48,16 +45,16 @@ void ServerBroadwayBase::OnClientReceive(NetClient* pClient)
 
     {
         std::lock_guard<std::mutex> lock(pClient->recvMutex);
-        
-        if(pClient->recvQueue.GetDataSize() <= sizeof(uint32))
+
+        if (pClient->recvQueue.GetDataSize() <= sizeof(uint32))
             return;
 
         pClient->recvQueue.Peek(&packetSize, sizeof(uint32));
 
-        if(pClient->recvQueue.GetDataSize() < packetSize + sizeof(uint32))
+        if (pClient->recvQueue.GetDataSize() < packetSize + sizeof(uint32))
             return;
-            
-        if(packetSize >= 1024 * 6 || packetSize == 0) 
+
+        if (packetSize >= 1024 * 6 || packetSize == 0)
         {
             pClient->status = SOCKET_CLIENT_CLOSE;
             return;
@@ -71,27 +68,27 @@ void ServerBroadwayBase::OnClientReceive(NetClient* pClient)
         hasFullPacket = true;
     }
 
-    if(!hasFullPacket)
+    if (!hasFullPacket)
         return;
 
-    if(packetSize >= 3 && pPacketData[0] == 0xFF) 
+    if (packetSize >= 3 && pPacketData[0] == 0xFF)
     {
         packet.isRaw = true;
-        packet.packetType = *(uint16*)(pPacketData + 1); 
-        
+        packet.packetType = *(uint16*)(pPacketData + 1);
+
         uint32 rawPayloadSize = packetSize - 3;
-        if(rawPayloadSize > 0) 
+        if (rawPayloadSize > 0)
         {
             packet.rawData.assign(pPacketData + 3, pPacketData + packetSize);
         }
     }
-    else 
+    else
     {
         packet.isRaw = false;
         MemoryBuffer memBuffer(pPacketData, packetSize);
         DeSerializeVariantVectorForTCP(memBuffer, packet.data);
-        
-        if(!packet.data.empty() && packet.data[0].GetType() == VARIANT_TYPE_INT) 
+
+        if (!packet.data.empty() && packet.data[0].GetType() == VARIANT_TYPE_INT)
             packet.packetType = (uint16)packet.data[0].GetINT();
         else
             packet.packetType = 0;
@@ -103,61 +100,59 @@ void ServerBroadwayBase::OnClientReceive(NetClient* pClient)
     OnClientReceive(pClient);
 }
 
-void ServerBroadwayBase::OnClientDisconnect(NetClient* pClient)
-{
-}
+void ServerBroadwayBase::OnClientDisconnect(NetClient* pClient) {}
 
 void ServerBroadwayBase::RegisterEvents()
 {
-    m_pNetSocket->GetEvents().Register(
-        SOCKET_EVENT_TYPE_CONNECT, 
-        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientConnect>(this)
-    );
+    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_CONNECT,
+                                       Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientConnect>(this));
 
-    m_pNetSocket->GetEvents().Register(
-        SOCKET_EVENT_TYPE_RECEIVE, 
-        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientReceive>(this)
-    );
+    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_RECEIVE,
+                                       Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientReceive>(this));
 
-    m_pNetSocket->GetEvents().Register(
-        SOCKET_EVENT_TYPE_DISCONNECT, 
-        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientDisconnect>(this)
-    );
+    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_DISCONNECT,
+                                       Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientDisconnect>(this));
 }
 
 void ServerBroadwayBase::Update(bool asClient)
 {
-    if(!m_pNetSocket) {
+    if (!m_pNetSocket)
+    {
         return;
     }
-    
+
     m_pNetSocket->Update(asClient);
 }
 
-void ServerBroadwayBase::UpdateTCPLogic(uint64 maxTimeMS)
-{
-}
+void ServerBroadwayBase::UpdateTCPLogic(uint64 maxTimeMS) {}
 
 bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCount, NetClient** pClient, const volatile sig_atomic_t* shutdownFlag)
 {
-    if(!m_pNetSocket) {
+    if (!m_pNetSocket)
+    {
         return false;
     }
-    
+
     uint64 connStartTime = Time::GetSystemTime();
     uint8 retriedSoFar = 0;
 
     m_pNetSocket->Connect(host, port, true);
 
-    while(!*pClient && (!shutdownFlag || *shutdownFlag == 0)) {
-        m_pNetSocket->Update(true);
+    while (!*pClient && (!shutdownFlag || *shutdownFlag == 0))
+    {
+        if (m_pNetSocket)
+        {
+            m_pNetSocket->Update(true);
+        }
 
-        if(retriedSoFar == retryCount) {
+        if (retriedSoFar == retryCount)
+        {
             break;
         }
 
         uint64 timeNow = Time::GetSystemTime();
-        if(timeNow - connStartTime >= CONNECT_SOCKET_TIMEOUT_MS) {
+        if (timeNow - connStartTime >= CONNECT_SOCKET_TIMEOUT_MS)
+        {
             LOGGER_LOG_ERROR("Failed to connect to socket %s:%d retrying... (%d/%d)", host.c_str(), port, retriedSoFar + 1, retryCount);
             m_pNetSocket->CloseAllClients();
             m_pNetSocket->Connect(host, port, true);
@@ -168,16 +163,18 @@ bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCou
         SleepMS(10);
     }
 
-    return pClient != nullptr;
+    return (*pClient != nullptr);
 }
 
 bool ServerBroadwayBase::SendPacketRaw(NetClient* pClient, VariantVector& data)
 {
-    if(!m_pNetSocket) {
+    if (!m_pNetSocket)
+    {
         return false;
     }
 
-    if(!pClient) {
+    if (!pClient)
+    {
         return false;
     }
 

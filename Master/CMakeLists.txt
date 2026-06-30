@@ -38,16 +38,9 @@ set(MASTER_FILES PRIVATE
     ${SOURCE_PACKET}/PacketPool.cpp
     ${SOURCE_PACKET}/VariantPacket.cpp
 
-    ${MASTER_EVENT}/TCP/TCPEventHello.cpp
-    ${MASTER_EVENT}/TCP/TCPEventAuth.cpp
-    ${MASTER_EVENT}/TCP/TCPEventPlayerSession.cpp
-    ${MASTER_EVENT}/TCP/TCPEventWorldInit.cpp
-    ${MASTER_EVENT}/TCP/TCPEventRenderWorld.cpp
-    ${MASTER_EVENT}/TCP/TCPEventWorldSendPlayer.cpp
-    ${MASTER_EVENT}/TCP/TCPEventPlayerEndSession.cpp
-    ${MASTER_EVENT}/TCP/TCPEventKillServer.cpp
-    ${MASTER_EVENT}/TCP/TCPEventHeartBeat.cpp
-    ${MASTER_EVENT}/TCP/TCPEventWorldPlayerSession.cpp
+    ${MASTER_EVENT}/TCP/TCPEvent_Player.cpp
+    ${MASTER_EVENT}/TCP/TCPEvent_Server.cpp
+    ${MASTER_EVENT}/TCP/TCPEvent_World.cpp
 
     ${SOURCE_WORLD}/WorldBalancer.cpp
     ${MASTER_WORLD}/WorldManager.cpp

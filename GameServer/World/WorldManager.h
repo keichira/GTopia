@@ -1,14 +1,16 @@
 #pragma once
 
-#include "Precompiled.h"
 #include "../Player/GamePlayer.h"
-#include "World.h"
-#include "Packet/NetPacket.h"
 #include "Event/EventDispatcher.h"
+#include "Packet/NetPacket.h"
+#include "Precompiled.h"
+#include "World.h"
+#include "World/WorldBalancer.h"
 #include <queue>
 #include <unordered_set>
 
-class WorldManager {
+class WorldManager : public WorldBalancer
+{
 public:
     WorldManager();
     ~WorldManager();
@@ -19,6 +21,9 @@ public:
         static WorldManager instance;
         return &instance;
     }
+
+public:
+    bool GetBalancedWorldName(const string& worldName, string& out) override;
 
 public:
     void Kill();
@@ -42,13 +47,9 @@ public:
     uint32 GetWorldCount() { return m_worlds.size(); }
 
 private:
-    template<class T>
-    void RegisterPacketEvent(eGamePacketType type)
+    template <class T> void RegisterPacketEvent(eGamePacketType type)
     {
-        m_packetEvents.Register(
-            type,
-            Delegate<GamePlayer*, World*, GameUpdatePacket*>::Create<&T::Execute>()
-        );
+        m_packetEvents.Register(type, Delegate<GamePlayer*, World*, GameUpdatePacket*>::Create<&T::Execute>());
     }
 
     void RegisterEvents();

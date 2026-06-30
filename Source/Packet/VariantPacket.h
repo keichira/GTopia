@@ -41,4 +41,7 @@ namespace VariantPacket {
     VariantVector OnSetFreezeState(uint32 state);
     VariantVector OnCountryState(const string& countryData);
     VariantVector OnZoomCamera(float zoom, int32 durationMS);
+    VariantVector OnStartTrade(const string& partnerName, int32 partnerNetID);
+    VariantVector OnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus, const string& itemData);
+    VariantVector OnForceTradeEnd();
 }

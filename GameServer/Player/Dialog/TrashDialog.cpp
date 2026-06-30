@@ -47,39 +47,80 @@ void TrashDialog::Request(GamePlayer* pPlayer, uint16 itemID)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void TrashDialog::Handle(GamePlayer* pPlayer, uint16 itemID, int16 itemCount)
+void TrashDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(!pPlayer)
+        return;
+
+    auto pItemID = packet.Find("itemID"_hash);
+    auto pCount = packet.Find("count"_hash);
+
+    if(!pItemID || !pCount)
+        return;
+
+    uint32 itemID = 0;
+    if(pItemID->GetUInt(itemID) != TO_INT_SUCCESS)
+        return;
+
+    int32 count = 0;
+    if(pCount->GetInt(count) != TO_INT_SUCCESS)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if(!pItem)
         return;
 
-    if(itemCount <= 0)
+    if(count <= 0)
         return;
 
     if(pItem->HasFlag(ITEM_FLAG_UNTRADEABLE)) 
     {
-        if(itemCount > pPlayer->GetInventory().GetCountOfItem(itemID))
+        if(count > pPlayer->GetInventory().GetCountOfItem(itemID))
             return;
 
         DialogBuilder db;
         db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`4Trash ``" + ToString(itemCount) + " " + pItem->name, pItem->id, true)
+        ->AddLabelWithIcon("`4Trash ``" + ToString(count) + " " + pItem->name, pItem->id, true)
         ->AddTextBox("You are recycling an `9UNTRADABLE`` item. Are you absolutely sure you want to do this? There is no way to get the item back if you click yes.")
         ->EmbedData("itemID", itemID)
-        ->EmbedData("count", itemCount)
+        ->EmbedData("count", count)
         ->EndDialog("trash_item2", "Yes, I am sure", "NO!");
 
         pPlayer->SendOnDialogRequest(db.Get());
         return;
     }
 
-    pPlayer->TrashItem(itemID, itemCount);
+    pPlayer->TrashItem(itemID, count);
 }
 
-void TrashDialog::HandleUntradeable(GamePlayer* pPlayer, uint16 itemID, int16 itemCount)
+void TrashDialog::HandleUntradeable(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    pPlayer->TrashItem(itemID, itemCount);   
+    if(!pPlayer)
+        return;
+
+    auto pItemID = packet.Find("itemID"_hash);
+    auto pCount = packet.Find("count"_hash);
+
+    if(!pItemID || !pCount)
+        return;
+
+    uint32 itemID = 0;
+    if(pItemID->GetUInt(itemID) != TO_INT_SUCCESS)
+        return;
+
+    int32 count = 0;
+    if(pCount->GetInt(count) != TO_INT_SUCCESS)
+        return;
+
+    if(count <= 0)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
+    if(!pItem)
+        return;
+
+    if(!pItem->HasFlag(ITEM_FLAG_UNTRADEABLE))
+        return;
+
+    pPlayer->TrashItem(itemID, count);
 }

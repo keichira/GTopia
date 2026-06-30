@@ -1,11 +1,10 @@
 #include "Player.h"
 #include "../Packet/NetPacket.h"
-#include "Proton/ProtonUtils.h"
-#include "../Utils/Timer.h"
 #include "../Utils/Base64.h"
+#include "../Utils/Timer.h"
+#include "Proton/ProtonUtils.h"
 
-Player::Player()
-: m_netID(0), m_userID(0)
+Player::Player() : m_netID(0), m_userID(0)
 {
     ResetFeatures();
     m_freezeState = PLAYER_FREEZE_STATE_NONE;
@@ -17,9 +16,7 @@ Player::Player()
 #endif
 }
 
-Player::~Player()
-{
-}
+Player::~Player() {}
 
 void Player::SendHelloPacket()
 {
@@ -28,7 +25,7 @@ void Player::SendHelloPacket()
 
 void Player::SendLogonFailWithLog(const string& message)
 {
-    if(!message.empty()) 
+    if (!message.empty())
     {
         string logAction = "action|log\nmsg|" + message + "\n";
         SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, logAction.c_str());
@@ -38,65 +35,39 @@ void Player::SendLogonFailWithLog(const string& message)
 
 void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings, uint32 tributeHash)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnWelcomePacket(
-            m_loginDetail.protocol, m_loginDetail.gameVersion,
-            itemsDatHash, cdnServer, cdnPath, settings, tributeHash
-        )
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnWelcomePacket(m_loginDetail.protocol, m_loginDetail.gameVersion, itemsDatHash, cdnServer,
+                                                                      cdnPath, settings, tributeHash));
 }
 
 void Player::SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode, const string& doorID)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSendToServer(
-            port, token, userID, serverIP, logonMode, doorID
-        )
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSendToServer(port, token, userID, serverIP, logonMode, doorID));
 }
 
 void Player::SendOnConsoleMessage(const string& message)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnConsoleMessage(message)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnConsoleMessage(message));
 }
 
 void Player::SendOnRequestWorldSelectMenu(const string& worldMenu)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnRequestWorldSelectMenu(worldMenu)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnRequestWorldSelectMenu(worldMenu));
 }
 
 void Player::SendOnFailedToEnterWorld()
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnFailedToEnterWorld()
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnFailedToEnterWorld());
     m_loginDetail.doorID = "";
 }
 
 void Player::SendOnSpawn(const string& spawnData)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSpawn(spawnData)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSpawn(spawnData));
 }
 
 void Player::SendOnChangeSkin(uint32 skinColor, Player* pPlayer)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnChangeSkin(skinColor),
-        pPlayer ? pPlayer->GetNetID() : GetNetID()
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnChangeSkin(skinColor), pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendOnTalkBubble(const string& message, bool stackMessages, Player* pPlayer)
@@ -106,182 +77,129 @@ void Player::SendOnTalkBubble(const string& message, bool stackMessages, Player*
      */
     uint32 talkerNetID = pPlayer ? (uint32)pPlayer->GetNetID() : (uint32)GetNetID();
 
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnTalkBubble(talkerNetID, message, stackMessages)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnTalkBubble(talkerNetID, message, stackMessages));
 }
 
 void Player::SendOnSetCurrentWeather(int32 weatherID)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSetCurrentWeather(weatherID)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetCurrentWeather(weatherID));
 }
 
 void Player::SendOnRemove(int32 netID)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnRemove(netID)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnRemove(netID));
 }
 
 void Player::SendOnDialogRequest(const string& dialogData, int32 delayMS, bool isPaginated)
 {
 #ifdef SERVER_GAME
-    if(!isPaginated)
+    if (!isPaginated)
         m_dialogPagination.reset();
 #endif
 
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnDialogRequest(dialogData),
-        -1, delayMS
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnDialogRequest(dialogData), -1, delayMS);
 }
 
 void Player::SendOnTextOverlay(const string& message)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnTextOverlay(message)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnTextOverlay(message));
 }
 
 void Player::SendOnPlayPositioned(const string& fileName, Player* pPlayer)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnPlayPositioned(fileName),
-        pPlayer ? pPlayer->GetNetID() : GetNetID()
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnPlayPositioned(fileName), pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendOnNameChanged(const string& name, Player* pPlayer)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnNameChanged(name),
-        pPlayer ? pPlayer->GetNetID() : GetNetID()
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnNameChanged(name), pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendSetHasGrowID(bool active, const string& tankIDName, const string& tankIDPass)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::SetHasGrowID(active, tankIDName, tankIDPass)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::SetHasGrowID(active, tankIDName, tankIDPass));
 }
 
 void Player::SendSetHasGrowID(bool active)
 {
-    SendSetHasGrowID(
-        active,
-        m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName, 
-        m_loginDetail.tankIDPass
-    );
+    SendSetHasGrowID(active, m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName, m_loginDetail.tankIDPass);
 }
 
 void Player::SendOnSetBux(uint32 gemCount, bool skipAnim, bool isSupporter, bool isSuperSupporter)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSetBux(gemCount, skipAnim, isSupporter, isSuperSupporter, Time::GetSecondsFromMidnight())
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetBux(gemCount, skipAnim, isSupporter, isSuperSupporter, Time::GetSecondsFromMidnight()));
 }
 
 void Player::SendOnDataConfig(bool isMod, bool isSMod, Player* pPlayer)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnDataConfig(isMod, isSMod),
-        pPlayer ? pPlayer->GetNetID() : GetNetID()
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnDataConfig(isMod, isSMod), pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnParticleEffect((int32)effectType, pos, angle),
-        -1, 
-        delayMs
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnParticleEffect((int32)effectType, pos, angle), -1, delayMs);
 }
 
-void Player::SendOnStoreRequest(const string &storeData)
+void Player::SendOnStoreRequest(const string& storeData)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnStoreRequest(storeData)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnStoreRequest(storeData));
 }
 
 void Player::SendOnStorePurchaseResult(const string& resultText)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnStorePurchaseResult(resultText)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnStorePurchaseResult(resultText));
 }
 
 void Player::SendOnAction(const string& action, Player* pPlayer)
 {
-    if(!pPlayer)
+    if (!pPlayer)
     {
         m_lastAction = action;
     }
-    
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnAction(action),
-        pPlayer ? pPlayer->GetNetID() : -1
-    );
+
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnAction(action), pPlayer ? pPlayer->GetNetID() : -1);
 }
 
 void Player::SendOnAddNotification(const string& image, const string& message, const string& audio, bool isTip)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnAddNotification(image, message, audio, isTip)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnAddNotification(image, message, audio, isTip));
 }
 
 void Player::SendOnSetFeatureEnableFlags()
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSetFeatureEnableFlags(BuildFeaturesBase64String())
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetFeatureEnableFlags(BuildFeaturesBase64String()));
 }
 
 void Player::SendOnSetFreezeState(ePlayerFreezeState state, uint32 delayMS)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSetFreezeState((uint32)state), GetNetID(), delayMS
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetFreezeState((uint32)state), GetNetID(), delayMS);
 
     m_freezeState = state;
 }
 
 void Player::SendOnZoomCamera(float zoom, int32 durationMS)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnZoomCamera(zoom, durationMS)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnZoomCamera(zoom, durationMS));
 }
 
 void Player::SendOnCountryState(const string& countryData)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnCountryState(countryData)
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnCountryState(countryData));
+}
+
+void Player::SendOnStartTrade(const string& partnerName, int32 partnerNetID)
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnStartTrade(partnerName, partnerNetID));
+}
+
+void Player::SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus, const string& itemData)
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnTradeStatus(parnterNetID, localStatus, partnerStatus, itemData));
+}
+
+void Player::SendOnForceTradeEnded()
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnForceTradeEnd());
 }
 
 void Player::SendFakePingReply()
@@ -300,7 +218,7 @@ void Player::PlaySFX(const string& fileName, int32 delay)
 
 void Player::SetAddress(const char* address)
 {
-    if(!address) 
+    if (!address)
         return;
 
     std::strncpy(m_address, address, sizeof(m_address) - 1);
@@ -309,7 +227,7 @@ void Player::SetAddress(const char* address)
 
 void Player::ResetFeatures()
 {
-    for(int8 i = 0; i < FEATURE_FLAG_COUNT; ++i)
+    for (int8 i = 0; i < FEATURE_FLAG_COUNT; ++i)
     {
         m_activeFeatures[i] = 0;
     }
@@ -317,7 +235,7 @@ void Player::ResetFeatures()
 
 void Player::EnableFeature(eClientFeatureFlag flag)
 {
-    if(flag < FEATURE_FLAG_COUNT)
+    if (flag < FEATURE_FLAG_COUNT)
     {
         m_activeFeatures[flag] = 1;
     }
@@ -325,7 +243,7 @@ void Player::EnableFeature(eClientFeatureFlag flag)
 
 void Player::DisableFeature(eClientFeatureFlag flag)
 {
-    if(flag < FEATURE_FLAG_COUNT)
+    if (flag < FEATURE_FLAG_COUNT)
     {
         m_activeFeatures[flag] = 0;
     }
@@ -333,7 +251,7 @@ void Player::DisableFeature(eClientFeatureFlag flag)
 
 bool Player::IsFeatureEnabled(eClientFeatureFlag flag)
 {
-    if(flag < FEATURE_FLAG_COUNT)
+    if (flag < FEATURE_FLAG_COUNT)
         return m_activeFeatures[flag] == 1;
 
     return false;
@@ -344,9 +262,9 @@ string Player::BuildFeaturesBase64String()
     uint8 rawPacket[FEATURE_FLAG_COUNT + 1];
     uint32 activeCount = 0;
 
-    for(uint8 i = 1; i < FEATURE_FLAG_COUNT; ++i)
+    for (uint8 i = 1; i < FEATURE_FLAG_COUNT; ++i)
     {
-        if(m_activeFeatures[i] == 1)
+        if (m_activeFeatures[i] == 1)
         {
             rawPacket[activeCount + 1] = i;
             activeCount++;
@@ -354,9 +272,9 @@ string Player::BuildFeaturesBase64String()
     }
 
     rawPacket[0] = activeCount;
-    
+
     string featureStr;
-    if(!Base64_Encode(rawPacket, activeCount + 1, featureStr))
+    if (!Base64_Encode(rawPacket, activeCount + 1, featureStr))
     {
         LOGGER_LOG_ERROR("Base64_Encode error in Player::BuildFeaturesBase64String activeCount: %d", activeCount);
     }
@@ -367,7 +285,7 @@ string Player::BuildFeaturesBase64String()
 #ifdef SERVER_GAME
 void Player::SetIconState(int32 iconState)
 {
-    if(iconState >= ICON_STATE_COUNT)
+    if (iconState >= ICON_STATE_COUNT)
         return;
 
     m_iconState = (eIconState)iconState;
@@ -397,7 +315,7 @@ void Player::SendOnSetClothing(Player* pPlayer)
 
     VariantVector data(6);
     data[0] = "OnSetClothing";
-    data[1] = Vector3Float(clothes[BODY_PART_HAIR], clothes[BODY_PART_SHIRT], clothes[BODY_PART_PANT] );
+    data[1] = Vector3Float(clothes[BODY_PART_HAIR], clothes[BODY_PART_SHIRT], clothes[BODY_PART_PANT]);
     data[2] = Vector3Float(clothes[BODY_PART_SHOE], clothes[BODY_PART_FACEITEM], clothes[BODY_PART_HAND]);
     data[3] = Vector3Float(clothes[BODY_PART_BACK], clothes[BODY_PART_HAT], clothes[BODY_PART_CHESTITEM]);
 
@@ -405,13 +323,16 @@ void Player::SendOnSetClothing(Player* pPlayer)
 
     bool isInvis = true;
 
-    if(m_loginDetail.gameVersion < 2.62) {
+    if (m_loginDetail.gameVersion < 2.62)
+    {
         data[5] = uint32(isInvis ? 1 : 0);
     }
-    else if(m_loginDetail.protocol < 32) {
+    else if (m_loginDetail.protocol < 32)
+    {
         data[5] = Vector3Float(isInvis ? 1.0 : 0.0, 0, 0);
     }
-    else {
+    else
+    {
         float artifact = 0;
         data[5] = Vector3Float(artifact, isInvis ? 1.0 : 0.0, 0);
     }
@@ -444,10 +365,6 @@ void Player::SendCharacterState(Player* pPlayer)
 
 void Player::SendOnSetPos(float x, float y, Player* pPlayer)
 {
-    SendCallFunctionPacket(
-        GetNetID(),
-        VariantPacket::OnSetPos(x, y),
-        pPlayer ? pPlayer->GetNetID() : -1
-    );
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetPos(x, y), pPlayer ? pPlayer->GetNetID() : -1);
 }
 #endif

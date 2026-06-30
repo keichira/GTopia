@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Server/ServerBroadwayBase.h"
 #include "Event/EventDispatcher.h"
 #include "Packet/GamePacket.h"
+#include "Server/ServerBroadwayBase.h"
 #include "Utils/Timer.h"
 
-class MasterBroadway : public ServerBroadwayBase {
+class MasterBroadway : public ServerBroadwayBase
+{
 public:
     MasterBroadway();
     ~MasterBroadway();
@@ -40,22 +41,22 @@ public:
 
     bool IsConnected() { return m_pNetClient != nullptr; }
     bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag = nullptr);
+    bool ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts, const volatile sig_atomic_t* shutdownFlag);
+
+    eBroadwayAuthState GetAuthState() const { return m_authState; }
+    void SetAuthState(eBroadwayAuthState state) { m_authState = state; }
 
 private:
-    template<class T>
-    void RegisterEvent(eTCPPacketType packet)
+    template <void (*Function)(NetClient*, VariantVector&)> void RegisterEvent(eTCPPacketType packet)
     {
-        m_events.Register(
-            packet,
-            Delegate<NetClient*, VariantVector&>::Create<&T::Execute>()
-        );
+        m_events.Register(packet, Delegate<NetClient*, VariantVector&>::Create<Function>());
     }
 
 private:
     EventDispatcher<int8, NetClient*, VariantVector&> m_events;
     Timer m_lastHearthBeatSentTime;
     Timer m_lastHearthBeatRecvTime;
-
+    eBroadwayAuthState m_authState;
     NetClient* m_pNetClient;
 };
 

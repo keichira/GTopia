@@ -1,23 +1,27 @@
 #pragma once
 
+#include "../Memory/MemoryBuffer.h"
 #include "../Memory/RingBuffer.h"
 #include "../Utils/Variant.h"
-#include "../Memory/MemoryBuffer.h"
 #include <mutex>
 
+///////////// XOR key
+#define SOCKET_AUTH_SECRET_KEY "SPCx*9"
+////////////
+
 #ifdef SOCKET_USE_TLS
-    #include <openssl/ssl.h>
+#include <openssl/ssl.h>
 #endif
 
 #define SOCKET_MAX_BUFFER_SIZE 4096
 
 #ifdef _WIN32
-    #include <winsock2.h>
-    typedef SOCKET socket_t;
-    #define SOCKET_INVALID INVALID_SOCKET
+#include <winsock2.h>
+typedef SOCKET socket_t;
+#define SOCKET_INVALID INVALID_SOCKET
 #else
-    typedef int socket_t;
-    #define SOCKET_INVALID (~0)
+typedef int socket_t;
+#define SOCKET_INVALID (~0)
 #endif
 
 class NetSocket;
@@ -34,7 +38,7 @@ enum eSocketClientStatus
 uint8* SerializeVariantVectorForTCP(const VariantVector& varVector, uint32& outSize);
 void DeSerializeVariantVectorForTCP(MemoryBuffer& memBuffer, VariantVector& out);
 
-struct NetClient 
+struct NetClient
 {
     socket_t socket = SOCKET_INVALID;
     int16 connectionID;

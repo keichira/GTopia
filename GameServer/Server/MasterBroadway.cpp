@@ -1,44 +1,34 @@
 #include "MasterBroadway.h"
+#include "../Context.h"
+#include "../Player/PlayerPresenceManager.h"
+#include "../World/WorldManager.h"
+#include "GameServer.h"
 #include "IO/Log.h"
 #include "Packet/NetPacket.h"
 #include "Utils/Timer.h"
-#include "GameServer.h"
-#include "../World/WorldManager.h"
-#include "../Context.h"
-#include "../Player/PlayerPresenceManager.h"
 
-#include "../Event/TCP/TCPEventHello.h"
-#include "../Event/TCP/TCPEventAuth.h"
-#include "../Event/TCP/TCPEventPlayerSession.h"
-#include "../Event/TCP/TCPEventWorldInit.h"
-#include "../Event/TCP/TCPEventRenderWorld.h"
-#include "../Event/TCP/TCPEventWorldSendPlayer.h"
-#include "../Event/TCP/TCPEventKillServer.h"
-#include "../Event/TCP/TCPEventHeartBeat.h"
-#include "../Event/TCP/TCPEventCommand.h"
+#include "../Event/TCP/TCPEvent_Command.h"
+#include "../Event/TCP/TCPEvent_Player.h"
+#include "../Event/TCP/TCPEvent_Server.h"
+#include "../Event/TCP/TCPEvent_World.h"
 
-MasterBroadway::MasterBroadway()
-: m_pNetClient(nullptr)
-{
-}
+MasterBroadway::MasterBroadway() : m_pNetClient(nullptr), m_authState(BROADWAY_AUTH_NONE) {}
 
-MasterBroadway::~MasterBroadway()
-{
-}
+MasterBroadway::~MasterBroadway() {}
 
 void MasterBroadway::RegisterEvents()
 {
     ServerBroadwayBase::RegisterEvents();
 
-    RegisterEvent<TCPEventHello>(TCP_PACKET_HELLO);
-    RegisterEvent<TCPEventAuth>(TCP_PACKET_AUTH);
-    RegisterEvent<TCPEventPlayerSession>(TCP_PACKET_PLAYER_CHECK_SESSION);
-    RegisterEvent<TCPEventWorldInit>(TCP_PACKET_WORLD_INIT);
-    RegisterEvent<TCPEventRenderWorld>(TCP_PACKET_RENDER_WORLD);
-    RegisterEvent<TCPEventWorldSendPlayer>(TCP_PACKET_WORLD_SEND_PLAYER);
-    RegisterEvent<TCPEventKillServer>(TCP_PACKET_KILL_SERVER);
-    RegisterEvent<TCPEventHeartBeat>(TCP_PACKET_HEARTBEAT);
-    RegisterEvent<TCPEventCommand>(TCP_PACKET_ADMIN_COMMAND);
+    RegisterEvent<TCPEvent_Hello>(TCP_PACKET_HELLO);
+    RegisterEvent<TCPEvent_Auth>(TCP_PACKET_AUTH);
+    RegisterEvent<TCPEvent_PlayerCheckSession>(TCP_PACKET_PLAYER_CHECK_SESSION);
+    RegisterEvent<TCPEvent_WorldInit>(TCP_PACKET_WORLD_INIT);
+    RegisterEvent<TCPEvent_RenderWorld>(TCP_PACKET_RENDER_WORLD);
+    RegisterEvent<TCPEvent_WorldSendPlayer>(TCP_PACKET_WORLD_SEND_PLAYER);
+    RegisterEvent<TCPEvent_KillServer>(TCP_PACKET_KILL_SERVER);
+    RegisterEvent<TCPEvent_HeartBeat>(TCP_PACKET_HEARTBEAT);
+    RegisterEvent<TCPEvent_Command>(TCP_PACKET_COMMAND);
 }
 
 void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
@@ -46,35 +36,36 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
     Timer startTime;
     TCPPacketEvent event;
 
-    while(m_packetQueue.try_dequeue(event)) {
-        if(!event.pClient)
+    while (m_packetQueue.try_dequeue(event))
+    {
+        if (!event.pClient)
             continue;
 
-        if(event.packetType != TCP_PACKET_HEARTBEAT) 
+        if (event.packetType != TCP_PACKET_HEARTBEAT)
         {
-            LOGGER_LOG_DEBUG("Received TCP Packet %d (Raw: %d)", event.packetType, event.isRaw ? 1 : 0);
+            LOGGER_LOG_DEBUG("Received TCP Packet %d (IsRaw: %d)", event.packetType, event.isRaw ? 1 : 0);
         }
 
-        if(event.isRaw)
+        if (event.isRaw)
         {
-            if(event.packetType == TCP_PACKET_ONLINE_DATA_UPDATE || event.packetType == TCP_PACKET_ONLINE_DATA_SNAPSHOT)
+            if (event.packetType == TCP_PACKET_ONLINE_DATA_UPDATE || event.packetType == TCP_PACKET_ONLINE_DATA_SNAPSHOT)
             {
                 GetPlayerPresenceManager()->OnTCPPacket(event.packetType, event.rawData);
             }
         }
-        else if(!event.data.empty())
+        else if (!event.data.empty())
         {
             m_events.Dispatch(event.packetType, event.pClient, event.data);
         }
 
-        if(startTime.GetElapsedTime() >= maxTimeMS)
+        if (startTime.GetElapsedTime() >= maxTimeMS)
             break;
     }
 }
 
 void MasterBroadway::SendHelloPacket()
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(1);
@@ -85,7 +76,7 @@ void MasterBroadway::SendHelloPacket()
 
 void MasterBroadway::SendAuthPacket(const string& authKey)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector packet(4);
@@ -105,10 +96,10 @@ void MasterBroadway::SendAuthPacket(const string& authKey)
 
 void MasterBroadway::OnClientConnect(NetClient* pClient)
 {
-    if(!pClient)
+    if (!pClient)
         return;
 
-    if(m_pNetClient && m_pNetClient != pClient) 
+    if (m_pNetClient && m_pNetClient != pClient)
     {
         pClient->status = SOCKET_CLIENT_CLOSE;
         return;
@@ -119,10 +110,10 @@ void MasterBroadway::OnClientConnect(NetClient* pClient)
 
 void MasterBroadway::OnClientDisconnect(NetClient* pClient)
 {
-    if(!pClient)
+    if (!pClient)
         return;
 
-    if(m_pNetClient == pClient)
+    if (m_pNetClient == pClient)
     {
         m_pNetClient = nullptr;
     }
@@ -130,7 +121,7 @@ void MasterBroadway::OnClientDisconnect(NetClient* pClient)
 
 void MasterBroadway::SendCheckSessionPacket(int32 netID, uint32 userID, uint32 token, uint16 serverID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(5);
@@ -145,7 +136,7 @@ void MasterBroadway::SendCheckSessionPacket(int32 netID, uint32 userID, uint32 t
 
 void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldInstanceID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(4);
@@ -159,7 +150,7 @@ void MasterBroadway::SendRenderWorldRequest(uint32 userID, uint32 worldInstanceI
 
 void MasterBroadway::SendWorldInitResult(bool succeed, uint32 worldInstanceID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(3);
@@ -172,7 +163,7 @@ void MasterBroadway::SendWorldInitResult(bool succeed, uint32 worldInstanceID)
 
 void MasterBroadway::SendPlayerWorldJoin(uint32 playerUserID, const string& worldName, const string& doorID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(4);
@@ -186,7 +177,7 @@ void MasterBroadway::SendPlayerWorldJoin(uint32 playerUserID, const string& worl
 
 void MasterBroadway::SendHeartBeat()
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(3);
@@ -200,19 +191,19 @@ void MasterBroadway::SendHeartBeat()
 
 void MasterBroadway::SendEndPlayerSession(uint32 userID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(2);
     data[0] = TCP_PACKET_PLAYER_END_SESSION;
     data[1] = userID;
 
-    m_pNetClient->Send(data);   
+    m_pNetClient->Send(data);
 }
 
 void MasterBroadway::SendPlayerJoinedWorld(uint32 playerUserID, uint32 worldInstanceID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(4);
@@ -221,12 +212,12 @@ void MasterBroadway::SendPlayerJoinedWorld(uint32 playerUserID, uint32 worldInst
     data[2] = playerUserID;
     data[3] = worldInstanceID;
 
-    m_pNetClient->Send(data); 
+    m_pNetClient->Send(data);
 }
 
 void MasterBroadway::SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstanceID)
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(4);
@@ -235,12 +226,12 @@ void MasterBroadway::SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstan
     data[2] = playerUserID;
     data[3] = worldInstanceID;
 
-    m_pNetClient->Send(data);   
+    m_pNetClient->Send(data);
 }
 
-void MasterBroadway::SendPlayerPresenceSubscribe(const std::vector<uint32> &ids)
+void MasterBroadway::SendPlayerPresenceSubscribe(const std::vector<uint32>& ids)
 {
-    if(!m_pNetClient || ids.empty())
+    if (!m_pNetClient || ids.empty())
         return;
 
     uint32 totalByteSize = (uint32)(ids.size() * sizeof(uint32));
@@ -249,11 +240,61 @@ void MasterBroadway::SendPlayerPresenceSubscribe(const std::vector<uint32> &ids)
 
 void MasterBroadway::SendPlayerPresenceUnsubscribe(const std::vector<uint32>& ids)
 {
-    if(!m_pNetClient || ids.empty())
+    if (!m_pNetClient || ids.empty())
         return;
 
     uint32 totalByteSize = (uint32)(ids.size() * sizeof(uint32));
     m_pNetClient->Send(TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE, ids.data(), totalByteSize);
+}
+
+bool MasterBroadway::ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts, const volatile sig_atomic_t* shutdownFlag)
+{
+    if (!Connect(host, port, maxConnectAttempts, shutdownFlag))
+    {
+        LOGGER_LOG_ERROR("Initial TCP connection to Master Server failed.");
+        return false;
+    }
+
+    SetAuthState(BROADWAY_AUTH_NONE);
+    SendHelloPacket();
+    LOGGER_LOG_INFO("Sent Hello packet. Waiting for Master response...");
+
+    uint64 authStartTime = Time::GetSystemTime();
+
+    while (GetAuthState() == BROADWAY_AUTH_NONE && (!shutdownFlag || *shutdownFlag == 0))
+    {
+        if (m_pNetSocket)
+        {
+            Update(true);
+            UpdateTCPLogic(1);
+        }
+
+        if (!IsConnected())
+        {
+            LOGGER_LOG_ERROR("Master server closed the connection during auth!");
+            break;
+        }
+
+        if (Time::GetSystemTime() - authStartTime >= 10000)
+        {
+            LOGGER_LOG_ERROR("Auth timeout.");
+            break;
+        }
+
+        SleepMS(10);
+    }
+
+    if (GetAuthState() == BROADWAY_AUTH_SUCCESS)
+    {
+        LOGGER_LOG_INFO("Successfully authenticated with Master Server!");
+        return true;
+    }
+    else if (GetAuthState() == BROADWAY_AUTH_FAILED)
+    {
+        LOGGER_LOG_ERROR("Master REJECTED authentication");
+    }
+
+    return false;
 }
 
 bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
@@ -263,13 +304,16 @@ bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, 
 
 void MasterBroadway::SendServerKillPacket()
 {
-    if(!m_pNetClient)
+    if (!m_pNetClient)
         return;
 
     VariantVector data(1);
     data[0] = TCP_PACKET_KILL_SERVER;
 
-    m_pNetClient->Send(data);   
+    m_pNetClient->Send(data);
 }
 
-MasterBroadway* GetMasterBroadway() { return MasterBroadway::GetInstance(); }
+MasterBroadway* GetMasterBroadway()
+{
+    return MasterBroadway::GetInstance();
+}

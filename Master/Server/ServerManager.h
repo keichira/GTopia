@@ -1,13 +1,14 @@
 #pragma once
 
+#include "Network/NetEntity.h"
+#include "Packet/NetPacket.h"
 #include "Precompiled.h"
 #include "Server/ServerBroadwayBase.h"
-#include "Packet/NetPacket.h"
 #include "Utils/GameConfig.h"
 #include "Utils/Timer.h"
-#include "Network/NetEntity.h"
 
-class ServerInfo : public NetEntity {
+class ServerInfo : public NetEntity
+{
 public:
     ServerInfo(NetClient* pNetClient);
 
@@ -26,7 +27,8 @@ public:
     bool deleteFlag = false;
 };
 
-class ServerManager : public ServerBroadwayBase {
+class ServerManager : public ServerBroadwayBase
+{
 public:
     ServerManager();
     ~ServerManager();
@@ -46,7 +48,7 @@ public:
     void RegisterEvents() override;
 
 public:
-    void AddServer(ServerInfo* pServer, uint16 serverID, int8 serverType);
+    bool AddServer(ServerInfo* pServer, uint16 serverID, int8 serverType);
     void RemoveServer(uint16 serverID);
     ServerInfo* GetBestGameServer();
     ServerInfo* GetBestRenderServer();
@@ -59,7 +61,8 @@ public:
     ServerInfo* GetServerByID(uint16 serverID);
 
     void SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID, const string& message);
-    void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& doorID, const string& serverIP, uint16 serverPort);
+    void SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& doorID,
+                                      const string& serverIP, uint16 serverPort);
     void SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID, uint32 databaseID);
     void SendAuthPacket(ServerInfo* pServer, bool succeed);
     void SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, uint32 databaseID);
@@ -73,13 +76,9 @@ public:
     void SendPlayerPresenceUpdate(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements);
 
 private:
-    template<class T>
-    void RegisterEvent(eTCPPacketType packet)
+    template <void (*Function)(NetClient*, VariantVector&)> void RegisterEvent(eTCPPacketType packet)
     {
-        m_events.Register(
-            packet,
-            Delegate<NetClient*, VariantVector&>::Create<&T::Execute>()
-        );
+        m_events.Register(packet, Delegate<NetClient*, VariantVector&>::Create<Function>());
     }
 
 private:

@@ -2,7 +2,8 @@
 
 #include "../Precompiled.h"
 
-class MemoryBuffer {
+class MemoryBuffer
+{
 public:
     MemoryBuffer();
     MemoryBuffer(void* pData, uint32 size);
@@ -14,45 +15,42 @@ public:
     uint32 Seek(uint32 position);
     uint32 GetOffset() const { return m_pos; }
 
-    template<typename T>
-    uint32 Read(T& data)
-    {
-        return ReadRaw(&data, sizeof(T));
-    }
+    template <typename T> uint32 Read(T& data) { return ReadRaw(&data, sizeof(T)); }
 
-    template<typename T>
-    uint32 Write(const T& data)
-    {
-        return WriteRaw(&data, sizeof(T));
-    }
+    template <typename T> uint32 Write(const T& data) { return WriteRaw(&data, sizeof(T)); }
 
-    template<typename T>
-    uint32 ReadWrite(T& data, bool write)
+    template <typename T> uint32 ReadWrite(T& data, bool write)
     {
-        if (write) {
+        if (write)
+        {
             return WriteRaw(&data, sizeof(T));
         }
-        else {
+        else
+        {
             return ReadRaw(&data, sizeof(T));
         }
     }
 
     uint32 ReadWriteString(string& data, bool write)
     {
-        if(write) {
+        if (write)
+        {
             return WriteStringRaw(data);
         }
-        else {
+        else
+        {
             return ReadStringRaw(data);
         }
     }
 
     uint32 ReadWriteRaw(void* data, uint32 size, bool write)
     {
-        if(write) {
+        if (write)
+        {
             return WriteRaw(data, size);
         }
-        else {
+        else
+        {
             return ReadRaw(data, size);
         }
     }

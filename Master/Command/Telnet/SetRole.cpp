@@ -1,21 +1,13 @@
 #include "SetRole.h"
-#include "Player/RoleManager.h"
 #include "../../Context.h"
-#include "Database/Table/PlayerDBTable.h"
 #include "../../Player/PlayerManager.h"
 #include "../../Server/ServerManager.h"
+#include "Database/Table/PlayerDBTable.h"
+#include "Player/RoleManager.h"
 
 const TelnetCommandInfo& SetRole::GetInfo()
 {
-    static TelnetCommandInfo info =
-    {
-        "/setrole <userID> <roleID>",
-        "Set player's RoleID",
-        4,
-        {
-            "setrole"_hash
-        }
-    };
+    static TelnetCommandInfo info = {"/setrole <userID> <roleID>", "Set player's RoleID", 4, {"setrole"_hash}};
 
     return info;
 }
@@ -23,26 +15,29 @@ const TelnetCommandInfo& SetRole::GetInfo()
 void SetRoleUpdateRoleCB(QueryTaskResult&& result)
 {
     TelnetClient* pNetClient = GetTelnetServer()->GetClientByNetID(result.ownerID);
-    if(!pNetClient) {
+    if (!pNetClient)
+    {
         return;
     }
 
-    if(result.status != QUERY_STATUS_OK) {
+    if (result.status != QUERY_STATUS_OK)
+    {
         pNetClient->SendMessage("Failed update role id for user.", true);
     }
-    else {
+    else
+    {
         pNetClient->SendMessage("Successfully updated player's role", true);
 
         Variant* pRoleID = result.GetExtraData(0);
         Variant* pUserID = result.GetExtraData(1);
 
-        if(pRoleID && pUserID) 
+        if (pRoleID && pUserID)
         {
             PlayerSession* pPlayerSession = GetPlayerManager()->GetSessionByID(pUserID->GetUINT());
-            if(pPlayerSession) 
+            if (pPlayerSession)
             {
                 ServerInfo* pServer = GetServerManager()->GetServerByID(pPlayerSession->serverID);
-                if(pServer)
+                if (pServer)
                 {
                     GetServerManager()->SendCommandSetRole(pServer, pPlayerSession->userID, pRoleID->GetUINT());
                 }
@@ -53,24 +48,28 @@ void SetRoleUpdateRoleCB(QueryTaskResult&& result)
     pNetClient->SetBusy(false);
 }
 
-void SetRoleCheckPlayerCB(QueryTaskResult&& result) 
+void SetRoleCheckPlayerCB(QueryTaskResult&& result)
 {
     TelnetClient* pNetClient = GetTelnetServer()->GetClientByNetID(result.ownerID);
-    if(!pNetClient) {
+    if (!pNetClient)
+    {
         return;
     }
 
-    if(!result.result) {
+    if (!result.result)
+    {
         pNetClient->SendMessage("Error happened while checking user.", true);
         pNetClient->SetBusy(false);
         return;
     }
 
-    if(result.result->GetRowCount() > 0) {
+    if (result.result->GetRowCount() > 0)
+    {
         Variant* pRoleID = result.GetExtraData(0);
         Variant* pUserID = result.GetExtraData(1);
 
-        if(!pRoleID || !pUserID) {
+        if (!pRoleID || !pUserID)
+        {
             pNetClient->SendMessage("Oops! Something went wrong.", true);
             pNetClient->SetBusy(false);
             return;
@@ -82,7 +81,8 @@ void SetRoleCheckPlayerCB(QueryTaskResult&& result)
 
         DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
     }
-    else {
+    else
+    {
         pNetClient->SendMessage("User not found.", true);
         pNetClient->SetBusy(false);
         return;
@@ -91,34 +91,40 @@ void SetRoleCheckPlayerCB(QueryTaskResult&& result)
 
 void SetRole::Execute(TelnetClient* pNetClient, std::vector<string>& args)
 {
-    if(!pNetClient || args.empty() || !CheckPerm(pNetClient)) {
+    if (!pNetClient || args.empty() || !CheckPerm(pNetClient))
+    {
         return;
     }
-    
-    if(args.size() < 3) {
+
+    if (args.size() < 3)
+    {
         SendUsage(pNetClient);
         return;
     }
 
     uint32 userID = 0;
-    if(ToUInt(args[1], userID) != TO_INT_SUCCESS) {
+    if (ToUInt(args[1], userID) != TO_INT_SUCCESS)
+    {
         pNetClient->SendMessage("UserID must be number.", true);
         return;
     }
 
-    if(userID == 0) {
+    if (userID == 0)
+    {
         pNetClient->SendMessage("User not found.", true);
         return;
     }
 
     uint32 roleID = 0;
-    if(ToUInt(args[2], roleID) != TO_INT_SUCCESS) {
+    if (ToUInt(args[2], roleID) != TO_INT_SUCCESS)
+    {
         pNetClient->SendMessage("RoleID must be number.", true);
         return;
     }
 
     Role* pRole = GetRoleManager()->GetRole(roleID);
-    if(!pRole) {
+    if (!pRole)
+    {
         pNetClient->SendMessage("RoleID not found.", true);
         return;
     }

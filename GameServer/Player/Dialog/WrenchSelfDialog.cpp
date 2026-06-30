@@ -235,6 +235,14 @@ void WrenchSelfDialog::HandleTitleEdit(GamePlayer* pPlayer, ParsedTextPacket<38>
     pWorld->SendOnCountryStateToAll(pPlayer);
 }
 
+void WrenchSelfDialog::HandleAcceptAccess(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
+{
+    if(!pPlayer)
+        return;
+
+    pPlayer->AcceptLockAccess();
+}
+
 void WrenchSelfDialog::RequestTitleEdit(GamePlayer* pPlayer)
 {
     if(!pPlayer)

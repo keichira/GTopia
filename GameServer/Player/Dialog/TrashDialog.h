@@ -1,12 +1,13 @@
 #pragma once
 
-#include "Precompiled.h"
+#include "Packet/PacketUtils.h"
 
 class GamePlayer;
 
-class TrashDialog {
+class TrashDialog
+{
 public:
     static void Request(GamePlayer* pPlayer, uint16 itemID);
-    static void Handle(GamePlayer* pPlayer, uint16 itemID, int16 itemCount);
-    static void HandleUntradeable(GamePlayer* pPlayer, uint16 itemID, int16 itemCount);
+    static void Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
+    static void HandleUntradeable(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
 };

@@ -156,6 +156,21 @@ namespace VariantPacket {
         return { "OnZoomCamera", zoom, durationMS };
     }
 
+    VariantVector OnStartTrade(const string& partnerName, int32 partnerNetID)
+    {
+        return { "OnStartTrade", partnerName, partnerNetID };
+    }
+
+    VariantVector OnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus, const string& itemData)
+    {
+        return { "OnTradeStatus", parnterNetID, localStatus, partnerStatus, itemData };
+    }
+
+    VariantVector OnForceTradeEnd()
+    {
+        return { "OnForceTradeEnd" };
+    }
+
     VariantVector OnStoreRequest(const string& storeData) {
         return { "OnStoreRequest", storeData };
     }

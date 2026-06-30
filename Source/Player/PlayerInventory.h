@@ -54,6 +54,7 @@ public:
     void SetVersion(uint32 protocol);
 
     uint32 GetInventorySize() const { return m_capacity; }
+    uint32 GetItemsSize() const { return m_capacity; }
 
 private:
     uint8 m_version;

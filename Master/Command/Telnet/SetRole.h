@@ -2,7 +2,8 @@
 
 #include "TelnetCommandBase.h"
 
-class SetRole : public TelnetCommandBase<SetRole> {
+class SetRole : public TelnetCommandBase<SetRole>
+{
 public:
     static const TelnetCommandInfo& GetInfo();
 

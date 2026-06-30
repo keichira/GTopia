@@ -1,40 +1,32 @@
-#include "Utils/StringUtils.h"
 #include "Magic.h"
 #include "../World/WorldManager.h"
-#include "Math/Random.h"
 #include "Math/Math.h"
+#include "Math/Random.h"
+#include "Utils/StringUtils.h"
 
 const CommandInfo& Magic::GetInfo()
 {
-    static CommandInfo info =
-    {
-        "/magic",
-        "Bass da da da",
-        "command.magic"_hash,
-        {
-            "magic"_hash
-        }
-    };
+    static CommandInfo info = {"/magic", "Bass da da da", "command.magic"_hash, {"magic"_hash}};
 
     return info;
 }
 
 void Magic::Execute(GamePlayer* pPlayer, std::vector<string>& args)
 {
-    if(!pPlayer || args.empty() || !CheckPerm(pPlayer))
+    if (!pPlayer || args.empty() || !CheckPerm(pPlayer))
         return;
 
-    if(pPlayer->GetCurrentWorld() == 0)
+    if (pPlayer->GetCurrentWorld() == 0)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     pWorld->PlaySFXForEveryone("magic.wav");
     Vector2Float playerPos = pPlayer->GetWorldPos();
 
-    for(uint8 i = 0; i < 20; ++i) 
+    for (uint8 i = 0; i < 20; ++i)
     {
         float offsetX = RandomRangeFloat(-80.0f, 100.0f);
         float offsetY = RandomRangeFloat(-80.0f, 100.0f);

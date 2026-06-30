@@ -2,7 +2,8 @@
 
 #include "CommandBase.h"
 
-class Magic : public CommandBase<Magic> {
+class Magic : public CommandBase<Magic>
+{
 public:
     static const CommandInfo& GetInfo();
 

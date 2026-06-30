@@ -29,7 +29,6 @@ public:
     static void IdentifierUpdateResultCB(QueryTaskResult&& result);
 
     void SendToGame();
-
     void Update();
 
     void SetSessionName(const string& name) { m_sessionName = name; };

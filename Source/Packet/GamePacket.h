@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../IO/Log.h"
 #include "../Precompiled.h"
 #include "../Utils/Variant.h"
-#include "../IO/Log.h"
 #include "VariantPacket.h"
 
 enum eTCPPacketType
@@ -17,7 +17,7 @@ enum eTCPPacketType
     TCP_PACKET_HEARTBEAT,
     TCP_PACKET_WORLD_SEND_PLAYER,
     TCP_PACKET_KILL_SERVER,
-    TCP_PACKET_ADMIN_COMMAND,
+    TCP_PACKET_COMMAND,
     TCP_PACKET_WORLD_PLAYER_SESSION,
 
     TCP_PACKET_ONLINE_DATA_SUBSCRIBE,
@@ -40,7 +40,7 @@ enum eTCPPacketResult
     TCP_RESULT_OK
 };
 
-enum eMessagePacketType 
+enum eMessagePacketType
 {
     NET_MESSAGE_UNKNOWN,
     NET_MESSAGE_SERVER_HELLO,
@@ -53,7 +53,7 @@ enum eMessagePacketType
     NET_MESSAGE_CLIENT_LOG_RESPONSE
 };
 
-enum eGamePacketType 
+enum eGamePacketType
 {
     NET_GAME_PACKET_STATE,
     NET_GAME_PACKET_CALL_FUNCTION,
@@ -98,7 +98,7 @@ enum eGamePacketType
     NET_GAME_PACKET_ON_STEP_ONILE_MOD
 };
 
-enum eGamePacketFlags 
+enum eGamePacketFlags
 {
     GAME_PACKET_FLAG_BROADCAST = 1 << 0,
     GAME_PACKET_FLAG_NO_LERP = 1 << 2,

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Precompiled.h"
 #include "Database/QueryUtils.h"
+#include "Precompiled.h"
 #include "World/WorldBalancer.h"
 
 class ServerInfo;
@@ -9,8 +9,8 @@ class ServerInfo;
 enum WorldState
 {
     WORLD_STATE_LOADING = 0,
-    WORLD_STATE_READY   = 1,
-    WORLD_STATE_DELETE  = 2
+    WORLD_STATE_READY = 1,
+    WORLD_STATE_DELETE = 2
 };
 
 struct PendingTransfer
@@ -35,7 +35,8 @@ struct WorldSession
     std::vector<PendingTransfer> waitingPlayers;
 };
 
-class WorldManager : public WorldBalancer {
+class WorldManager : public WorldBalancer
+{
 public:
     WorldManager();
     ~WorldManager();

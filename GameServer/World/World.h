@@ -1,14 +1,14 @@
 #pragma once
 
+#include "../Player/GamePlayer.h"
+#include "Database/Table/WorldDBTable.h"
+#include "Item/ItemInfoManager.h"
+#include "Packet/GamePacket.h"
+#include "PetBattleManager.h"
 #include "Precompiled.h"
 #include "World/WorldInfo.h"
-#include "Packet/GamePacket.h"
-#include "Database/Table/WorldDBTable.h"
-#include "../Player/GamePlayer.h"
-#include "Item/ItemInfoManager.h"
-#include "WorldNPCManager.h"
 #include "WorldBossManager.h"
-#include "PetBattleManager.h"
+#include "WorldNPCManager.h"
 #include <queue>
 
 /**
@@ -25,7 +25,8 @@ enum eWorldState
 
 class GamePlayer;
 
-class World : public WorldInfo {
+class World : public WorldInfo
+{
 public:
     World();
     ~World();
@@ -78,7 +79,7 @@ public:
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
     void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
     void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
-    //void SendParticleEffectV2ToAll(const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
+    // void SendParticleEffectV2ToAll(const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
     void SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
     void SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio);
@@ -86,7 +87,8 @@ public:
     void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
     void SendOnCountryStateToAll(GamePlayer* pPlayer);
     void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos);
-    void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed, int32 val1, int32 val2);
+    void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed,
+                            int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
@@ -137,12 +139,15 @@ public:
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);
     int32 GetWorldOwnerID();
 
+    GamePlayer* GetPlayerByNameStartsWith(const string& name, string& errorMsg);
+
     void DropGemsOnTile(TileInfo* pTile, uint32 gemCount);
     void DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge);
     void DropObject(uint16 itemID, uint8 count, const Vector2Float& pos);
 
     void SendCurrentWeatherToAll();
     uint32 GetPlayerCount() const { return m_players.size(); }
+    int32 GetBalancerType() const { return m_balancerType; }
     Timer& GetLastSaveTime() { return m_worldLastSaveTime; }
     Timer& GetOfflineTime() { return m_worldOfflineTime; }
 
@@ -168,4 +173,6 @@ private:
     Timer m_worldOfflineTime;
     Timer m_worldLastSaveTime;
     Timer m_lastPresenceUpdateTime;
+
+    int32 m_balancerType;
 };

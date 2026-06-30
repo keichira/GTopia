@@ -113,6 +113,9 @@ public:
     void SendOnSetFreezeState(ePlayerFreezeState state, uint32 delayMS);
     void SendOnZoomCamera(float zoom, int32 durationMS = 1000);
     void SendOnCountryState(const string& countryData);
+    void SendOnStartTrade(const string& partnerName, int32 partnerNetID);
+    void SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus, const string& itemData);
+    void SendOnForceTradeEnded();
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);

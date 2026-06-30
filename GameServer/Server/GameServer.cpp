@@ -1,40 +1,29 @@
 #include "GameServer.h"
-#include "Packet/NetPacket.h"
-#include "Packet/GamePacket.h"
-#include "../Player/GamePlayer.h"
-#include "Packet/PacketUtils.h"
-#include "IO/Log.h"
-#include "../World/WorldManager.h"
-#include "Item/ItemInfoManager.h"
-#include "Player/RoleManager.h"
 #include "../Context.h"
-#include "UserCacheManager.h"
+#include "../Player/GamePlayer.h"
+#include "../World/WorldManager.h"
+#include "IO/Log.h"
+#include "Item/ItemInfoManager.h"
 #include "MasterBroadway.h"
+#include "Packet/GamePacket.h"
+#include "Packet/NetPacket.h"
+#include "Packet/PacketUtils.h"
+#include "Player/RoleManager.h"
+#include "UserCacheManager.h"
 
-#include "../Event/UDP/GameMessage/RefreshItemData.h"
-#include "../Event/UDP/GameMessage/EnterGame.h"
-#include "../Event/UDP/GameMessage/JoinRequest.h"
-#include "../Event/UDP/GameMessage/RefreshTributeData.h"
-#include "../Event/UDP/GameMessage/Input.h"
-#include "../Event/UDP/GameMessage/QuitToExit.h"
-#include "../Event/UDP/GameMessage/DialogReturn.h"
-#include "../Event/UDP/GameMessage/Trash.h"
-#include "../Event/UDP/GameMessage/GrowID.h"
-#include "../Event/UDP/GameMessage/Quit.h"
-#include "../Event/UDP/GameMessage/SetSkin.h"
-#include "../Event/UDP/GameMessage/Drop.h"
-#include "../Event/UDP/GameMessage/Wrench.h"
-#include "../Event/UDP/GameMessage/Buy.h"
-#include "../Event/UDP/GameMessage/Store.h"
+#include "../Event/UDP/GameMessage/GameMessage_Input.h"
+#include "../Event/UDP/GameMessage/GameMessage_Item.h"
+#include "../Event/UDP/GameMessage/GameMessage_Player.h"
+#include "../Event/UDP/GameMessage/GameMessage_Trade.h"
 
-#include "../Command/RenderWorld.h"
-#include "../Command/GiveItem.h"
-#include "../Command/Ghost.h"
-#include "../Command/TogglePlayMod.h"
-#include "../Command/Magic.h"
 #include "../Command/AgeWorld.h"
 #include "../Command/Emotes.h"
 #include "../Command/FindItem.h"
+#include "../Command/Ghost.h"
+#include "../Command/GiveItem.h"
+#include "../Command/Magic.h"
+#include "../Command/RenderWorld.h"
+#include "../Command/TogglePlayMod.h"
 
 static const uint32 SMALL_PACKET_SIZE = 80;
 static const uint32 MED_PACKET_SIZE = 800;
@@ -64,9 +53,7 @@ GameServer::GameServer()
     gPacketPool.Init(cfg);
 }
 
-GameServer::~GameServer()
-{
-}
+GameServer::~GameServer() {}
 
 void GameServer::OnEventConnect(NetworkEvent& event)
 {
@@ -75,7 +62,7 @@ void GameServer::OnEventConnect(NetworkEvent& event)
 
     GetPlayerManager()->AddPlayer(pPlayer);
 
-    char ipBuffer[16] = { 0 };
+    char ipBuffer[16] = {0};
     if (GetIPStringFromHost(event.host, ipBuffer, sizeof(ipBuffer)) == 0)
     {
         pPlayer->SetAddress(ipBuffer);
@@ -106,66 +93,64 @@ void GameServer::OnEventReceive(NetworkEvent& event)
 
     switch (msgType)
     {
-    case NET_MESSAGE_GENERIC_TEXT:
-    case NET_MESSAGE_GAME_MESSAGE:
-    {
-        LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength));
-
-        if (pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
+        case NET_MESSAGE_GENERIC_TEXT:
+        case NET_MESSAGE_GAME_MESSAGE:
         {
-            ParsedTextPacket<40> packet;
-            ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+            LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength));
 
-            pPlayer->StartLoginRequest(packet);
-        }
-        else if (pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
-        {
-            ParsedTextPacket<38> packet;
-            ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
-
-            auto pAction = packet.Find("action"_hash);
-            if (pAction)
+            if (pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
             {
-                uint32 packetType = HashString(pAction->value, pAction->valueSize);
+                ParsedTextPacket<40> packet;
+                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
 
-                if (packetType == "refresh_item_data"_hash ||
-                    packetType == "enter_game"_hash ||
-                    packetType == "refresh_player_tribute_data"_hash ||
-                    packetType == "quit"_hash
-                    ) {
+                pPlayer->StartLoginRequest(packet);
+            }
+            else if (pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
+            {
+                ParsedTextPacket<38> packet;
+                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+
+                auto pAction = packet.Find("action"_hash);
+                if (pAction)
+                {
+                    uint32 packetType = HashString(pAction->value, pAction->valueSize);
+
+                    if (packetType == "refresh_item_data"_hash || packetType == "enter_game"_hash ||
+                        packetType == "refresh_player_tribute_data"_hash || packetType == "quit"_hash)
+                    {
+                        m_messagePacket.Dispatch(packetType, pPlayer, packet);
+                    }
+                }
+            }
+            else if (pPlayer->HasState(PLAYER_STATE_IN_GAME))
+            {
+                ParsedTextPacket<38> packet;
+                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+
+                auto pAction = packet.Find("action"_hash);
+                if (pAction)
+                {
+                    uint32 packetType = HashString(pAction->value, pAction->valueSize);
                     m_messagePacket.Dispatch(packetType, pPlayer, packet);
                 }
             }
-        }
-        else if (pPlayer->HasState(PLAYER_STATE_IN_GAME))
-        {
-            ParsedTextPacket<38> packet;
-            ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
 
-            auto pAction = packet.Find("action"_hash);
-            if (pAction)
-            {
-                uint32 packetType = HashString(pAction->value, pAction->valueSize);
-                m_messagePacket.Dispatch(packetType, pPlayer, packet);
-            }
-        }
-
-        break;
-    }
-
-    case NET_MESSAGE_GAME_PACKET:
-    {
-        if (pPlayer->GetCurrentWorld() == 0)
-        {
-            /**
-             * response
-             */
             break;
         }
 
-        GetWorldManager()->OnHandleGamePacket(event);
-        break;
-    }
+        case NET_MESSAGE_GAME_PACKET:
+        {
+            if (pPlayer->GetCurrentWorld() == 0)
+            {
+                /**
+                 * response
+                 */
+                break;
+            }
+
+            GetWorldManager()->OnHandleGamePacket(event);
+            break;
+        }
     }
 
     gPacketPool.Release(pPacket);
@@ -191,21 +176,21 @@ void GameServer::OnEventDisconnect(NetworkEvent& event)
 
 void GameServer::RegisterEvents()
 {
-    RegisterMessagePacket<RefreshItemData>("refresh_item_data"_hash);
-    RegisterMessagePacket<EnterGame>("enter_game"_hash);
-    RegisterMessagePacket<RefreshTributeData>("refresh_player_tribute_data"_hash);
-    RegisterMessagePacket<JoinRequest>("join_request"_hash);
-    RegisterMessagePacket<Input>("input"_hash);
-    RegisterMessagePacket<QuitToExit>("quit_to_exit"_hash);
-    RegisterMessagePacket<DialogReturn>("dialog_return"_hash);
-    RegisterMessagePacket<Trash>("trash"_hash);
-    RegisterMessagePacket<GrowID>("growid"_hash);
-    RegisterMessagePacket<Quit>("quit"_hash);
-    RegisterMessagePacket<SetSkin>("setSkin"_hash);
-    RegisterMessagePacket<Drop>("drop"_hash);
-    RegisterMessagePacket<Wrench>("wrench"_hash);
-    RegisterMessagePacket<Buy>("buy"_hash);
-    RegisterMessagePacket<Store>("store"_hash);
+    RegisterMessagePacket<GameMessage_RefreshItemData>("refresh_item_data"_hash);
+    RegisterMessagePacket<GameMessage_EnterGame>("enter_game"_hash);
+    RegisterMessagePacket<GameMessage_RefreshTributeData>("refresh_player_tribute_data"_hash);
+    RegisterMessagePacket<GameMessage_JoinRequest>("join_request"_hash);
+    RegisterMessagePacket<GameMessage_Input>("input"_hash);
+    RegisterMessagePacket<GameMessage_QuitToExit>("quit_to_exit"_hash);
+    RegisterMessagePacket<GameMessage_DialogReturn>("dialog_return"_hash);
+    RegisterMessagePacket<GameMessage_Trash>("trash"_hash);
+    RegisterMessagePacket<GameMessage_GrowID>("growid"_hash);
+    RegisterMessagePacket<GameMessage_Quit>("quit"_hash);
+    RegisterMessagePacket<GameMessage_SetSkin>("setSkin"_hash);
+    RegisterMessagePacket<GameMessage_Drop>("drop"_hash);
+    RegisterMessagePacket<GameMessage_Wrench>("wrench"_hash);
+    RegisterMessagePacket<GameMessage_Buy>("buy"_hash);
+    RegisterMessagePacket<GameMessage_Store>("store"_hash);
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();
@@ -325,84 +310,85 @@ void GameServer::Update()
 
         switch (inEvent.type)
         {
-        case ENET_EVENT_TYPE_CONNECT:
-        {
-            uint32 newConnID = ++m_lastConnectionID;
-            if (newConnID == 0) newConnID = ++m_lastConnectionID;
-
-            inEvent.peer->data = (void*)(uintptr_t)newConnID;
-            m_connectionMap[newConnID] = inEvent.peer;
-
-            NetworkEvent netEvent;
-            netEvent.type = ENET_EVENT_TYPE_CONNECT;
-            netEvent.netID = newConnID;
-            netEvent.host = inEvent.peer->address.host;
-            m_networkQueue.enqueue(std::move(netEvent));
-            break;
-        }
-
-        case ENET_EVENT_TYPE_RECEIVE:
-        {
-            if (!inEvent.packet || inEvent.packet->dataLength < 4)
+            case ENET_EVENT_TYPE_CONNECT:
             {
-                enet_packet_destroy(inEvent.packet);
-                continue;
+                uint32 newConnID = ++m_lastConnectionID;
+                if (newConnID == 0)
+                    newConnID = ++m_lastConnectionID;
+
+                inEvent.peer->data = (void*)(uintptr_t)newConnID;
+                m_connectionMap[newConnID] = inEvent.peer;
+
+                NetworkEvent netEvent;
+                netEvent.type = ENET_EVENT_TYPE_CONNECT;
+                netEvent.netID = newConnID;
+                netEvent.host = inEvent.peer->address.host;
+                m_networkQueue.enqueue(std::move(netEvent));
+                break;
             }
 
-            uint32 packetLen = inEvent.packet->dataLength;
-            uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
-
-            if (msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET && msgType != NET_MESSAGE_GENERIC_TEXT)
+            case ENET_EVENT_TYPE_RECEIVE:
             {
+                if (!inEvent.packet || inEvent.packet->dataLength < 4)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                uint32 packetLen = inEvent.packet->dataLength;
+                uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
+
+                if (msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET && msgType != NET_MESSAGE_GENERIC_TEXT)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                // we can add more checks based on type
+
+                if (msgType == NET_MESSAGE_GAME_PACKET && packetLen > SMALL_PACKET_SIZE)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                if ((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                PooledPacket* pPacket = gPacketPool.Acquire(packetLen);
+                if (!pPacket)
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                pPacket->dataLength = packetLen;
+                memcpy(pPacket->payload, inEvent.packet->data, packetLen);
+
                 enet_packet_destroy(inEvent.packet);
-                continue;
+
+                NetworkEvent netEvent{ENET_EVENT_TYPE_RECEIVE, (uint32)(uintptr_t)inEvent.peer->data, pPacket};
+                m_networkQueue.enqueue(std::move(netEvent));
+                break;
             }
 
-            // we can add more checks based on type
-
-            if (msgType == NET_MESSAGE_GAME_PACKET && packetLen > SMALL_PACKET_SIZE)
+            case ENET_EVENT_TYPE_DISCONNECT:
             {
-                enet_packet_destroy(inEvent.packet);
-                continue;
+                if (!inEvent.peer)
+                    continue;
+
+                uint32 netID = (uint32)(uintptr_t)inEvent.peer->data;
+                inEvent.peer->data = nullptr;
+
+                m_connectionMap.erase(netID);
+
+                NetworkEvent netEvent{ENET_EVENT_TYPE_DISCONNECT, netID, nullptr};
+                m_networkQueue.enqueue(std::move(netEvent));
+                break;
             }
-
-            if ((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
-            {
-                enet_packet_destroy(inEvent.packet);
-                continue;
-            }
-
-            PooledPacket* pPacket = gPacketPool.Acquire(packetLen);
-            if (!pPacket)
-            {
-                enet_packet_destroy(inEvent.packet);
-                continue;
-            }
-
-            pPacket->dataLength = packetLen;
-            memcpy(pPacket->payload, inEvent.packet->data, packetLen);
-
-            enet_packet_destroy(inEvent.packet);
-
-            NetworkEvent netEvent{ ENET_EVENT_TYPE_RECEIVE, (uint32)(uintptr_t)inEvent.peer->data, pPacket };
-            m_networkQueue.enqueue(std::move(netEvent));
-            break;
-        }
-
-        case ENET_EVENT_TYPE_DISCONNECT:
-        {
-            if (!inEvent.peer)
-                continue;
-
-            uint32 netID = (uint32)(uintptr_t)inEvent.peer->data;
-            inEvent.peer->data = nullptr;
-
-            m_connectionMap.erase(netID);
-
-            NetworkEvent netEvent{ ENET_EVENT_TYPE_DISCONNECT, netID, nullptr };
-            m_networkQueue.enqueue(std::move(netEvent));
-            break;
-        }
         }
     }
 }
@@ -419,10 +405,7 @@ void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)
         return;
     }
 
-    m_commands.Dispatch(
-        hashCmd,
-        pPlayer, args
-    );
+    m_commands.Dispatch(hashCmd, pPlayer, args);
 }
 
 void GameServer::ForceSaveEverything()
@@ -441,4 +424,7 @@ void GameServer::Kill()
     GetPlayerManager()->RemoveAllPlayers();
 }
 
-GameServer* GetGameServer() { return GameServer::GetInstance(); }
+GameServer* GetGameServer()
+{
+    return GameServer::GetInstance();
+}

@@ -14,7 +14,7 @@ void RenderWorldDialog::Request(GamePlayer* pPlayer)
     pPlayer->SendOnDialogRequest(db.Get());
 }
 
-void RenderWorldDialog::Handle(GamePlayer* pPlayer)
+void RenderWorldDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if(pPlayer->GetCurrentWorld() == 0)
         return;

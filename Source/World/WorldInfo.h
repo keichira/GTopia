@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Precompiled.h"
-#include "WorldTileManager.h"
 #include "../Math/Vector2.h"
 #include "../Memory/MemoryBuffer.h"
+#include "../Precompiled.h"
 #include "WorldObjectManager.h"
+#include "WorldTileManager.h"
 
 enum eWorldGenerationType
 {
@@ -12,7 +12,7 @@ enum eWorldGenerationType
     WORLD_GENERATION_CLEAR = 1
 };
 
-enum eWeatherTypes 
+enum eWeatherTypes
 {
     WEATHER_TYPE_DEFAULT = 0,
     WEATHER_TYPE_SUNSET = 1,
@@ -23,9 +23,10 @@ enum eWeatherTypes
     WEATHER_TYPE_HARVEST = 6
 };
 
-bool IsValidWorldName(const string& worldName, bool skipColon = false);
+bool IsValidWorldName(const string& worldName, bool allowColon = false);
 
-class WorldInfo {
+class WorldInfo
+{
 public:
     WorldInfo();
     virtual ~WorldInfo();
@@ -42,7 +43,7 @@ public:
     uint32 GetMemEstimate(bool database, float gameVersion = 0.0f);
 
     void SetName(const string& worldName) { m_name = worldName; }
-    const string& GetWorlName() const { return m_name; } 
+    const string& GetWorlName() const { return m_name; }
 
     void SetCurrentWeather(uint32 newWeather) { m_currentWeather = newWeather; }
     uint32 GetCurrentWeather() const { return m_currentWeather; }

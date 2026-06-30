@@ -15,9 +15,10 @@ enum eLogLevel
     LOG_LEVEL_DEBUG
 };
 
-static string logLevelArr[] = { "WARN", "ERROR", "INFO", "DEBUG" };
+static string logLevelArr[] = {"WARN", "ERROR", "INFO", "DEBUG"};
 
-class Log {
+class Log
+{
 public:
     Log();
     ~Log();
@@ -44,7 +45,10 @@ private:
 
 Log* GetLog();
 
-#define LOGGER_LOG_BASE(lvl, asap, fmt, ...) { GetLog()->Print(lvl, asap, fmt, ##__VA_ARGS__); }
+#define LOGGER_LOG_BASE(lvl, asap, fmt, ...)                                                                                                         \
+    {                                                                                                                                                \
+        GetLog()->Print(lvl, asap, fmt, ##__VA_ARGS__);                                                                                              \
+    }
 #define LOGGER_LOG_WARN(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_WARN, false, fmt, ##__VA_ARGS__)
 #define LOGGER_LOG_ERROR(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_ERROR, false, fmt, ##__VA_ARGS__)
 #define LOGGER_LOG_INFO(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_INFO, false, fmt, ##__VA_ARGS__)
@@ -54,9 +58,9 @@ Log* GetLog();
 #define LOGGER_LOG_INFO_ASAP(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_INFO, true, fmt, ##__VA_ARGS__)
 
 #ifdef _DEBUG
-    #define LOGGER_LOG_DEBUG(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_DEBUG, false, fmt, ##__VA_ARGS__)
-    #define LOGGER_LOG_DEBUG_ASAP(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_DEBUG, true, fmt, ##__VA_ARGS__)
+#define LOGGER_LOG_DEBUG(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_DEBUG, false, fmt, ##__VA_ARGS__)
+#define LOGGER_LOG_DEBUG_ASAP(fmt, ...) LOGGER_LOG_BASE(eLogLevel::LOG_LEVEL_DEBUG, true, fmt, ##__VA_ARGS__)
 #else
-    #define LOGGER_LOG_DEBUG(fmt, ...) (void(0))
-    #define LOGGER_LOG_DEBUG_ASAP(fmt, ...) (void(0))
+#define LOGGER_LOG_DEBUG(fmt, ...) (void(0))
+#define LOGGER_LOG_DEBUG_ASAP(fmt, ...) (void(0))
 #endif

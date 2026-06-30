@@ -7,8 +7,9 @@ uint32 HashString(const string& str)
 
 uint32 HashString(const char* str, uint32 size)
 {
-    uint32 h = 0x12668559; 
-    for (uint32 i = 0; i < size; ++i) {
+    uint32 h = 0x12668559;
+    for (uint32 i = 0; i < size; ++i)
+    {
         h ^= (uint8)str[i];
         h *= 0x5bd1e995;
         h ^= h >> 15;
@@ -18,8 +19,9 @@ uint32 HashString(const char* str, uint32 size)
 
 uint32 HashString(const char* str)
 {
-    uint32 h = 0x12668559; 
-    for (; *str; ++str) {
+    uint32 h = 0x12668559;
+    for (; *str; ++str)
+    {
         h ^= (uint8)(*str);
         h *= 0x5bd1e995;
         h ^= h >> 15;
@@ -34,7 +36,8 @@ string ToHex(const string& str)
 
 string ToHex(const void* str, uint32 size)
 {
-    if(!str || size == 0) {
+    if (!str || size == 0)
+    {
         return "";
     }
 
@@ -45,8 +48,9 @@ string ToHex(const void* str, uint32 size)
     string out;
     out.resize(size * 2);
 
-    for (uint32 i = 0; i < size; ++i) {
-        out[2 * i]     = hexChars[(bytes[i] >> 4) & 0x0F];
+    for (uint32 i = 0; i < size; ++i)
+    {
+        out[2 * i] = hexChars[(bytes[i] >> 4) & 0x0F];
         out[2 * i + 1] = hexChars[bytes[i] & 0x0F];
     }
 
@@ -55,15 +59,18 @@ string ToHex(const void* str, uint32 size)
 
 int32 CharToInt(char input)
 {
-    if(input >= '0' && input <= '9') {
+    if (input >= '0' && input <= '9')
+    {
         return input - '0';
     }
 
-    if(input >= 'A' && input <= 'F') {
+    if (input >= 'A' && input <= 'F')
+    {
         return input - 'A' + 10;
     }
 
-    if(input >= 'a' && input <= 'f') {
+    if (input >= 'a' && input <= 'f')
+    {
         return input - 'a' + 10;
     }
 
@@ -77,17 +84,20 @@ void HexToBytes(const string& str, uint8* target)
 
 void HexToBytes(const char* str, uint8* target)
 {
-    if(!str || !target) {
+    if (!str || !target)
+    {
         return;
     }
 
     const char* src = str;
-    
-    if(*src == '0' && (*(src + 1) && (*(src + 1) == 'x' || *(src + 1) == 'X'))) {
+
+    if (*src == '0' && (*(src + 1) && (*(src + 1) == 'x' || *(src + 1) == 'X')))
+    {
         src += 2;
     }
 
-    while(*src && *(src + 1)) {
+    while (*src && *(src + 1))
+    {
         *(target++) = CharToInt(*src) * 16 + CharToInt(src[1]);
         src += 2;
     }
@@ -100,18 +110,22 @@ string ToUpper(const string& str)
 
 string ToUpper(const char* str)
 {
-    if(!str) {
+    if (!str)
+    {
         return "";
     }
 
     const char* src = str;
     string out;
 
-    while(*src) {
-        if(*src >= 'a' && *src <= 'z') {
+    while (*src)
+    {
+        if (*src >= 'a' && *src <= 'z')
+        {
             out += (*src - ('a' - 'A'));
         }
-        else {
+        else
+        {
             out += *src;
         }
 
@@ -128,18 +142,22 @@ string ToLower(const string& str)
 
 string ToLower(const char* str)
 {
-    if(!str) {
+    if (!str)
+    {
         return "";
     }
 
     const char* src = str;
     string out;
 
-    while(*src) {
-        if(*src >= 'A' && *src <= 'Z') {
+    while (*src)
+    {
+        if (*src >= 'A' && *src <= 'Z')
+        {
             out += (*src + ('a' - 'A'));
         }
-        else {
+        else
+        {
             out += *src;
         }
 
@@ -161,7 +179,8 @@ float ToFloat(const char* str)
 
 void RemoveExtraWhiteSpaces(string& str)
 {
-    if(str.empty()) {
+    if (str.empty())
+    {
         return;
     }
 
@@ -171,52 +190,58 @@ void RemoveExtraWhiteSpaces(string& str)
 
 void RemoveExtraWhiteSpaces(char* str)
 {
-    if(!str || *str == '\0') {
+    if (!str || *str == '\0')
+    {
         return;
     }
 
     char* src = str;
     char* out = str;
 
-    if(*src == ' ') {
+    if (*src == ' ')
+    {
         *out++ = ' ';
 
-        while(*src == ' ') {
+        while (*src == ' ')
+        {
             src++;
         }
     }
 
-    while(*src) {
-        if (*src != ' ' || (out > str && *(out - 1) != ' ')) {
+    while (*src)
+    {
+        if (*src != ' ' || (out > str && *(out - 1) != ' '))
+        {
             *out++ = *src;
         }
 
         src++;
     }
 
-    if(out > str && *(out - 1) == ' ') {
+    if (out > str && *(out - 1) == ' ')
+    {
         out--;
     }
 
     *out = '\0';
 }
 
-string TrimLeft(const string& str, const string &trim)
+string TrimLeft(const string& str, const string& trim)
 {
     usize pos = str.find_first_not_of(trim);
 
-    if(pos == string::npos)
+    if (pos == string::npos)
         return "";
 
     return str.substr(pos);
 }
 
-string TrimRight(const string &str, const string &trim)
+string TrimRight(const string& str, const string& trim)
 {
     string ret = str;
     usize pos = ret.find_last_not_of(trim);
 
-    if(pos == string::npos)
+    if (pos == string::npos)
         return "";
 
     return ret.erase(pos + 1);
@@ -227,22 +252,24 @@ void StripWhiteSpace(string& str)
     str = TrimLeft(TrimRight(str, " \t\r\n"), " \t\r\n");
 }
 
-void RemoveGTColorCodes(string &str)
+void RemoveGTColorCodes(string& str)
 {
     RemoveGTColorCodes(&str[0]);
     str.resize(strlen(&str[0]));
 }
 
-void RemoveGTColorCodes(char *str)
+void RemoveGTColorCodes(char* str)
 {
-    if(!str) {
+    if (!str)
+    {
         return;
     }
 
     char* src = str;
     char* out = str;
 
-    while(*src) {
+    while (*src)
+    {
         if (*src == '`' && *(src + 1))
         {
             src += 2;
@@ -262,7 +289,8 @@ eToIntResult ToInt(const string& str, int32& out, int32 base)
 
 eToIntResult ToInt(const char* str, int32& out, int32 base)
 {
-    if(!str) {
+    if (!str)
+    {
         return TO_INT_FAIL;
     }
 
@@ -270,15 +298,18 @@ eToIntResult ToInt(const char* str, int32& out, int32 base)
     errno = 0;
     long val = std::strtol(str, &end, base);
 
-    if(*str == '\0') {
+    if (*str == '\0')
+    {
         return TO_INT_FAIL;
     }
 
-    if(errno == ERANGE || val > INT32_MAX) {
+    if (errno == ERANGE || val > INT32_MAX)
+    {
         return TO_INT_OVERFLOW;
     }
 
-    if(errno == ERANGE || val < INT32_MIN) {
+    if (errno == ERANGE || val < INT32_MIN)
+    {
         return TO_INT_UNDERFLOW;
     }
 
@@ -288,7 +319,7 @@ eToIntResult ToInt(const char* str, int32& out, int32 base)
 
 eToIntResult ToInt(const char* str, uint32 size, int32& out)
 {
-    if(!str || size == 0)
+    if (!str || size == 0)
         return TO_INT_FAIL;
 
     uint32 i = 0;
@@ -298,25 +329,25 @@ eToIntResult ToInt(const char* str, uint32 size, int32& out)
     {
         neg = true;
         i = 1;
-        if(size == 1) 
+        if (size == 1)
             return TO_INT_FAIL;
     }
 
-    uint64 result = 0; 
+    uint64 result = 0;
 
-    for(; i < size; ++i)
+    for (; i < size; ++i)
     {
         char c = str[i];
 
-        if(c < '0' || c > '9')
+        if (c < '0' || c > '9')
             return TO_INT_FAIL;
 
         result = result * 10 + (c - '0');
 
-        if(!neg && result > INT32_MAX)
+        if (!neg && result > INT32_MAX)
             return TO_INT_OVERFLOW;
-        
-        if(neg && result > (uint64)(INT32_MAX) + 1)
+
+        if (neg && result > (uint64)(INT32_MAX) + 1)
             return TO_INT_OVERFLOW;
     }
 
@@ -331,11 +362,13 @@ eToIntResult ToUInt(const string& str, uint32& out, int32 base)
 
 eToIntResult ToUInt(const char* str, uint32& out, int32 base)
 {
-    if(!str) {
+    if (!str)
+    {
         return TO_INT_FAIL;
     }
-    
-    if(*str == '-') {
+
+    if (*str == '-')
+    {
         return TO_INT_UNDERFLOW;
     }
 
@@ -343,11 +376,13 @@ eToIntResult ToUInt(const char* str, uint32& out, int32 base)
     errno = 0;
     unsigned long val = std::strtoul(str, &end, base);
 
-    if(errno == ERANGE || val > UINT32_MAX) {
+    if (errno == ERANGE || val > UINT32_MAX)
+    {
         return TO_INT_OVERFLOW;
     }
-    
-    if(*str == '\0' || *end != '\0') {
+
+    if (*str == '\0' || *end != '\0')
+    {
         return TO_INT_FAIL;
     }
 
@@ -357,21 +392,21 @@ eToIntResult ToUInt(const char* str, uint32& out, int32 base)
 
 eToIntResult ToUInt(const char* str, uint32 size, uint32& out)
 {
-    if(!str || size == 0)
+    if (!str || size == 0)
         return TO_INT_FAIL;
 
     uint64 result = 0;
 
-    for(uint32 i = 0; i < size; ++i)
+    for (uint32 i = 0; i < size; ++i)
     {
         char c = str[i];
 
-        if(c < '0' || c > '9')
+        if (c < '0' || c > '9')
             return TO_INT_FAIL;
 
         result = result * 10 + ((uint32)(c - '0'));
 
-        if(result > UINT32_MAX)
+        if (result > UINT32_MAX)
             return TO_INT_OVERFLOW;
     }
 
@@ -385,22 +420,26 @@ Color ToColor(const string& str, char delim)
     RemoveExtraWhiteSpaces(removedStr);
 
     auto args = Split(removedStr, delim);
-    if(args.size() < 3) {
+    if (args.size() < 3)
+    {
         return Color::New;
     }
 
     uint32 r = 255;
-    if(ToUInt(args[0], r) != TO_INT_SUCCESS) {
+    if (ToUInt(args[0], r) != TO_INT_SUCCESS)
+    {
         return Color::New;
     }
 
     uint32 g = 255;
-    if(ToUInt(args[1], g) != TO_INT_SUCCESS) {
+    if (ToUInt(args[1], g) != TO_INT_SUCCESS)
+    {
         return Color::New;
     }
 
     uint32 b = 255;
-    if(ToUInt(args[2], b) != TO_INT_SUCCESS) {
+    if (ToUInt(args[2], b) != TO_INT_SUCCESS)
+    {
         return Color::New;
     }
 
@@ -409,9 +448,11 @@ Color ToColor(const string& str, char delim)
     color.g = (uint8)g;
     color.b = (uint8)b;
 
-    if(args.size() > 3) {
+    if (args.size() > 3)
+    {
         uint32 a = 255;
-        if(ToUInt(args[3], a) != TO_INT_SUCCESS) {
+        if (ToUInt(args[3], a) != TO_INT_SUCCESS)
+        {
             return Color::New;
         }
 
@@ -428,7 +469,8 @@ int32 ToInt(const string& str)
 
 int32 ToInt(const char* str)
 {
-    if(!str) {
+    if (!str)
+    {
         return 0;
     }
 
@@ -442,7 +484,8 @@ uint32 ToUInt(const string& str)
 
 uint32 ToUInt(const char* str)
 {
-    if(!str) {
+    if (!str)
+    {
         return 0;
     }
 
@@ -456,15 +499,18 @@ uint32 CountCharacter(const string& str, char character)
 
 uint32 CountCharacter(const char* str, char character)
 {
-    if(!str) {
+    if (!str)
+    {
         return 0;
     }
 
     uint32 count = 0;
     const char* src = str;
 
-    while(*src) {
-        if(*src == character) {
+    while (*src)
+    {
+        if (*src == character)
+        {
             count++;
         }
 
@@ -501,12 +547,14 @@ bool IsSpace(char c)
 
 void ReplaceString(string& str, const string& replaceThis, const string& replaceTo)
 {
-    if(str.empty()) {
+    if (str.empty())
+    {
         return;
     }
 
     int32 pos = 0;
-    while((pos = str.find(replaceThis, pos)) != -1) {
+    while ((pos = str.find(replaceThis, pos)) != -1)
+    {
         str.replace(pos, replaceThis.length(), replaceTo);
         pos += replaceTo.length();
     }
@@ -519,22 +567,25 @@ std::vector<string> Split(const string& str, char delim)
 
 std::vector<string> Split(const char* str, uint32 size, char delim)
 {
-    const char* strEnd = str + size;    
+    const char* strEnd = str + size;
     const char* lastDelim = str;
 
     std::vector<string> token;
-    if(size == 0)
+    if (size == 0)
         return token;
 
-    for(const char* c = str; c != strEnd; ++c) {
-        if(*c == delim) {
+    for (const char* c = str; c != strEnd; ++c)
+    {
+        if (*c == delim)
+        {
             ptrdiff_t diff = c - lastDelim;
             token.emplace_back(string(lastDelim, diff));
             lastDelim = c + 1;
         }
     }
 
-    if(lastDelim != strEnd) {
+    if (lastDelim != strEnd)
+    {
         ptrdiff_t diff = strEnd - lastDelim;
         token.emplace_back(string(lastDelim, diff));
     }
@@ -554,25 +605,19 @@ std::vector<std::string_view> SplitView(const char* str, uint32 size, char delim
     const char* strEnd = str + size;
     const char* lastDelim = str;
 
-    for(const char* c = str; c != strEnd; ++c)
+    for (const char* c = str; c != strEnd; ++c)
     {
-        if(*c == delim)
+        if (*c == delim)
         {
-            token.emplace_back(
-                lastDelim,
-                c - lastDelim
-            );
+            token.emplace_back(lastDelim, c - lastDelim);
 
             lastDelim = c + 1;
         }
     }
 
-    if(lastDelim <= strEnd)
+    if (lastDelim <= strEnd)
     {
-        token.emplace_back(
-            lastDelim,
-            strEnd - lastDelim
-        );
+        token.emplace_back(lastDelim, strEnd - lastDelim);
     }
 
     return token;
@@ -580,22 +625,37 @@ std::vector<std::string_view> SplitView(const char* str, uint32 size, char delim
 
 string JoinString(const std::vector<string>& strs, const string& delim, uint32 startIdx, uint32 endIdx)
 {
-    if(strs.empty()) {
+    if (strs.empty())
+    {
         return "";
     }
 
-    if(endIdx == 0 || endIdx > strs.size()) {
+    if (endIdx == 0 || endIdx > strs.size())
+    {
         endIdx = strs.size();
     }
 
     string ret;
-    for(uint32 i = startIdx; i < endIdx; ++i) {
-        if(i > startIdx) {
+    for (uint32 i = startIdx; i < endIdx; ++i)
+    {
+        if (i > startIdx)
+        {
             ret += delim;
         }
-        
+
         ret += strs[i];
     }
 
     return ret;
+}
+
+void XorCipher(string& data, const string& key)
+{
+    if (key.empty())
+        return;
+
+    for (uint32 i = 0; i < data.size(); ++i)
+    {
+        data[i] ^= key[i % key.size()];
+    }
 }
