@@ -3,7 +3,8 @@
 #include "../Precompiled.h"
 #include <blend2d/blend2d.h>
 
-class ResourceManager {
+class ResourceManager
+{
 public:
     ResourceManager();
     ~ResourceManager();
@@ -20,7 +21,7 @@ public:
 
     BLImage* LoadTileSheet(const string& path);
     BLImage* IsTileSheetExists(const string& path);
-    BLImage* GetItemTileSheet(uint32 itemID);
+    BLImage* GetItemTileSheet(int32 itemID);
     BLImage* GetTileSheet(const string& tileSheet);
 
     BLFont* LoadFont(uint16 fontID, const string& path);

@@ -1,22 +1,27 @@
 #include "WorldObjectManager.h"
+#include "Item/ItemInfoManager.h"
 
-void WorldObject::Serialize(MemoryBuffer& memBuffer, bool write)
+void WorldObject::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
 {
-    memBuffer.ReadWrite(itemID, write);
+    if (!database)
+    {
+        int16 idToSend = ToItemClientID(itemID);
+        memBuffer.ReadWrite(idToSend, write);
+    }
+    else
+    {
+        memBuffer.ReadWrite(itemID, write);
+    }
+
     memBuffer.ReadWrite(pos, write);
     memBuffer.ReadWrite(count, write);
     memBuffer.ReadWrite(flags, write);
     memBuffer.ReadWrite(objectID, write);
 }
 
-WorldObjectManager::WorldObjectManager()
-: m_lastObjectID(0)
-{
-}
+WorldObjectManager::WorldObjectManager() : m_lastObjectID(0) {}
 
-WorldObjectManager::~WorldObjectManager()
-{
-}
+WorldObjectManager::~WorldObjectManager() {}
 
 void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
 {
@@ -24,23 +29,23 @@ void WorldObjectManager::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
     memBuffer.ReadWrite(objectCount, write);
     memBuffer.ReadWrite(m_lastObjectID, write);
 
-    if(!write) 
+    if (!write)
     {
         m_objects.resize(objectCount);
     }
 
-    if(database)
+    if (database)
     {
         m_lastObjectID = 0;
     }
 
-    if(objectCount > 0)
+    if (objectCount > 0)
     {
-        for(auto& obj : m_objects) // because of padding need to serialize like this way
+        for (auto& obj : m_objects) // because of padding need to serialize like this way
         {
-            obj.Serialize(memBuffer, write);
+            obj.Serialize(memBuffer, write, database);
 
-            if(database)
+            if (database)
             {
                 obj.objectID = ++m_lastObjectID;
             }
@@ -53,7 +58,7 @@ uint32 WorldObjectManager::GetMemEstimate()
     return sizeof(uint32) + sizeof(m_lastObjectID) + m_objects.size() * sizeof(WorldObject);
 }
 
-void WorldObjectManager::AddItem(uint16 itemID, uint8 count, Vector2Float pos, uint8 flags)
+void WorldObjectManager::AddItem(int16 itemID, uint8 count, Vector2Float pos, uint8 flags)
 {
     WorldObject obj;
     obj.itemID = itemID;
@@ -65,10 +70,11 @@ void WorldObjectManager::AddItem(uint16 itemID, uint8 count, Vector2Float pos, u
     m_objects.push_back(std::move(obj));
 }
 
-void WorldObjectManager::ModifyItem(uint32 objectID, uint16 itemID, uint8 count, Vector2Float pos, uint8 flags)
+void WorldObjectManager::ModifyItem(uint32 objectID, int16 itemID, uint8 count, Vector2Float pos, uint8 flags)
 {
     WorldObject* pObject = GetObjectByID(objectID);
-    if(!pObject) {
+    if (!pObject)
+    {
         return;
     }
 
@@ -80,9 +86,12 @@ void WorldObjectManager::ModifyItem(uint32 objectID, uint16 itemID, uint8 count,
 
 void WorldObjectManager::DeleteByID(uint32 objectID)
 {
-    for(auto& object : m_objects) {
-        if(object.objectID == objectID) {
-            if(&object != &m_objects.back()) {
+    for (auto& object : m_objects)
+    {
+        if (object.objectID == objectID)
+        {
+            if (&object != &m_objects.back())
+            {
                 object = std::move(m_objects.back());
             }
             m_objects.pop_back();
@@ -93,29 +102,21 @@ void WorldObjectManager::DeleteByID(uint32 objectID)
 
 void WorldObjectManager::HandleObjectPackets(GameUpdatePacket* pGamePacket)
 {
-    if(!pGamePacket)
+    if (!pGamePacket)
         return;
 
-    if(pGamePacket->field_4 == -3) 
+    if (pGamePacket->field_4 == -3)
     { // modify
-        ModifyItem(
-            pGamePacket->field_5, 
-            pGamePacket->field_7, 
-            pGamePacket->field_6, 
-            Vector2Float(pGamePacket->field_8.x, pGamePacket->field_8.y), 
-            pGamePacket->field_1
-        );
+        ModifyItem(pGamePacket->field_5, pGamePacket->field_7, pGamePacket->field_6,
+                   Vector2Float(pGamePacket->field_8.x, pGamePacket->field_8.y), pGamePacket->field_1);
     }
-    else if(pGamePacket->field_4 == -1) 
+    else if (pGamePacket->field_4 == -1)
     { // add
-        AddItem(
-            pGamePacket->field_7,
-            (uint8)pGamePacket->field_6, 
-            Vector2Float(pGamePacket->field_8.x, pGamePacket->field_8.y), 
-            pGamePacket->field_1
-        );
+        AddItem(pGamePacket->field_7, (uint8)pGamePacket->field_6,
+                Vector2Float(pGamePacket->field_8.x, pGamePacket->field_8.y), pGamePacket->field_1);
     }
-    else { // remove
+    else
+    { // remove
         DeleteByID(pGamePacket->field_7);
     }
 }
@@ -124,8 +125,10 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRect(const RectFloat& 
 {
     std::vector<WorldObject*> objsInRect;
 
-    for(auto& obj : m_objects) {
-        if(rect.IsInside(obj.GetCenterPos())) {
+    for (auto& obj : m_objects)
+    {
+        if (rect.IsInside(obj.GetCenterPos()))
+        {
             objsInRect.push_back(&obj);
         }
     }
@@ -133,12 +136,14 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRect(const RectFloat& 
     return objsInRect;
 }
 
-std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(const RectFloat& rect, uint16 itemID)
+std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(const RectFloat& rect, int16 itemID)
 {
     std::vector<WorldObject*> objsInRect;
 
-    for(auto& obj : m_objects) {
-        if(rect.IsInside(obj.GetCenterPos()) && obj.itemID == itemID) {
+    for (auto& obj : m_objects)
+    {
+        if (rect.IsInside(obj.GetCenterPos()) && obj.itemID == itemID)
+        {
             objsInRect.push_back(&obj);
         }
     }
@@ -149,9 +154,9 @@ std::vector<WorldObject*> WorldObjectManager::GetObjectsInRectByItemID(const Rec
 uint32 WorldObjectManager::GetCounfOfObjestsInRect(const RectFloat& rect)
 {
     uint32 count = 0;
-    for(auto& obj : m_objects)
+    for (auto& obj : m_objects)
     {
-        if(rect.IsInside(obj.pos))
+        if (rect.IsInside(obj.pos))
         {
             count++;
         }
@@ -162,8 +167,10 @@ uint32 WorldObjectManager::GetCounfOfObjestsInRect(const RectFloat& rect)
 
 WorldObject* WorldObjectManager::GetObjectByID(uint32 objectID)
 {
-    for(auto& obj : m_objects) {
-        if(obj.objectID == objectID) {
+    for (auto& obj : m_objects)
+    {
+        if (obj.objectID == objectID)
+        {
             return &obj;
         }
     }

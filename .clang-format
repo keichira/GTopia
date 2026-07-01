@@ -6,7 +6,7 @@ BasedOnStyle: Microsoft
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 150
+ColumnLimit: 120
 
 BreakBeforeBraces: Allman
 AccessModifierOffset: -4

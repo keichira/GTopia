@@ -1,28 +1,26 @@
 #include "PlayerPlayModController.h"
-#include "GamePlayer.h"
-#include "Utils/StringUtils.h"
-#include "Utils/DialogBuilder.h"
 #include "../World/WorldManager.h"
+#include "GamePlayer.h"
+#include "Utils/DialogBuilder.h"
+#include "Utils/StringUtils.h"
 
 PlayerPlayModController::PlayerPlayModController(GamePlayer* pPlayer)
-: m_pPlayer(pPlayer), m_cachedSkinColor(0xFFFFFFFF) 
+    : m_pPlayer(pPlayer), m_cachedSkinColor(0xFFFFFFFF)
 {
 }
 
-PlayerPlayModController::~PlayerPlayModController() 
-{
-}
+PlayerPlayModController::~PlayerPlayModController() {}
 
 ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
 {
-    if(type == PLAYMOD_TYPE_NONE) 
+    if (type == PLAYMOD_TYPE_NONE)
         return nullptr;
 
     PlayMod* pConfig = GetPlayModManager()->GetPlayMod(type);
-    if(!pConfig)
+    if (!pConfig)
         return nullptr;
 
-    if(ActivePlayMod* pExist = GetActiveMod(type))
+    if (ActivePlayMod* pExist = GetActiveMod(type))
     {
         pExist->remainingMS = pConfig->GetTime() * 1000;
         pExist->updateTimer.Reset();
@@ -30,15 +28,18 @@ ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
         return pExist;
     }
 
-    if(!pConfig->GetAddMessage().empty())
+    if (!pConfig->GetAddMessage().empty())
     {
-        if(pConfig->GetTime() != 0)
+        if (pConfig->GetTime() != 0)
         {
-            m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() + " `omod added, `$" + Time::ConvertTimeToStr(pConfig->GetTime() * 1000) + "`oleft)");
+            m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() +
+                                            " `omod added, `$" + Time::ConvertTimeToStr(pConfig->GetTime() * 1000) +
+                                            "`oleft)");
         }
         else
         {
-            m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() + " `omod added)");
+            m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() +
+                                            " `omod added)");
         }
     }
 
@@ -49,29 +50,30 @@ ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
     newMod.customTickTimer.Reset();
 
     m_activeMods.push_back(std::move(newMod));
-    
+
     RecalculateStats();
     return &m_activeMods.back();
 }
 
 bool PlayerPlayModController::RemovePlayMod(ePlayModType type)
 {
-    for(auto it = m_activeMods.begin(); it != m_activeMods.end(); ++it)
+    for (auto it = m_activeMods.begin(); it != m_activeMods.end(); ++it)
     {
-        if(it->type == type)
+        if (it->type == type)
         {
-            if(&(*it) != &m_activeMods.back())
+            if (&(*it) != &m_activeMods.back())
             {
                 *it = std::move(m_activeMods.back());
             }
             m_activeMods.pop_back();
 
             PlayMod* pConfig = GetPlayModManager()->GetPlayMod(type);
-            if(pConfig && !pConfig->GetRemoveMessage().empty())
+            if (pConfig && !pConfig->GetRemoveMessage().empty())
             {
-                m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetRemoveMessage() + " `omod removed)");
+                m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetRemoveMessage() +
+                                                " `omod removed)");
             }
-            
+
             RecalculateStats();
             return true;
         }
@@ -82,9 +84,9 @@ bool PlayerPlayModController::RemovePlayMod(ePlayModType type)
 
 bool PlayerPlayModController::HasPlayMod(ePlayModType type)
 {
-    for(auto& mod : m_activeMods)
+    for (auto& mod : m_activeMods)
     {
-        if(mod.type == type) 
+        if (mod.type == type)
             return true;
     }
 
@@ -93,9 +95,9 @@ bool PlayerPlayModController::HasPlayMod(ePlayModType type)
 
 ActivePlayMod* PlayerPlayModController::GetActiveMod(ePlayModType type)
 {
-    for(auto& mod : m_activeMods)
+    for (auto& mod : m_activeMods)
     {
-        if(mod.type == type) 
+        if (mod.type == type)
             return &mod;
     }
     return nullptr;
@@ -110,15 +112,15 @@ void PlayerPlayModController::RecalculateStats()
     PlayModManager* pModMgr = GetPlayModManager();
     Color finalColor = charData.skinColor;
 
-    for(auto& activeMod : m_activeMods)
+    for (auto& activeMod : m_activeMods)
     {
         PlayMod* pConfig = pModMgr->GetPlayMod(activeMod.type);
-        if(!pConfig) 
+        if (!pConfig)
             continue;
 
         charData.SetCharState(pConfig->GetCharStates());
         charData.SetChar2State(pConfig->GetChar2States());
-        if(pConfig->GetPunchType() > 0) 
+        if (pConfig->GetPunchType() > 0)
         {
             charData.punchType = pConfig->GetPunchType();
         }
@@ -129,9 +131,9 @@ void PlayerPlayModController::RecalculateStats()
         charData.punchPower += pConfig->GetPunchPower();
 
         Color& modColor = pConfig->GetSkinColor();
-        if(modColor.GetAsUINTSwap() != 0xFFFFFFFF)
+        if (modColor.GetAsUINTSwap() != 0xFFFFFFFF)
         {
-            if(finalColor.GetAsUINTSwap() == charData.skinColor.GetAsUINTSwap())
+            if (finalColor.GetAsUINTSwap() == charData.skinColor.GetAsUINTSwap())
             {
                 finalColor = modColor;
             }
@@ -145,29 +147,29 @@ void PlayerPlayModController::RecalculateStats()
         }
     }
 
-    if(HasPlayMod(PLAYMOD_TYPE_XENONITE))
+    if (HasPlayMod(PLAYMOD_TYPE_XENONITE))
     {
-        if(World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_pPlayer->GetCurrentWorld()))
+        if (World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_pPlayer->GetCurrentWorld()))
         {
-            if(TileInfo* pTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_XENONITE))
+            if (TileInfo* pTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_XENONITE))
             {
-                if(TileExtra_Xenonite* pXenoExtra = pTile->GetExtra<TileExtra_Xenonite>())
+                if (TileExtra_Xenonite* pXenoExtra = pTile->GetExtra<TileExtra_Xenonite>())
                 {
                     bool needSendMessage = false;
                     string xenoMsg = "Xenonite has changed everyone's powers! ";
 
-                    if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_DOUBLE_JUMP)) 
+                    if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_DOUBLE_JUMP))
                     {
-                        if(!charData.HasCharState(CHAR_STATE_DOUBLE_JUMP)) 
+                        if (!charData.HasCharState(CHAR_STATE_DOUBLE_JUMP))
                         {
                             charData.SetCharState(CHAR_STATE_DOUBLE_JUMP);
                             xenoMsg += "`2Double Jump granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_DOUBLE_JUMP)) 
+                    }
+                    else if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_DOUBLE_JUMP))
                     {
-                        if(charData.HasCharState(CHAR_STATE_DOUBLE_JUMP))
+                        if (charData.HasCharState(CHAR_STATE_DOUBLE_JUMP))
                         {
                             charData.RemoveCharState(CHAR_STATE_DOUBLE_JUMP);
                             xenoMsg += "`6Double Jump blocked!`` ";
@@ -175,18 +177,18 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_HIGH_JUMP)) 
+                    if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_HIGH_JUMP))
                     {
-                        if(700.0f < charData.gravity) 
+                        if (700.0f < charData.gravity)
                         {
                             charData.gravity = 700.0f;
                             xenoMsg += "`2High Jump granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_HIGH_JUMP)) 
+                    }
+                    else if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_HIGH_JUMP))
                     {
-                        if(charData.gravity < 1000.0f) 
+                        if (charData.gravity < 1000.0f)
                         {
                             charData.gravity = 1000.0f;
                             xenoMsg += "`6High Jump blocked!`` ";
@@ -194,18 +196,18 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_STRONG_PUNCH)) 
+                    if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_STRONG_PUNCH))
                     {
-                        if(charData.punchPower < 500.0f) 
+                        if (charData.punchPower < 500.0f)
                         {
                             charData.punchPower = 500.0f;
                             xenoMsg += "`2Strong Punch granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_STRONG_PUNCH)) 
+                    }
+                    else if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_STRONG_PUNCH))
                     {
-                        if(200.0f < charData.punchPower) 
+                        if (200.0f < charData.punchPower)
                         {
                             charData.punchPower = 200.0f;
                             xenoMsg += "`6Strong Punch blocked!`` ";
@@ -213,18 +215,18 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_SPEED)) 
+                    if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_F_SPEED))
                     {
-                        if(charData.accel < 310.0f) 
+                        if (charData.accel < 310.0f)
                         {
                             charData.accel = 310.0f;
                             xenoMsg += "`2Super Speed granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_SPEED)) 
+                    }
+                    else if (pXenoExtra->HasFlag(TILE_EXTRA_XENO_B_SPEED))
                     {
-                        if(250.0f < charData.accel)
+                        if (250.0f < charData.accel)
                         {
                             charData.accel = 250.0f;
                             xenoMsg += "`6Super Speed blocked!`` ";
@@ -232,18 +234,18 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(pXenoExtra->HasFlag2(TILE_EXTRA_XENO_F_LONG_PUNCH)) 
+                    if (pXenoExtra->HasFlag2(TILE_EXTRA_XENO_F_LONG_PUNCH))
                     {
-                        if(charData.punchRange < 128)
+                        if (charData.punchRange < 128)
                         {
                             charData.punchRange = 130;
                             xenoMsg += "`2Long Punch granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag2(TILE_EXTRA_XENO_B_LONG_PUNCH)) 
+                    }
+                    else if (pXenoExtra->HasFlag2(TILE_EXTRA_XENO_B_LONG_PUNCH))
                     {
-                        if(128 < charData.punchRange) 
+                        if (128 < charData.punchRange)
                         {
                             charData.punchRange = 128;
                             xenoMsg += "`6Long Punch blocked!`` ";
@@ -251,18 +253,18 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(pXenoExtra->HasFlag2(TILE_EXTRA_XENO_F_HEAT_RESIST)) 
+                    if (pXenoExtra->HasFlag2(TILE_EXTRA_XENO_F_HEAT_RESIST))
                     {
-                        if(0.5f < charData.fireDamage) 
+                        if (0.5f < charData.fireDamage)
                         {
                             charData.fireDamage = 0.5f;
                             xenoMsg += "`2Heat Resist granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag2(TILE_EXTRA_XENO_B_HEAT_RESIST)) 
+                    }
+                    else if (pXenoExtra->HasFlag2(TILE_EXTRA_XENO_B_HEAT_RESIST))
                     {
-                        if(charData.fireDamage < 1.0f) 
+                        if (charData.fireDamage < 1.0f)
                         {
                             charData.fireDamage = 1.0f;
                             xenoMsg += "`6Heat Resist blocked!`` ";
@@ -270,18 +272,18 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(pXenoExtra->HasFlag2(TILE_EXTRA_XENO_F_LONG_BUILD)) 
+                    if (pXenoExtra->HasFlag2(TILE_EXTRA_XENO_F_LONG_BUILD))
                     {
-                        if(charData.buildRange < 128) 
+                        if (charData.buildRange < 128)
                         {
                             charData.buildRange = 129;
                             xenoMsg += "`2Long Build granted!`` ";
                             needSendMessage = true;
                         }
-                    } 
-                    else if(pXenoExtra->HasFlag2(TILE_EXTRA_XENO_B_LONG_BUILD)) 
+                    }
+                    else if (pXenoExtra->HasFlag2(TILE_EXTRA_XENO_B_LONG_BUILD))
                     {
-                        if(128 < charData.buildRange) 
+                        if (128 < charData.buildRange)
                         {
                             charData.buildRange = 128;
                             xenoMsg += "`6Long Build blocked!`` ";
@@ -289,7 +291,7 @@ void PlayerPlayModController::RecalculateStats()
                         }
                     }
 
-                    if(m_pPlayer && needSendMessage) 
+                    if (m_pPlayer && needSendMessage)
                     {
                         m_pPlayer->SendOnTalkBubble(xenoMsg, true);
                     }
@@ -307,30 +309,30 @@ void PlayerPlayModController::Update()
 {
     bool needRefresh = false;
 
-    for(uint32 i = 0; i < m_activeMods.size(); )
+    for (uint32 i = 0; i < m_activeMods.size();)
     {
         ActivePlayMod& mod = m_activeMods[i];
 
-        if(mod.type == PLAYMOD_TYPE_CARRYING_A_TORCH)
+        if (mod.type == PLAYMOD_TYPE_CARRYING_A_TORCH)
         {
             OnUpdateTorch(mod);
         }
 
-        if(m_pPlayer && m_pPlayer->GetCharData().needCharStateUpdate)
+        if (m_pPlayer && m_pPlayer->GetCharData().needCharStateUpdate)
         {
-            if(mod.type == PLAYMOD_TYPE_XENONITE)
+            if (mod.type == PLAYMOD_TYPE_XENONITE)
             {
                 needRefresh = true;
             }
         }
 
-        if(i >= m_activeMods.size() || m_activeMods[i].type != mod.type)
+        if (i >= m_activeMods.size() || m_activeMods[i].type != mod.type)
         {
             needRefresh = true;
             continue;
         }
-        
-        if(mod.remainingMS == 0)
+
+        if (mod.remainingMS == 0)
         {
             ++i;
             continue;
@@ -339,7 +341,7 @@ void PlayerPlayModController::Update()
         uint64 elapsed = mod.updateTimer.GetElapsedTime();
         mod.updateTimer.Reset();
 
-        if(elapsed >= mod.remainingMS)
+        if (elapsed >= mod.remainingMS)
         {
             RemovePlayMod(mod.type);
             needRefresh = true;
@@ -351,7 +353,7 @@ void PlayerPlayModController::Update()
         }
     }
 
-    if(needRefresh)
+    if (needRefresh)
     {
         RecalculateStats();
     }
@@ -360,14 +362,14 @@ void PlayerPlayModController::Update()
 void PlayerPlayModController::BuildActiveModsDialog(DialogBuilder& db)
 {
     PlayModManager* pConfigMgr = GetPlayModManager();
-    for(auto& mod : m_activeMods)
+    for (auto& mod : m_activeMods)
     {
         PlayMod* pConfig = pConfigMgr->GetPlayMod(mod.type);
-        if(!pConfig) 
+        if (!pConfig)
             continue;
 
         string label = pConfig->GetName();
-        if(mod.remainingMS > 0)
+        if (mod.remainingMS > 0)
         {
             label += " `o(`w" + Time::ConvertTimeToStr(mod.remainingMS) + " `oleft)";
         }
@@ -377,17 +379,17 @@ void PlayerPlayModController::BuildActiveModsDialog(DialogBuilder& db)
 
 void PlayerPlayModController::OnUpdateTorch(ActivePlayMod& mod)
 {
-    if(mod.customTickTimer.GetElapsedTime() < 600)
+    if (mod.customTickTimer.GetElapsedTime() < 600)
         return;
 
     mod.customTickTimer.Reset();
 
-    if(RandomRangeInt(0, 100) == 1)
+    if (RandomRangeInt(0, 100) == 1)
     {
         m_pPlayer->ModifyInventoryItem(ITEM_ID_HAND_TORCH, -1);
         uint8 leftTorchCount = m_pPlayer->GetInventory().GetCountOfItem(ITEM_ID_HAND_TORCH);
 
-        if(leftTorchCount == 0)
+        if (leftTorchCount == 0)
         {
             m_pPlayer->SendOnTalkBubble("`2My torch went out!", false);
             m_pPlayer->ToggleCloth(ITEM_ID_HAND_TORCH);

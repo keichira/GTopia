@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Precompiled.h"
 #include "../Player/GamePlayer.h"
+#include "Precompiled.h"
 #include "Utils/DialogBuilder.h"
 
 enum eStoreTab
@@ -40,10 +40,11 @@ struct StoreEntry
     eStoreTab parentTab = STORE_TAB_NONE;
 
     StoreRule rule;
-    std::vector<uint32> items;
+    std::vector<int32> items;
 };
 
-class StoreManager {
+class StoreManager
+{
 public:
     StoreManager();
     ~StoreManager();
@@ -61,7 +62,7 @@ public:
     eStoreTab GetTabTypeByCode(const string& entryCode);
     void NavigatePlayer(GamePlayer* pPlayer, eStoreTab storeTab);
     bool PurchaseItem(GamePlayer* pPlayer, const string& entryCode);
-    string GivePurchasedItemsAndGetGivensAsStr(GamePlayer* pPlayer, const std::vector<uint32>& items);
+    string GivePurchasedItemsAndGetGivensAsStr(GamePlayer* pPlayer, const std::vector<int32>& items);
 
     StoreEntry* GetStoreEntryByCodeFromTab(const string& entryCode, eStoreTab storeTab);
     StoreEntry* GetStoreEntryByCode(const string& entryCode);

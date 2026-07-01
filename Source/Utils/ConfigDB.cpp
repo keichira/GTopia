@@ -1,15 +1,11 @@
 #include "ConfigDB.h"
 #include "../IO/File.h"
-#include "StringUtils.h"
 #include "../IO/Log.h"
+#include "StringUtils.h"
 
-ConfigDB::ConfigDB()
-{
-}
+ConfigDB::ConfigDB() {}
 
-ConfigDB::~ConfigDB()
-{
-}
+ConfigDB::~ConfigDB() {}
 
 bool ConfigLine::Has(int32 index) const
 {
@@ -18,7 +14,7 @@ bool ConfigLine::Has(int32 index) const
 
 const string& ConfigLine::GetString(int32 index, const string& def) const
 {
-    if(!Has(index))
+    if (!Has(index))
         return def;
 
     return args[index];
@@ -26,11 +22,11 @@ const string& ConfigLine::GetString(int32 index, const string& def) const
 
 int32 ConfigLine::GetInt(int32 index, int32 def) const
 {
-    if(!Has(index))
+    if (!Has(index))
         return def;
 
     int32 val = def;
-    if(ToInt(GetString(index), val) != TO_INT_SUCCESS)
+    if (ToInt(GetString(index), val) != TO_INT_SUCCESS)
     {
         dbParent->ReportError(*this, "ToInt failed (index " + ToString(index) + ")");
         return def;
@@ -41,11 +37,11 @@ int32 ConfigLine::GetInt(int32 index, int32 def) const
 
 uint32 ConfigLine::GetUInt(int32 index, uint32 def) const
 {
-    if(!Has(index))
+    if (!Has(index))
         return def;
 
     uint32 val = def;
-    if(ToUInt(GetString(index), val) != TO_INT_SUCCESS)
+    if (ToUInt(GetString(index), val) != TO_INT_SUCCESS)
     {
         dbParent->ReportError(*this, "ToUInt failed (index " + ToString(index) + ")");
         return def;
@@ -56,7 +52,7 @@ uint32 ConfigLine::GetUInt(int32 index, uint32 def) const
 
 float ConfigLine::GetFloat(int32 index, float def) const
 {
-    if(!Has(index))
+    if (!Has(index))
         return def;
 
     return ToFloat(GetString(index));
@@ -64,9 +60,9 @@ float ConfigLine::GetFloat(int32 index, float def) const
 
 bool ConfigLine::Require(int32 index) const
 {
-    if(!Has(index))
+    if (!Has(index))
     {
-        if(dbParent)
+        if (dbParent)
         {
             dbParent->ReportError(*this, "Expected " + ToString(index + 1) + " args but found " + ToString(args.size()) + " args");
         }
@@ -78,7 +74,7 @@ bool ConfigLine::Require(int32 index) const
 
 bool ConfigLine::IsEmpty(int32 index) const
 {
-    if(!Has(index))
+    if (!Has(index))
         return true;
 
     const string& str = GetString(index);
@@ -92,13 +88,13 @@ bool ConfigLine::IsLastSpace() const
 
 bool ConfigDB::Load(const string& filePath)
 {
-    if(filePath.empty())
+    if (filePath.empty())
         return false;
 
     LOGGER_LOG_INFO_ASAP("ConfigDB: Loading file '%s'", filePath.c_str());
 
     File file;
-    if(!file.Open(filePath))
+    if (!file.Open(filePath))
     {
         LOGGER_LOG_ERROR_ASAP("ConfigDB: Failed to open file '%s'", filePath.c_str());
         return false;
@@ -107,7 +103,7 @@ bool ConfigDB::Load(const string& filePath)
     string data;
     data.resize(file.GetSize());
 
-    if(file.Read(data.data(), file.GetSize()) != file.GetSize())
+    if (file.Read(data.data(), file.GetSize()) != file.GetSize())
     {
         file.Close();
         LOGGER_LOG_ERROR_ASAP("ConfigDB: Failed to read '%s'", filePath.c_str());
@@ -117,9 +113,9 @@ bool ConfigDB::Load(const string& filePath)
 
     auto lines = Split(data, '\n');
 
-    for(uint32 i = 0; i < lines.size(); ++i)
+    for (uint32 i = 0; i < lines.size(); ++i)
     {
-        if(lines[i].empty() || IsSpace(lines[i][0]) || lines[i][0] == '#')
+        if (lines[i].empty() || IsSpace(lines[i][0]) || lines[i][0] == '#')
             continue;
 
         ConfigLine cl;
@@ -127,7 +123,7 @@ bool ConfigDB::Load(const string& filePath)
         cl.args = Split(lines[i], '|');
         cl.dbParent = this;
 
-        for(auto& arg : cl.args)
+        for (auto& arg : cl.args)
         {
             StripWhiteSpace(arg);
         }

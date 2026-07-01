@@ -1,20 +1,29 @@
 #include "PlayerInventory.h"
-#include "../Item/ItemInfoManager.h"
 #include "../IO/Log.h"
-#include "Player.h"
+#include "../Item/ItemInfoManager.h"
 #include "../Packet/NetPacket.h"
+#include "Player.h"
 
-void InventoryItemInfo::Serialize(MemoryBuffer& memBuffer, bool write)
+void InventoryItemInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
 {
-    memBuffer.ReadWrite(id, write);
+    if (write)
+    {
+        int16 idToSend = database ? id : ToItemClientID(id);
+        memBuffer.ReadWrite(idToSend, write);
+    }
+    else
+    {
+        memBuffer.ReadWrite(id, write);
+    }
+
     memBuffer.ReadWrite(count, write);
     memBuffer.ReadWrite(flags, write);
 }
 
-PlayerInventory::PlayerInventory()
-: m_capacity(INVENTORY_DEFAULT_CAPACITY)
+PlayerInventory::PlayerInventory() : m_capacity(INVENTORY_DEFAULT_CAPACITY)
 {
-    for(uint8 i = 0; i < BODY_PART_SIZE; ++i) {
+    for (uint8 i = 0; i < BODY_PART_SIZE; ++i)
+    {
         m_clothes[i] = 0;
     }
 
@@ -24,66 +33,80 @@ PlayerInventory::PlayerInventory()
 
 void PlayerInventory::Serialize(MemoryBuffer& memBuffer, bool write, bool database)
 {
-    if(!database) {
+    if (!database)
+    {
         memBuffer.ReadWrite(m_version, write);
     }
 
     memBuffer.ReadWrite(m_capacity, write);
 
     uint16 invItemSize = m_items.size();
-    if(database || m_version > 0) {
+    if (database || m_version > 0)
+    {
         memBuffer.ReadWrite(invItemSize, write);
     }
-    else {
+    else
+    {
         uint8 tempInvSize = (uint8)invItemSize;
         memBuffer.ReadWrite(tempInvSize, write);
 
-        if(!write) {
+        if (!write)
+        {
             invItemSize = tempInvSize;
         }
     }
 
-    if(!write) {
+    if (!write)
+    {
         m_items.reserve(m_capacity);
     }
 
-    if(m_version == 0 && !database && invItemSize > 255) {
+    if (m_version == 0 && !database && invItemSize > 255)
+    {
         invItemSize = 250;
     }
 
     ItemInfoManager* pItemMgr = GetItemInfoManager();
 
-    for(uint16 i = 0; i < invItemSize; ++i) {
-        if(write) {
-            m_items[i].Serialize(memBuffer, true);
+    for (uint16 i = 0; i < invItemSize; ++i)
+    {
+        if (write)
+        {
+            m_items[i].Serialize(memBuffer, true, database);
         }
-        else {
+        else
+        {
             InventoryItemInfo item;
-            item.Serialize(memBuffer, write);
-    
-            if(IsIllegalItem(item.id) || item.id < 0) {
+            item.Serialize(memBuffer, write, database);
+
+            if (IsIllegalItem(item.id))
+            {
                 LOGGER_LOG_WARN("Illegal item %d found in player inventory skipping adding", item.id);
                 continue;
             }
 
             ItemInfo* pItem = pItemMgr->GetItemByID(item.id);
-            if(!pItem) {
+            if (!pItem)
+            {
                 continue;
             }
 
-            if(item.flags == 1) {
+            if (item.flags == 1)
+            {
                 m_clothes[pItem->bodyPart] = item.id;
             }
-    
+
             m_items.push_back(std::move(item));
         }
     }
 }
 
-InventoryItemInfo* PlayerInventory::GetItemByID(uint16 itemID)
+InventoryItemInfo* PlayerInventory::GetItemByID(int32 itemID)
 {
-    for(auto& item : m_items) {
-        if(item.id == itemID) {
+    for (auto& item : m_items)
+    {
+        if (item.id == itemID)
+        {
             return &item;
         }
     }
@@ -91,26 +114,27 @@ InventoryItemInfo* PlayerInventory::GetItemByID(uint16 itemID)
     return nullptr;
 }
 
-uint8 PlayerInventory::AddItem(uint16 itemID, uint8 count, Player* pPlayer)
+uint8 PlayerInventory::AddItem(int32 itemID, uint8 count, Player* pPlayer)
 {
-    if(itemID == ITEM_ID_GEMS)
+    if (itemID == ITEM_ID_GEMS)
         return 0;
 
     ItemInfo* pItemInfo = GetItemInfoManager()->GetItemByID(itemID);
-    if(!pItemInfo) {
+    if (!pItemInfo)
         return 0;
-    }
 
     InventoryItemInfo* pSearchItem = GetItemByID(itemID);
-    if(!pSearchItem) {
-        if(m_items.size() + 1 > m_capacity) {
+    if (!pSearchItem)
+    {
+        if (m_items.size() + 1 > m_capacity)
             return 0;
-        }
 
-        if(itemID == ITEM_ID_FIST || itemID == ITEM_ID_WRENCH) {
+        if (pItemInfo->IsUnlimited())
+        {
             count = 1;
         }
-        else if(count > pItemInfo->maxCanHold) {
+        else if (count > pItemInfo->maxCanHold)
+        {
             count = pItemInfo->maxCanHold;
         }
 
@@ -124,27 +148,29 @@ uint8 PlayerInventory::AddItem(uint16 itemID, uint8 count, Player* pPlayer)
         return count;
     }
 
-    if(pSearchItem->count + count > pItemInfo->maxCanHold) {
+    if (pSearchItem->count + count > pItemInfo->maxCanHold)
         return 0;
-    }
 
     pSearchItem->count += count;
     UpdateInventory(pPlayer, itemID, count, true);
     return count;
 }
 
-uint8 PlayerInventory::RemoveItem(uint16 itemID, int16 count, Player* pPlayer)
+uint8 PlayerInventory::RemoveItem(int32 itemID, int16 count, Player* pPlayer)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);
-    if(!pItem) {
+    if (!pItem)
+    {
         return 0;
     }
 
-    if(count >= pItem->count) {
+    if (count >= pItem->count)
+    {
         count = pItem->count;
     }
 
-    if(count == pItem->count) {
+    if (count == pItem->count)
+    {
         return RemoveItem(itemID, pPlayer);
     }
 
@@ -153,15 +179,17 @@ uint8 PlayerInventory::RemoveItem(uint16 itemID, int16 count, Player* pPlayer)
     return count;
 }
 
-uint8 PlayerInventory::RemoveItem(uint16 itemID, Player* pPlayer)
+uint8 PlayerInventory::RemoveItem(int32 itemID, Player* pPlayer)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);
-    if(!pItem) {
+    if (!pItem)
+    {
         return 0;
     }
 
     uint8 itemCount = pItem->count;
-    if(pItem != &m_items.back()) {
+    if (pItem != &m_items.back())
+    {
         *pItem = std::move(m_items.back());
     }
     m_items.pop_back();
@@ -171,18 +199,22 @@ uint8 PlayerInventory::RemoveItem(uint16 itemID, Player* pPlayer)
     return itemCount;
 }
 
-void PlayerInventory::SetClothByPart(uint16 itemID, uint8 bodyPart)
+void PlayerInventory::SetClothByPart(int32 itemID, uint8 bodyPart)
 {
-    if(bodyPart > BODY_PART_SIZE) {
+    if (bodyPart > BODY_PART_SIZE)
+    {
         return;
     }
 
     InventoryItemInfo* pItem = GetItemByID(itemID);
-    if(pItem) {
-        if(itemID == ITEM_ID_BLANK) {
+    if (pItem)
+    {
+        if (itemID == ITEM_ID_BLANK)
+        {
             pItem->flags = 0;
         }
-        else {
+        else
+        {
             pItem->flags = 1;
         }
     }
@@ -190,10 +222,12 @@ void PlayerInventory::SetClothByPart(uint16 itemID, uint8 bodyPart)
     m_clothes[bodyPart] = itemID;
 }
 
-bool PlayerInventory::IsWearingItem(uint16 itemID)
+bool PlayerInventory::IsWearingItem(int32 itemID)
 {
-    for(uint8 i = 0; i < BODY_PART_SIZE; ++i) {
-        if(m_clothes[i] == itemID) {
+    for (uint8 i = 0; i < BODY_PART_SIZE; ++i)
+    {
+        if (m_clothes[i] == itemID)
+        {
             return true;
         }
     }
@@ -201,112 +235,117 @@ bool PlayerInventory::IsWearingItem(uint16 itemID)
     return false;
 }
 
-bool PlayerInventory::HaveRoomForItem(uint16 itemID, uint8 itemCount)
+bool PlayerInventory::HaveRoomForItem(int32 itemID, uint8 itemCount)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);
     ItemInfo* pItemInfo = GetItemInfoManager()->GetItemByID(itemID);
-    
-    if(!pItemInfo) {
+
+    if (!pItemInfo)
+    {
         return false;
     }
 
-    if(pItem) {
+    if (pItem)
+    {
         return (pItem->count + itemCount <= pItemInfo->maxCanHold);
     }
 
-    if(
-        itemCount > pItemInfo->maxCanHold ||
-        m_items.size() + 1 > m_capacity
-    ) {
+    if (itemCount > pItemInfo->maxCanHold || m_items.size() + 1 > m_capacity)
+    {
         return false;
     }
 
     return true;
 }
 
-uint32 PlayerInventory::GetFitItemCount(uint16 itemID)
+uint32 PlayerInventory::GetFitItemCount(int32 itemID)
 {
-    if(itemID == ITEM_ID_GEMS || itemID == ITEM_ID_CARRIED_GAME_FLAG || itemID == ITEM_ID_CARRIED_GAME_EGG)
+    if (itemID == ITEM_ID_GEMS || itemID == ITEM_ID_CARRIED_GAME_FLAG || itemID == ITEM_ID_CARRIED_GAME_EGG)
         return 999999;
 
     InventoryItemInfo* pItem = GetItemByID(itemID);
     ItemInfo* pInfo = GetItemInfoManager()->GetItemByID(itemID);
 
-    if(!pInfo)
+    if (!pInfo)
         return 0;
 
-    if(!pItem)
+    if (!pItem)
         return m_items.size() < m_capacity ? pInfo->maxCanHold : 0;
 
-    if(pItem->count >= pInfo->maxCanHold)
+    if (pItem->count >= pInfo->maxCanHold)
         return 0;
 
     return pInfo->maxCanHold - pItem->count;
 }
 
 // count, itemID, count, itemID
-bool PlayerInventory::CanAllItemsFit(const std::vector<uint32>& items)
+bool PlayerInventory::CanAllItemsFit(const std::vector<int32>& items)
 {
     ItemInfoManager* pItemMgr = GetItemInfoManager();
-    if(items.size() % 2 != 0)
+    if (items.size() % 2 != 0)
         return false;
 
-    for(uint16 i = 0; i < items.size(); i += 2)
+    for (uint16 i = 0; i < items.size(); i += 2)
     {
-        uint32 itemID = items[i + 1];
-        uint32 count = items[i];
+        int32 itemID = items[i + 1];
+        int32 count = items[i];
 
         ItemInfo* pItem = pItemMgr->GetItemByID(itemID);
-        if(!pItem)
+        if (!pItem)
             return false;
 
-        if(count > pItem->maxCanHold)
+        if (count > pItem->maxCanHold)
             return false;
 
         InventoryItemInfo* pInvItem = GetItemByID(itemID);
-        if(pInvItem && pInvItem->count + count > pItem->maxCanHold)
+        if (pInvItem && pInvItem->count + count > pItem->maxCanHold)
             return false;
 
-        if(!pInvItem && m_items.size() + 1 > m_capacity)
+        if (!pInvItem && m_items.size() + 1 > m_capacity)
             return false;
     }
 
     return true;
 }
 
-uint8 PlayerInventory::GetCountOfItem(uint16 itemID)
+uint8 PlayerInventory::GetCountOfItem(int32 itemID)
 {
     InventoryItemInfo* pItem = GetItemByID(itemID);
-    if(!pItem) 
+    if (!pItem)
         return 0;
 
     return pItem->count;
 }
 
-void PlayerInventory::UpdateInventory(Player* pPlayer, uint16 itemID, uint8 count, bool added)
+void PlayerInventory::UpdateInventory(Player* pPlayer, int32 itemID, uint8 count, bool added)
 {
-    if(!pPlayer) {
+    if (!pPlayer)
+    {
         return;
     }
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_MODIFY_ITEM_INVENTORY;
-    packet.field_7 = itemID;
+    packet.field_7 = ToItemClientID(itemID);
 
-    if(added) {
+    if (added)
+    {
         packet.field_3 = count;
     }
-    else {
+    else
+    {
         packet.field_2 = count;
     }
 
     SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr);
 }
 
-void PlayerInventory::RemoveFromQuickSlots(uint16 itemID)
+void PlayerInventory::RemoveFromQuickSlots(int32 itemID)
 {
-    for(uint8 i = 0; i < 4; ++i) {
-        if(m_quickSlots[i] == itemID) {
+    for (uint8 i = 0; i < 4; ++i)
+    {
+        if (m_quickSlots[i] == itemID)
+        {
             m_quickSlots[i] = 0;
         }
     }
@@ -316,14 +355,17 @@ uint32 PlayerInventory::GetMemEstimate(bool database)
 {
     uint32 memEstimate = sizeof(m_capacity) + m_items.size() * sizeof(InventoryItemInfo);
 
-    if(!database) {
+    if (!database)
+    {
         memEstimate += sizeof(m_version);
     }
 
-    if(database || m_version > 0) {
+    if (database || m_version > 0)
+    {
         memEstimate += sizeof(uint16);
     }
-    else {
+    else
+    {
         memEstimate += sizeof(uint8);
     }
 

@@ -1,13 +1,15 @@
 #include "WorldInfo.h"
-#include "../Utils/StringUtils.h"
 #include "../Math/Random.h"
+#include "../Utils/StringUtils.h"
 
 bool IsValidWorldName(const string& worldName, bool allowColon)
 {
     const char* src = worldName.c_str();
 
-    while(*src) {
-        if((IsAlpha(*src) && IsUpper(*src)) || IsDigit(*src) || (allowColon && *src == ':')) {
+    while (*src)
+    {
+        if ((IsAlpha(*src) && IsUpper(*src)) || IsDigit(*src) || (allowColon && *src == ':'))
+        {
             src++;
             continue;
         }
@@ -18,8 +20,7 @@ bool IsValidWorldName(const string& worldName, bool allowColon)
     return true;
 }
 
-WorldInfo::WorldInfo()
-: m_version(14), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
+WorldInfo::WorldInfo() : m_version(14), m_flags(0), m_defaultWeather(0), m_currentWeather(0)
 {
     m_pTileMgr = new WorldTileManager(this);
     m_pObjMgr = new WorldObjectManager();
@@ -30,13 +31,9 @@ WorldInfo::~WorldInfo()
     Kill();
 }
 
-void WorldInfo::OnHeartMonitorAdded(TileInfo *pTile)
-{
-}
+void WorldInfo::OnHeartMonitorAdded(TileInfo* pTile) {}
 
-void WorldInfo::OnHeartMonitorRemoved(TileInfo *pTile)
-{
-}
+void WorldInfo::OnHeartMonitorRemoved(TileInfo* pTile) {}
 
 void WorldInfo::Kill()
 {
@@ -50,11 +47,12 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
     memBuffer.ReadWrite(m_flags, write);
     memBuffer.ReadWriteString(m_name, write);
 
-    if(!m_pTileMgr->Serialize(memBuffer, write, database, this, gameVersion)) {
+    if (!m_pTileMgr->Serialize(memBuffer, write, database, this, gameVersion))
+    {
         return false;
     }
 
-    if(!database && write && gameVersion >= 5.40f) // 5.40 is not the actual value lazy to dig for it
+    if (!database && write && gameVersion >= 5.40f) // 5.40 is not the actual value lazy to dig for it
     {
         uint32 unk = 0;
         memBuffer.ReadWrite(unk, write);
@@ -63,7 +61,7 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
     }
 
     m_pObjMgr->Serialize(memBuffer, write, database);
-    
+
     uint16 unused = 0;
     memBuffer.ReadWrite(m_defaultWeather, write);
     memBuffer.ReadWrite(unused, write);
@@ -77,8 +75,10 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
 
 void WorldInfo::GenerateWorld(eWorldGenerationType type)
 {
-    switch(type) {
-        case WORLD_GENERATION_DEFAULT: {
+    switch (type)
+    {
+        case WORLD_GENERATION_DEFAULT:
+        {
             m_defaultWeather = WEATHER_TYPE_DEFAULT;
             m_currentWeather = WEATHER_TYPE_DEFAULT;
 
@@ -86,7 +86,8 @@ void WorldInfo::GenerateWorld(eWorldGenerationType type)
             break;
         }
 
-        case WORLD_GENERATION_CLEAR: {
+        case WORLD_GENERATION_CLEAR:
+        {
             m_defaultWeather = WEATHER_TYPE_DEFAULT;
             m_currentWeather = WEATHER_TYPE_DEFAULT;
 
@@ -104,7 +105,7 @@ uint32 WorldInfo::GetMemEstimate(bool database, float gameVersion)
     memSize += m_pObjMgr->GetMemEstimate();
     memSize += sizeof(m_defaultWeather) + sizeof(m_currentWeather) + sizeof(uint16) * 2 + sizeof(uint32);
 
-    if(!database && gameVersion > 5.40f)
+    if (!database && gameVersion > 5.40f)
     {
         memSize += sizeof(uint32) * 3;
     }

@@ -1,8 +1,8 @@
 #include "PlayerLoginDetail.h"
-#include "Player.h"
-#include "../Proton/ProtonUtils.h"
 #include "../IO/Log.h"
+#include "../Proton/ProtonUtils.h"
 #include "../Utils/Base64.h"
+#include "Player.h"
 
 bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer, bool asGameServer)
 {
@@ -25,13 +25,15 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
         {
             if (ToUInt(Split(platformStr, ',')[0], platformType) != TO_INT_SUCCESS)
             {
-                LOGGER_LOG_WARN("[LOGIN_FAIL] Malformed platformID string '%s'. IP: %s", platformStr.c_str(), playerIP.data());
+                LOGGER_LOG_WARN("[LOGIN_FAIL] Malformed platformID string '%s'. IP: %s", platformStr.c_str(),
+                                playerIP.data());
                 return false;
             }
         }
         else
         {
-            LOGGER_LOG_WARN("[LOGIN_FAIL] Invalid platformID format '%s'. IP: %s", platformStr.c_str(), playerIP.data());
+            LOGGER_LOG_WARN("[LOGIN_FAIL] Invalid platformID format '%s'. IP: %s", platformStr.c_str(),
+                            playerIP.data());
             return false;
         }
     }
@@ -61,7 +63,8 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
 
         if (pLToken->valueSize < 100)
         {
-            LOGGER_LOG_WARN("[LOGIN_FAIL] Suspiciously small ltoken size (%d). IP: %s", pLToken->valueSize, playerIP.data());
+            LOGGER_LOG_WARN("[LOGIN_FAIL] Suspiciously small ltoken size (%d). IP: %s", pLToken->valueSize,
+                            playerIP.data());
             return false;
         }
 
@@ -129,12 +132,15 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
 
         if ((pTankIDName && !pTankIDPass) || (!pTankIDName && pTankIDPass))
         {
-            LOGGER_LOG_WARN("[LOGIN_FAIL] Mismatched TankID credentials (one field missing). Name: %s, IP: %s", requestedName.c_str(), playerIP.data());
+            LOGGER_LOG_WARN("[LOGIN_FAIL] Mismatched TankID credentials (one field missing). Name: %s, IP: %s",
+                            requestedName.c_str(), playerIP.data());
             return false;
         }
 
-        if (pTankIDName) tankIDName = string(pTankIDName->value, pTankIDName->valueSize);
-        if (pTankIDPass) tankIDPass = string(pTankIDPass->value, pTankIDPass->valueSize);
+        if (pTankIDName)
+            tankIDName = string(pTankIDName->value, pTankIDName->valueSize);
+        if (pTankIDPass)
+            tankIDPass = string(pTankIDPass->value, pTankIDPass->valueSize);
     }
 
     auto pHash = packet.Find("hash"_hash);
@@ -148,18 +154,23 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
     rid = pRid ? string(pRid->value, pRid->valueSize) : "11111111111111111111111111111111";
 
     auto pGid = packet.Find("gid"_hash);
-    if (pGid) {
+    if (pGid)
+    {
         gid = string(pGid->value, pGid->valueSize);
-        if (gid.size() != 36 || gid.empty()) {
-            LOGGER_LOG_WARN("[LOGIN_FAIL] Weird GID size (%zu) value: '%s'. IP: %s", gid.size(), gid.c_str(), playerIP.data());
+        if (gid.size() != 36 || gid.empty())
+        {
+            LOGGER_LOG_WARN("[LOGIN_FAIL] Weird GID size (%zu) value: '%s'. IP: %s", gid.size(), gid.c_str(),
+                            playerIP.data());
             return false;
         }
     }
 
     auto pVid = packet.Find("vid"_hash);
-    if (pVid) {
+    if (pVid)
+    {
         vid = string(pVid->value, pVid->valueSize);
-        if (vid.empty()) {
+        if (vid.empty())
+        {
             LOGGER_LOG_WARN("[LOGIN_FAIL] Empty VID field. IP: %s", playerIP.data());
             return false;
         }
@@ -179,7 +190,8 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
 
     if (platformType == Proton::PLATFORM_ID_WINDOWS && (mac.empty() || mac.size() != 17))
     {
-        LOGGER_LOG_WARN("[LOGIN_FAIL] Malformed Windows MAC address '%s' (Len: %zu). Player: %s, IP: %s", mac.c_str(), mac.size(), tankIDName.c_str(), playerIP.data());
+        LOGGER_LOG_WARN("[LOGIN_FAIL] Malformed Windows MAC address '%s' (Len: %zu). Player: %s, IP: %s", mac.c_str(),
+                        mac.size(), tankIDName.c_str(), playerIP.data());
         return false;
     }
 
@@ -201,7 +213,8 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
     {
         if (pCountry->valueSize > 2 || pCountry->valueSize < 0)
         {
-            LOGGER_LOG_WARN("[LOGIN_FAIL] Invalid country code size (%d). IP: %s", pCountry->valueSize, playerIP.data());
+            LOGGER_LOG_WARN("[LOGIN_FAIL] Invalid country code size (%d). IP: %s", pCountry->valueSize,
+                            playerIP.data());
             return false;
         }
         country = string(pCountry->value, pCountry->valueSize);
@@ -215,7 +228,8 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
             sid = string(pWk->value, pWk->valueSize);
             if (sid == "NONE0" || sid == "NONE1" || sid == "NONE2")
             {
-                LOGGER_LOG_WARN("[LOGIN_FAIL] Blocked exploit/default SID value '%s'. IP: %s", sid.c_str(), playerIP.data());
+                LOGGER_LOG_WARN("[LOGIN_FAIL] Blocked exploit/default SID value '%s'. IP: %s", sid.c_str(),
+                                playerIP.data());
                 return false;
             }
         }
@@ -224,7 +238,8 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
             auto pSid = packet.Find("sid"_hash);
             if (!pSid)
             {
-                LOGGER_LOG_WARN("[LOGIN_FAIL] Missing SID for Windows client v%.2f. IP: %s", gameVersion, playerIP.data());
+                LOGGER_LOG_WARN("[LOGIN_FAIL] Missing SID for Windows client v%.2f. IP: %s", gameVersion,
+                                playerIP.data());
                 return false;
             }
             sid = pSid->GetString();
@@ -237,23 +252,22 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
         auto pUser = packet.Find("user"_hash);
         auto pLMode = packet.Find("lmode"_hash);
 
-        if (!pToken || pToken->GetUInt(token) != TO_INT_SUCCESS ||
-            !pUser || pUser->GetUInt(user) != TO_INT_SUCCESS ||
+        if (!pToken || pToken->GetUInt(token) != TO_INT_SUCCESS || !pUser || pUser->GetUInt(user) != TO_INT_SUCCESS ||
             !pLMode || pLMode->GetUInt(loginMode) != TO_INT_SUCCESS)
         {
             LOGGER_LOG_ERROR("[LOGIN_FAIL] Sub-server login token handshake failure. IP: %s", playerIP.data());
             return false;
         }
 
-        if(auto pDoorID = packet.Find("doorID"_hash))
+        if (auto pDoorID = packet.Find("doorID"_hash))
         {
             doorID = pDoorID->GetString();
         }
     }
 
     LOGGER_LOG_INFO("[LOGIN_SUCCESS] GrowID: '%s', Ver: %.2f, Platform: %d, Country: %s, IP: %s",
-        tankIDName.empty() ? requestedName.c_str() : tankIDName.c_str(),
-        gameVersion, platformType, country.c_str(), playerIP.data());
+                    tankIDName.empty() ? requestedName.c_str() : tankIDName.c_str(), gameVersion, platformType,
+                    country.c_str(), playerIP.data());
 
     return true;
 }

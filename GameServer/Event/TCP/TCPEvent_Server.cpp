@@ -34,7 +34,7 @@ void TCPEvent_HeartBeat(NetClient* pClient, VariantVector& data)
     uint32 playerCount = data[1].GetUINT();
 
     GetPlayerManager()->SetTotalPlayerCount(playerCount);
-    // GetMasterBroadway()->SendHeartBeat();
+    GetMasterBroadway()->SendHeartBeat();
 }
 
 void TCPEvent_KillServer(NetClient* pClient, VariantVector& data)

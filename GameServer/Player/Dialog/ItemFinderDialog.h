@@ -4,10 +4,13 @@
 
 class GamePlayer;
 
-class ItemFinderDialog : public DialogPagination {
+class ItemFinderDialog : public DialogPagination
+{
 public:
-    explicit ItemFinderDialog(std::vector<uint16>&& itemIds) 
-        : DialogPagination(30), m_fileteredItemIds(std::move(itemIds)) {}
+    explicit ItemFinderDialog(std::vector<int16>&& itemIds)
+        : DialogPagination(30), m_fileteredItemIds(std::move(itemIds))
+    {
+    }
 
     std::string_view GetDialogName() const override { return "item_finder"; }
     uint32 GetTotalCount() const override { return m_fileteredItemIds.size(); }
@@ -16,5 +19,5 @@ public:
     void OnSelectElement(GamePlayer* pPlayer, uint32 absoluteIndex) override;
 
 private:
-    std::vector<uint16> m_fileteredItemIds;
+    std::vector<int16> m_fileteredItemIds;
 };

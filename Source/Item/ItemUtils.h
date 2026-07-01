@@ -97,7 +97,7 @@ enum eItemFlag2
     ITEM_FLAG_NO_UPGRADE = 1 << 25
 };
 
-enum eMaterial 
+enum eMaterial
 {
     MATERIAL_WOOD = 0,
     MATERIAL_GLASS = 1,
@@ -114,7 +114,7 @@ enum eItemElement
     ITEM_ELEMENT_NONE = 4
 };
 
-enum eStorageType 
+enum eStorageType
 {
     STORAGE_SINGLE_FRAME_ALONE = 0,
     STORAGE_SINGLE_FRAME = 1,
@@ -129,7 +129,7 @@ enum eStorageType
     STORAGE_SMART_EDGE_DIAGON = 10
 };
 
-enum eCollisionType 
+enum eCollisionType
 {
     COLLISION_NONE = 0,
     COLLISION_SOLID = 1,
@@ -147,7 +147,7 @@ enum eCollisionType
     COLLISION_FRIENDS_ENTRANCE = 13
 };
 
-enum eTileVisualEffect 
+enum eTileVisualEffect
 {
     VISUAL_EFFECT_NORMAL = 0,
     VISUAL_EFFECT_FLAME_LICK = 1,
@@ -200,7 +200,7 @@ enum eTileVisualEffect
     VISUAL_EFFECT_VERYLOWHAIR_MASK = 48,
 };
 
-enum eBodyPart 
+enum eBodyPart
 {
     BODY_PART_HAT = 0,
     BODY_PART_SHIRT = 1,
@@ -215,7 +215,7 @@ enum eBodyPart
     BODY_PART_SIZE
 };
 
-enum eItemType 
+enum eItemType
 {
     ITEM_TYPE_FIST = 0,
     ITEM_TYPE_WRENCH = 1,
@@ -360,10 +360,10 @@ enum eItemType
     ITEM_TYPE_FEEDING_BLOCK = 140,
     ITEM_TYPE_KRANKENS_BLOCK = 141,
     ITEM_TYPE_FRIENDS_ENTRANCE = 142,
-    ITEM_TYPE_PEARLS = 143,
+    ITEM_TYPE_PEARLS = 143
 };
 
-enum eItemID 
+enum eItemID
 {
     ITEM_ID_BLANK = 0,
     ITEM_ID_BLANK_SEED = 1,

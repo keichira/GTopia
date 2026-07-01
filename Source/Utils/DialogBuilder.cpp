@@ -1,58 +1,64 @@
 #include "DialogBuilder.h"
+#include "../Item/ItemInfoManager.h"
 
-DialogBuilder::DialogBuilder()
-{
-}
+DialogBuilder::DialogBuilder() {}
 
-DialogBuilder::~DialogBuilder()
-{
-}
+DialogBuilder::~DialogBuilder() {}
 
 DialogBuilder* DialogBuilder::AddTextBox(const string& str, bool center)
 {
     m_str += "add_textbox|" + str + "|";
 
-    if(center) {
+    if (center)
+    {
         m_str += "center|\n";
     }
-    else {
+    else
+    {
         m_str += "\n";
     }
 
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddLabelWithIcon(const string& str, uint16 itemID, bool big, bool center)
+DialogBuilder* DialogBuilder::AddLabelWithIcon(const string& str, int32 itemID, bool big, bool center)
 {
     m_str += "add_label_with_icon|";
 
-    if(big) m_str += "big|";
-    else m_str += "small|";
+    if (big)
+        m_str += "big|";
+    else
+        m_str += "small|";
 
     m_str += str + "|";
 
-    if(center) m_str += "center|";
-    else m_str += "left|";
+    if (center)
+        m_str += "center|";
+    else
+        m_str += "left|";
 
-    m_str += ToString(itemID) + "|\n";
+    m_str += ToString(ToItemClientID(itemID)) + "|\n";
     return this;
 }
 
 DialogBuilder* DialogBuilder::AddButton(const string& buttonID, const string& text, const string& flags)
 {
-    m_str += "add_button|" + buttonID  + "|" + text + "|" + flags + "|0|0|\n"; // urlPrompt?
+    m_str += "add_button|" + buttonID + "|" + text + "|" + flags + "|0|0|\n"; // urlPrompt?
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddTextInput(const string& buttonID, const string& text, const string& placeholder, uint32 inputMaxLength)
+DialogBuilder* DialogBuilder::AddTextInput(const string& buttonID, const string& text, const string& placeholder,
+                                           uint32 inputMaxLength)
 {
     m_str += "add_text_input|" + buttonID + "|" + text + "|" + placeholder + "|" + ToString(inputMaxLength) + "|\n";
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddTextInputPassword(const string& buttonID, const string& text, const string& placeholder, uint32 inputMaxLength)
+DialogBuilder* DialogBuilder::AddTextInputPassword(const string& buttonID, const string& text,
+                                                   const string& placeholder, uint32 inputMaxLength)
 {
-    m_str += "add_text_input_password|" + buttonID + "|" + text + "|" + placeholder + "|" + ToString(inputMaxLength) + "|\n";
+    m_str +=
+        "add_text_input_password|" + buttonID + "|" + text + "|" + placeholder + "|" + ToString(inputMaxLength) + "|\n";
     return this;
 }
 
@@ -74,8 +80,10 @@ DialogBuilder* DialogBuilder::AddSpacer(bool big)
 {
     m_str += "add_spacer|";
 
-    if(big) m_str += "big|\n";
-    else m_str += "small|\n";
+    if (big)
+        m_str += "big|\n";
+    else
+        m_str += "small|\n";
 
     return this;
 }
@@ -90,7 +98,8 @@ DialogBuilder* DialogBuilder::AddCheckBox(const string& boxID, const string& tex
 
 DialogBuilder* DialogBuilder::AddPlayerInfo(const string& label, uint32 level, uint32 currentXP, uint32 XPToLevelUP)
 {
-    m_str += "add_player_info|" + label + "|" + ToString(level) + "|" + ToString(currentXP) + "|" + ToString(XPToLevelUP) + "|\n";
+    m_str += "add_player_info|" + label + "|" + ToString(level) + "|" + ToString(currentXP) + "|" +
+             ToString(XPToLevelUP) + "|\n";
     return this;
 }
 
@@ -101,14 +110,17 @@ DialogBuilder* DialogBuilder::AddCustomButton(const string& buttonID, const stri
 }
 
 DialogBuilder* DialogBuilder::AddButton(const string& buttonID, const string& name, const string& texturePath,
-                                        const string& description, uint8 posX, uint8 posY, int32 gemCost, int32 videoCreditCost,
-                                        const string& overlayText, const string& ovelayTexture, int32 overlayPosX, int32 overlayPosY, 
-                                        const string& popupTexture, int32 popupPosX, int32 popupPosY, bool enabled,
-                                        const string& disabledTexture, int32 disabledPosX, int32 disabledPosY)
+                                        const string& description, uint8 posX, uint8 posY, int32 gemCost,
+                                        int32 videoCreditCost, const string& overlayText, const string& ovelayTexture,
+                                        int32 overlayPosX, int32 overlayPosY, const string& popupTexture,
+                                        int32 popupPosX, int32 popupPosY, bool enabled, const string& disabledTexture,
+                                        int32 disabledPosX, int32 disabledPosY)
 {
-    m_str += "add_button|" + buttonID + "|" + name + "|" + texturePath + "|" + description + "|" + ToString(posX) + "|" + ToString(posY) + "|";
-    m_str += ToString(gemCost) + "|" + ToString(videoCreditCost) + "|" + overlayText + "|" + ovelayTexture + "|" + ToString(overlayPosX) + "|" + ToString(overlayPosY) + "|";
-    m_str += popupTexture + "|" + ToString(popupPosX) + "|" + ToString(popupPosY) + "|" + "|"; 
+    m_str += "add_button|" + buttonID + "|" + name + "|" + texturePath + "|" + description + "|" + ToString(posX) +
+             "|" + ToString(posY) + "|";
+    m_str += ToString(gemCost) + "|" + ToString(videoCreditCost) + "|" + overlayText + "|" + ovelayTexture + "|" +
+             ToString(overlayPosX) + "|" + ToString(overlayPosY) + "|";
+    m_str += popupTexture + "|" + ToString(popupPosX) + "|" + ToString(popupPosY) + "|" + "|";
     m_str += enabled ? "1|" : "0|";
     m_str += "||||" + disabledTexture + "|" + ToString(disabledPosX) + "|" + ToString(disabledPosY) + "|\n";
 
@@ -121,12 +133,13 @@ DialogBuilder* DialogBuilder::SetDescriptionText(const string& text)
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddTabButton(const string& buttonID, const string& name, const string& texturePath, const string& description, bool active, uint8 textureY)
+DialogBuilder* DialogBuilder::AddTabButton(const string& buttonID, const string& name, const string& texturePath,
+                                           const string& description, bool active, uint8 textureY)
 {
     AddButton(buttonID, name, texturePath, description, active ? 1 : 0, textureY);
-    
+
     usize pos = m_str.rfind("add_button");
-    if(pos != string::npos)
+    if (pos != string::npos)
     {
         m_str.replace(pos, 10, "add_tab_button");
     }
@@ -138,8 +151,10 @@ DialogBuilder* DialogBuilder::AddLabel(const string& label, bool big)
 {
     m_str += "add_label|";
 
-    if(big) m_str += "big|";
-    else m_str += "small|";
+    if (big)
+        m_str += "big|";
+    else
+        m_str += "small|";
 
     m_str += label + "|\n";
 
@@ -156,8 +171,10 @@ DialogBuilder* DialogBuilder::AddSmallText(const string& text, bool center)
 {
     m_str += "add_smalltext|" + text;
 
-    if(center) m_str += "|center|\n";
-    else m_str += "|left|\n";
+    if (center)
+        m_str += "|center|\n";
+    else
+        m_str += "|left|\n";
 
     return this;
 }
@@ -174,31 +191,38 @@ DialogBuilder* DialogBuilder::AddItemPicker(const string& id, const string& butt
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddLabelWithIconButton(const string& buttonID, const string& label, uint32 itemID, bool big, bool center)
+DialogBuilder* DialogBuilder::AddLabelWithIconButton(const string& buttonID, const string& label, int32 itemID,
+                                                     bool big, bool center)
 {
     m_str += "add_label_with_icon_button|";
 
-    if(big) m_str += "big|";
-    else m_str += "small|";
+    if (big)
+        m_str += "big|";
+    else
+        m_str += "small|";
 
     m_str += label;
 
-    if(center) m_str += "|center|";
-    else m_str += "|left|";
+    if (center)
+        m_str += "|center|";
+    else
+        m_str += "|left|";
 
-    m_str += ToString(itemID) + "|" + buttonID + "|\n";
+    m_str += ToString(ToItemClientID(itemID)) + "|" + buttonID + "|\n";
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddInnerImageLabelButton(const string& buttonID, const string& label, const string& texture, int32 textureX, int32 textureY)
+DialogBuilder* DialogBuilder::AddInnerImageLabelButton(const string& buttonID, const string& label,
+                                                       const string& texture, int32 textureX, int32 textureY)
 {
-    m_str += "add_inner_image_label_button|" + buttonID + "|" + label + "|" + texture + "|" + ToString(textureX) + "|" + ToString(textureY) + "|\n";
+    m_str += "add_inner_image_label_button|" + buttonID + "|" + label + "|" + texture + "|" + ToString(textureX) + "|" +
+             ToString(textureY) + "|\n";
     return this;
 }
 
-DialogBuilder* DialogBuilder::AddButtonWithIcon(const string& buttonID, const string& label, uint32 itemID)
+DialogBuilder* DialogBuilder::AddButtonWithIcon(const string& buttonID, const string& label, int32 itemID)
 {
-    m_str += "add_button_with_icon|" + buttonID + "|" + label + "|left|" + ToString(itemID) + "|\n";
+    m_str += "add_button_with_icon|" + buttonID + "|" + label + "|left|" + ToString(ToItemClientID(itemID)) + "|\n";
     return this;
 }
 

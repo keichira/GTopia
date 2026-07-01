@@ -20,8 +20,9 @@
 #include "Utils/Timer.h"
 
 GamePlayer::GamePlayer()
-    : m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), m_lastItemActivateTime(0), m_state(0), m_flags(0), m_gems(0), m_progressData(this),
-      m_modController(this), m_activeBattlePetSlot(0), m_lockAccessTileIndex(-1), m_lockAccessOwnerID(-1), m_tradeMgr(this)
+    : m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), m_lastItemActivateTime(0), m_state(0), m_flags(0),
+      m_gems(0), m_progressData(this), m_modController(this), m_activeBattlePetSlot(0), m_lockAccessTileIndex(-1),
+      m_lockAccessOwnerID(-1), m_tradeMgr(this)
 {
     RandomizeNextDBSaveTime();
 }
@@ -53,7 +54,8 @@ void GamePlayer::Update()
         }
     }
 
-    if ((HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME)) && m_logonStartTime.GetElapsedTime() >= 180000)
+    if ((HasState(PLAYER_STATE_LOGIN_REQUEST) || HasState(PLAYER_STATE_ENTERING_GAME)) &&
+        m_logonStartTime.GetElapsedTime() >= 180000)
     {
         LogOff(true, false, true);
         return;
@@ -85,7 +87,8 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
     }
 
     m_userID = m_loginDetail.user;
-    GetMasterBroadway()->SendCheckSessionPacket(GetNetID(), m_loginDetail.user, m_loginDetail.token, GetContext()->GetID());
+    GetMasterBroadway()->SendCheckSessionPacket(GetNetID(), m_loginDetail.user, m_loginDetail.token,
+                                                GetContext()->GetID());
 }
 
 void GamePlayer::HandleCheckSession(VariantVector&& result)
@@ -100,7 +103,8 @@ void GamePlayer::HandleCheckSession(VariantVector&& result)
     if (GamePlayer* pTarget = GetPlayerManager()->IsPlayerAlreadyOn(this))
     {
         SendOnConsoleMessage("`4ALREADY ON?!`` : This account was already online, kicking it off so you can log on.");
-        pTarget->SendOnConsoleMessage("`4This account is being activated from another device, kicking you off so they can get on");
+        pTarget->SendOnConsoleMessage(
+            "`4This account is being activated from another device, kicking you off so they can get on");
         pTarget->LogOff(true, true, false);
     }
 
@@ -125,7 +129,8 @@ void GamePlayer::TransferToGame()
     if (!itemData)
     {
         SendLogonFailWithLog("`4Oops`o, something went wrong please re-login.");
-        LOGGER_LOG_ERROR("Failed to get client data platform: %d, gameversion: %f", m_loginDetail.platformType, m_loginDetail.gameVersion);
+        LOGGER_LOG_ERROR("Failed to get client data platform: %d, gameversion: %f", m_loginDetail.platformType,
+                         m_loginDetail.gameVersion);
         return;
     }
 
@@ -164,7 +169,8 @@ void GamePlayer::SaveToDatabase()
     if (m_pRole)
         roleID = m_pRole->GetID();
     else
-        LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting default role %d", GetRawName(), GetUserID(), roleID);
+        LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting default role %d", GetRawName(), GetUserID(),
+                        roleID);
 
     QueryRequest req = PlayerDB::Save(m_userID, roleID, ToHex(pInvData, invMemSize),
                                       0, // m_characterData.GetSkinColor(),
@@ -464,11 +470,14 @@ void GamePlayer::CheckAccountCreationLimitCB(QueryTaskResult&& result)
 
     GameConfig* pGameConfig = GetContext()->GetGameConfig();
     if (pIP->GetUINT() > pGameConfig->maxAccountsPerIP || pMac->GetUINT() > pGameConfig->maxAccountsPerMac ||
-        (shouldSetOther && (pOther->GetUINT() > (loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS   ? pGameConfig->maxAccountsPerSid
-                                                 : loginDetail.platformType == Proton::PLATFORM_ID_ANDROID ? pGameConfig->maxAccountsPerGid
-                                                                                                           : pGameConfig->maxAccountsPerVid))))
+        (shouldSetOther &&
+         (pOther->GetUINT() > (loginDetail.platformType == Proton::PLATFORM_ID_WINDOWS ? pGameConfig->maxAccountsPerSid
+                               : loginDetail.platformType == Proton::PLATFORM_ID_ANDROID
+                                   ? pGameConfig->maxAccountsPerGid
+                                   : pGameConfig->maxAccountsPerVid))))
     {
-        pPlayer->SendOnTalkBubble("`4Oops! ``You've reached the max `5GrowID ``accounts you can make for this device or IP address!", true);
+        pPlayer->SendOnTalkBubble(
+            "`4Oops! ``You've reached the max `5GrowID ``accounts you can make for this device or IP address!", true);
         return;
     }
 
@@ -495,14 +504,15 @@ void GamePlayer::AccountCreationNameExistsCB(QueryTaskResult&& result)
 
     if (result.result->GetRowCount() > 0)
     {
-        RegisterDialog::Request(pPlayer, result.extraData[1].GetString(), result.extraData[2].GetString(), result.extraData[3].GetString(),
+        RegisterDialog::Request(pPlayer, result.extraData[1].GetString(), result.extraData[2].GetString(),
+                                result.extraData[3].GetString(),
                                 "`4Oops!`` The name `w" + result.extraData[1].GetString() +
                                     "`` is so cool someone else has already taken it. Please choose a different name.");
     }
     else
     {
-        QueryRequest req =
-            PlayerDB::GrowIDCreate(pPlayer->GetUserID(), result.extraData[1].GetString(), result.extraData[2].GetString(), pPlayer->GetNetID());
+        QueryRequest req = PlayerDB::GrowIDCreate(pPlayer->GetUserID(), result.extraData[1].GetString(),
+                                                  result.extraData[2].GetString(), pPlayer->GetNetID());
         req.AddExtraData(result.extraData[1].GetString(), result.extraData[2].GetString());
 
         req.callback = &GamePlayer::CreateAccountFinalCB;
@@ -643,7 +653,8 @@ string GamePlayer::GetDisplayName(bool checkWorld)
 
 string GamePlayer::GetRawName()
 {
-    return m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName + "_" + ToString(m_guestID) : m_loginDetail.tankIDName;
+    return m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName + "_" + ToString(m_guestID)
+                                            : m_loginDetail.tankIDName;
 }
 
 string GamePlayer::GetSpawnData(bool local)
@@ -686,13 +697,13 @@ string GamePlayer::GetCountryData()
     return out;
 }
 
-void GamePlayer::ToggleCloth(uint16 itemID)
+void GamePlayer::ToggleCloth(int32 itemID)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if (!pItem || pItem->bodyPart > BODY_PART_SIZE)
         return;
 
-    if ((pItem->type != ITEM_TYPE_CLOTHES && pItem->type != ITEM_TYPE_ARTIFACT))
+    if (pItem->type != ITEM_TYPE_CLOTHES && pItem->type != ITEM_TYPE_ARTIFACT)
         return;
 
     if (pItem->type == ITEM_TYPE_ARTIFACT)
@@ -701,7 +712,7 @@ void GamePlayer::ToggleCloth(uint16 itemID)
          */
         return;
 
-    uint16 wornItem = m_inventory.GetClothByPart((eBodyPart)pItem->bodyPart);
+    int16 wornItem = m_inventory.GetClothByPart((eBodyPart)pItem->bodyPart);
     if (wornItem == pItem->id)
     {
         m_inventory.SetClothByPart(ITEM_ID_BLANK, pItem->bodyPart);
@@ -839,7 +850,8 @@ void GamePlayer::GiveXP(uint32 amount)
         }
 
         pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_LEVELUP, m_worldPos);
-        pWorld->SendTalkBubbleAndConsoleToAll(GetDisplayName(false) + " `wis now level " + ToString(playerNewLevel) + "!", false, this);
+        pWorld->SendTalkBubbleAndConsoleToAll(
+            GetDisplayName(false) + " `wis now level " + ToString(playerNewLevel) + "!", false, this);
     }
 }
 
@@ -857,32 +869,33 @@ uint32 GamePlayer::GetPlayerNextLevelXP()
     return ((currentLevel) * (currentLevel) * 50) + 100;
 }
 
-void GamePlayer::ModifyInventoryItem(uint16 itemID, int16 amount)
+void GamePlayer::ModifyInventoryItem(int32 itemID, int16 amount)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if (!pItem || amount == 0)
         return;
 
-    if (amount > 0 && IsIllegalItem(itemID) && !m_pRole->HasPerm("bypass.item_illegal"_hash))
+    if (amount > 0 && IsIllegalItem(pItem->id) && !m_pRole->HasPerm("bypass.item_illegal"_hash))
         return;
+
     if (amount > 0 && pItem->HasFlag(ITEM_FLAG_MOD) && !m_pRole->HasPerm("bypass.item_mod"_hash))
         return;
 
     if (amount < 0)
     {
-        m_inventory.RemoveItem(itemID, -amount, this);
-        if (m_inventory.GetCountOfItem(itemID) == 0 && m_inventory.IsWearingItem(itemID))
+        m_inventory.RemoveItem(pItem->id, -amount, this);
+        if (m_inventory.GetCountOfItem(pItem->id) == 0 && m_inventory.IsWearingItem(pItem->id))
         {
-            ToggleCloth(itemID);
+            ToggleCloth(pItem->id);
         }
     }
     else
     {
-        m_inventory.AddItem(itemID, amount, this);
+        m_inventory.AddItem(pItem->id, amount, this);
     }
 }
 
-void GamePlayer::TrashItem(uint16 itemID, uint16 amount)
+void GamePlayer::TrashItem(int32 itemID, uint16 amount)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if (!pItem)
@@ -893,31 +906,31 @@ void GamePlayer::TrashItem(uint16 itemID, uint16 amount)
 
     if (amount > pItem->maxCanHold)
         return;
-    if (amount > m_inventory.GetCountOfItem(itemID))
+    if (amount > m_inventory.GetCountOfItem(pItem->id))
     {
         PlaySFX("cant_place_tile.wav");
         return;
     }
 
-    ModifyInventoryItem(itemID, -amount);
+    ModifyInventoryItem(pItem->id, -amount);
     PlaySFX("trash.vaw");
     SendOnConsoleMessage("Trashed " + ToString(amount) + " " + pItem->name);
 }
 
-void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
+void GamePlayer::DropItem(int32 itemID, uint16 amount, bool openDialog)
 {
     if (m_currentWorldID == 0)
         return;
 
-    InventoryItemInfo* pInvItem = m_inventory.GetItemByID(itemID);
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
+    if (!pItem)
+        return;
+
+    InventoryItemInfo* pInvItem = m_inventory.GetItemByID(pItem->id);
     if (!pInvItem)
         return;
 
     if (amount > pInvItem->count)
-        return;
-
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if (!pItem)
         return;
 
     if (pItem->type == ITEM_TYPE_PETFISH && pInvItem->count != amount)
@@ -981,8 +994,8 @@ void GamePlayer::DropItem(uint16 itemID, uint16 amount, bool openDialog)
         return;
     }
 
-    ModifyInventoryItem(itemID, -amount);
-    pWorld->DropObjectOnTile(pTile, itemID, amount, dropPos - pTile->GetWorldPosCenter(), true);
+    ModifyInventoryItem(pItem->id, -amount);
+    pWorld->DropObjectOnTile(pTile, pItem->id, amount, dropPos - pTile->GetWorldPosCenter(), true);
 }
 
 void GamePlayer::SendLockAccessRequest(GamePlayer* pOwner, TileInfo* pLockTile)
@@ -1014,7 +1027,8 @@ void GamePlayer::SendLockAccessRequest(GamePlayer* pOwner, TileInfo* pLockTile)
     m_lockAccessOwnerID = pOwner->GetNetID();
     SetLockAccessTile(pLockTile->GetMapIndex());
 
-    string notifyMsg = pOwner->GetDisplayName(true) + "`w wants to add you to a " + pItem->name + "`w. Wrench yourself to accept.";
+    string notifyMsg =
+        pOwner->GetDisplayName(true) + "`w wants to add you to a " + pItem->name + "`w. Wrench yourself to accept.";
     SendOnTalkBubble(notifyMsg, false);
     SendOnConsoleMessage(notifyMsg);
     PlaySFX("secret.wav");
@@ -1174,7 +1188,8 @@ bool GamePlayer::HasLOSToTile(TileInfo* pGoalTile)
                     if (pTile->GetFG() == ITEM_ID_BEDROCK)
                         return false;
 
-                    if (pWorld->IsTileCollidableForPlayer(this, pTile, false) && !pWorld->PlayerHasAccessOnTile(this, pTile))
+                    if (pWorld->IsTileCollidableForPlayer(this, pTile, false) &&
+                        !pWorld->PlayerHasAccessOnTile(this, pTile))
                         return false;
                 }
             }

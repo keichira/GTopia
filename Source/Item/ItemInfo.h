@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Math/Color.h"
 #include "../Math/Vector2.h"
 #include "../Memory/MemoryBuffer.h"
-#include "ItemUtils.h"
 #include "../Player/PlayMod.h"
+#include "../Precompiled.h"
+#include "ItemUtils.h"
 
 struct ItemChairInfo
 {
@@ -23,7 +23,8 @@ struct ItemRandomSpriteReplaceInfo
     float chance = 0.0f;
 };
 
-class ItemInfo {
+class ItemInfo
+{
 public:
     ItemInfo();
 
@@ -31,8 +32,8 @@ public:
     int32 id = 0;
     uint16 flags = 0;
     uint8 type = 0;
-    
-    union 
+
+    union
     {
         uint8 material = 0;
         uint8 clothSleeve;
@@ -64,7 +65,7 @@ public:
         int32 weatherID;
         int32 petRenderType;
     };
-    
+
     string petName = "";
     string petSubName = "";
     string petEndName = "";
@@ -90,14 +91,14 @@ public:
     Vector2Int dualAnimLayer;
     uint32 flags2 = 0;
 
-    int32 clientData[15] = { 0 };
+    int32 clientData[15] = {0};
 
     uint32 tileRange = 0;
     uint32 pileSize = 0;
     string customizedPunchParameters = "";
 
     uint32 extraSlotCounter = 0;
-    uint8 extraSlotBodyParts[9] = { 0 };
+    uint8 extraSlotBodyParts[9] = {0};
 
     uint32 lightSourceRange = 0;
     uint32 variantVersionItem = 0;
@@ -122,22 +123,21 @@ public:
 public:
     bool HasFlag(uint16 flag) { return (flags & flag) != 0; }
     bool HasFlag2(uint32 flag) { return (flags2 & flag) != 0; }
-    void Serialize(MemoryBuffer& memBuffer, bool write, uint16 version);
-
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 version);
     bool IsUnlimited() const { return maxCanHold == 0; }
     bool IsBackground();
     bool IsLOSBlocking();
 };
 
-bool IsIllegalItem(uint16 itemID);
-bool IsWorldLock(uint16 itemID);
-bool IsMainDoor(uint16 itemID);
-bool IsFuelPack(uint16 itemID);
-bool IsJammer(uint16 itemID);
-bool IsGaunletOfElements(uint16 itemID);
-bool IsPathMarker(uint16 itemID);
+bool IsIllegalItem(int16 itemID);
+bool IsWorldLock(int16 itemID);
+bool IsMainDoor(int16 itemID);
+bool IsFuelPack(int16 itemID);
+bool IsJammer(int16 itemID);
+bool IsGaunletOfElements(int16 itemID);
+bool IsPathMarker(int16 itemID);
 
-uint16 GetMaxTilesToLock(uint16 itemID);
+uint16 GetMaxTilesToLock(int16 itemID);
 
 void GetTreeSpawnInfo(ItemInfo* pItem, uint32& fruitCount, bool& dropSeed);
 uint32 GetGemCountHarvestTree(ItemInfo* pSeed);

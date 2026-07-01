@@ -17,8 +17,9 @@ void ItemFinderDialog::Render(GamePlayer* pPlayer)
     DialogBuilder db;
     db.SetDefaultColor('o')
         ->AddLabelWithIcon("Item Finder", ITEM_ID_GROWSCAN_9000, true)
-        ->AddSmallText("`2" + ToString(GetTotalCount()) + "`` items found. Listing `w" + ToString(m_pageSize) + "`` items per page (Page `w" +
-                       ToString(m_page + 1) + "`5/`w" + ToString(GetMaxPageCount()) + "``)")
+        ->AddSmallText("`2" + ToString(GetTotalCount()) + "`` items found. Listing `w" + ToString(m_pageSize) +
+                       "`` items per page (Page `w" + ToString(m_page + 1) + "`5/`w" + ToString(GetMaxPageCount()) +
+                       "``)")
         ->AddSpacer();
 
     uint32 start = m_page * m_pageSize;
@@ -49,7 +50,7 @@ void ItemFinderDialog::OnSelectElement(GamePlayer* pPlayer, uint32 absoluteIndex
     if (!pRole || !pRole->HasPerm("command.finditem"_hash))
         return;
 
-    uint16 itemID = m_fileteredItemIds[absoluteIndex];
+    int32 itemID = m_fileteredItemIds[absoluteIndex];
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if (!pItem)
     {
@@ -57,7 +58,7 @@ void ItemFinderDialog::OnSelectElement(GamePlayer* pPlayer, uint32 absoluteIndex
         return;
     }
 
-    int32 itemCount = Max(0, pItem->maxCanHold - pPlayer->GetInventory().GetCountOfItem(itemID));
+    int32 itemCount = Max(0, pItem->maxCanHold - pPlayer->GetInventory().GetCountOfItem(pItem->id));
     if (itemCount == 0 || !pPlayer->GetInventory().HaveRoomForItem(itemID, itemCount))
     {
         pPlayer->SendOnConsoleMessage("`4Error``: You don't have room for that item!");

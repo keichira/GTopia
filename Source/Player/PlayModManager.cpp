@@ -1,14 +1,13 @@
 #include "PlayModManager.h"
 #include "../IO/File.h"
+#include "../IO/Log.h"
+#include "../Item/ItemInfoManager.h"
 #include "../Utils/StringUtils.h"
 #include "CharacterData.h"
-#include "../Item/ItemInfoManager.h"
-#include "../IO/Log.h"
 
 uint32 StrToCharacterStateFlag(const string& flag)
 {
-    static const std::unordered_map<string, uint32> charFlagStrMap =
-    {
+    static const std::unordered_map<string, uint32> charFlagStrMap = {
         {"NO_CLIP", CHAR_STATE_NO_CLIP},
         {"DOUBLE_JUMP", CHAR_STATE_DOUBLE_JUMP},
         {"RENDER_EYES_ONLY", CHAR_STATE_RENDER_EYES_ONLY},
@@ -36,8 +35,7 @@ uint32 StrToCharacterStateFlag(const string& flag)
         {"SSUPPORTER", CHAR_STATE_SSUPPORTER},
         {"SUPER_PINEAPPLE_AURA", CHAR_STATE_SUPER_PINEAPPLE_AURA},
         {"BALLOON_WAR_SHIELD", CHAR_STATE_BALLOON_WAR_SHIELD},
-        {"SOAKED", CHAR_STATE_SOAKED}
-    };
+        {"SOAKED", CHAR_STATE_SOAKED}};
 
     auto it = charFlagStrMap.find(flag);
     return (it != charFlagStrMap.end()) ? it->second : 0;
@@ -45,8 +43,7 @@ uint32 StrToCharacterStateFlag(const string& flag)
 
 uint32 StrToCharacterState2Flag(const string& flag)
 {
-    static const std::unordered_map<string, uint32> charFlag2StrMap =
-    {
+    static const std::unordered_map<string, uint32> charFlag2StrMap = {
         {"WINTERFEST_CROWN_RED", CHAR_STATE2_WINTERFEST_CROWN_RED},
         {"WINTERFEST_CROWN_GREEN", CHAR_STATE2_WINTERFEST_CROWN_GREEN},
         {"WINTERFEST_CROWN_SILVER", CHAR_STATE2_WINTERFEST_CROWN_SILVER},
@@ -78,43 +75,43 @@ uint32 StrToCharacterState2Flag(const string& flag)
         {"SPACE_FACED_CHEST", CHAR_STATE2_SPACE_FACED_CHEST},
         {"ILL_FILLED_SCALE", CHAR_STATE2_ILL_FILLED_SCALE},
         {"SICK_LICKED_FACEITEM", CHAR_STATE2_SICK_LICKED_FACEITEM},
-        {"DIRT_GROSS_BEAN", CHAR_STATE2_DIRT_GROSS_BEAN}
-    };
+        {"DIRT_GROSS_BEAN", CHAR_STATE2_DIRT_GROSS_BEAN}};
 
     auto it = charFlag2StrMap.find(flag);
     return (it != charFlag2StrMap.end()) ? it->second : 0;
 }
 
-PlayModManager::PlayModManager()
-{
-}
+PlayModManager::PlayModManager() {}
 
-PlayModManager::~PlayModManager()
-{
-}
+PlayModManager::~PlayModManager() {}
 
-bool PlayModManager::Load(const string &filePath)
+bool PlayModManager::Load(const string& filePath)
 {
     File file;
-    if(!file.Open(filePath)) {
+    if (!file.Open(filePath))
+    {
         return false;
     }
 
     uint32 fileSize = file.GetSize();
     string fileData(fileSize, '\0');
-    if(file.Read(fileData.data(), fileSize) != fileSize) {
+    if (file.Read(fileData.data(), fileSize) != fileSize)
+    {
         return false;
     }
 
     auto lines = Split(fileData, '\n');
 
-    for(auto& line : lines) {
-        if(line.empty() || line[0] == '#') {
+    for (auto& line : lines)
+    {
+        if (line.empty() || line[0] == '#')
+        {
             continue;
         }
 
         auto args = Split(line, '|');
-        if(args[0] == "add_playmod") {
+        if (args[0] == "add_playmod")
+        {
             PlayMod playMod;
             playMod.m_displayItem = (uint16)ToUInt(args[1]);
             playMod.m_name = args[2];
@@ -122,64 +119,77 @@ bool PlayModManager::Load(const string &filePath)
             playMod.m_removeMessage = args[4];
 
             playMod.m_modType = ePlayModType(m_playMods.size() + 1);
-            
+
             m_playMods.push_back(std::move(playMod));
         }
 
-        if(args[0] == "set_char_flags") {
-            for(uint8 i = 1; i < args.size(); ++i)
+        if (args[0] == "set_char_flags")
+        {
+            for (uint8 i = 1; i < args.size(); ++i)
             {
                 m_playMods.back().m_charState |= StrToCharacterStateFlag(args[i]);
             }
         }
 
-        if(args[0] == "set_char2_flags") {
-            for(uint8 i = 1; i < args.size(); ++i)
+        if (args[0] == "set_char2_flags")
+        {
+            for (uint8 i = 1; i < args.size(); ++i)
             {
                 m_playMods.back().m_char2State |= StrToCharacterState2Flag(args[i]);
             }
         }
 
-        if(args[0] == "set_skin_color") {
+        if (args[0] == "set_skin_color")
+        {
             m_playMods.back().m_skinColor = ToColor(args[1], ',');
         }
 
-        if(args[0] == "set_timer") {
+        if (args[0] == "set_timer")
+        {
             m_playMods.back().m_durationTime = ToInt(args[1]);
         }
 
-        if(args[0] == "set_punch_damage") {
+        if (args[0] == "set_punch_damage")
+        {
             m_playMods.back().m_punchDamage = ToFloat(args[1]);
         }
 
-        if(args[0] == "set_punch_power") {
+        if (args[0] == "set_punch_power")
+        {
             m_playMods.back().m_punchPower = ToFloat(args[1]);
         }
 
-        if(args[0] == "set_build_range") {
+        if (args[0] == "set_build_range")
+        {
             m_playMods.back().m_buildRange = ToInt(args[1]);
         }
 
-        if(args[0] == "set_speed") {
+        if (args[0] == "set_speed")
+        {
             m_playMods.back().m_speed = ToFloat(args[1]);
         }
 
-        if(args[0] == "set_punch_type") {
+        if (args[0] == "set_punch_type")
+        {
             m_playMods.back().m_punchType = (uint8)ToInt(args[1]);
         }
 
-        if(args[0] == "set_items") {
+        if (args[0] == "set_items")
+        {
             ItemInfoManager* pItemMgr = GetItemInfoManager();
             ePlayModType modType = m_playMods.back().m_modType;
 
-            for(uint16 i = 1; i < args.size(); ++i) {
-                uint32 itemID = 0;
-                if(ToUInt(args[i], itemID) != TO_INT_SUCCESS) {
+            for (uint16 i = 1; i < args.size(); ++i)
+            {
+                int32 itemID = 0;
+                if (ToInt(args[i], itemID) != TO_INT_SUCCESS)
+                {
                     continue;
                 }
 
                 ItemInfo* pItem = pItemMgr->GetItemByID(itemID);
-                if(!pItem) {
+                if (!pItem)
+                {
                     LOGGER_LOG_ERROR("Failed to setup playmod for item %d its not exists", itemID);
                     continue;
                 }
@@ -194,12 +204,15 @@ bool PlayModManager::Load(const string &filePath)
 
 PlayMod* PlayModManager::GetPlayMod(ePlayModType type)
 {
-    if(type > m_playMods.size()) {
+    if (type > m_playMods.size())
+    {
         return nullptr;
     }
 
-    for(auto& playmod : m_playMods) {
-        if(playmod.m_modType == type) {
+    for (auto& playmod : m_playMods)
+    {
+        if (playmod.m_modType == type)
+        {
             return &playmod;
         }
     }
@@ -207,4 +220,7 @@ PlayMod* PlayModManager::GetPlayMod(ePlayModType type)
     return nullptr;
 }
 
-PlayModManager* GetPlayModManager() { return PlayModManager::GetInstance(); }
+PlayModManager* GetPlayModManager()
+{
+    return PlayModManager::GetInstance();
+}

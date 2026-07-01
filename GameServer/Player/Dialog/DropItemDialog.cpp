@@ -1,52 +1,52 @@
 #include "DropItemDialog.h"
-#include "../GamePlayer.h"
-#include "Utils/DialogBuilder.h"
-#include "Item/ItemInfoManager.h"
 #include "../../World/WorldManager.h"
+#include "../GamePlayer.h"
 #include "IO/Log.h"
+#include "Item/ItemInfoManager.h"
+#include "Utils/DialogBuilder.h"
 
 void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
 {
-    if(!pPlayer || !pInvItem)
+    if (!pPlayer || !pInvItem)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pInvItem->id);
-    if(!pItem) 
+    if (!pItem)
         return;
 
-    if(pPlayer->GetCurrentWorld() == 0)
+    if (pPlayer->GetCurrentWorld() == 0)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
-        
+
     DialogBuilder db;
     db.SetDefaultColor('o')
-    ->AddLabelWithIcon("`wDrop " + pItem->name + "``", pItem->id, true)
-    ->AddTextBox("How many to drop?")
-    ->AddTextInput("count", "", ToString(pInvItem->count), 5)
-    ->EmbedData("itemID", pItem->id);
+        ->AddLabelWithIcon("`wDrop " + pItem->name + "``", pItem->id, true)
+        ->AddTextBox("How many to drop?")
+        ->AddTextInput("count", "", ToString(pInvItem->count), 5)
+        ->EmbedData("itemID", ToItemClientID(pItem->id));
 
     bool showWarning = false;
 
     TileInfo* pLockTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
-    if(!pLockTile)
+    if (!pLockTile)
     {
         showWarning = true;
     }
     else
     {
         TileExtra_Lock* pLockExtra = pLockTile->GetExtra<TileExtra_Lock>();
-        if(!pLockExtra && (pLockExtra && !pLockExtra->HasAccess(pPlayer->GetUserID())))
+        if (!pLockExtra && (pLockExtra && !pLockExtra->HasAccess(pPlayer->GetUserID())))
         {
             showWarning = true;
         }
     }
 
-    if(showWarning)
+    if (showWarning)
     {
-        switch(RandomRangeInt(0, 4))
+        switch (RandomRangeInt(0, 4))
         {
             case 0:
                 db.AddTextBox("`4Warning:`` Once you drop an item, it is no longer yours...");
@@ -72,35 +72,39 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
 
 void DropItemDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(!pPlayer || pPlayer->GetCurrentWorld() == 0)
+    if (!pPlayer || pPlayer->GetCurrentWorld() == 0)
         return;
 
     auto pItemID = packet.Find("itemID"_hash);
     auto pCount = packet.Find("count"_hash);
 
-    if(!pItemID || !pCount)
+    if (!pItemID || !pCount)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     uint32 itemID = 0;
-    if(pItemID->GetUInt(itemID) != TO_INT_SUCCESS)
+    if (pItemID->GetUInt(itemID) != TO_INT_SUCCESS)
         return;
 
     int32 count = 0;
-    if(pCount->GetInt(count) != TO_INT_SUCCESS)
+    if (pCount->GetInt(count) != TO_INT_SUCCESS)
         return;
 
-    if(count == 0)
+    if (count == 0)
         return;
 
-    if(count < 0)
+    if (count < 0)
     {
         pPlayer->SendOnTalkBubble("Nice try. You remind me of myself at that age.", true);
         return;
     }
 
-    pPlayer->DropItem(itemID, count, false);
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
+    if (!pItem)
+        return;
+
+    pPlayer->DropItem(pItem->id, count, false);
 }

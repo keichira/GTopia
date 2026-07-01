@@ -6,7 +6,10 @@
 #include "../Utils/StringUtils.h"
 #include "WorldInfo.h"
 
-WorldTileManager::WorldTileManager(WorldInfo* pParent) : m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT), m_lockCount(0), m_pWorld(pParent)
+static std::vector<TempTileData> tileMapEncodeBuffer;
+
+WorldTileManager::WorldTileManager(WorldInfo* pParent)
+    : m_size(WORLD_DEFAULT_WIDTH, WORLD_DEFAULT_HEIGHT), m_lockCount(0), m_pWorld(pParent), m_negativeItemCount(0)
 {
     m_keyTiles.resize(KEY_TILE_SIZE, nullptr);
     m_tempTiles.resize(m_size.x * m_size.y);
@@ -17,7 +20,8 @@ WorldTileManager::~WorldTileManager()
     Clear();
 }
 
-bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld, float gameVersion)
+bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool database, WorldInfo* pWorld,
+                                 float gameVersion)
 {
     memBuffer.ReadWrite(m_size, write);
 
@@ -76,6 +80,26 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
         }
         else
         {
+            const TempTileData* pSourceData = m_tempTiles.data();
+
+            if (m_negativeItemCount > 0)
+            {
+                tileMapEncodeBuffer.resize(m_tempTiles.size());
+                memcpy(tileMapEncodeBuffer.data(), m_tempTiles.data(), m_tempTiles.size() * sizeof(TempTileData));
+
+                int16 maxPosID = (int16)ItemInfoManager::sMaxPositiveID;
+                uint32 totalSize = tileMapEncodeBuffer.size();
+                TempTileData* pRawData = tileMapEncodeBuffer.data();
+
+                for (uint32 i = 0; i < totalSize; ++i)
+                {
+                    pRawData[i].fg = ToItemClientID(pRawData[i].fg);
+                    pRawData[i].bg = ToItemClientID(pRawData[i].bg);
+                }
+
+                pSourceData = tileMapEncodeBuffer.data();
+            }
+
             uint32 batchStartIdx = 0;
 
             for (uint32 i = 0; i < m_tiles.size(); ++i)
@@ -88,10 +112,9 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
                 }
 
                 uint32 batchCount = i - batchStartIdx;
-
                 if (batchCount > 0)
                 {
-                    memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * batchCount);
+                    memBuffer.WriteRaw(pSourceData + batchStartIdx, sizeof(TempTileData) * batchCount);
                 }
 
                 pTile->Serialize(memBuffer, true, false, pWorld->GetWorldVersion());
@@ -101,7 +124,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
             uint32 remaining = m_tempTiles.size() - batchStartIdx;
             if (remaining > 0)
             {
-                memBuffer.WriteRaw(m_tempTiles.data() + batchStartIdx, sizeof(TempTileData) * remaining);
+                memBuffer.WriteRaw(pSourceData + batchStartIdx, sizeof(TempTileData) * remaining);
             }
         }
     }
@@ -110,6 +133,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
         if (database)
         {
             memBuffer.ReadRaw(m_tempTiles.data(), m_tempTiles.size() * sizeof(TempTileData));
+            m_negativeItemCount = 0;
 
             for (uint32 i = 0; i < m_tiles.size(); ++i)
             {
@@ -119,6 +143,12 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
                 ModifyKeyTile(pTile, false);
                 pTile->SetPos(i % m_size.x, i / m_size.x);
                 pTile->SetMapIndex(i);
+
+                if (m_tempTiles[i].fg < 0)
+                    m_negativeItemCount++;
+
+                if (m_tempTiles[i].bg < 0)
+                    m_negativeItemCount++;
             }
 
             uint32 extraCount = 0;
@@ -131,7 +161,8 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
 
                 if (tileIdx >= m_tiles.size())
                 {
-                    LOGGER_LOG_ERROR("Tile extra corrupted while reading %s idx:%d tilesize:%d", pWorld->GetWorldVersion(), tileIdx, m_tiles.size());
+                    LOGGER_LOG_ERROR("Tile extra corrupted while reading %s idx:%d tilesize:%d",
+                                     pWorld->GetWorldVersion(), tileIdx, m_tiles.size());
                     return false;
                 }
 
@@ -479,7 +510,8 @@ void WorldTileManager::GenerateDefaultMap()
 
     RectInt layer(0, 0, m_size.x, m_size.y);
     FillRectWithThickness(6, layer, ITEM_ID_BEDROCK, ITEM_ID_CAVE_BACKGROUND, 100);
-    FillRectWithThickness(4, layer, {{ITEM_ID_DIRT, 60}, {ITEM_ID_LAVA, 40}, {ITEM_ID_ROCK, 2}}, {{ITEM_ID_CAVE_BACKGROUND, 100}});
+    FillRectWithThickness(4, layer, {{ITEM_ID_DIRT, 60}, {ITEM_ID_LAVA, 40}, {ITEM_ID_ROCK, 2}},
+                          {{ITEM_ID_CAVE_BACKGROUND, 100}});
     FillRectWithThickness(25, layer, {{ITEM_ID_DIRT, 94}, {ITEM_ID_ROCK, 6}}, {{ITEM_ID_CAVE_BACKGROUND, 100}});
     FillRectWithThickness(1, layer, ITEM_ID_DIRT, ITEM_ID_CAVE_BACKGROUND, 100);
 
@@ -517,7 +549,7 @@ void WorldTileManager::GenerateBeachMap()
     bool startFromLeft = RandomRangeInt(0, 2) == 1;
 }
 
-void WorldTileManager::FillRectWith(const RectInt& rect, uint16 fgItem, uint16 bgItem, float chance)
+void WorldTileManager::FillRectWith(const RectInt& rect, int16 fgItem, int16 bgItem, float chance)
 {
     if (chance > 100.0f)
     {
@@ -554,7 +586,7 @@ void WorldTileManager::FillRectWith(const RectInt& rect, uint16 fgItem, uint16 b
 
                 if (pItemBg)
                 {
-                    pTile->SetBG(pItemBg->id);
+                    pTile->SetBG(pItemBg->id, this);
                 }
             }
 
@@ -563,7 +595,8 @@ void WorldTileManager::FillRectWith(const RectInt& rect, uint16 fgItem, uint16 b
     }
 }
 
-bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems)
+bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector& fgItems,
+                                    const TileMapFillVector& bgItems)
 {
     if ((fgItems.empty() && bgItems.empty()))
     {
@@ -616,7 +649,7 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
 
             if (ItemInfo* pBgItem = PickItem(bgItems, totalBgChance))
             {
-                pTile->SetBG(pBgItem->id);
+                pTile->SetBG(pBgItem->id, this);
             }
 
             if (ItemInfo* pFgItem = PickItem(fgItems, totalFgChance))
@@ -743,7 +776,8 @@ bool WorldTileManager::AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTarget
         }
 
         if (pNeighbor->GetParent() == parentIndex || pNeighbor == pLockTile ||
-            (vTargetPos.x + neighbors[i][0] == vLockPos.x + neighbors[i][0] && vTargetPos.y + neighbors[i][0] == vLockPos.y + neighbors[i][0]))
+            (vTargetPos.x + neighbors[i][0] == vLockPos.x + neighbors[i][0] &&
+             vTargetPos.y + neighbors[i][0] == vLockPos.y + neighbors[i][0]))
         {
             return true;
         }
@@ -752,7 +786,8 @@ bool WorldTileManager::AbleToLockThisTile(TileInfo* pLockTile, TileInfo* pTarget
     return false;
 }
 
-bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty, std::vector<TileInfo*>& outTiles)
+bool WorldTileManager::ApplyLockTiles(TileInfo* pLockTile, int32 tileSizeToLock, bool ignoreEmpty,
+                                      std::vector<TileInfo*>& outTiles)
 {
     if (!pLockTile || tileSizeToLock > (m_size.x * m_size.y) || tileSizeToLock == 0)
     {
@@ -836,8 +871,8 @@ Vector2Float WorldTileManager::GetMapStartWorldPos(const string& doorID)
     {
         for (auto& tile : m_tiles)
         {
-            if (!tile.HasExtra() ||
-                !(tile.IsTileExtraType(TILE_EXTRA_TYPE_DOOR) || (IsPathMarker(tile.GetFG()) && tile.IsTileExtraType(TILE_EXTRA_TYPE_SIGN))))
+            if (!tile.HasExtra() || !(tile.IsTileExtraType(TILE_EXTRA_TYPE_DOOR) ||
+                                      (IsPathMarker(tile.GetFG()) && tile.IsTileExtraType(TILE_EXTRA_TYPE_SIGN))))
                 continue;
 
             if (tile.IsTileExtraType(TILE_EXTRA_TYPE_DOOR))
@@ -1006,7 +1041,8 @@ void WorldTileManager::RebuildPowerNodeGroups()
         nearest.clear();
         for (auto& pOther : m_powerNodes)
         {
-            if (pOther == pBaseTile || !pOther || !pOther->HasFlag(TILE_FLAG_IS_ON) || IsPowerNodeActiveInAGroup(pOther))
+            if (pOther == pBaseTile || !pOther || !pOther->HasFlag(TILE_FLAG_IS_ON) ||
+                IsPowerNodeActiveInAGroup(pOther))
                 continue;
 
             float distance = DistanceBetweenPoints(pBaseTile->GetWorldPos(), pOther->GetWorldPos());
@@ -1019,7 +1055,8 @@ void WorldTileManager::RebuildPowerNodeGroups()
         if (nearest.size() < 3)
             continue;
 
-        std::partial_sort(nearest.begin(), nearest.begin() + 3, nearest.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
+        std::partial_sort(nearest.begin(), nearest.begin() + 3, nearest.end(),
+                          [](const auto& a, const auto& b) { return a.second < b.second; });
 
         currentGroup.clear();
         currentGroup.push_back(pBaseTile);
@@ -1109,14 +1146,15 @@ bool WorldTileManager::CheckIfPointInsidePowerNodeGroups(const Vector2Float& pos
     return false;
 }
 
-void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance)
+void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, int16 fgItem, int16 bgItem, float chance)
 {
     rect.top = rect.bottom - thickness;
     FillRectWith(rect, fgItem, bgItem, chance);
     rect.bottom = rect.top;
 }
 
-void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems)
+void WorldTileManager::FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems,
+                                             const TileMapFillVector& bgItems)
 {
     rect.top = rect.bottom - thickness;
     FillRectWith(rect, fgItems, bgItems);

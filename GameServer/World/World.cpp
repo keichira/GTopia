@@ -134,7 +134,8 @@ void World::SaveToFile(World* pWorld)
         return;
 
     File file;
-    string worldSavePath = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(pWorld->GetDatabaseID()) + ".bin";
+    string worldSavePath =
+        GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(pWorld->GetDatabaseID()) + ".bin";
     if (!file.Open(worldSavePath, FILE_MODE_WRITE))
         return;
 
@@ -311,7 +312,8 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     }
 
     string playerDisplayName = pPlayer->GetDisplayName(true);
-    string joinNotifyOtherMsg = "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
+    string joinNotifyOtherMsg =
+        "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
     pPlayer->ToggleBattlePetLeash(false);
 
     for (auto& pWorldPlayer : m_players)
@@ -390,7 +392,8 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         }
         else
         {
-            pWorldPlayer->SendOnTalkBubble("<" + pPlayer->GetDisplayName(true) + "`5 left. `w" + ToString(GetPlayerCount() - 1) + "`5 others here>``",
+            pWorldPlayer->SendOnTalkBubble("<" + pPlayer->GetDisplayName(true) + "`5 left. `w" +
+                                               ToString(GetPlayerCount() - 1) + "`5 others here>``",
                                            false, pPlayer);
             pWorldPlayer->PlaySFX("door_shut.wav");
         }
@@ -490,7 +493,8 @@ void World::SendNameChangeToAll(GamePlayer* pPlayer, bool checkWorld)
     }
 
     uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnNameChanged(pPlayer->GetDisplayName(checkWorld)), &size, nullptr);
+    uint8* pData =
+        Proton::SerializeToMem(VariantPacket::OnNameChanged(pPlayer->GetDisplayName(checkWorld)), &size, nullptr);
 
     for (auto& pWorldPlayer : m_players)
     {
@@ -857,8 +861,8 @@ void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldP
     SAFE_DELETE_ARRAY(pData);
 }
 
-void World::SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed,
-                               int32 val1, int32 val2)
+void World::SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
+                               const Vector2Float& dest, float speed, int32 val1, int32 val2)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_NPC;
@@ -903,7 +907,8 @@ void World::SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe
                 continue;
             }
 
-            SendUDPPacketRaw(pWorldPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket), pExtraData);
+            SendUDPPacketRaw(pWorldPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket),
+                             pExtraData);
         }
     }
 }
@@ -927,9 +932,7 @@ void World::SendCurrentWeatherToAll()
 void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
 {
     if (!pGamePacket)
-    {
         return;
-    }
 
     switch (pGamePacket->type)
     {
@@ -997,7 +1000,7 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
 
             if (pItem->IsBackground())
             {
-                pTile->SetBG(pItem->id);
+                pTile->SetBG(pItem->id, GetTileManager());
             }
             else if (pItem->type == ITEM_TYPE_FIST)
             {
@@ -1007,14 +1010,14 @@ void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
                 }
                 else
                 {
-                    pTile->SetBG(ITEM_ID_BLANK);
+                    pTile->SetBG(ITEM_ID_BLANK, GetTileManager());
                 }
             }
             else
             {
                 if (pItem->IsBackground())
                 {
-                    pTile->SetBG(pItem->id);
+                    pTile->SetBG(pItem->id, GetTileManager());
                 }
                 else
                 {
@@ -1144,7 +1147,7 @@ void World::ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Floa
     packet.field_5 = pPlayer->GetNetID();
     packet.field_3 = 5;
     packet.field_4 = 0;
-    packet.field_11 = itemID;
+    packet.field_11 = ToItemClientID(itemID);
     packet.field_12 = count;
 
     SendGamePacketToAll(&packet);
@@ -1162,7 +1165,7 @@ void World::ThrowItemToPositionFromPlayer(GamePlayer* pPlayer, const Vector2Floa
     packet.field_5 = pPlayer->GetNetID();
     packet.field_3 = 4;
     packet.field_4 = 0;
-    packet.field_11 = itemID;
+    packet.field_11 = ToItemClientID(itemID);
     packet.field_12 = count;
 
     SendGamePacketToAll(&packet);
@@ -1177,7 +1180,8 @@ uint32 World::PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* 
     Vector2Int vStartPos = pStart->GetPos();
     Vector2Int vGoalPos = pGoal->GetPos();
 
-    return Abs(vNodePos.x - vStartPos.x) + Abs(vNodePos.y - vStartPos.y) + Abs(vNodePos.x - vGoalPos.x) + Abs(vNodePos.y - vGoalPos.y);
+    return Abs(vNodePos.x - vStartPos.x) + Abs(vNodePos.y - vStartPos.y) + Abs(vNodePos.x - vGoalPos.x) +
+           Abs(vNodePos.y - vGoalPos.y);
 }
 
 int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList)
@@ -1202,7 +1206,8 @@ int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std:
     return bestIndex;
 }
 
-bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList)
+bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal,
+                                       std::vector<TileInfo*>& openList)
 {
     if (!pStart || !pGoal)
         return false;
@@ -1349,7 +1354,8 @@ bool World::IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool
     if (pItem->collisionType == COLLISION_NONE)
         return false;
 
-    if (ignorePlatforms && (pItem->collisionType == COLLISION_JUMP_THROUGH || pItem->collisionType == COLLISION_JUMP_DOWN))
+    if (ignorePlatforms &&
+        (pItem->collisionType == COLLISION_JUMP_THROUGH || pItem->collisionType == COLLISION_JUMP_DOWN))
         return false;
 
     if (pItem->collisionType == COLLISION_ONE_WAY)
@@ -1627,7 +1633,8 @@ void World::PutOutFire(TileInfo* pTile, GamePlayer* pPlayer)
                 DropObjectOnTile(pTile, ITEM_ID_HIGHLY_COMBUSTIBLE_BOX, 1, GetRandomItemDropOffset(), true);
             }
 
-            pPlayer->SendOnTalkBubble("I'm so good at fighting fires, I rescued this `2Highly Combustible Box``!", false);
+            pPlayer->SendOnTalkBubble("I'm so good at fighting fires, I rescued this `2Highly Combustible Box``!",
+                                      false);
         }
 
         pPlayer->GiveXP(1);
@@ -1773,7 +1780,7 @@ bool World::OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer)
 
     if (pTile->GetBG() == ITEM_ID_CHI_HARMONIZER)
     {
-        pTile->SetBG(ITEM_ID_BLANK);
+        pTile->SetBG(ITEM_ID_BLANK, GetTileManager());
         pPlayer->SendOnTalkBubble("Your Chi Harmonizer helped to resonate the elements!", false);
     }
 
@@ -1904,11 +1911,13 @@ bool World::CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile)
         {
             nonEligibleCount++;
             isThereHauntedPlayer = true;
-            pPlayer->SendOnTalkBubble("You are haunted - the ghosts won't talk to you, as they think you're busy!", false);
+            pPlayer->SendOnTalkBubble("You are haunted - the ghosts won't talk to you, as they think you're busy!",
+                                      false);
         }
         else
         {
-            if (pPlayerInRect->GetLastAction() != pTileExtra->command || pPlayerInRect->GetLastActionTime().GetElapsedTime() < 6000)
+            if (pPlayerInRect->GetLastAction() != pTileExtra->command ||
+                pPlayerInRect->GetLastActionTime().GetElapsedTime() < 6000)
             {
                 nonEligibleCount++;
             }
@@ -2109,7 +2118,7 @@ bool World::TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile)
     return false;
 }
 
-void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
+void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, int16 lockID)
 {
     if (!pPlayer || !pTile)
         return;
@@ -2125,13 +2134,16 @@ void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
 
     if (IsWorldLock(lockID) && GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK))
     {
-        pPlayer->SendOnTalkBubble("Only one `$World Lock`` can be placed in a world, you'd have to remove the other one first.", true);
+        pPlayer->SendOnTalkBubble(
+            "Only one `$World Lock`` can be placed in a world, you'd have to remove the other one first.", true);
         return;
     }
 
-    if (IsWorldLock(lockID) && GetTileManager()->GetLockCount() > 0 && GetTileManager()->HasLockOwnerOtherThan(pPlayer->GetUserID()))
+    if (IsWorldLock(lockID) && GetTileManager()->GetLockCount() > 0 &&
+        GetTileManager()->HasLockOwnerOtherThan(pPlayer->GetUserID()))
     {
-        pPlayer->SendOnTalkBubble("Your `$World Lock`` can't be placed in this world unless everyone else's locks are removed.", false);
+        pPlayer->SendOnTalkBubble(
+            "Your `$World Lock`` can't be placed in this world unless everyone else's locks are removed.", false);
         return;
     }
 
@@ -2164,7 +2176,8 @@ void World::OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID)
     {
         string playerName = pPlayer->GetDisplayName(false);
 
-        SendTalkBubbleAndConsoleToAll("`5[`w" + GetWorlName() + " has been `$World Locked`` by " + playerName + "`5]``", true, pPlayer);
+        SendTalkBubbleAndConsoleToAll("`5[`w" + GetWorlName() + " has been `$World Locked`` by " + playerName + "`5]``",
+                                      true, pPlayer);
         LOGGER_LOG_INFO("World %s has been locked by %d", GetWorlName().c_str(), pPlayer->GetUserID());
 
         SendNameChangeToAll(pPlayer);
@@ -2196,7 +2209,8 @@ void World::OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile)
     if (IsWorldLock(pItem->id))
     {
         SendConsoleMessageToAll("`5[```w" + GetWorlName() + "`` has had its `$World Lock`` removed!`5]``");
-        LOGGER_LOG_INFO("Removed world lock in %s (%d) by %d", GetWorlName().c_str(), GetDatabaseID(), pPlayer->GetUserID());
+        LOGGER_LOG_INFO("Removed world lock in %s (%d) by %d", GetWorlName().c_str(), GetDatabaseID(),
+                        pPlayer->GetUserID());
 
         for (auto& pWorldPlayer : m_players)
         {
@@ -2220,7 +2234,8 @@ void World::RemoveAllAccessRequestsFromLock(TileInfo* pTile)
 
     for (auto& pPlayer : m_players)
     {
-        if (!pPlayer || GetInstanceID() != pPlayer->GetCurrentWorld()) // dunno why im checking, that should not be possible
+        if (!pPlayer ||
+            GetInstanceID() != pPlayer->GetCurrentWorld()) // dunno why im checking, that should not be possible
             continue;
 
         if (pPlayer->GetLockAcessTile() == pTile)
@@ -2288,7 +2303,8 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
     if (!pPlayer || !pTile || !pSeed || !pPacket)
         return;
 
-    if (!pTile->IsTree() && !pTile->IsCrystal() && pTile->GetFG() != ITEM_ID_BLANK && pTile->GetFG() != ITEM_ID_BUNNY_EGG)
+    if (!pTile->IsTree() && !pTile->IsCrystal() && pTile->GetFG() != ITEM_ID_BLANK &&
+        pTile->GetFG() != ITEM_ID_BUNNY_EGG)
     {
         if (pSeed->type == ITEM_TYPE_SEED)
             pPlayer->SendOnTalkBubble("You can only use seeds on blank tiles or existing trees.", false);
@@ -2318,7 +2334,7 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
             if (!gHarmonicCrystal.GetRecipe(pTileExtra->crystals))
             {
                 pTile->SetFG(ITEM_ID_BLANK, GetTileManager());
-                pTile->SetBG(ITEM_ID_BLANK);
+                pTile->SetBG(ITEM_ID_BLANK, GetTileManager());
 
                 SendParticleEffectToAll(PARTICLE_EFFECT_SHRAPNEL_BOOM, pTile->GetWorldPosCenter());
             }
@@ -2390,13 +2406,15 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         ItemInfo* pMixItem = GetItemInfoManager()->GetSpliceInfo(pTile->GetFG(), pSeed->id);
         if (!pMixItem)
         {
-            pPlayer->SendOnTalkBubble("Hmm, it looks like `w" + pTileSeed->name + "`` and `w" + pSeed->name + "`` can't be spliced.", true);
+            pPlayer->SendOnTalkBubble(
+                "Hmm, it looks like `w" + pTileSeed->name + "`` and `w" + pSeed->name + "`` can't be spliced.", true);
             return;
         }
 
         pPlayer->ModifyInventoryItem(pSeed->id, -1);
 
-        pPlayer->SendOnTalkBubble("`w" + pTileSeed->name + "`` and `w" + pSeed->name + "`` have been spliced to make a `$" + pMixItem->name + "!",
+        pPlayer->SendOnTalkBubble("`w" + pTileSeed->name + "`` and `w" + pSeed->name +
+                                      "`` have been spliced to make a `$" + pMixItem->name + "!",
                                   true);
         pPlayer->PlaySFX("success.wav");
 
@@ -2465,7 +2483,7 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
         return;
     }
 
-    ItemInfo* pItemFruit = GetItemInfoManager()->GetItemByID(pItem->id - 1);
+    ItemInfo* pItemFruit = GetItemInfoManager()->GetItemByID(SEED_TO_ITEM_ID(pItem->id));
     if (!pItemFruit)
         return;
 
@@ -2482,7 +2500,8 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
 
         fruitCount *= 2;
     }
-    else if (pItem->rarity < 100 && (inventory.IsWearingItem(ITEM_ID_HARVESTER) || inventory.IsWearingItem(ITEM_ID_HARVESTER_OF_SORROWS)) &&
+    else if (pItem->rarity < 100 &&
+             (inventory.IsWearingItem(ITEM_ID_HARVESTER) || inventory.IsWearingItem(ITEM_ID_HARVESTER_OF_SORROWS)) &&
              IsFuelPack(inventory.GetClothByPart(BODY_PART_BACK)))
     {
         if (RandomRangeInt(0, 100) < 10)
@@ -2496,7 +2515,8 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
     {
         for (uint8 i = 0; i < fruitCount; ++i)
         {
-            DropObjectOnTile(pTile, pItem->id - 1, RandomRangeInt(1, pItemFruit->farmablity), GetRandomItemDropOffset(), true);
+            DropObjectOnTile(pTile, pItemFruit->id, RandomRangeInt(1, pItemFruit->farmablity),
+                             GetRandomItemDropOffset(), true);
         }
 
         uint32 gemAmount = GetGemCountHarvestTree(pItem);
@@ -2507,12 +2527,8 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
 
         if (pTile->HasFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO))
         {
-            ItemInfo* pSeed = pItemMgr->GetItemByID(pItemMgr->GetBaseItemID(pItem->id));
-            if (pSeed)
-            {
-                DropObjectOnTile(pTile, pSeed->id, 1, GetRandomItemDropOffset(), true);
-                pPlayer->SendOnTalkBubble("A `w" + pSeed->name + "`` falls out!", true);
-            }
+            DropObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
+            pPlayer->SendOnTalkBubble("A `w" + pItem->name + "`` falls out!", true);
         }
     }
 
@@ -2531,8 +2547,11 @@ void World::OnCollectProvider(GamePlayer* pPlayer, TileInfo* pTile)
     {
         case ITEM_ID_SCIENCE_STATION:
         {
-            static WeightRand scienceChemWeight(
-                {{ITEM_ID_CHEMICAL_G, 38}, {ITEM_ID_CHEMICAL_R, 23}, {ITEM_ID_CHEMICAL_P, 6}, {ITEM_ID_CHEMICAL_B, 12}, {ITEM_ID_CHEMICAL_Y, 16}});
+            static WeightRand scienceChemWeight({{ITEM_ID_CHEMICAL_G, 38},
+                                                 {ITEM_ID_CHEMICAL_R, 23},
+                                                 {ITEM_ID_CHEMICAL_P, 6},
+                                                 {ITEM_ID_CHEMICAL_B, 12},
+                                                 {ITEM_ID_CHEMICAL_Y, 16}});
 
             if (!scienceChemWeight.Roll(itemIDToDrop))
                 return;
@@ -2611,7 +2630,7 @@ void World::OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile)
 
     if (dropSeed)
     {
-        DropObjectOnTile(pTile, pItem->id + 1, 1, GetRandomItemDropOffset(), true);
+        DropObjectOnTile(pTile, ITEM_TO_SEED_ID(pItem->id), 1, GetRandomItemDropOffset(), true);
     }
 
     if (dropGems > 0)
@@ -2967,7 +2986,7 @@ void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileIn
 
         if (dropSeed)
         {
-            DropObjectOnTile(pTile, pItem->id + 1, 1, GetRandomItemDropOffset(), true);
+            DropObjectOnTile(pTile, ITEM_TO_SEED_ID(pItem->id), 1, GetRandomItemDropOffset(), true);
         }
 
         if (dropGems > 0)
@@ -3073,7 +3092,8 @@ GamePlayer* World::GetPlayerByNameStartsWith(const string& name, string& errorMs
 
         if (pMatchedPlayer != nullptr)
         {
-            errorMsg = "Error, more than one person's name in this world starts with `w" + name + "``. Be more specific.";
+            errorMsg =
+                "Error, more than one person's name in this world starts with `w" + name + "``. Be more specific.";
             return nullptr;
         }
 
@@ -3140,9 +3160,13 @@ void World::DropGemsOnTile(TileInfo* pTile, uint32 gemCount)
     }
 }
 
-void World::DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge)
+void World::DropObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const Vector2Float& offset, bool merge)
 {
     if (!pTile)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
+    if (!pItem)
         return;
 
     Vector2Int vTilePos = pTile->GetPos();
@@ -3150,13 +3174,13 @@ void World::DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const 
     vBasePos += 8.0f;
 
     WorldObject obj;
-    obj.itemID = itemID;
+    obj.itemID = pItem->id;
     obj.count = count;
     obj.pos = vBasePos + offset;
 
     if (merge)
     {
-        auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(pTile->GetRect(), itemID);
+        auto objsInRect = GetObjectManager()->GetObjectsInRectByItemID(pTile->GetRect(), pItem->id);
 
         if (!objsInRect.empty())
         {
@@ -3247,7 +3271,7 @@ void World::DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const 
     DropObject(obj);
 }
 
-void World::DropObject(uint16 itemID, uint8 count, const Vector2Float& pos)
+void World::DropObject(int16 itemID, uint8 count, const Vector2Float& pos)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_ITEM_CHANGE_OBJECT;
@@ -3259,6 +3283,8 @@ void World::DropObject(uint16 itemID, uint8 count, const Vector2Float& pos)
     packet.field_4 = -1;
 
     GetObjectManager()->HandleObjectPackets(&packet);
+
+    packet.field_7 = ToItemClientID(itemID);
     SendGamePacketToAll(&packet);
 }
 
@@ -3390,5 +3416,7 @@ void World::ModifyObject(const WorldObject& obj)
     packet.field_5 = obj.objectID;
 
     GetObjectManager()->HandleObjectPackets(&packet);
+
+    packet.field_7 = ToItemClientID(obj.itemID);
     SendGamePacketToAll(&packet);
 }

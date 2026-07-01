@@ -1,18 +1,18 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Item/ItemUtils.h"
 #include "../Memory/MemoryBuffer.h"
+#include "../Precompiled.h"
 
 #define INVENTORY_DEFAULT_CAPACITY 16
 
 struct InventoryItemInfo
 {
-    uint16 id = 0;
+    int16 id = 0;
     uint8 count = 0;
     uint8 flags = 0;
 
-    void Serialize(MemoryBuffer& memBuffer, bool write);
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database);
 };
 
 enum eInventoryErrors
@@ -24,31 +24,32 @@ enum eInventoryErrors
 
 class Player;
 
-class PlayerInventory {
+class PlayerInventory
+{
 public:
     PlayerInventory();
 
 public:
     void Serialize(MemoryBuffer& memBuffer, bool write, bool database);
-    InventoryItemInfo* GetItemByID(uint16 itemID);
+    InventoryItemInfo* GetItemByID(int32 itemID);
 
-    uint8 AddItem(uint16 itemID, uint8 count, Player* pPlayer = nullptr);
-    uint8 RemoveItem(uint16 itemID, int16 count, Player* pPlayer = nullptr);
-    uint8 RemoveItem(uint16 itemID, Player* pPlayer = nullptr);
+    uint8 AddItem(int32 itemID, uint8 count, Player* pPlayer = nullptr);
+    uint8 RemoveItem(int32 itemID, int16 count, Player* pPlayer = nullptr);
+    uint8 RemoveItem(int32 itemID, Player* pPlayer = nullptr);
 
-    const uint16* GetClothes() const { return m_clothes; }
-    uint16 GetClothByPart(eBodyPart bodyPart) const { return m_clothes[bodyPart]; }
-    void SetClothByPart(uint16 itemID, uint8 bodyPart);
-    bool IsWearingItem(uint16 itemID);
+    const int16* GetClothes() const { return m_clothes; }
+    int16 GetClothByPart(eBodyPart bodyPart) const { return m_clothes[bodyPart]; }
+    void SetClothByPart(int32 itemID, uint8 bodyPart);
+    bool IsWearingItem(int32 itemID);
 
-    bool HaveRoomForItem(uint16 itemID, uint8 itemCount);
-    uint32 GetFitItemCount(uint16 itemID);
-    bool CanAllItemsFit(const std::vector<uint32>& items);
+    bool HaveRoomForItem(int32 itemID, uint8 itemCount);
+    uint32 GetFitItemCount(int32 itemID);
+    bool CanAllItemsFit(const std::vector<int32>& items);
 
-    uint8 GetCountOfItem(uint16 itemID);
+    uint8 GetCountOfItem(int32 itemID);
 
-    void UpdateInventory(Player* pPlayer, uint16 itemID, uint8 count, bool added);
-    void RemoveFromQuickSlots(uint16 itemID);
+    void UpdateInventory(Player* pPlayer, int32 itemID, uint8 count, bool added);
+    void RemoveFromQuickSlots(int32 itemID);
 
     uint32 GetMemEstimate(bool database);
     void SetVersion(uint32 protocol);
@@ -61,6 +62,6 @@ private:
     uint32 m_capacity;
 
     std::vector<InventoryItemInfo> m_items;
-    uint16 m_clothes[BODY_PART_SIZE];
-    uint16 m_quickSlots[4];
+    int16 m_clothes[BODY_PART_SIZE];
+    int16 m_quickSlots[4];
 };

@@ -1,12 +1,15 @@
 #include "TileExtra.h"
-#include "TileInfo.h"
 #include "Item/ItemInfo.h"
+#include "TileInfo.h"
 
 uint8 GetTileExtraType(uint8 itemType)
 {
-    switch(itemType) {
-        case ITEM_TYPE_USER_DOOR: case ITEM_TYPE_DOOR:
-        case ITEM_TYPE_PORTAL: case ITEM_TYPE_SUNGATE:
+    switch (itemType)
+    {
+        case ITEM_TYPE_USER_DOOR:
+        case ITEM_TYPE_DOOR:
+        case ITEM_TYPE_PORTAL:
+        case ITEM_TYPE_SUNGATE:
             return TILE_EXTRA_TYPE_DOOR;
 
         case ITEM_TYPE_SIGN:
@@ -58,7 +61,7 @@ uint8 GetTileExtraType(uint8 itemType)
 
 TileExtra* CreateTileExtra(uint8 type)
 {
-    switch(type)
+    switch (type)
     {
         case TILE_EXTRA_TYPE_DOOR:
             return new TileExtra_Door();
@@ -125,20 +128,18 @@ void TileExtraGrowth::FinalizeGrowth(uint32 ageMS)
     uint32 elapsedSec = elapsedMS / 1000;
     uint32 correctedTimer = now - (elapsedMS % 1000);
 
-    if(ageMS != 0)
+    if (ageMS != 0)
     {
         elapsedSec = ageMS / 1000;
         correctedTimer = timer;
     }
 
-    if(type == TILE_EXTRA_TYPE_TAMAGOTCHI)
+    if (type == TILE_EXTRA_TYPE_TAMAGOTCHI)
         return;
 
-    if(type == TILE_EXTRA_TYPE_FORGE ||
-        type == TILE_EXTRA_TYPE_STEAM_ENGINE ||
-        type == TILE_EXTRA_TYPE_FOSSIL_PREP
-    ) {
-        if(growTime < elapsedSec)
+    if (type == TILE_EXTRA_TYPE_FORGE || type == TILE_EXTRA_TYPE_STEAM_ENGINE || type == TILE_EXTRA_TYPE_FOSSIL_PREP)
+    {
+        if (growTime < elapsedSec)
         {
             growTime = 0;
         }
@@ -160,9 +161,10 @@ void TileExtraGrowth::ModGrowth(int32 deltaAgeSec, int32 ageSec)
     FinalizeGrowth(0);
     uint32 newGrowTime = 0;
 
-    if(deltaAgeSec < 1)
+    if (deltaAgeSec < 1)
     {
-        if(type == TILE_EXTRA_TYPE_BURGLAR || type == TILE_EXTRA_TYPE_STEAM_ENGINE || type == TILE_EXTRA_TYPE_FOSSIL_PREP)
+        if (type == TILE_EXTRA_TYPE_BURGLAR || type == TILE_EXTRA_TYPE_STEAM_ENGINE ||
+            type == TILE_EXTRA_TYPE_FOSSIL_PREP)
         {
             newGrowTime = growTime - deltaAgeSec;
         }
@@ -170,12 +172,12 @@ void TileExtraGrowth::ModGrowth(int32 deltaAgeSec, int32 ageSec)
         {
             newGrowTime = growTime + deltaAgeSec;
 
-            if(newGrowTime < 0)
+            if (newGrowTime < 0)
             {
                 growTime = 0;
                 return;
             }
-        }   
+        }
     }
     else
     {
@@ -183,7 +185,7 @@ void TileExtraGrowth::ModGrowth(int32 deltaAgeSec, int32 ageSec)
         newGrowTime = growTime;
     }
 
-    if(ageSec < newGrowTime)
+    if (ageSec < newGrowTime)
     {
         newGrowTime = ageSec;
     }
@@ -193,14 +195,14 @@ void TileExtraGrowth::ModGrowth(int32 deltaAgeSec, int32 ageSec)
 
 float TileExtraGrowth::GetGrowthPercent(TileInfo* pTile)
 {
-    if(!pTile)
+    if (!pTile)
         return 0.0f;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if(!pItem)
+    if (!pItem)
         return 0.0f;
 
-    if(pItem->growTime == 0.0f)
+    if (pItem->growTime == 0.0f)
     {
         pItem->growTime = 0.0001f;
     }
@@ -208,7 +210,7 @@ float TileExtraGrowth::GetGrowthPercent(TileInfo* pTile)
     FinalizeGrowth(0);
     float progress = (float)growTime / pItem->growTime;
 
-    if(progress > 1.0f)
+    if (progress > 1.0f)
     {
         progress = 1.0f;
     }
@@ -220,9 +222,9 @@ void TileExtra_Door::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
 {
     TileExtra::Serialize(memBuffer, write);
 
-    if(database)
+    if (database)
     {
-        if(IsMainDoor(pTile->GetFG())) 
+        if (IsMainDoor(pTile->GetFG()))
         {
             name = "";
             text = "EXIT";
@@ -235,22 +237,22 @@ void TileExtra_Door::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
     }
     else
     {
-        if(write)
+        if (write)
         {
             bool isSpecial = false;
-            if(pTile && (pTile->GetFG() == ITEM_ID_GATEWAY_TO_ADVENTURE))
+            if (pTile && (pTile->GetFG() == ITEM_ID_GATEWAY_TO_ADVENTURE))
             {
                 isSpecial = true;
             }
 
-            if(!isSpecial)
+            if (!isSpecial)
             {
-                if(name.empty())
+                if (name.empty())
                 {
                     string temp = text;
 
                     usize pos = temp.find_first_of(':');
-                    if(pos != string::npos)
+                    if (pos != string::npos)
                     {
                         temp.erase(pos);
                         temp = "...";
@@ -281,9 +283,9 @@ void TileExtra_Sign::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
 {
     TileExtra::Serialize(memBuffer, write);
 
-    if(pTile && IsPathMarker(pTile->GetFG()))
+    if (pTile && IsPathMarker(pTile->GetFG()))
     {
-        if(!database && write)
+        if (!database && write)
         {
             string temp;
             memBuffer.ReadWriteString(temp, write);
@@ -302,7 +304,7 @@ void TileExtra_Sign::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
     memBuffer.ReadWrite(unk, write);
 }
 
-void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(flags, write);
@@ -311,19 +313,23 @@ void TileExtra_Lock::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
     uint32 accessSize = accessList.size();
     memBuffer.ReadWrite(accessSize, write);
 
-    if(!write) {
+    if (!write)
+    {
         accessList.resize(accessSize);
     }
 
-    if(accessSize > 0) {
+    if (accessSize > 0)
+    {
         memBuffer.ReadWriteRaw(accessList.data(), accessSize * sizeof(int32), write);
     }
 
-    if(worldVersion > 11) {
+    if (worldVersion > 11)
+    {
         memBuffer.ReadWrite(minEntryLevel, write);
     }
 
-    if(worldVersion > 12) {
+    if (worldVersion > 12)
+    {
         memBuffer.ReadWrite(worldTimer, write);
     }
 }
@@ -337,13 +343,15 @@ void TileExtra_Seed::Serialize(MemoryBuffer& memBuffer, bool write, bool databas
     memBuffer.ReadWrite(fruitCount, write);
 }
 
-void TileExtra_Component::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_Component::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                    uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(randValue, write);
 }
 
-void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                   uint16 worldVersion)
 {
     FinalizeGrowth(0);
 
@@ -383,73 +391,98 @@ void TileExtra_Provider::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
     }*/
 }
 
-void TileExtra_Achievement::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Achievement::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                      uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(ownerID, write);
     memBuffer.ReadWrite(achievementID, write);
 }
 
-void TileExtra_HeartMonitor::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_HeartMonitor::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                       uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(ownerID, write);
     memBuffer.ReadWriteString(playerDisplayName, write);
 }
 
-void TileExtra_Xenonite::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_Xenonite::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                   uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(flags, write);
     memBuffer.ReadWrite(flags2, write);
 }
 
-void TileExtra_OuijaBoard::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_OuijaBoard::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                     uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(playerCount, write);
     memBuffer.ReadWriteString(ouijaType, write);
     memBuffer.ReadWriteString(command, write);
-    
+
     uint32 itemsSize = items.size();
     memBuffer.ReadWrite(itemsSize, write);
 
-    if(!write) {
+    if (!write)
+    {
         items.resize(itemsSize);
     }
 
-    if(itemsSize > 0) {
+    if (itemsSize > 0)
+    {
         memBuffer.ReadWriteRaw(items.data(), itemsSize * sizeof(int32), write);
     }
 }
 
-void TileExtra_FieldNode::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_FieldNode::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                    uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(expireTime, write);
-    
+
     uint32 nodeSize = nodes.size();
     memBuffer.ReadWrite(nodeSize, write);
 
-    if(!write) {
+    if (!write)
+    {
         nodes.resize(nodeSize);
     }
 
-    if(nodeSize > 0) {
+    if (nodeSize > 0)
+    {
         memBuffer.ReadWriteRaw(nodes.data(), nodeSize * sizeof(int32), write);
     }
 }
 
-void TileExtra_BattleCage::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo *pTile, uint16 worldVersion)
+void TileExtra_BattleCage::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                     uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWriteString(cageName, write);
-    memBuffer.ReadWrite(basePet, write);
-    memBuffer.ReadWrite(secondPet, write);
-    memBuffer.ReadWrite(thirdPet, write);
+
+    if (!database)
+    {
+        int32 baseID = ToItemClientID(basePet);
+        int32 secondID = ToItemClientID(secondPet);
+        int32 thirdID = ToItemClientID(thirdPet);
+
+        memBuffer.ReadWrite(baseID, write);
+        memBuffer.ReadWrite(secondID, write);
+        memBuffer.ReadWrite(thirdID, write);
+    }
+    else
+    {
+        memBuffer.ReadWrite(basePet, write);
+        memBuffer.ReadWrite(secondPet, write);
+        memBuffer.ReadWrite(thirdPet, write);
+    }
 }
 
-void TileExtra_PetTrainer::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_PetTrainer::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                     uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWriteString(trainerName, write);
@@ -457,29 +490,30 @@ void TileExtra_PetTrainer::Serialize(MemoryBuffer& memBuffer, bool write, bool d
     uint32 petSize = pets.size();
     memBuffer.ReadWrite(petSize, write);
 
-    if(!write) 
+    if (!write)
     {
         pets.resize(petSize);
     }
 
     memBuffer.ReadWrite(unk, write);
 
-    if(petSize > 0) 
+    if (petSize > 0)
     {
         memBuffer.ReadWriteRaw(pets.data(), petSize * sizeof(int32), write);
     }
 
-    if(worldVersion > 23)
+    if (worldVersion > 23)
     {
         memBuffer.ReadWriteString(unk2, write);
     }
 }
 
-void TileExtra_Mailbox::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_Mailbox::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                  uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
-    
-    if(!database)
+
+    if (!database)
     {
         string data;
         memBuffer.ReadWriteString(data, write);
@@ -494,12 +528,12 @@ void TileExtra_Mailbox::Serialize(MemoryBuffer& memBuffer, bool write, bool data
         uint8 letterSize = letters.size();
         memBuffer.ReadWrite(letterSize, write);
 
-        if(!write)
+        if (!write)
         {
             letters.resize(letterSize);
         }
 
-        for(auto& letter : letters)
+        for (auto& letter : letters)
         {
             memBuffer.ReadWrite(letter.userID, write);
             memBuffer.ReadWriteString(letter.message, write);
@@ -507,22 +541,24 @@ void TileExtra_Mailbox::Serialize(MemoryBuffer& memBuffer, bool write, bool data
     }
 }
 
-void TileExtra_Crystal::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_Crystal::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                  uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWriteString(crystals, write);
-    
-    if(database)
+
+    if (database)
     {
         memBuffer.ReadWriteRaw(chi, 4 * sizeof(int16), write);
     }
 }
 
-void TileExtra_Bulletin::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile, uint16 worldVersion)
+void TileExtra_Bulletin::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                   uint16 worldVersion)
 {
     TileExtra::Serialize(memBuffer, write);
-    
-    if(!database)
+
+    if (!database)
     {
         string data;
         memBuffer.ReadWriteString(data, write);
@@ -537,12 +573,12 @@ void TileExtra_Bulletin::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
         uint8 letterSize = letters.size();
         memBuffer.ReadWrite(letterSize, write);
 
-        if(!write)
+        if (!write)
         {
             letters.resize(letterSize);
         }
 
-        for(auto& letter : letters)
+        for (auto& letter : letters)
         {
             memBuffer.ReadWrite(letter.userID, write);
             memBuffer.ReadWriteString(letter.message, write);

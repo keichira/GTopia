@@ -25,7 +25,7 @@ void TradeDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
         ->AddLabelWithIcon("`2Trade`w" + pItem->name, pItem->id, true)
         ->AddTextBox("`2Trade how many?``")
         ->AddTextInput("count", "", "", 5)
-        ->EmbedData("itemID", pItem->id)
+        ->EmbedData("itemID", ToItemClientID(pItem->id))
         ->EndDialog("trade_item", "OK", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get());

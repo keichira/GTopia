@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../Precompiled.h"
-#include "../Math/Vector2.h"
 #include "../Math/Rect.h"
+#include "../Math/Vector2.h"
 #include "../Memory/MemoryBuffer.h"
-#include "TileExtra.h"
+#include "../Precompiled.h"
 #include "../Utils/Timer.h"
+#include "TileExtra.h"
 
-enum eTileFlags 
+enum eTileFlags
 {
     TILE_FLAG_HAS_EXTRA_DATA = 1 << 0,
     TILE_FLAG_HAS_PARENT = 1 << 1,
@@ -33,13 +33,14 @@ class WorldInfo;
 
 struct TempTileData
 {
-    uint16 fg = 0;
-    uint16 bg = 0;
+    int16 fg = 0;
+    int16 bg = 0;
     uint16 parent = 0;
     uint16 flags = 0;
 };
 
-class TileInfo {
+class TileInfo
+{
 public:
     TileInfo();
     ~TileInfo();
@@ -47,19 +48,23 @@ public:
 public:
     void Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion);
 
-    void SetFG(uint16 itemID, WorldTileManager* pTileMgr);
-    void SetBG(uint16 itemID);
+    void SetFG(int16 itemID, WorldTileManager* pTileMgr);
+    void SetBG(int16 itemID, WorldTileManager* pTileMgr);
     bool IsCollidable();
 
     void BindTileData(TempTileData* pTileData);
 
-    uint16 GetFG() const { return m_tileData->fg; }
-    uint16 GetBG() const { return m_tileData->bg; }
+    int16 GetFG() const { return m_tileData->fg; }
+    int16 GetBG() const { return m_tileData->bg; }
 
     void SetParent(uint16 index) { m_tileData->parent = index; }
     uint16 GetParent() const { return m_tileData->parent; }
 
-    void SetPos(uint16 x, uint16 y) { m_pos.x = x; m_pos.y = y; }
+    void SetPos(uint16 x, uint16 y)
+    {
+        m_pos.x = x;
+        m_pos.y = y;
+    }
     Vector2Int& GetPos() { return m_pos; }
 
     void SetMapIndex(int32 index) { m_index = index; }
@@ -90,13 +95,14 @@ public:
     uint8 GetType() const { return m_type; };
 
     void AgeTile(uint32 ageMS);
-        
-    template<class T>
-    T* GetExtra() {
-        if(!m_pExtraData || m_pExtraData->type != T::TYPE) {
+
+    template <class T> T* GetExtra()
+    {
+        if (!m_pExtraData || m_pExtraData->type != T::TYPE)
+        {
             return nullptr;
         }
-    
+
         return static_cast<T*>(m_pExtraData);
     }
 

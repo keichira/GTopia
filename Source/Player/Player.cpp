@@ -1,4 +1,5 @@
 #include "Player.h"
+#include "../Item/ItemInfoManager.h"
 #include "../Packet/NetPacket.h"
 #include "../Utils/Base64.h"
 #include "../Utils/Timer.h"
@@ -33,13 +34,16 @@ void Player::SendLogonFailWithLog(const string& message)
     SendUDPPacket(GetNetID(), NET_MESSAGE_GAME_MESSAGE, "action|logon_fail\n");
 }
 
-void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings, uint32 tributeHash)
+void Player::SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath,
+                               const string& settings, uint32 tributeHash)
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnWelcomePacket(m_loginDetail.protocol, m_loginDetail.gameVersion, itemsDatHash, cdnServer,
-                                                                      cdnPath, settings, tributeHash));
+    SendCallFunctionPacket(GetNetID(),
+                           VariantPacket::OnWelcomePacket(m_loginDetail.protocol, m_loginDetail.gameVersion,
+                                                          itemsDatHash, cdnServer, cdnPath, settings, tributeHash));
 }
 
-void Player::SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode, const string& doorID)
+void Player::SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode,
+                                const string& doorID)
 {
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnSendToServer(port, token, userID, serverIP, logonMode, doorID));
 }
@@ -67,7 +71,8 @@ void Player::SendOnSpawn(const string& spawnData)
 
 void Player::SendOnChangeSkin(uint32 skinColor, Player* pPlayer)
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnChangeSkin(skinColor), pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnChangeSkin(skinColor),
+                           pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendOnTalkBubble(const string& message, bool stackMessages, Player* pPlayer)
@@ -107,7 +112,8 @@ void Player::SendOnTextOverlay(const string& message)
 
 void Player::SendOnPlayPositioned(const string& fileName, Player* pPlayer)
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnPlayPositioned(fileName), pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnPlayPositioned(fileName),
+                           pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendOnNameChanged(const string& name, Player* pPlayer)
@@ -122,17 +128,20 @@ void Player::SendSetHasGrowID(bool active, const string& tankIDName, const strin
 
 void Player::SendSetHasGrowID(bool active)
 {
-    SendSetHasGrowID(active, m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName, m_loginDetail.tankIDPass);
+    SendSetHasGrowID(active, m_loginDetail.tankIDName.empty() ? m_loginDetail.requestedName : m_loginDetail.tankIDName,
+                     m_loginDetail.tankIDPass);
 }
 
 void Player::SendOnSetBux(uint32 gemCount, bool skipAnim, bool isSupporter, bool isSuperSupporter)
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetBux(gemCount, skipAnim, isSupporter, isSuperSupporter, Time::GetSecondsFromMidnight()));
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetBux(gemCount, skipAnim, isSupporter, isSuperSupporter,
+                                                               Time::GetSecondsFromMidnight()));
 }
 
 void Player::SendOnDataConfig(bool isMod, bool isSMod, Player* pPlayer)
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnDataConfig(isMod, isSMod), pPlayer ? pPlayer->GetNetID() : GetNetID());
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnDataConfig(isMod, isSMod),
+                           pPlayer ? pPlayer->GetNetID() : GetNetID());
 }
 
 void Player::SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
@@ -192,9 +201,11 @@ void Player::SendOnStartTrade(const string& partnerName, int32 partnerNetID)
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnStartTrade(partnerName, partnerNetID));
 }
 
-void Player::SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus, const string& itemData)
+void Player::SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus,
+                               const string& itemData)
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnTradeStatus(parnterNetID, localStatus, partnerStatus, itemData));
+    SendCallFunctionPacket(GetNetID(),
+                           VariantPacket::OnTradeStatus(parnterNetID, localStatus, partnerStatus, itemData));
 }
 
 void Player::SendOnForceTradeEnded()
@@ -315,11 +326,15 @@ void Player::SendOnSetClothing(Player* pPlayer)
 
     VariantVector data(6);
     data[0] = "OnSetClothing";
-    data[1] = Vector3Float(clothes[BODY_PART_HAIR], clothes[BODY_PART_SHIRT], clothes[BODY_PART_PANT]);
-    data[2] = Vector3Float(clothes[BODY_PART_SHOE], clothes[BODY_PART_FACEITEM], clothes[BODY_PART_HAND]);
-    data[3] = Vector3Float(clothes[BODY_PART_BACK], clothes[BODY_PART_HAT], clothes[BODY_PART_CHESTITEM]);
+    data[1] = Vector3Float(ToItemClientID(clothes[BODY_PART_HAIR]), ToItemClientID(clothes[BODY_PART_SHIRT]),
+                           ToItemClientID(clothes[BODY_PART_PANT]));
+    data[2] = Vector3Float(ToItemClientID(clothes[BODY_PART_SHOE]), ToItemClientID(clothes[BODY_PART_FACEITEM]),
+                           ToItemClientID(clothes[BODY_PART_HAND]));
+    data[3] = Vector3Float(ToItemClientID(clothes[BODY_PART_BACK]), ToItemClientID(clothes[BODY_PART_HAT]),
+                           ToItemClientID(clothes[BODY_PART_CHESTITEM]));
 
-    data[4] = pPlayer ? (int32)pPlayer->GetCharData().skinColor.GetAsUINTSwap() : (int32)m_characterData.skinColor.GetAsUINTSwap();
+    data[4] = pPlayer ? (int32)pPlayer->GetCharData().skinColor.GetAsUINTSwap()
+                      : (int32)m_characterData.skinColor.GetAsUINTSwap();
 
     bool isInvis = true;
 

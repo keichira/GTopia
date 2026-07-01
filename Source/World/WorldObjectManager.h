@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Precompiled.h"
+#include "../Math/Rect.h"
 #include "../Math/Vector2.h"
 #include "../Memory/MemoryBuffer.h"
 #include "../Packet/GamePacket.h"
-#include "../Math/Rect.h"
+#include "../Precompiled.h"
 
 enum eObjectFlag
 {
@@ -14,7 +14,7 @@ enum eObjectFlag
 
 struct WorldObject
 {
-    uint16 itemID = 0;
+    int16 itemID = 0;
     Vector2Float pos;
     uint8 count = 0;
     uint8 flags = 0;
@@ -25,10 +25,11 @@ struct WorldObject
     bool HasFlag(uint16 flag) { return flags & flag; };
     Vector2Float GetCenterPos() { return pos + 8.0f; }
 
-    void Serialize(MemoryBuffer& memBuffer, bool write);
+    void Serialize(MemoryBuffer& memBuffer, bool write, bool database);
 };
 
-class WorldObjectManager {
+class WorldObjectManager
+{
 public:
     WorldObjectManager();
     ~WorldObjectManager();
@@ -36,13 +37,13 @@ public:
 public:
     void Serialize(MemoryBuffer& memBuffer, bool write, bool database);
     uint32 GetMemEstimate();
-    void AddItem(uint16 itemID, uint8 count, Vector2Float pos, uint8 flags = 0);
-    void ModifyItem(uint32 objectID, uint16 itemID, uint8 count, Vector2Float pos, uint8 flags);
+    void AddItem(int16 itemID, uint8 count, Vector2Float pos, uint8 flags = 0);
+    void ModifyItem(uint32 objectID, int16 itemID, uint8 count, Vector2Float pos, uint8 flags);
     void DeleteByID(uint32 objectID);
     void HandleObjectPackets(GameUpdatePacket* pGamePacket);
 
     std::vector<WorldObject*> GetObjectsInRect(const RectFloat& rect);
-    std::vector<WorldObject*> GetObjectsInRectByItemID(const RectFloat& rect, uint16 itemID);
+    std::vector<WorldObject*> GetObjectsInRectByItemID(const RectFloat& rect, int16 itemID);
     uint32 GetCounfOfObjestsInRect(const RectFloat& rect);
     WorldObject* GetObjectByID(uint32 objectID);
 

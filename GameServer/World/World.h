@@ -71,14 +71,16 @@ public:
     void SendNameChangeToAll(GamePlayer* pPlayer, bool checkWorld = true);
     void SendSetCharPacketToAll(GamePlayer* pPlayer);
     void SendClothUpdateToAll(GamePlayer* pPlayer);
-    void SendParticleEffectToAll(float coordX, float coordY, uint32 particleType, float particleSize = 0, int32 delay = -1);
+    void SendParticleEffectToAll(float coordX, float coordY, uint32 particleType, float particleSize = 0,
+                                 int32 delay = -1);
     void SendTileUpdate(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
     void SendTileUpdate(uint16 tileX, uint16 tileY, GamePlayer* pPlayer = nullptr);
     void SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles);
     void SendTileApplyDamage(TileInfo* pTile, int32 damage, int32 netID);
     void SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo*>& tiles, TileInfo* pLockTile);
     void SendPlayerDataConfigToAll(GamePlayer* pPlayer);
-    void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
+    void SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs = 0,
+                                 float angle = 0.0f);
     // void SendParticleEffectV2ToAll(const Vector2Float& pos, int32 delayMs = 0, float angle = 0.0f);
     void SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer);
     void PlaySFXForEveryone(const string& fileName, int32 delay = -1);
@@ -87,8 +89,8 @@ public:
     void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
     void SendOnCountryStateToAll(GamePlayer* pPlayer);
     void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos);
-    void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos, const Vector2Float& dest, float speed,
-                            int32 val1, int32 val2);
+    void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
+                            const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
@@ -100,7 +102,8 @@ public:
 
     uint32 PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal);
     int32 PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
-    bool PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
+    bool PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal,
+                                    std::vector<TileInfo*>& openList);
     bool CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal);
     bool CanPlayerTravelStraight(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal);
 
@@ -123,7 +126,7 @@ public:
     bool CheckOuijaBoardCanTrigger(GamePlayer* pPlayer, TileInfo* pTile);
     bool TriggerOuijaBoard(std::vector<GamePlayer*> players, TileInfo* pTile);
 
-    void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, uint16 lockID);
+    void OnAddLock(GamePlayer* pPlayer, TileInfo* pTile, int16 lockID);
     void OnRemoveLock(GamePlayer* pPlayer, TileInfo* pTile);
     void RemoveAllAccessRequestsFromLock(TileInfo* pTile);
     void OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, TileInfo* pTile, bool placeBehind);
@@ -142,8 +145,8 @@ public:
     GamePlayer* GetPlayerByNameStartsWith(const string& name, string& errorMsg);
 
     void DropGemsOnTile(TileInfo* pTile, uint32 gemCount);
-    void DropObjectOnTile(TileInfo* pTile, uint16 itemID, uint8 count, const Vector2Float& offset, bool merge);
-    void DropObject(uint16 itemID, uint8 count, const Vector2Float& pos);
+    void DropObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const Vector2Float& offset, bool merge);
+    void DropObject(int16 itemID, uint8 count, const Vector2Float& pos);
 
     void SendCurrentWeatherToAll();
     uint32 GetPlayerCount() const { return m_players.size(); }

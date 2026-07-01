@@ -1,7 +1,7 @@
 #include "AchievementBlockDialog.h"
-#include "Item/ItemInfoManager.h"
 #include "../../World/WorldManager.h"
 #include "../GamePlayer.h"
+#include "Item/ItemInfoManager.h"
 #include "Utils/DialogBuilder.h"
 
 void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
@@ -18,7 +18,8 @@ void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemI
 
     if (pWorld->GetWorldOwnerID() != pPlayer->GetUserID())
     {
-        pPlayer->SendOnTalkBubble("An `5Achievement Block`` can only be etched by the owner of this world. (Requires `5World Lock``)", false);
+        pPlayer->SendOnTalkBubble(
+            "An `5Achievement Block`` can only be etched by the owner of this world. (Requires `5World Lock``)", false);
         return;
     }
 
@@ -89,7 +90,8 @@ void AchievementBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& p
             return;
     }
 
-    if (achievementID != 127 && achievementID < 0 && achievementID > ACHIEVEMENT_COUNT && !pPlayer->GetProgressData().HasAchievement((eAchievement)achievementID))
+    if (achievementID != 127 && achievementID < 0 && achievementID > ACHIEVEMENT_COUNT &&
+        !pPlayer->GetProgressData().HasAchievement((eAchievement)achievementID))
         return;
 
     string message = "Block etched.";

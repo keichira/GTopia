@@ -1,14 +1,15 @@
 #pragma once
 
-#include "Precompiled.h"
 #include "Item/ItemInfoManager.h"
-#include "World/WorldInfo.h"
 #include "Item/ItemUtils.h"
 #include "Math/Vector2.h"
+#include "Precompiled.h"
 #include "Renderer2D.h"
+#include "World/WorldInfo.h"
 #include <blend2d/blend2d.h>
 
-class WorldRenderer {
+class WorldRenderer
+{
 public:
     WorldRenderer();
     ~WorldRenderer();
@@ -20,10 +21,10 @@ public:
 
 private:
     void DrawWeather();
-    void DrawTile(TileInfo* pTile, uint16 itemID);
+    void DrawTile(TileInfo* pTile, int16 itemID);
     Vector2Int GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem);
 
-    bool IsFGTransparent(uint16 itemID);
+    bool IsFGTransparent(int16 itemID);
 
 private:
     WorldInfo* m_pWorld;

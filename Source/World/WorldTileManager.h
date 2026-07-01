@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../Math/Rect.h"
+#include "../Memory/MemoryBuffer.h"
 #include "../Precompiled.h"
 #include "TileInfo.h"
-#include "../Memory/MemoryBuffer.h"
-#include "../Math/Rect.h"
 
 #define WORLD_DEFAULT_WIDTH 100
 #define WORLD_DEFAULT_HEIGHT 60
@@ -26,7 +26,7 @@ enum eKeyTile
 
 struct TileMapFillData
 {
-    uint32 itemID = 0;
+    int32 itemID = 0;
     float chance = 100.0f;
 };
 
@@ -34,7 +34,8 @@ typedef std::vector<TileMapFillData> TileMapFillVector;
 
 class WorldInfo;
 
-class WorldTileManager {
+class WorldTileManager
+{
 public:
     WorldTileManager(WorldInfo* pParent);
     ~WorldTileManager();
@@ -72,7 +73,7 @@ public:
     void GenerateClearMap();
     void GenerateBeachMap();
 
-    void FillRectWith(const RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
+    void FillRectWith(const RectInt& rect, int16 fgItem, int16 bgItem, float chance);
     bool FillRectWith(const RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems);
 
     bool IsSameTile(TileInfo* pTile, int32 x, int32 y, bool forBackground);
@@ -95,11 +96,14 @@ public:
     bool CheckIfPointInsidePowerNodeGroups(const Vector2Float& pos);
 
     std::vector<TileInfo*>& GetHeartMonitors() { return m_heartMonitors; }
+    void IncreaseNegativeItems() { m_negativeItemCount++; };
+    void DecreaseNegativeItems() { m_negativeItemCount = Min(0, m_negativeItemCount--); }
 
 private:
-    void FillRectWithThickness(uint16 thickness, RectInt& rect, uint16 fgItem, uint16 bgItem, float chance);
-    void FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems, const TileMapFillVector& bgItems);
-    
+    void FillRectWithThickness(uint16 thickness, RectInt& rect, int16 fgItem, int16 bgItem, float chance);
+    void FillRectWithThickness(uint16 thickness, RectInt& rect, const TileMapFillVector& fgItems,
+                               const TileMapFillVector& bgItems);
+
 private:
     Vector2Int m_size;
     std::vector<TileInfo> m_tiles;
@@ -110,8 +114,10 @@ private:
     std::vector<TileInfo*> m_heartMonitors;
 
     std::vector<TileInfo*> m_powerNodes;
-    std::vector<std::vector<TileInfo*>>  m_powerNodeGroups;
+    std::vector<std::vector<TileInfo*>> m_powerNodeGroups;
     std::unordered_map<TileInfo*, uint32> m_nodeToGroup;
+
+    uint32 m_negativeItemCount;
 
     uint32 m_lockCount;
     WorldInfo* m_pWorld;

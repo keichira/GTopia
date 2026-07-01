@@ -114,8 +114,8 @@ void WorldManager::StartWorldLoad(World* pWorld)
         pWorld->SetState(WORLD_STATE_LOADING);
 
         GetPlayerPresenceManager()->RequestPresenceForWorld(pWorld->GetInstanceID(), presenceUserIDs);
-        LOGGER_LOG_DEBUG("World %s is waiting for %d presence snapshots before going READY.", pWorld->GetWorlName().c_str(),
-                         (int32)presenceUserIDs.size());
+        LOGGER_LOG_DEBUG("World %s is waiting for %d presence snapshots before going READY.",
+                         pWorld->GetWorlName().c_str(), (int32)presenceUserIDs.size());
     }
 }
 
@@ -158,7 +158,8 @@ void WorldManager::HandlePlayerJoin(VariantVector&& result)
         PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
         loginDetail.loginMode = LOGON_MODE_TRANSFER;
 
-        pPlayer->SendOnSendToServer(serverPort, loginDetail.token, pPlayer->GetUserID(), serverIP, loginDetail.loginMode, loginDetail.doorID);
+        pPlayer->SendOnSendToServer(serverPort, loginDetail.token, pPlayer->GetUserID(), serverIP,
+                                    loginDetail.loginMode, loginDetail.doorID);
 
         pPlayer->LogOff(true, false, false, false);
         return;
@@ -213,15 +214,17 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
 
     if (!IsValidWorldName(targetWorldName))
     {
-        pPlayer->SendOnConsoleMessage("Sorry, spaces and special characters are not allowed in world or door names. Try again.");
+        pPlayer->SendOnConsoleMessage(
+            "Sorry, spaces and special characters are not allowed in world or door names. Try again.");
         pPlayer->SendOnFailedToEnterWorld();
         return;
     }
 
-    /*if (pPlayer->GetCurrentWorld() == 0 && (targetWorldName.find('_') != string::npos || targetWorldName.find(' ') != string::npos))
+    /*if (pPlayer->GetCurrentWorld() == 0 && (targetWorldName.find('_') != string::npos || targetWorldName.find(' ') !=
+    string::npos))
     {
-        pPlayer->SendOnConsoleMessage("Sorry, spaces and special characters are not allowed in world or door names. Try again.");
-        pPlayer->SendOnFailedToEnterWorld();
+        pPlayer->SendOnConsoleMessage("Sorry, spaces and special characters are not allowed in world or door names. Try
+    again."); pPlayer->SendOnFailedToEnterWorld();
     }*/
 
     if (targetWorldName == "EXIT")
@@ -292,7 +295,8 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
     if (pWorld->GetPlayerCount() >= GetContext()->GetGameConfig()->worldMaxPlayerCount)
     {
         pPlayer->SendOnConsoleMessage("Oops, `5" + targetWorldName + "`` already has `4" +
-                                      ToString(GetContext()->GetGameConfig()->worldMaxPlayerCount) + "`` people in it. Try again later.");
+                                      ToString(GetContext()->GetGameConfig()->worldMaxPlayerCount) +
+                                      "`` people in it. Try again later.");
         pPlayer->SendOnFailedToEnterWorld();
         return;
     }

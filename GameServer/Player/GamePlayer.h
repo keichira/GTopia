@@ -99,7 +99,7 @@ public:
     Role* GetRole() const { return m_pRole; }
     void SetRole(Role* pRole) { m_pRole = pRole; }
 
-    void ToggleCloth(uint16 itemID);
+    void ToggleCloth(int32 itemID);
     void ToggleBattlePetLeash(bool forceFirstSlot);
     int32 GetActiveBattlePetSlot() const { return m_activeBattlePetSlot; }
 
@@ -112,9 +112,9 @@ public:
     uint32 GetPlayerLevel();
     uint32 GetPlayerNextLevelXP();
 
-    void ModifyInventoryItem(uint16 itemID, int16 amount);
-    void TrashItem(uint16 itemID, uint16 amount);
-    void DropItem(uint16 itemID, uint16 amount, bool openDialog);
+    void ModifyInventoryItem(int32 itemID, int16 amount);
+    void TrashItem(int32 itemID, uint16 amount);
+    void DropItem(int32 itemID, uint16 amount, bool openDialog);
 
     bool CanActivateItemNow() { return Time::GetSystemTime() - m_lastItemActivateTime >= 100; }
     void ResetItemActiveTime() { m_lastItemActivateTime = Time::GetSystemTime(); }
