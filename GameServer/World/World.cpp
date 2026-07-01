@@ -3169,6 +3169,12 @@ void World::DropObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const V
     if (!pItem)
         return;
 
+    if (pItem->type == ITEM_TYPE_GEMS)
+    {
+        DropGemsOnTile(pTile, count);
+        return;
+    }
+
     Vector2Int vTilePos = pTile->GetPos();
     Vector2Float vBasePos = Vector2Float(vTilePos.x, vTilePos.y) * 32;
     vBasePos += 8.0f;

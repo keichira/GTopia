@@ -418,3 +418,35 @@ TILE_EXTRA(TileExtra_Bulletin, TILE_EXTRA_TYPE_BULLETIN)
         return count;
     }
 };
+
+struct TileDonationBoxGifts
+{
+    uint32 userID = 0;
+    string message;
+    int32 itemID = 0;
+    int16 itemCount = 0;
+};
+
+TILE_EXTRA(TileExtra_DonaitonBox, TILE_EXTRA_TYPE_DONATION_BOX)
+    /**
+     * same as mailbox or bulletin board
+     * serializing variants into string
+     */
+
+    std::deque<TileDonationBoxGifts> gifts;
+    int32 minRarity = 2;
+    Timer lastDonationTime;
+
+    uint32 GetCountOfGiftsFromID(uint32 userID)
+    {
+        uint32 count = 0;
+
+        for(auto& gift : gifts)
+        {
+            if(gift.userID == userID)
+                count++;
+        }
+
+        return count;
+    }
+};

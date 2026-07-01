@@ -5,6 +5,7 @@
 #include "../../../Player/Dialog/AchievementBlockDialog.h"
 #include "../../../Player/Dialog/BattleCageDialog.h"
 #include "../../../Player/Dialog/BulletinBlockDialog.h"
+#include "../../../Player/Dialog/DonationBoxDialog.h"
 #include "../../../Player/Dialog/DoorDialog.h"
 #include "../../../Player/Dialog/DropItemDialog.h"
 #include "../../../Player/Dialog/LockDialog.h"
@@ -75,6 +76,8 @@ void DialogReturn::RegisterDialogs()
     RegisterDialog<DoorDialog::Handle>("door_edit"_hash);
     RegisterDialog<DoorDialog::HandlePasswordReply>("password_reply"_hash);
     RegisterDialog<TradeDialog::Handle>("trade_item"_hash);
+    RegisterDialog<DonationBoxDialog::Handle>("donation_box_edit"_hash);
+    RegisterDialog<DonationBoxDialog::HandleGiveItem>("give_item"_hash);
 }
 
 void GameMessage_DialogReturn(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)

@@ -36,6 +36,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_HEART_MONITOR:
             return TILE_EXTRA_TYPE_HEART_MONITOR;
 
+        case ITEM_TYPE_DONATION_BOX:
+            return TILE_EXTRA_TYPE_DONATION_BOX;
+
         case ITEM_TYPE_XENONITE:
             return TILE_EXTRA_TYPE_XENONITE;
 
@@ -92,6 +95,9 @@ TileExtra* CreateTileExtra(uint8 type)
 
         case TILE_EXTRA_TYPE_HEART_MONITOR:
             return new TileExtra_HeartMonitor();
+
+        case TILE_EXTRA_TYPE_DONATION_BOX:
+            return new TileExtra_DonaitonBox();
 
         case TILE_EXTRA_TYPE_XENONITE:
             return new TileExtra_Xenonite();
@@ -583,5 +589,42 @@ void TileExtra_Bulletin::Serialize(MemoryBuffer& memBuffer, bool write, bool dat
             memBuffer.ReadWrite(letter.userID, write);
             memBuffer.ReadWriteString(letter.message, write);
         }
+    }
+}
+
+void TileExtra_DonaitonBox::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                      uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    if (!database)
+    {
+        string data;
+        memBuffer.ReadWriteString(data, write);
+        memBuffer.ReadWriteString(data, write);
+        memBuffer.ReadWriteString(data, write);
+
+        uint8 flags = 0;
+        memBuffer.ReadWrite(flags, write);
+    }
+    else
+    {
+        uint8 giftsSize = gifts.size();
+        memBuffer.ReadWrite(giftsSize, write);
+
+        if (!write)
+        {
+            gifts.resize(giftsSize);
+        }
+
+        for (auto& gift : gifts)
+        {
+            memBuffer.ReadWrite(gift.userID, write);
+            memBuffer.ReadWriteString(gift.message, write);
+            memBuffer.ReadWrite(gift.itemID, write);
+            memBuffer.ReadWrite(gift.itemCount, write);
+        }
+
+        memBuffer.ReadWrite(minRarity, write);
     }
 }

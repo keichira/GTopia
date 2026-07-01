@@ -3,84 +3,92 @@
 #include "Item/ItemInfoManager.h"
 #include "World/TileInfo.h"
 
-#include "SignDialog.h"
-#include "LockDialog.h"
 #include "AchievementBlockDialog.h"
-#include "OuijaBoardDialog.h"
 #include "BattleCageDialog.h"
-#include "XenoniteDialog.h"
-#include "MailboxBlockDialog.h"
-#include "CrystalBlockDialog.h"
 #include "BulletinBlockDialog.h"
+#include "CrystalBlockDialog.h"
+#include "DonationBoxDialog.h"
 #include "DoorDialog.h"
+#include "LockDialog.h"
+#include "MailboxBlockDialog.h"
+#include "OuijaBoardDialog.h"
+#include "SignDialog.h"
+#include "XenoniteDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
-    if(!pTile) {
+    if (!pTile)
+    {
         return;
     }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-    if(!pItem)
+    if (!pItem)
         return;
 
-    if(pItem->type == ITEM_TYPE_SIGN) 
+    if (pItem->type == ITEM_TYPE_SIGN)
     {
         SignDialog::Request(pPlayer, pTile);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_LOCK) 
+    if (pItem->type == ITEM_TYPE_LOCK)
     {
         LockDialog::Request(pPlayer, pTile);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_ACHIEVEMENT)
+    if (pItem->type == ITEM_TYPE_ACHIEVEMENT)
     {
         AchievementBlockDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_OUIJA_BOARD)
+    if (pItem->type == ITEM_TYPE_OUIJA_BOARD)
     {
         OuijaBoardDialog::RequestMain(pPlayer, pTile);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_BATTLE_CAGE)
+    if (pItem->type == ITEM_TYPE_BATTLE_CAGE)
     {
         BattleCageDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_XENONITE)
+    if (pItem->type == ITEM_TYPE_XENONITE)
     {
         XenoniteDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_MAILBOX)
+    if (pItem->type == ITEM_TYPE_MAILBOX)
     {
         MailboxBlockDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_CRYSTAL)
+    if (pItem->type == ITEM_TYPE_CRYSTAL)
     {
         CrystalBlockDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_BULLETIN)
+    if (pItem->type == ITEM_TYPE_BULLETIN)
     {
         BulletinBlockDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 
-    if(pTile->IsTileExtraType(TILE_EXTRA_TYPE_DOOR))
+    if (pTile->IsTileExtraType(TILE_EXTRA_TYPE_DOOR))
     {
         DoorDialog::Request(pPlayer, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_DONATION_BOX)
+    {
+        DonationBoxDialog::Request(pPlayer, pTile, pItem);
         return;
     }
 }

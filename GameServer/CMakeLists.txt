@@ -103,6 +103,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/DoorDialog.cpp
     ${GAME_DIALOG}/ItemFinderDialog.cpp
     ${GAME_DIALOG}/TradeDialog.cpp
+    ${GAME_DIALOG}/DonationBoxDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

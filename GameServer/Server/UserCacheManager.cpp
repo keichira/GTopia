@@ -1,22 +1,21 @@
 #include "UserCacheManager.h"
-#include "../Player/PlayerManager.h"
-#include "../Player/GamePlayer.h"
 #include "../Context.h"
-#include "Item/ItemInfoManager.h"
-#include "Player/RoleManager.h"
-#include "../World/WorldManager.h"
+#include "../Player/Dialog/BulletinBlockDialog.h"
+#include "../Player/Dialog/DonationBoxDialog.h"
 #include "../Player/Dialog/LockDialog.h"
 #include "../Player/Dialog/MailboxBlockDialog.h"
-#include "../Player/Dialog/BulletinBlockDialog.h"
+#include "../Player/GamePlayer.h"
+#include "../Player/PlayerManager.h"
+#include "../World/WorldManager.h"
+#include "Item/ItemInfoManager.h"
+#include "Player/RoleManager.h"
 
 UserCacheManager::UserCacheManager()
 {
     m_lastCleanupTime.Reset();
 }
 
-UserCacheManager::~UserCacheManager()
-{
-}
+UserCacheManager::~UserCacheManager() {}
 
 void UserCacheManager::Init(uint32 maxExpectedPlayers)
 {
@@ -28,20 +27,20 @@ void UserCacheManager::Init(uint32 maxExpectedPlayers)
 UserMetadata* UserCacheManager::GetMetadata(uint32 userID)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(userID);
-    if(pPlayer && !pPlayer->HasState(PLAYER_STATE_DELETE) && pPlayer->HasState(PLAYER_STATE_IN_GAME))
+    if (pPlayer && !pPlayer->HasState(PLAYER_STATE_DELETE) && pPlayer->HasState(PLAYER_STATE_IN_GAME))
     {
         uint32 roleID = 0;
-        if(Role* pRole = pPlayer->GetRole())
+        if (Role* pRole = pPlayer->GetRole())
         {
             roleID = pRole->GetID();
         }
 
-        m_cache[userID] = { userID, pPlayer->GetRawName(), pPlayer->GetDisplayName(false), roleID, Timer() };
+        m_cache[userID] = {userID, pPlayer->GetRawName(), pPlayer->GetDisplayName(false), roleID, Timer()};
         return &m_cache[userID];
     }
 
     auto it = m_cache.find(userID);
-    if(it != m_cache.end())
+    if (it != m_cache.end())
     {
         it->second.cacheTime.Reset();
         return &it->second;
@@ -54,27 +53,24 @@ bool UserCacheManager::IsCached(uint32 userID)
     return GetMetadata(userID) != nullptr;
 }
 
-void UserCacheManager::FetchMetadata(uint32 playerNetID, 
-                                    eCacheRequestType reqType,
-                                    const std::vector<int32>& userIDs, 
-                                    std::array<CacheParam, 5> params, 
-                                    const char* textParam)
+void UserCacheManager::FetchMetadata(uint32 playerNetID, eCacheRequestType reqType, const std::vector<int32>& userIDs,
+                                     std::array<CacheParam, 5> params, const char* textParam)
 {
-    if(m_pendingRequests.find(playerNetID) != m_pendingRequests.end())
+    if (m_pendingRequests.find(playerNetID) != m_pendingRequests.end())
         return;
 
     static std::vector<int32> missingIDs;
-    missingIDs.clear(); 
+    missingIDs.clear();
 
-    for(int32 id : userIDs) 
+    for (int32 id : userIDs)
     {
-        if(id > 0 && !IsCached(id)) 
+        if (id > 0 && !IsCached(id))
         {
             missingIDs.push_back(id);
         }
     }
 
-    if(missingIDs.empty())
+    if (missingIDs.empty())
     {
         PendingRequest fastRequest;
         fastRequest.reqType = reqType;
@@ -94,11 +90,11 @@ void UserCacheManager::FetchMetadata(uint32 playerNetID,
     pending.params = params;
     pending.SetText(textParam);
 
-    for(uint32 missingID : missingIDs) 
+    for (uint32 missingID : missingIDs)
     {
         m_dbWatchers[missingID].push_back(playerNetID);
 
-        if(m_inFlightUserIDs.find(missingID) != m_inFlightUserIDs.end())
+        if (m_inFlightUserIDs.find(missingID) != m_inFlightUserIDs.end())
             continue;
 
         m_inFlightUserIDs.insert(missingID);
@@ -112,14 +108,14 @@ void UserCacheManager::FetchMetadata(uint32 playerNetID,
 
 void UserCacheManager::OnMetadataFetched(QueryTaskResult&& result)
 {
-    if(result.extraData.empty())
+    if (result.extraData.empty())
     {
         result.Destroy();
         return;
     }
 
     Variant* pFetchedUser = result.GetExtraData(0);
-    if(!pFetchedUser)
+    if (!pFetchedUser)
     {
         result.Destroy();
         return;
@@ -130,15 +126,15 @@ void UserCacheManager::OnMetadataFetched(QueryTaskResult&& result)
 
     pCacheMgr->m_inFlightUserIDs.erase(fetchedUserID);
 
-    if(result.status == QUERY_STATUS_OK && result.result)
+    if (result.status == QUERY_STATUS_OK && result.result)
     {
-        for(uint32 i = 0; i < result.result->GetRowCount(); ++i)
+        for (uint32 i = 0; i < result.result->GetRowCount(); ++i)
         {
             UserMetadata meta;
             meta.userID = fetchedUserID;
-           
+
             const string& name = result.result->GetField("Name", i).GetString();
-            if(name.empty())
+            if (name.empty())
             {
                 meta.name = result.result->GetField("GuestName", i).GetString() + "_";
                 meta.name += ToString(result.result->GetField("GuestID", i).GetINT());
@@ -150,11 +146,11 @@ void UserCacheManager::OnMetadataFetched(QueryTaskResult&& result)
 
             uint32 roleID = result.result->GetField("RoleID", i).GetINT();
             Role* pRole = GetRoleManager()->GetRole(roleID);
-            if(pRole)
+            if (pRole)
             {
                 meta.roleID = roleID;
 
-                if(pRole->GetNameColor() != 0)
+                if (pRole->GetNameColor() != 0)
                 {
                     meta.displayName += "`";
                     meta.displayName += pRole->GetNameColor();
@@ -170,16 +166,16 @@ void UserCacheManager::OnMetadataFetched(QueryTaskResult&& result)
     result.Destroy();
 
     auto watcherIt = pCacheMgr->m_dbWatchers.find(fetchedUserID);
-    if(watcherIt != pCacheMgr->m_dbWatchers.end()) 
+    if (watcherIt != pCacheMgr->m_dbWatchers.end())
     {
-        for(uint32 playerNetID : watcherIt->second) 
+        for (uint32 playerNetID : watcherIt->second)
         {
             auto reqIt = pCacheMgr->m_pendingRequests.find(playerNetID);
-            if(reqIt != pCacheMgr->m_pendingRequests.end()) 
+            if (reqIt != pCacheMgr->m_pendingRequests.end())
             {
-                reqIt->second.missingCount--; 
+                reqIt->second.missingCount--;
 
-                if(reqIt->second.missingCount == 0) 
+                if (reqIt->second.missingCount == 0)
                 {
                     pCacheMgr->ExecuteRequest(playerNetID, reqIt->second);
                     pCacheMgr->m_pendingRequests.erase(reqIt);
@@ -194,10 +190,10 @@ void UserCacheManager::OnMetadataFetched(QueryTaskResult&& result)
 void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& request)
 {
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(playerNetID);
-    if(!pPlayer) 
+    if (!pPlayer)
         return;
 
-    switch(request.reqType)
+    switch (request.reqType)
     {
         case CACHE_REQ_WORLD_LOCK_PUNCH:
         {
@@ -207,10 +203,11 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
 
         case CACHE_REQ_WORLD_LOCK_DIALOG:
         {
-            if(request.params.size() < 3)
+            if (request.params.size() < 3)
                 break;
 
-            LockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
+            LockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(),
+                                        request.params[2].GetInt32());
             break;
         }
 
@@ -222,19 +219,31 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
 
         case CACHE_REQ_MAILBOX_BLOCK:
         {
-            if(request.params.size() < 3)
+            if (request.params.size() < 3)
                 break;
 
-            MailboxBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
+            MailboxBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(),
+                                                request.params[2].GetInt32());
             break;
         }
 
         case CACHE_REQ_BULLETIN_BLOCK:
         {
-            if(request.params.size() < 3)
+            if (request.params.size() < 3)
                 break;
 
-            BulletinBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(), request.params[2].GetInt32());
+            BulletinBlockDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(),
+                                                 request.params[2].GetInt32());
+            break;
+        }
+
+        case CACHE_REQ_DONATION_BOX_BLOCK:
+        {
+            if (request.params.size() < 3)
+                break;
+
+            DonationBoxDialog::HandleFromCache(pPlayer, request.params[0].GetInt32(), request.params[1].GetInt32(),
+                                               request.params[2].GetInt32());
             break;
         }
 
@@ -245,40 +254,40 @@ void UserCacheManager::ExecuteRequest(uint32 playerNetID, const PendingRequest& 
 
 void UserCacheManager::OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, const PendingRequest& request)
 {
-    if(!pPlayer || request.params.size() < 3)
+    if (!pPlayer || request.params.size() < 3)
         return;
 
-    if(pPlayer->GetCurrentWorld() != request.params[0].GetInt32())
+    if (pPlayer->GetCurrentWorld() != request.params[0].GetInt32())
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(request.params[1].GetInt32(), request.params[2].GetInt32());
-    if(!pTile)
+    if (!pTile)
         return;
 
     TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-    if(!pTileExtra)
+    if (!pTileExtra)
         return;
 
-    if(pTileExtra->ownerID < 1)
+    if (pTileExtra->ownerID < 1)
         return;
 
     UserMetadata* pUserMeta = GetMetadata(pTileExtra->ownerID);
-    if(!pUserMeta)
+    if (!pUserMeta)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if(pItem->type != ITEM_TYPE_LOCK)
+    if (pItem->type != ITEM_TYPE_LOCK)
         return;
 
     string notifyMsg;
-    if(request.params[3].GetUInt32() == 0)
+    if (request.params[3].GetUInt32() == 0)
     {
-        notifyMsg = "`w" + pUserMeta->displayName + + "``'s `$" + pItem->name + "``.";
-        if(pTileExtra->HasAccess(pPlayer->GetUserID()))
+        notifyMsg = "`w" + pUserMeta->displayName + +"``'s `$" + pItem->name + "``.";
+        if (pTileExtra->HasAccess(pPlayer->GetUserID()))
         {
             notifyMsg += " (`2Access granted``)";
         }
@@ -298,34 +307,34 @@ void UserCacheManager::OnTriedPunchedOrPlaceLockedArea(GamePlayer* pPlayer, cons
 
 void UserCacheManager::OnPunchedAchievementBlock(GamePlayer* pPlayer, const PendingRequest& request)
 {
-    if(!pPlayer || request.params.size() < 3)
+    if (!pPlayer || request.params.size() < 3)
         return;
 
-    if(pPlayer->GetCurrentWorld() != request.params[0].GetInt32())
+    if (pPlayer->GetCurrentWorld() != request.params[0].GetInt32())
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(request.params[1].GetInt32(), request.params[2].GetInt32());
-    if(!pTile)
+    if (!pTile)
         return;
 
     TileExtra_Achievement* pTileExtra = pTile->GetExtra<TileExtra_Achievement>();
-    if(!pTileExtra)
+    if (!pTileExtra)
         return;
 
     UserMetadata* pUserMeta = GetMetadata(pTileExtra->ownerID);
-    if(!pUserMeta)
+    if (!pUserMeta)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if(pItem->type != ITEM_TYPE_ACHIEVEMENT)
+    if (pItem->type != ITEM_TYPE_ACHIEVEMENT)
         return;
 
     AchievementInfo* pAchievement = GetAchievementManager()->GetAchievement((eAchievement)pTileExtra->achievementID);
-    if(!pAchievement)
+    if (!pAchievement)
     {
         pPlayer->SendOnTalkBubble("Invalid achievement.", true);
         return;
@@ -336,25 +345,31 @@ void UserCacheManager::OnPunchedAchievementBlock(GamePlayer* pPlayer, const Pend
 
 void UserCacheManager::Update()
 {
-    if(m_lastCleanupTime.GetElapsedTime() < 300000)
+    if (m_lastCleanupTime.GetElapsedTime() < 300000)
         return;
 
     m_lastCleanupTime.Reset();
 
-    for(auto it = m_cache.begin(); it != m_cache.end();)
+    for (auto it = m_cache.begin(); it != m_cache.end();)
     {
-        if(GetPlayerManager()->GetPlayerByUserID(it->first)) 
+        if (GetPlayerManager()->GetPlayerByUserID(it->first))
         {
             ++it;
             continue;
         }
 
-        if(it->second.cacheTime.GetElapsedTime() > 1200000) {
+        if (it->second.cacheTime.GetElapsedTime() > 1200000)
+        {
             it = m_cache.erase(it);
-        } else {
+        }
+        else
+        {
             ++it;
         }
     }
 }
 
-UserCacheManager* GetUserCacheManager() { return UserCacheManager::GetInstance(); }
+UserCacheManager* GetUserCacheManager()
+{
+    return UserCacheManager::GetInstance();
+}
