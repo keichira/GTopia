@@ -93,7 +93,8 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
 
         if (event.isRaw)
         {
-            if (event.packetType == TCP_PACKET_ONLINE_DATA_SUBSCRIBE || event.packetType == TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE)
+            if (event.packetType == TCP_PACKET_ONLINE_DATA_SUBSCRIBE ||
+                event.packetType == TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE)
             {
                 GetPlayerPresenceManager()->OnTCPPacket(event.pClient, event.packetType, event.rawData);
             }
@@ -162,8 +163,9 @@ void ServerManager::SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 player
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID, uint32 instanceID, const string& doorID,
-                                                 const string& serverIP, uint16 serverPort)
+void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID,
+                                                 uint32 instanceID, const string& doorID, const string& serverIP,
+                                                 uint16 serverPort)
 {
     if (!pServer || !pServer->pClient)
     {
@@ -184,7 +186,8 @@ void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 pla
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID, uint32 databaseID)
+void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID,
+                                        uint32 databaseID)
 {
     if (!pServer || !pServer->pClient)
         return;
@@ -281,7 +284,8 @@ void ServerManager::SendCommandSetRole(ServerInfo* pServer, uint32 userID, uint3
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID, uint32 worldInstanceID)
+void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID,
+                                           uint32 worldInstanceID)
 {
     if (!pServer || !pServer->pClient)
     {
@@ -313,7 +317,8 @@ void ServerManager::SendHelloPacket(ServerInfo* pServer, const string& authKey)
     pServer->pClient->Send(data);
 }
 
-void ServerManager::SendPlayerPresenceSnapshot(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements)
+void ServerManager::SendPlayerPresenceSnapshot(ServerInfo* pServer,
+                                               const std::vector<PlayerPresencePacketElement>& elements)
 {
     if (!pServer || !pServer->pClient || elements.empty())
         return;
@@ -322,7 +327,8 @@ void ServerManager::SendPlayerPresenceSnapshot(ServerInfo* pServer, const std::v
     pServer->pClient->Send(TCP_PACKET_ONLINE_DATA_SNAPSHOT, elements.data(), totalByteSize);
 }
 
-void ServerManager::SendPlayerPresenceUpdate(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements)
+void ServerManager::SendPlayerPresenceUpdate(ServerInfo* pServer,
+                                             const std::vector<PlayerPresencePacketElement>& elements)
 {
     if (!pServer || !pServer->pClient)
         return;
@@ -362,7 +368,8 @@ bool ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverT
     if (serverType == CONFIG_SERVER_RENDERER)
         serverTypeStr = "renderer";
 
-    LOGGER_LOG_INFO("Server %d (%s) added to cache %s:%d", serverID, serverTypeStr.c_str(), serverNetInfo.wanIP.c_str(), serverNetInfo.udpPort);
+    LOGGER_LOG_INFO("Server %d (%s) added to cache %s:%d", serverID, serverTypeStr.c_str(), serverNetInfo.wanIP.c_str(),
+                    serverNetInfo.udpPort);
     pServer->serverID = serverID;
     pServer->wanIP = serverNetInfo.wanIP;
     pServer->port = serverNetInfo.udpPort;

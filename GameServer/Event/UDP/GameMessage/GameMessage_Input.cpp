@@ -11,12 +11,12 @@
 #include "../../../Player/Dialog/LockDialog.h"
 #include "../../../Player/Dialog/MailboxBlockDialog.h"
 #include "../../../Player/Dialog/OuijaBoardDialog.h"
+#include "../../../Player/Dialog/PopupDialog.h"
 #include "../../../Player/Dialog/RegisterDialog.h"
 #include "../../../Player/Dialog/RenderWorldDialog.h"
 #include "../../../Player/Dialog/SignDialog.h"
 #include "../../../Player/Dialog/TradeDialog.h"
 #include "../../../Player/Dialog/TrashDialog.h"
-#include "../../../Player/Dialog/WrenchSelfDialog.h"
 #include "../../../Player/Dialog/XenoniteDialog.h"
 
 DialogReturn::DialogReturn()
@@ -68,11 +68,11 @@ void DialogReturn::RegisterDialogs()
     RegisterDialog<BattleCageDialog::Handle>("battlecage"_hash);
     RegisterDialog<XenoniteDialog::Handle>("xenonite_edit"_hash);
     RegisterDialog<MailboxBlockDialog::Handle>("mailbox_edit"_hash);
-    RegisterDialog<WrenchSelfDialog::Handle>("plyr_wrench"_hash);
-    RegisterDialog<WrenchSelfDialog::HandleAcceptAccess>("acceptaccess"_hash);
+    RegisterDialog<PopupDialog::Handle>("plyr_wrench"_hash);
+    RegisterDialog<PopupDialog::HandleAcceptAccess>("acceptaccess"_hash);
     RegisterDialog<BulletinBlockDialog::Handle>("bulletin_edit"_hash);
     RegisterDialog<BulletinBlockDialog::HandleDeleteEntry>("remove_bulletin"_hash);
-    RegisterDialog<WrenchSelfDialog::HandleTitleEdit>("title_edit"_hash);
+    RegisterDialog<PopupDialog::HandleTitleEdit>("title_edit"_hash);
     RegisterDialog<DoorDialog::Handle>("door_edit"_hash);
     RegisterDialog<DoorDialog::HandlePasswordReply>("password_reply"_hash);
     RegisterDialog<TradeDialog::Handle>("trade_item"_hash);
@@ -144,6 +144,6 @@ void GameMessage_Wrench(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
             return;
 
         if (pPlayer->GetNetID() == netID)
-            WrenchSelfDialog::Request(pPlayer);
+            PopupDialog::RequestSelf(pPlayer);
     }
 }

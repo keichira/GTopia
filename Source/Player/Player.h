@@ -1,17 +1,17 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Network/NetEntity.h"
-#include "PlayerLoginDetail.h"
-#include "PlayerInventory.h"
-#include "CharacterData.h"
+#include "../Precompiled.h"
 #include "../Utils/Variant.h"
+#include "CharacterData.h"
 #include "ParticleEffect.h"
+#include "PlayerInventory.h"
+#include "PlayerLoginDetail.h"
 #include <enet/enet.h>
 
 #ifdef SERVER_GAME
-    #include "../Utils/DialogPagination.h"
-    #include <memory>
+#include "../Utils/DialogPagination.h"
+#include <memory>
 #endif
 
 enum ePlayerLogonMode
@@ -60,13 +60,13 @@ enum ePlayerTitle
     PLAYER_TITLE_G4G = 1 << 4,
     PLAYER_TITLE_THANKSGIVING = 1 << 5,
     PLAYER_TITLE_ANNIVERSARY = 1 << 6,
-    PLAYER_TITLE_PARTY = 1 << 7 
+    PLAYER_TITLE_PARTY = 1 << 7
 };
 
 enum ePlayerFreezeState
 {
-    PLAYER_FREEZE_STATE_NONE, // can move
-    PLAYER_FREEZE_STATE_FROZEN, // frozen
+    PLAYER_FREEZE_STATE_NONE,              // can move
+    PLAYER_FREEZE_STATE_FROZEN,            // frozen
     PLAYER_FREEZE_STATE_FROZEN_BUT_GRAVITY // frozen but physics works (like respawn ig)
 };
 
@@ -78,7 +78,8 @@ enum eIconState
     ICON_STATE_COUNT
 };
 
-class Player {
+class Player
+{
 public:
     Player();
     virtual ~Player();
@@ -86,8 +87,10 @@ public:
 public:
     void SendHelloPacket();
     void SendLogonFailWithLog(const string& message);
-    void SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings, uint32 tributeHash);
-    void SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode, const string& doorID);
+    void SendWelcomePacket(uint32 itemsDatHash, const string& cdnServer, const string& cdnPath, const string& settings,
+                           uint32 tributeHash);
+    void SendOnSendToServer(uint16 port, uint32 token, uint32 userID, const string& serverIP, int32 logonMode,
+                            const string& doorID);
     void SendOnConsoleMessage(const string& message);
     void SendOnRequestWorldSelectMenu(const string& worldMenu);
     void SendOnFailedToEnterWorld();
@@ -104,7 +107,8 @@ public:
     void SendSetHasGrowID(bool active);
     void SendOnSetBux(uint32 gemCount, bool skipAnim, bool isSupporter, bool isSuperSupporter);
     void SendOnDataConfig(bool isMod, bool isSMod, Player* pPlayer = nullptr);
-    void SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMS = 0, float angle = 0.0f);
+    void SendOnParticleEffect(eParticleEffect effectType, const Vector2Float& pos, int32 delayMS = 0,
+                              float angle = 0.0f);
     void SendOnStoreRequest(const string& storeData);
     void SendOnStorePurchaseResult(const string& resultText);
     void SendOnAction(const string& action, Player* pPlayer = nullptr);
@@ -114,8 +118,10 @@ public:
     void SendOnZoomCamera(float zoom, int32 durationMS = 1000);
     void SendOnCountryState(const string& countryData);
     void SendOnStartTrade(const string& partnerName, int32 partnerNetID);
-    void SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus, const string& itemData);
+    void SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus,
+                           const string& itemData);
     void SendOnForceTradeEnded();
+    void SendOnKilled();
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);

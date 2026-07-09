@@ -213,6 +213,11 @@ void Player::SendOnForceTradeEnded()
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnForceTradeEnd());
 }
 
+void Player::SendOnKilled()
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnKilled());
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;

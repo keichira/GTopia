@@ -50,8 +50,8 @@ void GameMessage_RefreshTributeData(GamePlayer* pPlayer, ParsedTextPacket<38>& p
     if (!pPlayer)
         return;
 
-    /*PlayerTributeClientData* clientData = GetPlayerTributeManager()->GetClientData(pPlayer->GetLoginDetail().protocol);
-    if(!clientData->pData)
+    /*PlayerTributeClientData* clientData =
+    GetPlayerTributeManager()->GetClientData(pPlayer->GetLoginDetail().protocol); if(!clientData->pData)
     {
         LOGGER_LOG_WARN("Not sending player tribute data because its NULL");
         return;
@@ -79,4 +79,43 @@ void GameMessage_JoinRequest(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
     }
 
     pPlayer->SetTargetJoinWorld(pName->GetString());
+}
+
+void GameMessage_Respawn(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
+{
+    if (!pPlayer)
+        return;
+
+    CharacterData& charData = pPlayer->GetCharData();
+    if (!charData.HasCharState(CHAR_STATE_FROZEN))
+    {
+        pPlayer->OnDeath();
+        return;
+    }
+
+    pPlayer->SendOnConsoleMessage("I can't respawn right now!");
+}
+
+void GameMessage_RespawnSpkie(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
+{
+    if (!pPlayer || pPlayer->GetCurrentWorld() == 0)
+        return;
+
+    auto pTileX = packet.Find("tilex"_hash);
+    if (!pTileX)
+        return;
+
+    auto pTileY = packet.Find("tiley"_hash);
+    if (!pTileY)
+        return;
+
+    int32 tileX = 0;
+    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS)
+        return;
+
+    int32 tileY = 0;
+    if (pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+        return;
+
+    pPlayer->OnDeathSpike(tileX, tileY);
 }

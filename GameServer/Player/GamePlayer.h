@@ -125,9 +125,16 @@ public:
     int32 GetLockAcessOwnerID() const { return m_lockAccessOwnerID; }
     void AcceptLockAccess();
 
+    TileInfo* GetTilePlayerOn();
     float GetDistToTile(TileInfo* pGoalTile);
     uint32 GetDistToTileInTiles(TileInfo* pGoalTile);
     bool HasLOSToTile(TileInfo* pGoalTile);
+
+    bool AbleToWorldKickOrPullSomeone(GamePlayer* pTarget);
+    bool AbleToWorldBanSomeone(GamePlayer* pTarget);
+
+    void OnDeath();
+    void OnDeathSpike(int32 tileX = -1, int32 tileY = -1);
 
     void SetGuestID(uint32 id) { m_guestID = id; }
     void OpenPaginatedDialog(std::unique_ptr<DialogPagination> newDialog);
@@ -175,5 +182,6 @@ private:
     Timer m_lastTileChangeTime;
     Timer m_lastDbSaveTime;
     Timer m_logonStartTime;
+    Timer m_lastDeathTime;
     uint64 m_nextDbSaveTime;
 };

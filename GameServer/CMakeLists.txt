@@ -92,7 +92,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/RenderWorldDialog.cpp
     ${GAME_DIALOG}/RegisterDialog.cpp
     ${GAME_DIALOG}/DropItemDialog.cpp
-    ${GAME_DIALOG}/WrenchSelfDialog.cpp
+    ${GAME_DIALOG}/PopupDialog.cpp
     ${GAME_DIALOG}/AchievementBlockDialog.cpp
     ${GAME_DIALOG}/OuijaBoardDialog.cpp
     ${GAME_DIALOG}/BattleCageDialog.cpp
@@ -122,8 +122,9 @@ set(GAME_FILES PRIVATE
     ${GAME_PLAYER}/PlayerTrade.cpp
 
     ${GAME_STORE}/StoreManager.cpp
-
     ${GAME_ITEM}/HarmonicCrystal.cpp
+
+    ${SOURCE_NETWORK}/IPTracker.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp

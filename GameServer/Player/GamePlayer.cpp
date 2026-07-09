@@ -1106,6 +1106,18 @@ void GamePlayer::AcceptLockAccess()
     pWorld->SendNameChangeToAll(this);
 }
 
+TileInfo* GamePlayer::GetTilePlayerOn()
+{
+    if (m_currentWorldID == 0)
+        return nullptr;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return nullptr;
+
+    return pWorld->GetTileManager()->GetTileByWorldPos(m_worldPos);
+}
+
 float GamePlayer::GetDistToTile(TileInfo* pGoalTile)
 {
     if (!pGoalTile)
@@ -1200,6 +1212,95 @@ bool GamePlayer::HasLOSToTile(TileInfo* pGoalTile)
     }
 
     return true;
+}
+
+bool GamePlayer::AbleToWorldKickOrPullSomeone(GamePlayer* pTarget)
+{
+
+    if (!pTarget || m_currentWorldID == 0)
+        return false;
+
+    if (m_currentWorldID != pTarget->GetCurrentWorld())
+        return false;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return false;
+
+    TileInfo* pPlayerTile = GetTilePlayerOn();
+    if (!pPlayerTile)
+        return false;
+
+    if (pPlayerTile->GetType() == ITEM_TYPE_LOCK)
+        return false;
+
+    TileInfo* pLockTile = pWorld->GetTileManager()->GetTileParentTileWithWorldLock(pPlayerTile);
+    if (!pLockTile)
+        return false;
+
+    TileExtra_Lock* pLockExtra = pLockTile->GetExtra<TileExtra_Lock>();
+    if (!pLockExtra || !pLockExtra->HasAccess(GetUserID()))
+        return false;
+
+    if (pLockExtra->ownerID == pTarget->GetUserID())
+        return false;
+
+    return true;
+}
+
+bool GamePlayer::AbleToWorldBanSomeone(GamePlayer* pTarget)
+{
+    if (!pTarget)
+        return false;
+
+    if (!pTarget || m_currentWorldID == 0)
+        return false;
+
+    if (m_currentWorldID != pTarget->GetCurrentWorld())
+        return false;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return false;
+
+    TileInfo* pWorldLock = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
+    if (!pWorldLock)
+        return false;
+
+    TileExtra_Lock* pLockExtra = pWorldLock->GetExtra<TileExtra_Lock>();
+    if (!pLockExtra || !pLockExtra->HasAccess(GetUserID()) || pLockExtra->HasAccess(pTarget->GetUserID()))
+        return false;
+
+    return true;
+}
+
+void GamePlayer::OnDeath()
+{
+    if (m_currentWorldID == 0)
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return;
+
+    SendOnSetFreezeState(PLAYER_FREEZE_STATE_FROZEN_BUT_GRAVITY, 0);
+    SendOnKilled();
+    OnDeathSpike();
+}
+
+void GamePlayer::OnDeathSpike(int32 tileX, int32 tileY)
+{
+    if (m_currentWorldID == 0)
+        return;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return;
+
+    pWorld->SendPositionCorrectionToAll(this, m_respawnPos, 2000);
+    pWorld->SendPlayPositionedToAll(this, "teleport.wav");
+    SendOnSetFreezeState(PLAYER_FREEZE_STATE_NONE, 2000);
+    m_lastDeathTime.Reset();
 }
 
 void GamePlayer::OpenPaginatedDialog(std::unique_ptr<DialogPagination> newDialog)

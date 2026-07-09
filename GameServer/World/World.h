@@ -3,6 +3,7 @@
 #include "../Player/GamePlayer.h"
 #include "Database/Table/WorldDBTable.h"
 #include "Item/ItemInfoManager.h"
+#include "Network/IPTracker.h"
 #include "Packet/GamePacket.h"
 #include "PetBattleManager.h"
 #include "Precompiled.h"
@@ -88,7 +89,7 @@ public:
     void SendOnActionToAll(GamePlayer* pPlayer, const string& action);
     void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
     void SendOnCountryStateToAll(GamePlayer* pPlayer);
-    void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos);
+    void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos, int32 delayMS = -1);
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
                             const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
@@ -110,6 +111,8 @@ public:
     bool IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms);
     bool PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile);
     std::vector<GamePlayer*> GetPlayersInWorldRect(const RectFloat& rect);
+
+    bool AbleToWorldBanSomeone(GamePlayer* pPlayer);
 
     bool FlameUpTile(TileInfo* pTile);
     void PutOutFire(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
@@ -178,4 +181,6 @@ private:
     Timer m_lastPresenceUpdateTime;
 
     int32 m_balancerType;
+
+    IPTracker m_bannedPlayers;
 };

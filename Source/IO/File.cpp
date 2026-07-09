@@ -11,8 +11,17 @@ File::~File()
 
 bool File::Open(const string& filePath, FileMode mode)
 {
-    m_mode = mode;
+    Close();
+
+#ifdef _WIN32
+    std::wstring wFilePath = UTF8ToUTF16(filePath);
+    std::wstring wMode = UTF8ToUTF16(fileOpenModeArr[mode]);
+
+    m_pFile = _wfopen(wFilePath.c_str(), wMode.c_str());
+#else
     m_pFile = fopen(filePath.c_str(), fileOpenModeArr[mode].c_str());
+#endif
+
     if (!m_pFile)
     {
         Close();
@@ -29,6 +38,7 @@ bool File::Open(const string& filePath, FileMode mode)
         m_pos = 0;
     }
 
+    m_mode = mode;
     m_filePath = filePath;
     return true;
 }

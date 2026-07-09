@@ -280,6 +280,8 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
     Vector2Float vWorldMapStart = GetTileManager()->GetMapStartWorldPos(loginDetail.doorID);
     pPlayer->SetWorldPos(vWorldMapStart.x, vWorldMapStart.y);
+    pPlayer->SetRespawnPos(vWorldMapStart.x, vWorldMapStart.y);
+
     loginDetail.doorID = "";
     pPlayer->ClosePaginatedDialog();
 
@@ -840,7 +842,7 @@ void World::SendOnCountryStateToAll(GamePlayer* pPlayer)
     SAFE_DELETE_ARRAY(pData);
 }
 
-void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos)
+void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos, int32 delayMS)
 {
     if (!pPlayer)
         return;
@@ -855,7 +857,7 @@ void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldP
         if (!pWorldPlayer)
             continue;
 
-        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID(), delayMS);
     }
 
     SAFE_DELETE_ARRAY(pData);
@@ -1473,6 +1475,14 @@ std::vector<GamePlayer*> World::GetPlayersInWorldRect(const RectFloat& rect)
     }
 
     return out;
+}
+
+bool World::AbleToWorldBanSomeone(GamePlayer* pPlayer)
+{
+    if (!pPlayer)
+        return false;
+
+    return false;
 }
 
 bool World::FlameUpTile(TileInfo* pTile)

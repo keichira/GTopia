@@ -101,14 +101,16 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             if (pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
             {
                 ParsedTextPacket<40> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4,
+                                packet);
 
                 pPlayer->StartLoginRequest(packet);
             }
             else if (pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
             {
                 ParsedTextPacket<38> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4,
+                                packet);
 
                 auto pAction = packet.Find("action"_hash);
                 if (pAction)
@@ -125,7 +127,8 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             else if (pPlayer->HasState(PLAYER_STATE_IN_GAME))
             {
                 ParsedTextPacket<38> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4, packet);
+                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4,
+                                packet);
 
                 auto pAction = packet.Find("action"_hash);
                 if (pAction)
@@ -191,6 +194,8 @@ void GameServer::RegisterEvents()
     RegisterMessagePacket<GameMessage_Wrench>("wrench"_hash);
     RegisterMessagePacket<GameMessage_Buy>("buy"_hash);
     RegisterMessagePacket<GameMessage_Store>("store"_hash);
+    RegisterMessagePacket<GameMessage_Respawn>("respawn"_hash);
+    RegisterMessagePacket<GameMessage_RespawnSpkie>("respawn_spike"_hash);
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();
@@ -266,24 +271,29 @@ void GameServer::Update()
 
         if (outEvent.isItemData)
         {
-            GameUpdatePacket* pGamePacket = GetGamePacketFromEnetPacket(outEvent.pPacket->payload, outEvent.pPacket->dataLength, false);
+            GameUpdatePacket* pGamePacket =
+                GetGamePacketFromEnetPacket(outEvent.pPacket->payload, outEvent.pPacket->dataLength, false);
             if (!pGamePacket || pGamePacket->type != NET_GAME_PACKET_SEND_ITEM_DATABASE_DATA)
                 continue;
 
-            ItemsClientData* pClientData = GetItemInfoManager()->GetClientData(pGamePacket->field_11, pGamePacket->field_10);
+            ItemsClientData* pClientData =
+                GetItemInfoManager()->GetClientData(pGamePacket->field_11, pGamePacket->field_10);
             if (!pClientData || (pClientData && !pClientData->pItemData))
                 continue;
 
             pGamePacket->field_10 = 0;
             pGamePacket->field_11 = 0;
 
-            pEnetPacket = enet_packet_create(nullptr, outEvent.pPacket->dataLength + pClientData->compressSize, ENET_PACKET_FLAG_RELIABLE);
+            pEnetPacket = enet_packet_create(nullptr, outEvent.pPacket->dataLength + pClientData->compressSize,
+                                             ENET_PACKET_FLAG_RELIABLE);
             memcpy(pEnetPacket->data, outEvent.pPacket->payload, outEvent.pPacket->dataLength);
-            memcpy(pEnetPacket->data + outEvent.pPacket->dataLength - 1, pClientData->pItemData, pGamePacket->extraDataSize);
+            memcpy(pEnetPacket->data + outEvent.pPacket->dataLength - 1, pClientData->pItemData,
+                   pGamePacket->extraDataSize);
         }
         else
         {
-            pEnetPacket = enet_packet_create(outEvent.pPacket->payload, outEvent.pPacket->dataLength, ENET_PACKET_FLAG_RELIABLE);
+            pEnetPacket =
+                enet_packet_create(outEvent.pPacket->payload, outEvent.pPacket->dataLength, ENET_PACKET_FLAG_RELIABLE);
         }
 
         if (pEnetPacket)
@@ -338,7 +348,8 @@ void GameServer::Update()
                 uint32 packetLen = inEvent.packet->dataLength;
                 uint32 msgType = GetMessageTypeFromEnetPacket(inEvent.packet->data, packetLen);
 
-                if (msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET && msgType != NET_MESSAGE_GENERIC_TEXT)
+                if (msgType != NET_MESSAGE_GAME_MESSAGE && msgType != NET_MESSAGE_GAME_PACKET &&
+                    msgType != NET_MESSAGE_GENERIC_TEXT)
                 {
                     enet_packet_destroy(inEvent.packet);
                     continue;
@@ -352,7 +363,8 @@ void GameServer::Update()
                     continue;
                 }
 
-                if ((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) && packetLen > MED_PACKET_SIZE)
+                if ((msgType == NET_MESSAGE_GAME_MESSAGE || msgType == NET_MESSAGE_GENERIC_TEXT) &&
+                    packetLen > MED_PACKET_SIZE)
                 {
                     enet_packet_destroy(inEvent.packet);
                     continue;

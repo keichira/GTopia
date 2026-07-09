@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Math/Color.h"
 #include "../Math/Vector2.h"
+#include "../Precompiled.h"
 
 #define CHARACTER_DEFAULT_FIRE_DAMAGE 1.0f // umm
 #define CHARACTER_DEFAULT_SPEED 1200.0f
@@ -88,7 +88,8 @@ enum eCharacterFlags
 
 class GamePlayer;
 
-class CharacterData {
+class CharacterData
+{
 public:
     CharacterData() { ResetToBaseStats(); }
 

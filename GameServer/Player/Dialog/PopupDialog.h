@@ -4,9 +4,11 @@
 
 class GamePlayer;
 
-class WrenchSelfDialog {
+class PopupDialog
+{
 public:
-    static void Request(GamePlayer* pPlayer);
+    static void RequestOther(GamePlayer* pPlayer, GamePlayer* pTarget);
+    static void RequestSelf(GamePlayer* pPlayer);
     static void Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
     static void HandleTitleEdit(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
     static void HandleAcceptAccess(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);

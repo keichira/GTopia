@@ -16,9 +16,7 @@ public:
     uint32 GetOffset() const { return m_pos; }
 
     template <typename T> uint32 Read(T& data) { return ReadRaw(&data, sizeof(T)); }
-
     template <typename T> uint32 Write(const T& data) { return WriteRaw(&data, sizeof(T)); }
-
     template <typename T> uint32 ReadWrite(T& data, bool write)
     {
         if (write)

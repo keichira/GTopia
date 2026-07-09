@@ -2,7 +2,8 @@
 
 MemoryBuffer::MemoryBuffer() : m_pBuffer(nullptr), m_bufferSize(0), m_pos(0), m_ableToWrite(false), m_countOnly(true) {}
 
-MemoryBuffer::MemoryBuffer(void* pData, uint32 size) : m_pBuffer((uint8*)pData), m_bufferSize(size), m_pos(0), m_ableToWrite(true), m_countOnly(false)
+MemoryBuffer::MemoryBuffer(void* pData, uint32 size)
+    : m_pBuffer((uint8*)pData), m_bufferSize(size), m_pos(0), m_ableToWrite(true), m_countOnly(false)
 {
 }
 

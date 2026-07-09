@@ -1,8 +1,10 @@
 #include "../OSPrecompiled.h"
 
+// clang-format off
+#include <ctime>
 #include <windows.h>
 #include <wincrypt.h>
-#include <ctime>
+// clang-format on
 
 string GetDateTimeAsStr()
 {
@@ -21,24 +23,19 @@ uint64 GetTick()
     return GetTickCount64();
 }
 
-// https://stackoverflow.com/questions/215963/how-do-you-properly-use-widechartomultibyte
-// help me pls... need to rewrite here lol
 string GetProgramPath()
 {
-    wchar_t buf[1024] = { 0 };
+    wchar_t buf[1024] = {0};
 
     uint32 len = GetModuleFileNameW(NULL, buf, 1024);
-    if(len == 0) {
+    if (len == 0)
         return "";
-    }
 
-    int32 sizeNeeded = WideCharToMultiByte(CP_UTF8, 0, buf, len, NULL, 0, NULL, NULL);
-
-    string path(sizeNeeded, 0);
-    WideCharToMultiByte(CP_UTF8, 0, buf, len, &path[0], sizeNeeded, NULL, NULL);
+    string path = UTF16ToUTF8(std::wstring(buf, len));
 
     usize pos = path.find_last_of("\\/");
-    if(pos != string::npos) {
+    if (pos != string::npos)
+    {
         path = path.substr(0, pos);
     }
 
@@ -51,35 +48,33 @@ int32 SleepMS(uint64 ms)
     return 0;
 }
 
-int32 GetRandomBytes(void* pDest, uint32 size) 
+int32 GetRandomBytes(void* pDest, uint32 size)
 {
     HCRYPTPROV hProv = 0;
-  
-    if(!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
+
+    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+    {
         return -1;
     }
-  
-    if(!CryptGenRandom(hProv, size, (BYTE*)pDest)) {
+
+    if (!CryptGenRandom(hProv, size, (BYTE*)pDest))
+    {
         CryptReleaseContext(hProv, 0);
         return -1;
     }
-  
+
     CryptReleaseContext(hProv, 0);
     return size; // umm it says always return?
 }
 
 bool IsFileExists(const string& path)
 {
-    int32 size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, NULL, 0);
-    if(size == 0) {
+    if (path.empty())
         return false;
-    }
 
-    std::wstring result(size, 0);
-    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, &result[0], size);
-
-    DWORD attr = GetFileAttributesW(result.c_str());
-    if(attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY)) {
+    DWORD attr = GetFileAttributesW(UTF8ToUTF16(path).c_str());
+    if (attr == INVALID_FILE_ATTRIBUTES || (attr & FILE_ATTRIBUTE_DIRECTORY))
+    {
         return false;
     }
 
@@ -88,26 +83,23 @@ bool IsFileExists(const string& path)
 
 bool IsFolderExists(const string& path)
 {
-    int32 size = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, NULL, 0);
-    if(size == 0) {
+    if (path.empty())
+        return false;
+
+    DWORD attr = GetFileAttributesW(UTF8ToUTF16(path).c_str());
+    if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY))
+    {
         return false;
     }
 
-    std::wstring result(size, 0);
-    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, &result[0], size);
-
-    DWORD attr = GetFileAttributesW(result.c_str());
-    if(attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY)) {
-        return false;
-    }
-    
     return true;
 }
 
 string GetFileExtension(const string& file)
 {
     usize index = file.find_last_of('.');
-    if(index != string::npos) {
+    if (index != string::npos)
+    {
         return file.substr(index + 1, file.length());
     }
 
@@ -127,4 +119,34 @@ uint32 GetSecondsFromMidnight()
 string GetLoadAvgString()
 {
     return "";
+}
+
+std::wstring UTF8ToUTF16(const string& str)
+{
+    if (str.empty())
+        return std::wstring();
+
+    int size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
+    if (size == 0)
+        return false;
+
+    std::wstring result(size, 0);
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], size);
+
+    return result;
+}
+
+string UTF16ToUTF8(const std::wstring& wstr)
+{
+    if (wstr.empty())
+        return std::string();
+
+    int targetLen = ::WideCharToMultiByte(CP_UTF8, 0, wstr.data(), (int)wstr.size(), nullptr, 0, nullptr, nullptr);
+    if (targetLen <= 0)
+        return std::string();
+
+    string str(targetLen, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wstr.data(), (int)wstr.size(), &str[0], targetLen, nullptr, nullptr);
+
+    return str;
 }

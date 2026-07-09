@@ -751,6 +751,18 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
+        if (pTileItem->type == ITEM_TYPE_DONATION_BOX)
+        {
+            if (TileExtra_DonaitonBox* pDonationExtra = pTile->GetExtra<TileExtra_DonaitonBox>())
+            {
+                if (!pDonationExtra->gifts.empty())
+                {
+                    pPlayer->SendOnTalkBubble("Empty the " + pTileItem->name + " before smashing!", false);
+                    return;
+                }
+            }
+        }
+
         /**
          * handle things that dont allow to break like empty the box
          */

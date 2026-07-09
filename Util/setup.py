@@ -5,14 +5,24 @@ import shutil
 import platform
 import subprocess
 import urllib.request
-from urllib.parse import urlparse
-from pathlib import Path
 import socket
+from dataclasses import dataclass
+from pathlib import Path
+from urllib.parse import urlparse
 
 def print_success(msg): print(f"✅ {msg}")
 def print_error(msg): print(f"❌ {msg}")
 def print_warn(msg): print(f"⚠️ {msg}")
 def print_info(msg): print(f"ℹ️ {msg}")
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+CERT_DIR = (PROJECT_ROOT / "HTTPServer").resolve()
+RUNTIME_DIR = (PROJECT_ROOT / "Runtime").resolve()
+CONFIGS_DIR = (PROJECT_ROOT / "Configs").resolve()
+SQL_FILE = (CONFIGS_DIR / "gtopia.sql").resolve()
+
+sys.path.append(str(PROJECT_ROOT / "Util"))
 
 try:
     from update_file_hashes import generate_file_hashes
@@ -23,15 +33,15 @@ except ImportError as e:
     print_info("Please ensure you cloned the repository completely.")
     sys.exit(1)
 
-ROOT = Path(__file__).resolve().parent
-CERT_DIR = (ROOT / ".." / "HTTPServer").resolve()
-RUNTIME_DIR = (ROOT / ".." / "Runtime").resolve()
-CONFIGS_DIR = (ROOT / ".." / "Configs").resolve()
-
 MKCERT_VERSION = "v1.4.4"
 MKCERT_BASE = f"https://github.com/FiloSottile/mkcert/releases/download/{MKCERT_VERSION}"
-SQL_FILE = (ROOT / ".." / "Configs" / "gtopia.sql").resolve()
-    
+
+@dataclass
+class DatabaseConfig:
+    name: str = "gtopia"
+    user: str = "root"
+    password: str = ""
+
 def run_silent(cmd):
     return subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -39,51 +49,59 @@ def run_powershell(command: str):
     try:
         result = subprocess.run(
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-            capture_output=True,
-            text=True,
-            check=True
+            capture_output=True, text=True, check=True
         )
+
         return True, result.stdout.strip()
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         return False, (e.stderr or e.stdout or str(e)).strip()
 
-def download_file(url, path: Path):
+def download_file(url, path: Path) -> bool:
     try:
         print_info(f"Downloading: {url}")
         urllib.request.urlretrieve(url, path)
         return True
-
     except Exception as e:
         print_error(f"Download failed: {e}")
         return False
 
-def get_mkcert_url():
-    sys = platform.system().lower()
-    arch = platform.machine().lower()
+def get_local_ip() -> str:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except Exception:
+        return "127.0.0.1"
 
-    if sys == "windows":
-        return f"{MKCERT_BASE}/mkcert-{MKCERT_VERSION}-windows-amd64.exe"
+def get_clean_input(prompt_text, default=None) -> str:
+    suffix = f" [{default}]" if default is not None else ""
+    user_input = input(f"{prompt_text}{suffix}: ").strip().strip('"').strip("'")
+    return default if not user_input and default is not None else user_input
 
-    if sys == "linux":
-        if arch in ["x86_64", "amd64"]:
-            return f"{MKCERT_BASE}/mkcert-{MKCERT_VERSION}-linux-amd64"
-        if arch in ["aarch64", "arm64"]:
-            return f"{MKCERT_BASE}/mkcert-{MKCERT_VERSION}-linux-arm64"
+def get_valid_path(prompt_text, is_file=False, is_dir=False) -> Path:
+    while True:
+        path_str = get_clean_input(prompt_text)
+        if not path_str:
+            print_warn("Path cannot be empty.")
+            continue
+            
+        path = Path(path_str).expanduser().resolve()
+        if is_file and not path.is_file():
+            print_error(f"Target is not a valid file: {path}")
+        elif is_dir and not path.is_dir():
+            print_error(f"Target is not a valid directory: {path}")
+        else:
+            return path
 
-    if sys == "darwin":
-        if arch in ["arm64"]:
-            return f"{MKCERT_BASE}/mkcert-{MKCERT_VERSION}-darwin-arm64"
-        return f"{MKCERT_BASE}/mkcert-{MKCERT_VERSION}-darwin-amd64"
+        if get_clean_input("👉 Type 'S' to skip this step, or press Enter to try again", default="").lower() == 's':
+            return None
 
-    raise Exception(f"Unsupported platform: {sys}-{arch}")
-
-def move_file(src, dst_dir):
-    src = Path(src)
+def move_file(src, dst_dir) -> bool:
+    src, dst_dir = Path(src), Path(dst_dir)
     if not src.exists():
         print_error(f"File not found: {src.name}")
         return False
 
-    dst_dir = Path(dst_dir)
     dst_dir.mkdir(parents=True, exist_ok=True)
     dst = dst_dir / src.name
 
@@ -98,59 +116,23 @@ def move_file(src, dst_dir):
     except Exception as e:
         print_error(f"Failed to move {src.name}: {e}")
         return False
-    
-def get_clean_input(prompt_text, default=None):
-    suffix = f" [{default}]" if default else ""
-    user_input = input(f"{prompt_text}{suffix}: ").strip()
-    
-    #drag
-    user_input = user_input.strip('"').strip("'")
-    
-    if not user_input and default is not None:
-        return default
-    return user_input
-
-def get_valid_path(prompt_text, is_file=False, is_dir=False):
-    while True:
-        path_str = get_clean_input(prompt_text)
-        if not path_str:
-            print_warn("Path cannot be empty.")
-            continue
-            
-        path = Path(path_str).expanduser().resolve()
-        
-        if is_file and not path.is_file():
-            print_error(f"Target is not a valid file or doesn't exist: {path}")
-            ans = input("👉 Type 'S' to skip this step, or press Enter to try again: ").strip().lower()
-            if ans == 's': return None
-            continue
-            
-        if is_dir and not path.is_dir():
-            print_error(f"Target is not a valid directory or doesn't exist: {path}")
-            ans = input("👉 Type 'S' to skip this step, or press Enter to try again: ").strip().lower()
-            if ans == 's': return None
-            continue
-            
-        return path
 
 def check_cmake():
     print_info("Checking CMake installation...")
+    if shutil.which("cmake"):
+        print_success("CMake is ready.")
+        return
 
-    if not shutil.which("cmake"):
-        print_error("CMake was not found on your system PATH.")
+    print_error("CMake was not found on your system PATH.")
+    if platform.system() == "Windows":
+        print_info("Please install CMake from: https://cmake.org/download/")
+        print_warn("CRITICAL: Remember to check 'Add CMake to the system PATH' during installation!")
+    else:
+        print_info("Install via your package manager: sudo apt install cmake")
+    sys.exit(1)
 
-        if platform.system() == "Windows":
-            print_info("Please install CMake from: https://cmake.org/download/")
-            print_warn("CRITICAL: Remember to check 'Add CMake to the system PATH' during installation!")
-        else:
-            print_info("Install via your package manager:\nUbuntu/Debian: sudo apt install cmake")
-        sys.exit(1)
-
-    print_success("CMake is ready.")
-
-def check_mysql():
+def check_mysql() -> str:
     print_info("Checking MySQL installation...")
-    
     if platform.system() == "Windows":
         possible_patterns = [
             r"C:\Program Files\MySQL\MySQL Server *\bin\mysql.exe",
@@ -171,306 +153,236 @@ def check_mysql():
     print_error("MySQL client executable could not be found.")
     if platform.system() == "Windows":
         print_info("Download: https://dev.mysql.com/downloads/installer/")
-        print_warn("Ensure 'MySQL Server' is checked and added to system PATH variables.")
     else:
-        print_info("Install via package manager:\nUbuntu/Debian: sudo apt install mysql-client libmysql-dev")
+        print_info("Install via package manager: sudo apt install mysql-client libmysql-dev")
     sys.exit(1)
 
-def run_mysql(mysql_client, args, sql):
-    try:
-        return subprocess.run(
-            [mysql_client] + args,
-            input=sql,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-    except Exception as e:
-        print_error(f"MySQL bridge crash: {e}")
-        return None
+def task_generate_items():
+    print("\n--- [Item Data Generator] ---")
+    dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
+    if dat_path:
+        print_info("Generating item data...")
+        generate_item_txt_from_dat(0, dat_path)
+        move_file(PROJECT_ROOT / "items.txt", RUNTIME_DIR)
 
-def sql_wizard(mysql_client):
-    print("\n--- MySQL Configuration Database Wizard ---")
+def task_generate_wiki():
+    print("\n--- [Wiki Data Generator] ---")
+    wiki_dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
+    if wiki_dat_path:
+        print_info("Processing wiki data, it might take a bit...")
+        fetch_wiki_and_write(0, wiki_dat_path)
+        move_file(PROJECT_ROOT / "wiki_data.txt", RUNTIME_DIR)
+
+def task_generate_hashes():
+    print("\n--- [File Hash Generator] ---")
+    print_info("Enter the static folder containing 'audio', 'interface', and 'game' subdirectories.")
+    static_path = get_valid_path("Enter Static folder path", is_dir=True)
+    if static_path:
+        print_info("Processing file hashes, it might take a bit...")
+        generate_file_hashes(static_path)
+        move_file(PROJECT_ROOT / "filehashes.txt", RUNTIME_DIR)
+
+def get_mkcert_url() -> str:
+    sys_type = platform.system().lower()
+    arch = platform.machine().lower()
     
-    while True:
-        db_name = get_clean_input("Database name to use/create", default="gtopia")
-        user = get_clean_input("MySQL username", default="root")
-        password = get_clean_input("MySQL password", default="")
-        
-        print_info(f"Connecting to MySQL and preparing database '{db_name}'...")
-        
-        sql = f"CREATE DATABASE IF NOT EXISTS {db_name};"
-        if password is None:
-            result = run_mysql(mysql_client, ["-u", user], sql)
-        else:
-            result = run_mysql(mysql_client, ["-u", user, f"-p{password}"], sql)
-        
-        if not result or result.returncode != 0:
-            err_msg = result.stderr if result else "Unknown process error"
-            print_error(f"Failed to connect or create database. MySQL Error:\n{err_msg}")
-
-            retry = get_clean_input("👉 Would you like to re-enter your credentials? [Y/n]", default="y").lower()
-            if retry == 'y':
-                continue
-            return False
-            
-        print_success(f"Database '{db_name}' validated safely.")
-        
-        if not SQL_FILE.exists():
-            print_error(f"SQL file missing at: {SQL_FILE}")
-            return False
-            
-        with open(SQL_FILE, "r", encoding="utf-8") as f:
-            sql_data = f.read()
-            
-        print_info("Importing SQL tables...")
-        if password is None:
-            import_res = run_mysql(mysql_client, ["-u", user, db_name], sql_data)
-        else:
-            import_res = run_mysql(mysql_client, ["-u", user, f"-p{password}", db_name], sql_data)
-        
-        if import_res and import_res.returncode == 0:
-            print_success(f"Successfully integrated all tables into '{db_name}'.")
-            return True
-        else:
-            print_error(f"Table scheme import failed: {import_res.stderr if import_res else 'Process communication error'}")
-            return False
-        
-def get_local_ip():
+    os_info = {
+        "windows": {"amd64": "windows-amd64.exe"},
+        "linux": {"x86_64": "linux-amd64", "amd64": "linux-amd64", "aarch64": "linux-arm64", "arm64": "linux-arm64"},
+        "darwin": {"arm64": "darwin-arm64", "amd64": "darwin-amd64"}
+    }
+    
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except:
-        return ""
+        suffix = os_info[sys_type][arch] or os_info[sys_type]["amd64"]
+        return f"{MKCERT_BASE}/mkcert-{MKCERT_VERSION}-{suffix}"
+    except KeyError:
+        raise Exception(f"Unsupported platform: {sys_type}-{arch}")
 
-def download_mkcert():
+def setup_ssl_certificates():
     print_info("Initializing local environment trusted SSL generation...")
     exe_name = "mkcert.exe" if platform.system() == "Windows" else "mkcert"
-    mkcert_path = ROOT / exe_name
+    mkcert_path = PROJECT_ROOT / exe_name
 
     if not mkcert_path.exists():
         if not download_file(get_mkcert_url(), mkcert_path):
-            print_error("Failed to automatically grab mkcert deployment asset.")
+            print_error("Failed to download mkcert.")
             return
         if platform.system() != "Windows":
             os.chmod(str(mkcert_path), 0o755)
 
-    print_info("Generating root certificates (You might see an UAC prompt)...")
+    print_info("Generating root certificates (You may see an UAC)...")
     run_silent([str(mkcert_path), "-install"])
     run_silent([str(mkcert_path), "*.growtopia1.com", "*.growtopia2.com"])
     
     CERT_DIR.mkdir(parents=True, exist_ok=True)
-    for f in glob.glob("*.pem"):
-        base = os.path.basename(f)
-        dest_name = "key.pem" if "-key" in base else "cert.pem"
+    for target_pem in glob.glob("*.pem"):
+        dest_name = "key.pem" if "-key" in os.path.basename(target_pem) else "cert.pem"
         dest_path = CERT_DIR / dest_name
-
         if dest_path.exists():
             os.remove(dest_path)
+        shutil.move(target_pem, str(dest_path))
+        print_success(f"Deployed local certificate: {dest_name}")
 
-        shutil.move(f, str(dest_path))
-        print_success(f"Deployed local cert asset: {dest_name}")
-
-def get_latest_growtopia_cdn():
+def get_latest_growtopia_cdn() -> str:
+    print_info("Fetching latest Ubisoft CDN...")
     url = "https://growtopiagame.com/Growtopia-Installer.exe"
-
-    req = urllib.request.Request(url)
     opener = urllib.request.build_opener(urllib.request.HTTPRedirectHandler())
-
     try:
-        res = opener.open(req)
+        res = opener.open(urllib.request.Request(url))
         final_url = res.geturl()
     except Exception as e:
-        print_error(f"Connection error while getting latest cdn {e}")
+        print_error(f"Connection error while fetching CDN layout: {e}")
         return ""
 
     if "akamaihd.net" not in final_url:
         return ""
 
     parsed = urlparse(final_url)
-    gt_host = parsed.hostname    
-    gt_pathname = parsed.path.replace("GrowtopiaInstaller.exe", "")
+    cdn_pathname = parsed.path.replace("GrowtopiaInstaller.exe", "")
+    return f"{parsed.hostname}{cdn_pathname}cache/"
 
-    return f"{gt_host}{gt_pathname}cache/"
+def run_mysql_query(mysql_client, args, sql_input):
+    try:
+        return subprocess.run(
+            [mysql_client] + args, input=sql_input, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+    except Exception as e:
+        print_error(f"MySQL process bridge crash: {e}")
+        return None
 
-def edit_configuration_files(db_name, user, password, local_ip, latest_cdn):
+def run_database_wizard(mysql_client) -> DatabaseConfig:
+    print("\n--- MySQL Configuration Database Wizard ---")
+    while True:
+        cfg = DatabaseConfig(
+            name=get_clean_input("Database name to use", default="gtopia"),
+            user=get_clean_input("MySQL username", default="root"),
+            password=get_clean_input("MySQL password", default="")
+        )
+        
+        print_info(f"Connecting to MySQL and initializing scheme '{cfg.name}'...")
+        sql_init = f"CREATE DATABASE IF NOT EXISTS {cfg.name};"
+        auth_args = ["-u", cfg.user] if not cfg.password else ["-u", cfg.user, f"-p{cfg.password}"]
+        
+        result = run_mysql_query(mysql_client, auth_args, sql_init)
+        if not result or result.returncode != 0:
+            err_msg = result.stderr if result else "Process Failure"
+            print_error(f"Failed to connect or create schema. MySQL Error:\n{err_msg}")
+            if get_clean_input("👉 Re-enter credentials? [Y/n]", default="y").lower() == 'y':
+                continue
+            return None
+            
+        print_success(f"Database schema '{cfg.name}' validated.")
+        if not SQL_FILE.exists():
+            print_error(f"Target SQL file missing at: {SQL_FILE}")
+            return cfg
+            
+        print_info("Importing tables...")
+        import_result = run_mysql_query(mysql_client, auth_args + [cfg.name], SQL_FILE.read_text(encoding="utf-8"))
+        if import_result and import_result.returncode == 0:
+            print_success(f"Integrated tables into target '{cfg.name}'.")
+            return cfg
+        else:
+            print_error(f"Table configuration failed: {import_result.stderr if import_result else 'Internal Error'}")
+            return cfg
+
+def update_config_line(file_path: Path, prefix: str, replacement: str):
+    if not file_path.exists():
+        return
+    lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    for i, line in enumerate(lines):
+        if line.strip().startswith(prefix):
+            lines[i] = replacement
+            break
+    file_path.write_text("".join(lines), encoding="utf-8")
+
+def configure_environment_firewalls(server_count: int):
+    rules = [
+        {"name": "GTopia-UDP-GamePorts", "proto": "UDP", "ports": f"18000-{18000 + server_count}"},
+        {"name": "GTopia-TCP-SocketPorts", "proto": "TCP", "ports": f"18500-{18500 + server_count}"}
+    ]
+    print_info("Creating Firewall inbound rules on host shell...")
+    for rule in rules:
+        ps_script = f'''
+        Remove-NetFirewallRule -DisplayName "{rule['name']}" -ErrorAction SilentlyContinue
+        New-NetFirewallRule -DisplayName "{rule['name']}" -Direction Inbound -Action Allow -Protocol {rule['proto']} -LocalPort "{rule['ports']}"
+        '''
+        ok, output = run_powershell(ps_script)
+        if ok:
+            print_success(f"Deployed Windows Firewall Rule: {rule['name']} -> {rule['proto']} ({rule['ports']})")
+        else:
+            print_error(f"Failed to deploy rule: {rule['name']}\n{output}")
+
+def edit_configuration_files(db: DatabaseConfig, local_ip: str, latest_cdn: str):
     print("\n--------------------------------------------------")
-    print("       Automated Configuration Editor            ")
+    print("         Automated Configuration Editor           ")
     print("--------------------------------------------------")
-    
-    ans = get_clean_input("👉 Do you want to automatically edit your config files? [Y/n]", default="y").lower()
-    if ans != "y":
-        print_info("Skipping auto-edit. You will need to edit .txt files manually.")
+    if get_clean_input("👉 Automate configurations directly into text files? [Y/n]", default="y").lower() != "y":
+        print_info("Skipping automation edits. You will need to customize configuration manually.")
         return
 
-    config_path = RUNTIME_DIR / "config.txt"
-    telnet_path = RUNTIME_DIR / "telnet_config.txt"
-    servers_path = RUNTIME_DIR / "servers.txt"
-    http_path = (ROOT / ".." / "HTTPServer" / "main.go").resolve()
+    print("\nSelect:")
+    print("1) Local (LAN)")
+    print("2) Virtual Private Server (VPS/VDS)")
+    
+    wan_ip = local_ip if get_clean_input("Select configuration profile [1-2]", default="1") == "1" else get_clean_input("Enter Public WAN IP Address")
+    lan_ip = local_ip
 
-    print("\nSelect your hosting environment:")
-    print("1) Local PC / LAN")
-    print("2) VPS / VDS)")
-    choice = get_clean_input("Select option [1-2]", default="1")
+    print_info("Applying target changes...")
 
-    target_wan_ip = local_ip if local_ip else "127.0.0.1"
-    target_lan_ip = local_ip if local_ip else "127.0.0.1"
+    cdn_host, cdn_path = latest_cdn.split("/", 1) if "/" in latest_cdn else ("", "")
+    update_config_line(RUNTIME_DIR / "config.txt", "database_info|", f"database_info|localhost|{db.user}|{db.password}|{db.name}|3306|\n")
+    if latest_cdn:
+        update_config_line(RUNTIME_DIR / "config.txt", "cdn_server|", f"cdn_server|{cdn_host}|{cdn_path}|\n")
+    
+    (RUNTIME_DIR / "worlds").mkdir(parents=True, exist_ok=True)
+    update_config_line(RUNTIME_DIR / "config.txt", "world_save_path|", f"world_save_path|{RUNTIME_DIR / 'worlds'}|\n")
+    
+    update_config_line(RUNTIME_DIR / "servers.txt", "set_master|", f"set_master|{lan_ip}|{wan_ip}|\n")
+    update_config_line(RUNTIME_DIR / "servers.txt", "add_server|", f"add_server|{lan_ip}|{wan_ip}|1|\n")
+    update_config_line(RUNTIME_DIR / "telnet_config.txt", "telnet_host|", f"telnet_host|{lan_ip}|\n")
+    update_config_line(CERT_DIR / "main.go", "const SERVER_IP =", f'const SERVER_IP = "{wan_ip}"\n')
 
-    if choice == "2":
-        target_wan_ip = get_clean_input("Enter your Public VPS/VDS IP address")
-        target_lan_ip = local_ip
+    print_success("Configuration done.")
 
-    print_info("Applying updates to runtime files...")
+    if platform.system() == "Windows" and wan_ip != local_ip:
+        if get_clean_input("\n👉 Automatically create Windows Firewall paths? [Y/n]", default="y").lower() == "y":
+            try:
+                count = int(get_clean_input("Expected game server count?", default="1"))
+                configure_environment_firewalls(count)
+            except ValueError:
+                print_error("Invalid parameter provided.")
 
-    if config_path.exists():
-        with open(config_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith("database_info|"):
-                lines[i] = f"database_info|localhost|{user}|{password}|{db_name}|3306|\n"
-
-            elif line.startswith("cdn_server|") and latest_cdn:
-                if "/" in latest_cdn:
-                    parts = latest_cdn.split("/", 1)
-                    cdn_host = parts[0]
-                    cdn_path = parts[1]
-                    lines[i] = f"cdn_server|{cdn_host}|{cdn_path}|\n"
-
-            elif line.startswith("world_save_path|"):
-                (RUNTIME_DIR / "worlds").mkdir(parents=True, exist_ok=True)
-                lines[i] = f"world_save_path|{str(RUNTIME_DIR / 'worlds')}|\n"
-
-        with open(config_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-
-        print_success("config.txt -> Updated database and CDN links.")
-
-    if servers_path.exists():
-        with open(servers_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith("set_master|"):
-                lines[i] = f"set_master|{target_lan_ip}|{target_wan_ip}|\n"
-
-            elif line.startswith("add_server|"):
-                lines[i] = f"add_server|{target_lan_ip}|{target_wan_ip}|1|\n"
-
-        with open(servers_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-        print_success("servers.txt -> Updated servers.")
-
-    if telnet_path.exists():
-        with open(telnet_path, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith("telnet_host|"):
-                lines[i] = f"telnet_host|{target_lan_ip}|\n"
-
-        with open(telnet_path, "w", encoding="utf-8") as f:
-            f.writelines(lines)
-        print_success("telnet_config.txt -> Updated admin server.")
-
-    if http_path.exists():
-        with open(http_path, "r", encoding="utf-8") as f:
-            http_lines = f.readlines()
-            
-        for i, line in enumerate(http_lines):
-            if line.strip().startswith('const SERVER_IP ='):
-                http_lines[i] = f'const SERVER_IP = "{target_wan_ip}"\n'
-                
-        with open(http_path, "w", encoding="utf-8") as f:
-            f.writelines(http_lines)
-        print_success("main.go -> Updated SERVER_IP.")
-
-    print_success("All configurations edited successfully!\n")
-
-    if choice == "2" and platform.system() == "Windows":
-        if get_clean_input("\n👉 👉 Do you want to automatically create Firewall rules? [Y/n]", default="y").lower() != "y":
-            print_info("Skippied creating firewall rules")
-            return
-        
-        try:
-            server_count = int(get_clean_input("How many game servers are you planning to run? Default is 1", default=1))
-        except Exception as e:
-            print_error(f"Failed: {e}")
-            return
-        
-        rules_to_create = [
-            {"GTopia-UDP-GamePorts", "UDP", f"18000-{18000 + server_count}"},
-            {"GTopia-TCP-SocketPorts", "TCP", f"18500-{18500 + server_count}"}
-        ]
-        
-        print_info("Creating Firewall inbound rules...")
-
-        for rule_name, proto, port_range in rules_to_create:
-            ps = f'''
-            Remove-NetFirewallRule -DisplayName "{rule_name}" -ErrorAction SilentlyContinue
-            
-            $RuleParams = @{{
-                DisplayName = "{rule_name}"
-                Direction   = "Inbound"
-                Action      = "Allow"
-                Protocol    = "{proto}"
-                LocalPort   = "{port_range}"
-            }}
-            
-            New-NetFirewallRule @RuleParams
-            '''
-            
-            ok, output = run_powershell(ps)
-            if ok:
-                print_success(f"Created rule: {rule_name} -> {proto} {port_range}")
-            else:
-                print_error(f"Failed to create rule: {rule_name}")
-                print(output)
-
-        print_success("Firewall rules configured\n")
-
-def main():
+def run_full_setup():
     print("==========================================")
-    print("      GTopia Private Server Setup Wizard   ")
+    print("      GTopia Private Server Setup Wizard  ")
     print("==========================================")
-    print_info("Discord server: https://discord.gg/5XjTQm3kRh\n")
+    print_info("Community: https://discord.gg/5XjTQm3kRh\n")
 
     check_cmake()
     mysql_client = check_mysql()
+    
+    db_config = DatabaseConfig()
+    if get_clean_input("\n👉 Initialize database and import tables? [Y/n]", default="y").lower() == "y":
+        wizard_result = run_database_wizard(mysql_client)
+        if wizard_result:
+            db_config = wizard_result
 
-    db_name, db_user, db_pass = "gtopia", "root", ""
-
-    if get_clean_input("\n👉 Do you want to import SQL tables? [Y/n]", default="y").lower() == "y":
-        sql_wizard(mysql_client)
-
-    if get_clean_input("\n👉 Do you want to create local SSL Certificates for HTTPS server? (It needed for 3.90+ versions) [Y/n]", default="y").lower() == "y":
-        download_mkcert()
+    if get_clean_input("\n👉 Generate local environment root SSL certificates? (Required for V3.90+) [Y/n]", default="y").lower() == "y":
+        setup_ssl_certificates()
 
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
-    if get_clean_input("\n👉 Do you want to generate file hashes? (Skip if not using custom CDN) [y/N]", default="n").lower() == "y":
-        print_info("\nEnter the static folder containing 'audio', 'interface', 'game' subdirectories.")
-        static_path = get_valid_path("Enter Static folder path", is_dir=True)
-        if static_path:
-            print_info("Processing file hashes, it might take a bit...")
-            generate_file_hashes(static_path)
-            move_file(ROOT / "filehashes.txt", RUNTIME_DIR)
+    if get_clean_input("\n👉 Generate filehashes.txt? (Skip if not managing a custom CDN) [y/N]", default="n").lower() == "y":
+        task_generate_hashes()
 
-    if get_clean_input("\n👉 Do you want to generate items.txt from your items.dat? (Required) [Y/n]", default="y").lower() == "y":
-        dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
-        if dat_path:
-            print_info("Processing items...")
-            generate_item_txt_from_dat(0, dat_path)
-            move_file(ROOT / "items.txt", RUNTIME_DIR)
+    if get_clean_input("\n👉 Generate items.txt? (Required) [Y/n]", default="y").lower() == "y":
+        task_generate_items()
 
-    if get_clean_input("\n👉 Do you want to generate wiki_data.txt? (Description/Splice information) (Not required) [y/N]", default="n").lower() == "y":
-        wiki_dat_path = get_valid_path("Enter your raw items.dat path location", is_file=True)
-        if wiki_dat_path:
-            print_info("Processing wiki data, it might take a bit...")
-            fetch_wiki_and_write(0, wiki_dat_path)
-            move_file(ROOT / "wiki_data.txt", RUNTIME_DIR)
+    if get_clean_input("\n👉 Generate wiki_data.txt from wiki? [y/N]", default="n").lower() == "y":
+        task_generate_wiki()
 
-    print("\n--- Moving default configurations ---")
+    print("\n--- Moving configs ---")
     config_files = [
         "config.txt", "playmods.txt", "roles.txt", "telnet_config.txt", 
         "servers.txt", "achievements.txt", "store.txt", "consumable_data.txt", "battle_pet_data.txt"
@@ -479,29 +391,74 @@ def main():
         move_file(CONFIGS_DIR / config, RUNTIME_DIR)
 
     (RUNTIME_DIR / "logs").mkdir(parents=True, exist_ok=True)
-
-    print_info("Getting latest Growtopia CDN...")
+    
+    local_ip = get_local_ip()
     latest_cdn = get_latest_growtopia_cdn()
-
-    edit_configuration_files(db_name, db_user, db_pass, get_local_ip(), latest_cdn)
+    edit_configuration_files(db_config, local_ip, latest_cdn)
 
     print("\n==========================================")
     print("          SETUP COMPLETED SUCCESSFULLY    ")
     print("==========================================\n")
+    print_info(f"Detected LAN IP: {local_ip}")
+    if latest_cdn:
+        print_info(f"Latest Ubisoft CDN: {latest_cdn}")
+
+def run_get_lan_ip():
+    print("\n--- [LAN IP Info] ---")
     print_info(f"Your detected Local LAN IP is: {get_local_ip()}")
     print_warn("Shown LAN IP address might be wrong if you are using proxy, run `ifconfig` or `ipconfig` to see all interfaces")
     print_warn("If you are running on a remote VPS/VDS, use your public server IP instead.\n")
 
-    if latest_cdn:
-        print_info(f"Latest Growtopia CDN: {latest_cdn}")
+def run_get_latest_cdn():
+    print("\n--- [Latest Ubisoft CDN] ---")
+    cdn = get_latest_growtopia_cdn()
+    if cdn:
+        print_info(f"Active Link Found: {cdn}")
+    else:
+        print_error("Failed to fetch latest Ubisoft CDN.")
 
-    print_success("Navigate to the 'Runtime' folder and customize your configurations.\n")
+def main():
+    menu_actions = {
+        "1": run_full_setup,
+        "2": run_get_latest_cdn,
+        "3": run_get_lan_ip,
+        "4": task_generate_items,
+        "5": task_generate_wiki,
+        "6": task_generate_hashes,
+    }
+
+    while True:
+        subprocess.run("cls" if platform.system() == "Windows" else "clear", shell=True)
+
+        print("\n==================================================")
+        print("       GTOPIA PRIVATE SERVER SETUP PANEL          ")
+        print("==================================================")
+        print(" [1] Start Full Server Setup Wizard")
+        print(" [2] Fetch Latest Ubisoft CDN")
+        print(" [3] Get LAN IP")
+        print(" [4] Generate items.txt")
+        print(" [5] Generate wiki_data.txt")
+        print(" [6] Generate file_hashes.txt")
+        print(" [0] Exit")
+        print_info("Community: https://discord.gg/5XjTQm3kRh")
+
+        choice = get_clean_input("Choice", default="1")
+        if choice == "0":
+            print_info("Exiting setup. Bye!")
+            break
+        
+        action = menu_actions.get(choice)
+        if action:
+            action()
+            print("\n--------------------------------------------------")
+            input("👉 Press Enter to return to the Main Menu...")
+        else:
+            print_error("Invalid parameter index option selected.")
+            input("👉 Press Enter to try again...")
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print_error("\nSetup cancelled by user.")
+        print_error("\nSetup processes interrupted.")
         sys.exit(0)
-
-    input("Press any key to exit...")

@@ -160,11 +160,18 @@ void DonationBoxDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanc
             continue;
 
         UserMetadata* pMetaData = pUserMgr->GetMetadata(gift.userID);
-        db.AddCheckBox("checkbox",
-                       pItem->name + " (`w" + ToString(gift.itemCount) + "``) from `w" +
-                           (pMetaData ? pMetaData->displayName : ("#" + ToString(gift.userID))) + "`5 - " +
-                           gift.message,
-                       false);
+        string donationMsg;
+        donationMsg.reserve(128);
+
+        donationMsg = pItem->name + " (`w" + ToString(gift.itemCount) + "``) from `w" +
+                      (pMetaData ? pMetaData->displayName : ("#" + ToString(gift.userID)));
+
+        if (!gift.message.empty())
+        {
+            donationMsg += "`5 - \" " + gift.message + " \"";
+        }
+
+        db.AddCheckBox("checkbox", donationMsg, false);
     }
 
     db.AddSpacer()

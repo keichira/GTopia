@@ -1,6 +1,6 @@
 #include "GameMessage_Item.h"
+#include "../../../Player/Dialog/PopupDialog.h"
 #include "../../../Player/Dialog/TrashDialog.h"
-#include "../../../Player/Dialog/WrenchSelfDialog.h"
 #include "../../../Store/StoreManager.h"
 #include "Item/ItemInfoManager.h"
 #include "Packet/NetPacket.h"
@@ -44,7 +44,8 @@ void GameMessage_RefreshItemData(GamePlayer* pPlayer, ParsedTextPacket<38>& pack
     pPlayer->SendOnConsoleMessage("One moment updating item data...");
 
     PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
-    ItemsClientData* clientData = GetItemInfoManager()->GetClientData(loginDetail.platformType, loginDetail.gameVersion);
+    ItemsClientData* clientData =
+        GetItemInfoManager()->GetClientData(loginDetail.platformType, loginDetail.gameVersion);
     if (!clientData->pItemData)
     {
         pPlayer->SendOnConsoleMessage("Someting went wrong while sending updates");

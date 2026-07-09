@@ -1,6 +1,6 @@
 #pragma once
-#include <stdint.h>
 #include <cstddef>
+#include <stdint.h>
 #include <string>
 
 #define RANDOM_BYTE_MAX_RETRIES 2
@@ -27,3 +27,8 @@ string GetFileExtension(const string& file);
 uint32 GetSecondsFromMidnight();
 string GetLoadAvgString();
 string GetFileNameFromPath(const string& path);
+
+#ifdef _WIN32
+std::wstring UTF8ToUTF16(const string& str);
+string UTF16ToUTF8(const std::wstring& wstr);
+#endif

@@ -5,9 +5,6 @@
 #include "BattlePetInfo.h"
 #include "ItemInfo.h"
 #include <algorithm>
-#include <string>
-#include <unordered_map>
-#include <vector>
 
 #define MAX_SUPPORTED_ITEM_DATA_VERSION 26
 
