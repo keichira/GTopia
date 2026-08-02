@@ -55,6 +55,7 @@ public:
     static void SaveToDatabaseCB(QueryTaskResult&& result);
     static void SaveToFile(World* pWorld);
     void SaveToDatabase();
+
     void Update();
 
     bool ExportWorld(const string& name);
@@ -90,6 +91,7 @@ public:
     void SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip);
     void SendOnCountryStateToAll(GamePlayer* pPlayer);
     void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos, int32 delayMS = -1);
+    void SendOnBillboardChangeToAll(GamePlayer* pPlayer);
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
                             const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
@@ -112,8 +114,6 @@ public:
     bool PlayerHasAccessOnTile(GamePlayer* pPlayer, TileInfo* pTile);
     std::vector<GamePlayer*> GetPlayersInWorldRect(const RectFloat& rect);
 
-    bool AbleToWorldBanSomeone(GamePlayer* pPlayer);
-
     bool FlameUpTile(TileInfo* pTile);
     void PutOutFire(TileInfo* pTile, GamePlayer* pPlayer = nullptr);
 
@@ -121,6 +121,8 @@ public:
 
     void CalcHarmonicCrystal(TileInfo* pTile, int16* dest);
     bool OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer);
+
+    void OnBunnyEggBreak(GamePlayer* pPlayer, TileInfo* pTile);
 
     bool CheckAndSwapTiles(GamePlayer* pPlayer, TileInfo* pTile, string& error);
     bool CheckIfSwappingValid(GamePlayer* pPlayer, TileInfo* pTile, string& error);
@@ -160,6 +162,8 @@ public:
     std::vector<uint32> GetRequiredPresenceUserIDs();
     std::vector<uint32> GetActivePresenceUserIDs();
     void UpdatePresenceNeededThings(bool sendUpdatesToNetwork);
+
+    IPTracker& GetBannedPlayers() { return m_bannedPlayers; };
 
 private:
     void DropObject(const WorldObject& obj);

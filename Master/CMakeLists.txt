@@ -51,13 +51,13 @@ set(MASTER_FILES PRIVATE
     ${SOURCE_PLAYER}/Role.cpp
     ${MASTER_PLAYER}/GamePlayer.cpp
     ${MASTER_PLAYER}/PlayerManager.cpp
-    ${MASTER_PLAYER}/PlayerPresenceManager.cpp
 
     ${SOURCE_SERVER}/ServerBase.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp
     ${MASTER_SERVER}/GameServer.cpp
     ${MASTER_SERVER}/ServerManager.cpp
     ${MASTER_SERVER}/TelnetServer.cpp
+    ${MASTER_SERVER}/GamePresenceManager.cpp
 
     ${MASTER_COMMAND}/Telnet/SetRole.cpp
 

@@ -20,10 +20,14 @@ enum eTCPPacketType
     TCP_PACKET_COMMAND,
     TCP_PACKET_WORLD_PLAYER_SESSION,
 
-    TCP_PACKET_ONLINE_DATA_SUBSCRIBE,
-    TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE,
-    TCP_PACKET_ONLINE_DATA_UPDATE,
-    TCP_PACKET_ONLINE_DATA_SNAPSHOT,
+    TCP_PACKET_PLAYER_SUBSCRIBE,
+    TCP_PACKET_PLAYER_UNSUBSCRIBE,
+    TCP_PACKET_PLAYER_UPDATE,
+    TCP_PACKET_PLAYER_SNAPSHOT,
+
+    TCP_PACKET_WORLD_SNAPSHOT,
+    TCP_PACKET_WORLD_UPDATE,
+    TCP_PACKET_WORLD_REMOVE,
 
     TCP_RENDER_REQUEST = 1000,
     TCP_RENDER_RESULT = 1001,
@@ -159,13 +163,32 @@ struct GameUpdatePacket
     bool HasFlag(eGamePacketFlags flag) { return flags & flag; }
     void SetFlag(eGamePacketFlags flag) { flags |= flag; }
 };
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 struct PlayerPresencePacketElement
 {
     uint32 userID;
     uint8 status;
     char name[32];
+};
+
+struct WorldPresenceSnapshotElement
+{
+    uint32 worldID;
+    char name[32];
+    uint16 playerCount;
+    uint8 worldType;
+    uint8 isSignalJammed;
+};
+
+struct WorldPresenceUpdateElement
+{
+    uint32 worldID;
+    uint16 playerCount;
+    uint8 isSignalJammed;
+};
+
+struct WorldPresenceRemoveElement
+{
+    uint32 worldID;
 };
 #pragma pack(pop)

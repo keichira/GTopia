@@ -1,7 +1,3 @@
-# =================================================================
-# GTopia Servers File
-# =================================================================
-
 # Ports (Port = Start Port + Server ID)
 tcp_start|18500
 udp_start|18000
@@ -10,11 +6,6 @@ udp_start|18000
 # add_server|INTERNAL_LAN_IP|EXTERNAL_WAN_IP|COUNT|
 # add_renderer|INTERNAL_LAN_IP|EXTERNAL_WAN_IP|COUNT|
 
-# LOCALHOST/LAN EXAMPLE:
-#    If hosting on your own PC, both IPs must be your LAN IP (e.g., 192.168.1.5)
-#    set_master|192.168.1.5|192.168.1.5|
-#    add_server|192.168.1.5|192.168.1.5|1|
-#
 # VPS / VDS / PRODUCTION EXAMPLE:
 #    If hosting on a virtual server
 #    and WAN is your public Server VPS IP.
@@ -26,3 +17,5 @@ set_master|127.0.0.1|127.0.0.1|
 
 # Registering sub-servers to Master
 add_server|127.0.0.1|127.0.0.1|1|
+
+# add_renderer|127.0.0.1|127.0.0.1|1|

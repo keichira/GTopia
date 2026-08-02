@@ -60,8 +60,10 @@ public:
     void EndSessionsByServerID(uint32 serverID);
 
 private:
-    void RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, const string& doorID, WorldSession& world);
-    void CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName, uint32 playerUserID, uint32 sourceServerID);
+    void RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, const string& doorID,
+                                    WorldSession& world);
+    void CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName, uint32 playerUserID,
+                                     uint32 sourceServerID);
     void AttachPending(WorldSession* pWorld, uint32 sourceServerID, uint32 userID, const string& doorID);
     void FailPlayerJoin(ServerInfo* pServer, uint32 userID, const string& message);
 

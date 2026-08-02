@@ -1,4 +1,5 @@
 #include "VariantPacket.h"
+#include "../Utils/StringUtils.h"
 
 namespace VariantPacket
 {
@@ -201,6 +202,24 @@ VariantVector OnForceTradeEnd()
 VariantVector OnKilled()
 {
     return {"OnKilled"};
+}
+
+VariantVector OnBillboardChange(int32 netID, int32 itemID, bool showBoard, float price, bool isLockPerItem, bool isBuy,
+                                int32 protocol)
+{
+    VariantVector data(6);
+    data[0] = "OnBillboardChange";
+    data[1] = netID;
+    data[2] = itemID;
+
+    if (protocol < 167)
+        data[3] = ((uint32)showBoard);
+    else
+        data[3] = ToString(showBoard) + "," + ToString(isBuy);
+
+    data[4] = price;
+    data[5] = isLockPerItem;
+    return data;
 }
 
 VariantVector OnStoreRequest(const string& storeData)

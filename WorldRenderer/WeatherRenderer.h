@@ -3,7 +3,8 @@
 #include "Precompiled.h"
 #include "Renderer2D.h"
 
-class WeatherRenderer {
+class WeatherRenderer
+{
 public:
     WeatherRenderer(const Renderer2D& renderer);
     ~WeatherRenderer();

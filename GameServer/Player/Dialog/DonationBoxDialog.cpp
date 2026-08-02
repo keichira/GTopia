@@ -29,9 +29,9 @@ void DonationBoxDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* 
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y);
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y);
 
     if (pTileExtra->gifts.empty())
     {
@@ -55,7 +55,7 @@ void DonationBoxDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* 
             return;
         }
 
-        db.AddSpacer()->AddTextInput("min_rarity", "Min Rarity:", ToString(pTileExtra->minRarity), 3);
+        db.AddSpacer().AddTextInput("min_rarity", "Min Rarity:", ToString(pTileExtra->minRarity), 3);
 
         bool canGift = true;
         if (pTileExtra->gifts.size() >= 20)
@@ -67,9 +67,9 @@ void DonationBoxDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* 
 
         if (canGift)
         {
-            db.AddSpacer()->AddItemPicker("itemid",
-                                          "`wGive Gift`` (Min Rarity:`5 " + ToString(pTileExtra->minRarity) + "``)",
-                                          "Choose an item to give");
+            db.AddSpacer().AddItemPicker("itemid",
+                                         "`wGive Gift`` (Min Rarity:`5 " + ToString(pTileExtra->minRarity) + "``)",
+                                         "Choose an item to give");
         }
 
         db.EndDialog("donation_box_edit", "Update", "Cancel");
@@ -103,8 +103,8 @@ void DonationBoxDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* 
         if (canGift)
         {
             db.AddTextBox("Want to leave a gift for the owner?")
-                ->AddItemPicker("itemid", "`wGive Gift`` (Min Rarity:`5" + ToString(pTileExtra->minRarity) + "``)",
-                                "Choose an item to give");
+                .AddItemPicker("itemid", "`wGive Gift`` (Min Rarity:`5" + ToString(pTileExtra->minRarity) + "``)",
+                               "Choose an item to give");
         }
     }
 
@@ -143,12 +143,12 @@ void DonationBoxDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanc
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->AddTextBox("You have `w" + ToString(pTileExtra->gifts.size()) + "`` gift" +
-                     (pTileExtra->gifts.size() > 1 ? "s:" : ":") + "waiting:")
-        ->AddSpacer();
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .AddTextBox("You have `w" + ToString(pTileExtra->gifts.size()) + "`` gift" +
+                    (pTileExtra->gifts.size() > 1 ? "s:" : ":") + "waiting:")
+        .AddSpacer();
 
     UserCacheManager* pUserMgr = GetUserCacheManager();
     ItemInfoManager* pItemMgr = GetItemInfoManager();
@@ -175,9 +175,9 @@ void DonationBoxDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanc
     }
 
     db.AddSpacer()
-        ->AddButton("clear_selected", "`4Retrieve Selected Gifts``")
-        ->AddButton("clear", "`4Retrieve All Gifts``")
-        ->AddTextInput("min_rarity", "Min Rarity:", ToString(pTileExtra->minRarity), 3);
+        .AddButton("clear_selected", "`4Retrieve Selected Gifts``")
+        .AddButton("clear", "`4Retrieve All Gifts``")
+        .AddTextInput("min_rarity", "Min Rarity:", ToString(pTileExtra->minRarity), 3);
 
     bool canGift = true;
     if (pTileExtra->gifts.size() >= 20)
@@ -189,9 +189,9 @@ void DonationBoxDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanc
 
     if (canGift)
     {
-        db.AddSpacer()->AddItemPicker("itemid",
-                                      "`wGive Gift`` (Min Rarity:`5 " + ToString(pTileExtra->minRarity) + "``)",
-                                      "Choose an item to give");
+        db.AddSpacer().AddItemPicker("itemid",
+                                     "`wGive Gift`` (Min Rarity:`5 " + ToString(pTileExtra->minRarity) + "``)",
+                                     "Choose an item to give");
     }
 
     db.EndDialog("donation_box_edit", "Update", "Cancel");
@@ -489,18 +489,18 @@ void DonationBoxDialog::RequestDonatingItem(GamePlayer* pPlayer, TileInfo* pTile
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->EmbedData("itemID", ToItemClientID(pItem->id))
-        ->AddTextBox("How many to put in the box as a gift? (Note: You will `4LOSE`` the items you give!)")
-        ->AddTextInput("count", "Count:", "", 5)
-        ->AddTextInput("sign_text", "Optional Note:", "", 128)
-        ->AddSpacer()
-        ->AddButton("give", "`4Give the item(s)``")
-        ->AddSpacer()
-        ->AddButton("cancel", "`wCancel``")
-        ->EndDialog("give_item", "", "");
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .EmbedData("itemID", ToItemClientID(pItem->id))
+        .AddTextBox("How many to put in the box as a gift? (Note: You will `4LOSE`` the items you give!)")
+        .AddTextInput("count", "Count:", "", 5)
+        .AddTextInput("sign_text", "Optional Note:", "", 128)
+        .AddSpacer()
+        .AddButton("give", "`4Give the item(s)``")
+        .AddSpacer()
+        .AddButton("cancel", "`wCancel``")
+        .EndDialog("give_item", "", "");
 
     pPlayer->SendOnDialogRequest(db.Get());
 }

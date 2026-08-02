@@ -1,80 +1,106 @@
 #include "WorldRendererManager.h"
-#include "WorldRenderer.h"
-#include "Utils/Timer.h"
-#include "MasterBroadway.h"
+#include "Context.h"
 #include "IO/Log.h"
+#include "MasterBroadway.h"
 #include "Utils/ResourceManager.h"
 
-WorldRendererManager::WorldRendererManager()
+WorldRendererManager::WorldRendererManager() {}
+
+WorldRendererManager::~WorldRendererManager() {}
+
+bool WorldRendererManager::AddTask(uint32 userID, uint32 worldID)
 {
-    m_pRenderer = new WorldRenderer();
-}
-
-WorldRendererManager::~WorldRendererManager()
-{
-    SAFE_DELETE(m_pRenderer);
-}
-
-void WorldRendererManager::Update()
-{
-    if(m_lastRenderTime.GetElapsedTime() <= 250) {
-        return;
+    if (m_renderQueue.size_approx() > MAX_QUEUE_SIZE)
+    {
+        LOGGER_LOG_ERROR("Render queue overloaded (%d items)! Rejecting request for User: %d, World: %d",
+                         m_renderQueue.size_approx(), userID, worldID);
+        GetMasterBroadway()->SendWorldRenderResult(false, userID, worldID);
+        return false;
     }
 
-    WorldRenderInfo renderInfo;
-    if(!m_renderQueue.try_dequeue(renderInfo)) {
-        if(m_lastRenderTime.GetElapsedTime() >= 2 * 3600 * 1000) {
-            LOGGER_LOG_INFO("Killing resources due inactivity");
-            GetResourceManager()->Kill();
-            m_lastRenderTime.Reset();
-        }
-
-        return;
-    }
-
-    m_lastRenderTime.Reset();
-    MasterBroadway* pMasterBroadway = GetMasterBroadway();
-
-    if(renderInfo.worldID == 0) {
-        LOGGER_LOG_ERROR("World id is 0? skippping");
-        pMasterBroadway->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
-        return;
-    }
-
-    uint64 timeNow = Time::GetSystemTime();
-    if(timeNow - renderInfo.reqTime > 5000) {
-        LOGGER_LOG_ERROR("Render time exceed %d skipping", timeNow - renderInfo.reqTime);
-        pMasterBroadway->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
-        return;
-    }
-
-    uint64 timeLoad = Time::GetSystemTime();
-    if(!m_pRenderer->LoadWorld(renderInfo.worldID)) {
-        LOGGER_LOG_ERROR("Failed to load world %d, skipping", renderInfo.worldID);
-        pMasterBroadway->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
-        return;   
-    }
-    uint64 timeLoadEnd = Time::GetSystemTime();
-
-    uint64 timeDraw = Time::GetSystemTime();
-    m_pRenderer->Draw();
-    uint64 timeDrawEnd = Time::GetSystemTime();
-
-    pMasterBroadway->SendWorldRenderResult(true, renderInfo.userID, renderInfo.worldID);
-
-    uint64 finalLoadTime = timeLoadEnd - timeLoad;
-    uint64 finalDRawTime = timeDrawEnd - timeDraw;
-    LOGGER_LOG_INFO("Rendered world %d requestedUser: %d loadTime: %dms, drawTime: %dms, total %dms", renderInfo.worldID, renderInfo.userID, finalLoadTime, finalDRawTime, finalLoadTime + finalDRawTime );
-}
-
-void WorldRendererManager::AddTask(uint32 userID, uint32 worldID)
-{
     WorldRenderInfo renderInfo;
     renderInfo.reqTime = Time::GetSystemTime();
     renderInfo.userID = userID;
     renderInfo.worldID = worldID;
 
-    m_renderQueue.enqueue(std::move(renderInfo));
+    m_renderQueue.enqueue(renderInfo);
+    m_inactivityTimer.Reset();
+    return true;
 }
 
-WorldRendererManager* GetWorldRendererManager() { return WorldRendererManager::GetInstance(); }
+void WorldRendererManager::PushReadyJob(const RenderJob& job)
+{
+    m_readyToDrawQueue.enqueue(job);
+}
+
+void WorldRendererManager::Update()
+{
+    if (m_lastRenderTime.GetElapsedTime() >= 250)
+    {
+        RenderJob readyJob;
+        if (m_readyToDrawQueue.try_dequeue(readyJob))
+        {
+            m_lastRenderTime.Reset();
+
+            if (readyJob.pWorld)
+            {
+                m_renderer.Draw(readyJob.pWorld);
+                GetMasterBroadway()->SendWorldRenderResult(true, readyJob.userID, readyJob.worldID);
+                SAFE_DELETE(readyJob.pWorld);
+            }
+            else
+            {
+                GetMasterBroadway()->SendWorldRenderResult(false, readyJob.userID, readyJob.worldID);
+            }
+        }
+    }
+
+    WorldRenderInfo renderInfo;
+    if (m_renderQueue.try_dequeue(renderInfo))
+    {
+        if (renderInfo.worldID == 0)
+        {
+            GetMasterBroadway()->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
+            return;
+        }
+
+        if (Time::GetSystemTime() - renderInfo.reqTime > 5000)
+        {
+            LOGGER_LOG_ERROR("Render request timed out for world %d, skipping", renderInfo.worldID);
+            GetMasterBroadway()->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
+            return;
+        }
+
+        WorldInfo* pWorld = new WorldInfo();
+
+        LOGGER_LOG_INFO("Loading world %d", renderInfo.worldID);
+        if (!m_renderer.LoadWorld(renderInfo.worldID, pWorld))
+        {
+            LOGGER_LOG_ERROR("Failed to load world %d file, skipping", renderInfo.worldID);
+            GetMasterBroadway()->SendWorldRenderResult(false, renderInfo.userID, renderInfo.worldID);
+            SAFE_DELETE(pWorld);
+            return;
+        }
+
+        RenderJob job;
+        job.userID = renderInfo.userID;
+        job.worldID = renderInfo.worldID;
+        job.pWorld = pWorld;
+
+        PushReadyJob(job);
+    }
+    else
+    {
+        if (m_inactivityTimer.GetElapsedTime() >= 180 * 60 * 1000)
+        {
+            LOGGER_LOG_INFO("System idle for 180 mins. Flushing resource manager cache...");
+            GetResourceManager()->Kill();
+            m_inactivityTimer.Reset();
+        }
+    }
+}
+
+WorldRendererManager* GetWorldRendererManager()
+{
+    return WorldRendererManager::GetInstance();
+}

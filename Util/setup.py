@@ -21,6 +21,7 @@ CERT_DIR = (PROJECT_ROOT / "HTTPServer").resolve()
 RUNTIME_DIR = (PROJECT_ROOT / "Runtime").resolve()
 CONFIGS_DIR = (PROJECT_ROOT / "Configs").resolve()
 SQL_FILE = (CONFIGS_DIR / "gtopia.sql").resolve()
+SQL_UPDATES_DIR = (CONFIGS_DIR / "Updates").resolve()
 
 sys.path.append(str(PROJECT_ROOT / "Util"))
 
@@ -251,6 +252,105 @@ def run_mysql_query(mysql_client, args, sql_input):
         print_error(f"MySQL process bridge crash: {e}")
         return None
 
+def get_existing_databases(mysql_client, user: str, password: str) -> list:
+    auth_args = ["-u", user]
+    if password:
+        auth_args.append(f"-p{password}")
+        
+    res = run_mysql_query(mysql_client, auth_args, "SHOW DATABASES;")
+    if res and res.returncode == 0 and res.stdout:
+        system_dbs = {"information_schema", "performance_schema", "mysql", "sys"}
+        dbs = [
+            line.strip() for line in res.stdout.strip().splitlines()[1:] 
+            if line.strip() and line.strip().lower() not in system_dbs
+        ]
+        return dbs
+    return []
+
+def init_schema_migrations(mysql_client, auth_args, db_name):
+    sql = f"""
+    USE `{db_name}`;
+    CREATE TABLE IF NOT EXISTS `SchemaMigrations` (
+      `Version` VARCHAR(255) PRIMARY KEY,
+      `ApplyTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    run_mysql_query(mysql_client, auth_args, sql)
+
+def update_database_tables(mysql_client, cfg: DatabaseConfig):
+    auth_args = ["-u", cfg.user]
+    if cfg.password:
+        auth_args.append(f"-p{cfg.password}")
+
+    run_mysql_query(mysql_client, auth_args, f"CREATE DATABASE IF NOT EXISTS `{cfg.name}`;")
+    init_schema_migrations(mysql_client, auth_args, cfg.name)
+
+    get_versions_sql = f"USE `{cfg.name}`; SELECT `Version` FROM `SchemaMigrations`;"
+    res = run_mysql_query(mysql_client, auth_args, get_versions_sql)
+    
+    applied_versions = set()
+    if res and res.returncode == 0 and res.stdout:
+        applied_versions = set(line.strip() for line in res.stdout.strip().splitlines()[1:] if line.strip())
+
+    if not SQL_UPDATES_DIR.exists():
+        SQL_UPDATES_DIR.mkdir(parents=True, exist_ok=True)
+
+    all_updates = sorted([f for f in SQL_UPDATES_DIR.glob("*.sql")])
+    pending_updates = [f for f in all_updates if f.name not in applied_versions]
+
+    if not pending_updates:
+        return True, 0, []
+
+    applied_now = []
+    for sql_file in pending_updates:
+        print_info(f"Applying migration: {sql_file.name}...")
+
+        sql_content = sql_file.read_text(encoding="utf-8")
+        import_res = run_mysql_query(mysql_client, auth_args + [cfg.name], sql_content)
+        
+        if import_res and import_res.returncode == 0:
+            record_sql = f"USE `{cfg.name}`; INSERT INTO `SchemaMigrations` (`Version`) VALUES ('{sql_file.name}');"
+            run_mysql_query(mysql_client, auth_args, record_sql)
+            applied_now.append(sql_file.name)
+            print_success(f"Applied: {sql_file.name}")
+        else:
+            err = import_res.stderr if import_res else "Unknown Error"
+            print_error(f"Failed to apply {sql_file.name}:\n{err}")
+            return False, len(applied_now), applied_now
+
+    return True, len(applied_now), applied_now
+
+def run_update_sql_tables():
+    print("\n--- [Update SQL Tables] ---")
+    mysql_client = check_mysql()
+    
+    user = get_clean_input("MySQL username", default="root")
+    password = get_clean_input("MySQL password", default="")
+
+    print_info("Fetching existing databases...")
+    dbs = get_existing_databases(mysql_client, user, password)
+    
+    if dbs:
+        print_info(f"Found existing database(s): {', '.join(dbs)}")
+        default_db = dbs[0] if "gtopia" not in dbs else "gtopia"
+    else:
+        print_warn("No custom databases found or unable to list databases.")
+        default_db = "gtopia"
+
+    db_name = get_clean_input("Database name to update", default=default_db)    
+    cfg = DatabaseConfig(name=db_name, user=user, password=password)
+    
+    print_info(f"Checking for updates in '{SQL_UPDATES_DIR.name}' folder...")
+    success, count, applied = update_database_tables(mysql_client, cfg)
+    
+    if success:
+        if count > 0:
+            print_success(f"Successfully applied {count} migration(s): {', '.join(applied)}")
+        else:
+            print_info("Database is already up to date. No pending migrations.")
+    else:
+        print_error("Failed to execute one or more database migrations.")
+
 def run_database_wizard(mysql_client) -> DatabaseConfig:
     print("\n--- MySQL Configuration Database Wizard ---")
     while True:
@@ -324,9 +424,10 @@ def edit_configuration_files(db: DatabaseConfig, local_ip: str, latest_cdn: str)
     print("\nSelect:")
     print("1) Local (LAN)")
     print("2) Virtual Private Server (VPS/VDS)")
-    
-    wan_ip = local_ip if get_clean_input("Select configuration profile [1-2]", default="1") == "1" else get_clean_input("Enter Public WAN IP Address")
-    lan_ip = local_ip
+
+    choice = get_clean_input("Select configuration profile [1-2]", default="1")
+    wan_ip = local_ip if choice == "1" else get_clean_input("Enter Public WAN IP Address")
+    lan_ip = local_ip if choice == "2" else "127.0.0.1"
 
     print_info("Applying target changes...")
 
@@ -425,6 +526,7 @@ def main():
         "4": task_generate_items,
         "5": task_generate_wiki,
         "6": task_generate_hashes,
+        "7": run_update_sql_tables
     }
 
     while True:
@@ -438,7 +540,8 @@ def main():
         print(" [3] Get LAN IP")
         print(" [4] Generate items.txt")
         print(" [5] Generate wiki_data.txt")
-        print(" [6] Generate file_hashes.txt")
+        print(" [6] Generate filehashes.txt")
+        print(" [7] Update SQL Tables")
         print(" [0] Exit")
         print_info("Community: https://discord.gg/5XjTQm3kRh")
 
@@ -453,7 +556,7 @@ def main():
             print("\n--------------------------------------------------")
             input("👉 Press Enter to return to the Main Menu...")
         else:
-            print_error("Invalid parameter index option selected.")
+            print_error("Invalid option selected.")
             input("👉 Press Enter to try again...")
 
 if __name__ == "__main__":

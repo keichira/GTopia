@@ -22,7 +22,7 @@
 GamePlayer::GamePlayer()
     : m_currentWorldID(0), m_joiningWorld(false), m_guestID(0), m_lastItemActivateTime(0), m_state(0), m_flags(0),
       m_gems(0), m_progressData(this), m_modController(this), m_activeBattlePetSlot(0), m_lockAccessTileIndex(-1),
-      m_lockAccessOwnerID(-1), m_tradeMgr(this)
+      m_lockAccessOwnerID(-1), m_tradeMgr(this), m_extraData(this)
 {
     RandomizeNextDBSaveTime();
 }
@@ -35,6 +35,12 @@ GamePlayer::~GamePlayer()
 void GamePlayer::Update()
 {
     m_modController.Update();
+
+    if (m_currentWorldID == 0 && (m_characterData.needCharStateUpdate || m_characterData.needSkinUpdate))
+    {
+        m_characterData.needCharStateUpdate = false;
+        m_characterData.needSkinUpdate = false;
+    }
 
     if (m_currentWorldID != 0)
     {
@@ -156,6 +162,11 @@ void GamePlayer::SaveToDatabase()
     MemoryBuffer progressMemBuffer(pProgressData, progressMemSize);
     m_progressData.Serialize(progressMemBuffer, true);
 
+    uint32 extraMemSize = m_extraData.GetMemEstimate();
+    uint8* pExtraData = new uint8[extraMemSize];
+    MemoryBuffer extraMemBuffer(pExtraData, extraMemSize);
+    m_extraData.Serialize(extraMemBuffer, true);
+
     uint32 worldID = 0;
     if (m_currentWorldID != 0)
     {
@@ -169,16 +180,17 @@ void GamePlayer::SaveToDatabase()
     if (m_pRole)
         roleID = m_pRole->GetID();
     else
-        LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting default role %d", GetRawName(), GetUserID(),
+        LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting to default role %d", GetRawName(), GetUserID(),
                         roleID);
 
-    QueryRequest req = PlayerDB::Save(m_userID, roleID, ToHex(pInvData, invMemSize),
-                                      0, // m_characterData.GetSkinColor(),
-                                      m_flags, worldID, ToHex(pProgressData, progressMemSize), m_gems, GetNetID());
+    QueryRequest req =
+        PlayerDB::Save(m_userID, roleID, ToHex(pInvData, invMemSize), 0, m_flags, worldID,
+                       ToHex(pProgressData, progressMemSize), m_gems, ToHex(pExtraData, extraMemSize), GetNetID());
 
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
     SAFE_DELETE_ARRAY(pProgressData);
     SAFE_DELETE_ARRAY(pInvData);
+    SAFE_DELETE_ARRAY(pExtraData);
 }
 
 void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession, bool sendNetworkPackets)
@@ -261,7 +273,7 @@ void GamePlayer::OnEnterGameCheckAndSendToWorldIfPossibleCB(QueryTaskResult&& re
     pPlayer->GetLoginDetail().loginMode = LOGON_MODE_TRANSFER;
     if (!result.result)
     {
-        pPlayer->SendOnRequestWorldSelectMenu("");
+        GetWorldManager()->SendWorldMenuRequest(pPlayer);
         return;
     }
 
@@ -312,11 +324,11 @@ void GamePlayer::OnEnterGameCB(QueryTaskResult&& result)
     }
     pPlayer->SetRole(pRole);
 
-    /*uint32 skinColor = result.result->GetField("SkinColor", 0).GetUINT();
-    if(skinColor != 0)
+    uint32 skinColor = result.result->GetField("SkinColor", 0).GetUINT();
+    if (skinColor != 0)
     {
         pPlayer->GetCharData().SetSkinColor(skinColor);
-    }*/
+    }
 
     pPlayer->SetFlags(result.result->GetField("Flags", 0).GetINT());
     pPlayer->SetGems(result.result->GetField("Gems", 0).GetINT());
@@ -351,6 +363,20 @@ void GamePlayer::OnEnterGameCB(QueryTaskResult&& result)
         pPlayer->GetProgressData().Serialize(progressMemBuffer, false);
 
         SAFE_DELETE_ARRAY(pProgressData);
+    }
+
+    string extraData = result.result->GetField("ExtraData", 0).GetString();
+    if (!extraData.empty())
+    {
+        uint32 extraMemEstimate = extraData.size() / 2;
+        uint8* pExtraData = new uint8[extraMemEstimate];
+
+        HexToBytes(extraData, pExtraData);
+
+        MemoryBuffer extraMemBuffer(pExtraData, extraMemEstimate);
+        pPlayer->GetExtraData().Serialize(extraMemBuffer, false);
+
+        SAFE_DELETE_ARRAY(pExtraData);
     }
 
     if (inventory.GetCountOfItem(ITEM_ID_FIST) == 0)
@@ -427,7 +453,7 @@ void GamePlayer::OnEnterGameCB(QueryTaskResult&& result)
     {
         pPlayer->RemoveState(PLAYER_STATE_ENTERING_GAME);
         pPlayer->SetState(PLAYER_STATE_IN_GAME);
-        pPlayer->SendOnRequestWorldSelectMenu("");
+        GetWorldManager()->SendWorldMenuRequest(pPlayer);
         pPlayer->SetCurrentWorld(0);
     }
 }
@@ -808,6 +834,66 @@ void GamePlayer::ToggleBattlePetLeash(bool forceFirstSlot)
     pWorld->SendBattlePetPacketToAll(PET_EVENT_EQUIP, GetNetID(), petID);
 }
 
+bool GamePlayer::TryWearAllItemsFromDressup(TileInfo* pTile)
+{
+    if (!pTile)
+        return false;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return false;
+
+    TileExtra_Dressup* pTileExtra = pTile->GetExtra<TileExtra_Dressup>();
+    if (!pTileExtra)
+    {
+        SendOnTalkBubble("Huh? The dressup is gone!", false);
+        return false;
+    }
+
+    if (!pWorld->PlayerHasAccessOnTile(this, pTile))
+    {
+        SendOnTalkBubble("Not your phone booth!", false);
+        return false;
+    }
+
+    std::vector<int32> fitItemVec;
+    for (int32 i = 0; i < 9; ++i)
+    {
+        if (pTileExtra->clothes[i] == ITEM_ID_BLANK)
+            continue;
+
+        fitItemVec.push_back(1);
+        fitItemVec.push_back(pTileExtra->clothes[i]);
+    }
+
+    if (!m_inventory.CanAllItemsFit(fitItemVec))
+    {
+        SendOnTalkBubble("I need more inventory space!", false);
+        return false;
+    }
+
+    if (fitItemVec.empty())
+        return true;
+
+    for (int32 i = 0; i < 9; ++i)
+    {
+        if (pTileExtra->clothes[i] != ITEM_ID_BLANK)
+        {
+            ModifyInventoryItem(pTileExtra->clothes[i], 1);
+        }
+
+        pTileExtra->SetCloth(i, ITEM_ID_BLANK);
+    }
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
+    if (pItem)
+    {
+        SendOnTalkBubble("I emptied out my " + pItem->name + "!", false);
+    }
+
+    return true;
+}
+
 void GamePlayer::SendGems(bool skipAnim)
 {
     SendOnSetBux(m_gems, skipAnim, HasFlag(PLAYER_FLAG_SUPPORTER), HasFlag(PLAYER_FLAG_SUPER_SUPPORTER));
@@ -867,6 +953,36 @@ uint32 GamePlayer::GetPlayerNextLevelXP()
 {
     uint32 currentLevel = GetPlayerLevel();
     return ((currentLevel) * (currentLevel) * 50) + 100;
+}
+
+uint32 GamePlayer::NormalizeSkinColor(uint32 skinColor)
+{
+    bool isBasicColor = (skinColor == 0x505C78FF) || (skinColor == 0x647296FF) || (skinColor == 0x788AB4FF) ||
+                        (skinColor == 0x8295C3FF) || (skinColor == 0x96ACE1FF) || (skinColor == 0xAAC3FFFF) ||
+                        (skinColor == 0xB4CEFFFF) || (skinColor == 0xC8E5FFFF);
+
+    if (isBasicColor)
+        return skinColor;
+
+    if (HasFlag(PLAYER_FLAG_SUPPORTER) || HasFlag(PLAYER_FLAG_SUPER_SUPPORTER))
+    {
+        bool isSupporterColor = (skinColor == 0xA3DDB1FF) || (skinColor == 0xC5C241FF) || (skinColor == 0x2B4BD7FF) ||
+                                (skinColor == 0x2A8A41FF) || (skinColor == 0xD551A9FF) || (skinColor == 0xF0F0F0FF);
+
+        if (isSupporterColor)
+            return skinColor;
+    }
+
+    if (HasFlag(PLAYER_FLAG_SUPER_SUPPORTER))
+    {
+        bool isSuperSupColor = (skinColor == 0xD27A3CFF) || (skinColor == 0xEFCBB1FF) || (skinColor == 0x0B94FFFF) ||
+                               (skinColor == 0x5032FFA0);
+
+        if (isSuperSupColor)
+            return skinColor;
+    }
+
+    return 0x8295C3FF;
 }
 
 void GamePlayer::ModifyInventoryItem(int32 itemID, int16 amount)
@@ -995,6 +1111,73 @@ void GamePlayer::DropItem(int32 itemID, uint16 amount, bool openDialog)
     }
 
     ModifyInventoryItem(pItem->id, -amount);
+
+    if (pTile->GetFG() == ITEM_ID_BUNNY_EGG && pItem->id == ITEM_ID_MAGIC_EGG)
+    {
+        TileExtra_MagicEgg* pTileExtra = pTile->GetExtra<TileExtra_MagicEgg>();
+        if (!pTileExtra)
+            return;
+
+        uint32 eggCount = pTileExtra->eggCount;
+
+        for (int32 i = amount; i > 0; --i)
+        {
+            if ((eggCount + 1) > 1000)
+            {
+                float burstChance = (float)(eggCount - 999) / 100000.0f;
+                eggCount++;
+
+                if (RandomRangeFloat(0, 1) < burstChance)
+                {
+                    pTileExtra->eggCount = eggCount;
+                    SendOnTalkBubble("`4The oversized egg burst!``", false);
+                    pWorld->OnBunnyEggBreak(this, pTile);
+                    pTile->SetFG(ITEM_ID_BLANK, pWorld->GetTileManager());
+                    break;
+                }
+            }
+            else
+            {
+                eggCount++;
+            }
+
+            if (eggCount >= 2000)
+            {
+                pWorld->DropObjectOnTile(pTile, pItem->id, i, GetRandomPlayerItemDropOffset(), true);
+                eggCount = 2000;
+                break;
+            }
+        }
+
+        if (pTile->GetFG() != ITEM_ID_BLANK && eggCount > 1000)
+        {
+            string warnMsg;
+
+            if (pTileExtra->eggCount >= 1400 && pTileExtra->eggCount < 1601)
+            {
+                warnMsg = "`6This oversized egg has a good chance to burst!``";
+            }
+            else if (pTileExtra->eggCount >= 1601 && pTileExtra->eggCount < 1801)
+            {
+                warnMsg = "`8This oversized egg has a huge chance to burst!``";
+            }
+            else if (pTileExtra->eggCount >= 1801)
+            {
+                warnMsg = "`4This oversized egg is so big it could burst at any moment!``";
+            }
+
+            if (!warnMsg.empty())
+                SendOnTalkBubble(warnMsg, false);
+        }
+
+        pTileExtra->eggCount = eggCount;
+
+        pWorld->SendTileUpdate(pTile);
+        pWorld->SendParticleEffectToAll((amount > 3) ? PARTICLE_EFFECT_DAISYPILE_BIG : PARTICLE_EFFECT_DAISYPILE,
+                                        pTile->GetWorldPosCenter());
+        return;
+    }
+
     pWorld->DropObjectOnTile(pTile, pItem->id, amount, dropPos - pTile->GetWorldPosCenter(), true);
 }
 

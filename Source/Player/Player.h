@@ -120,6 +120,7 @@ public:
     void SendOnStartTrade(const string& partnerName, int32 partnerNetID);
     void SendOnTradeStatus(int32 parnterNetID, const string& localStatus, const string& partnerStatus,
                            const string& itemData);
+    void SendOnBillboardChange(int32 itemID, bool showBoard, float price, bool isLockPerItem, bool isBuy = false);
     void SendOnForceTradeEnded();
     void SendOnKilled();
     void SendFakePingReply();
@@ -136,6 +137,10 @@ public:
 
     std::string_view GetAddress() { return m_address; }
     void SetAddress(const char* address);
+
+    uint32 GetAddressNum() const { return m_addressNum; }
+    void SetAddressNum(uint32 ip) { m_addressNum = ip; }
+
     const string& GetLastAction() { return m_lastAction; }
 
     void ResetFeatures();
@@ -167,6 +172,8 @@ protected:
     eIconState m_iconState;
 
     char m_address[16];
+    uint32 m_addressNum;
+
     string m_lastAction;
     uint8 m_activeFeatures[FEATURE_FLAG_COUNT];
 

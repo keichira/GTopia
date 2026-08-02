@@ -27,9 +27,9 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y);
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y);
 
     PlayerProgress& progressData = pPlayer->GetProgressData();
 
@@ -116,7 +116,7 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
         }
         else
         {
-            db.AddSmallText("`wNatural ability:``")->AddLabelWithIcon(pPetInfo->GetDescribedPower(), pPetInfo->itemID);
+            db.AddSmallText("`wNatural ability:``").AddLabelWithIcon(pPetInfo->GetDescribedPower(), pPetInfo->itemID);
 
             if (pTileExtra->secondPet != ITEM_ID_BLANK)
             {
@@ -125,8 +125,8 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
                 if (pPetInfo2)
                 {
                     db.AddSmallText("`wGene-spliced ability:``")
-                        ->AddLabelWithIcon(pPetInfo2->GetDescribedPower(), pPetInfo2->itemID)
-                        ->AddItemPicker("replace1", "Replace this ability", "Select any pet to splice its genes");
+                        .AddLabelWithIcon(pPetInfo2->GetDescribedPower(), pPetInfo2->itemID)
+                        .AddItemPicker("replace1", "Replace this ability", "Select any pet to splice its genes");
                 }
 
                 if (pTileExtra->thirdPet != ITEM_ID_BLANK)
@@ -136,8 +136,8 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
                     if (pPetInfo3)
                     {
                         db.AddSmallText("`wGene-spliced ability:``")
-                            ->AddLabelWithIcon(pPetInfo3->GetDescribedPower(), pPetInfo3->itemID)
-                            ->AddItemPicker("replace2", "Replace this ability", "Select any pet to splice its genes");
+                            .AddLabelWithIcon(pPetInfo3->GetDescribedPower(), pPetInfo3->itemID)
+                            .AddItemPicker("replace2", "Replace this ability", "Select any pet to splice its genes");
                     }
 
                     if (pPlayer->GetInventory().GetCountOfItem(ITEM_ID_GENETIC_RESEQUENCER) > 0)
@@ -157,9 +157,9 @@ void BattleCageDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* p
 
             db.AddSmallText("It costs 10 World Locks to splice in the genes from another creature and add or replace "
                             "an ability. A Battle Pet needs 3 Abilities to be used in battles.")
-                ->AddButton("pickitup", "Put " + pTileExtra->cageName + "`o in your Battle Leash")
-                ->AddTextInput("setname", "Name:", pTileExtra->cageName, 20)
-                ->EndDialog("battlecage", "Rename", "Cancel");
+                .AddButton("pickitup", "Put " + pTileExtra->cageName + "`o in your Battle Leash")
+                .AddTextInput("setname", "Name:", pTileExtra->cageName, 20)
+                .EndDialog("battlecage", "Rename", "Cancel");
         }
     }
 
@@ -235,9 +235,9 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y);
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y);
 
     auto pButtonClicked = packet.Find("buttonClicked"_hash);
     if (!pButtonClicked)
@@ -268,9 +268,9 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
                 db.AddTextBox("Are you absolutely sure you want to `4permanently destroy`` your `2" + pItem->name +
                               "`` to make a Battle Pet? Once caged, a Battle Pet can never be removed because it "
                               "becomes too dangerous. Destroying the Battle Pet Cage will also destroy the pet inside.")
-                    ->EmbedData("critter", critter)
-                    ->AddButton("docage", "Yes, I am sure!")
-                    ->EndDialog("battlecage", "", "Nevermind");
+                    .EmbedData("critter", critter)
+                    .AddButton("docage", "Yes, I am sure!")
+                    .EndDialog("battlecage", "", "Nevermind");
             }
             else
             {
@@ -361,8 +361,8 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
             replaceButtonId += (replace2 != ITEM_ID_BLANK) ? "2" : "1";
 
             db.AddButton("doreplace", "Yes, I am sure")
-                ->EmbedData(replaceButtonId, itemToUse)
-                ->EndDialog("battlecage", "", "Nevermind");
+                .EmbedData(replaceButtonId, itemToUse)
+                .EndDialog("battlecage", "", "Nevermind");
         }
     }
     else
@@ -432,9 +432,9 @@ void BattleCageDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
                 db.AddTextBox("Resequencing " + pTileExtra->cageName +
                               "'s genes will cost you 1 `5Genetic Resequencer``, and will leave it with the same 3 "
                               "skills, but in a new order")
-                    ->AddTextBox("Are you sure you want to do this?")
-                    ->AddButton("doresequence", "Yes, I am sure!")
-                    ->EndDialog("battlecage", "", "Nevermind");
+                    .AddTextBox("Are you sure you want to do this?")
+                    .AddButton("doresequence", "Yes, I am sure!")
+                    .EndDialog("battlecage", "", "Nevermind");
                 break;
             }
 

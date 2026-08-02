@@ -23,27 +23,25 @@ enum eQueryFlags
 struct QueryTaskResult;
 typedef void (*QueryCallback)(QueryTaskResult&& result);
 
-struct QueryRequest 
+struct QueryRequest
 {
     QueryRequest(uint32 _ownerID) : ownerID(_ownerID) {}
     QueryRequest() {}
 
     uint32 ownerID = 0;
-    VariantVector data; 
+    VariantVector data;
     VariantVector extraData;
     int32 queryID = -1;
 
     QueryCallback callback = nullptr;
 
-    template<typename... Args>
-    QueryRequest& AddData(Args&&... args)
+    template <typename... Args> QueryRequest& AddData(Args&&... args)
     {
         (data.emplace_back(std::forward<Args>(args)), ...);
         return *this;
     }
 
-    template<typename... Args>
-    QueryRequest& AddExtraData(Args&&... args)
+    template <typename... Args> QueryRequest& AddExtraData(Args&&... args)
     {
         (extraData.emplace_back(std::forward<Args>(args)), ...);
         return *this;
@@ -76,17 +74,15 @@ struct QueryTaskResult
 
     Variant* GetExtraData(uint8 index)
     {
-        if(index >= extraData.size()) {
+        if (index >= extraData.size())
+        {
             return nullptr;
         }
 
         return &extraData[index];
     }
 
-    void Destroy()
-    {
-        SAFE_DELETE(result);
-    }
+    void Destroy() { SAFE_DELETE(result); }
 };
 
 struct TableQuery

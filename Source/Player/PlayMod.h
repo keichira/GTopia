@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Math/Color.h"
+#include "../Precompiled.h"
 
 enum ePlayModType
 {
@@ -22,10 +22,13 @@ enum ePlayModType
     PLAYMOD_TYPE_SLIMED,
     PLAYMOD_TYPE_MIND_CONTROL,
     PLAYMOD_TYPE_HAUNTED,
-    PLAYMOD_TYPE_XENONITE
+    PLAYMOD_TYPE_XENONITE,
+    PLAYMOD_TYPE_EGGED,
+    PLAYMOD_TYPE_IN_THE_SPOTLIGHT
 };
 
-class PlayMod {
+class PlayMod
+{
 public:
     friend class PlayModManager;
 

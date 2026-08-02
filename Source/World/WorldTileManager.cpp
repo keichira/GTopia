@@ -352,6 +352,20 @@ TileInfo* WorldTileManager::GetTileInfoFlaggedWith(eItemFlag flag, uint32 skipIt
     return nullptr;
 }
 
+TileInfo* WorldTileManager::GetTileInfoByItemID(int32 itemID, int32 startIndex)
+{
+    if (startIndex >= m_tiles.size())
+        return nullptr;
+
+    for (int32 i = startIndex; i < (m_size.x * m_size.y); ++i)
+    {
+        if (m_tiles[i].GetFG() == itemID)
+            return &m_tiles[i];
+    }
+
+    return nullptr;
+}
+
 int32 WorldTileManager::GetTileIndex(TileInfo* pTile)
 {
     if (!pTile)

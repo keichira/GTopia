@@ -23,9 +23,6 @@ public:
     }
 
 public:
-    bool GetBalancedWorldName(const string& worldName, string& out) override;
-
-public:
     void Kill();
 
     void HandleWorldInit(VariantVector&& result);
@@ -44,6 +41,7 @@ public:
     void OnHandleGamePacket(NetworkEvent& event);
     void SaveAllToDatabase();
 
+    void SendWorldMenuRequest(GamePlayer* pPlayer);
     uint32 GetWorldCount() { return m_worlds.size(); }
 
 private:
@@ -62,6 +60,14 @@ private:
     std::unordered_map<string, uint32> m_worldNameCache;
     std::queue<World*> m_pendingLoad;
     EventDispatcher<eGamePacketType, GamePlayer*, World*, GameUpdatePacket*> m_packetEvents;
+
+    struct WorldListElement
+    {
+        string name;
+        uint16 playerCount = 0;
+    };
+    std::vector<WorldListElement> m_cachedPopularWorldList;
+    Timer m_worldListCacheTimer;
 };
 
 WorldManager* GetWorldManager();

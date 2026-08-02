@@ -1,34 +1,23 @@
 #include "WorldRenderer.h"
 #include "Context.h"
 #include "IO/File.h"
-#include "IO/Log.h"
-#include "Math/Random.h"
 #include "Utils/ResourceManager.h"
 #include "Utils/StringUtils.h"
 #include "WeatherRenderer.h"
 #include "WorldTileLut.h"
 
-WorldRenderer::WorldRenderer() : m_cachedWidth(0), m_cachedHeight(0)
-{
-    m_pWorld = new WorldInfo();
-}
+WorldRenderer::WorldRenderer() : m_cachedWidth(0), m_cachedHeight(0) {}
+WorldRenderer::~WorldRenderer() {}
 
-WorldRenderer::~WorldRenderer()
+bool WorldRenderer::LoadWorld(uint32 worldID, WorldInfo* pOutWorld)
 {
-    SAFE_DELETE(m_pWorld);
-}
+    if (!pOutWorld)
+        return false;
 
-bool WorldRenderer::LoadWorld(uint32 worldID)
-{
     string path = GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(worldID) + ".bin";
-
-    SAFE_DELETE(m_pWorld);
-
     File file;
     if (!file.Open(path))
-    {
         return false;
-    }
 
     uint32 fileSize = file.GetSize();
     uint8* pData = new uint8[fileSize];
@@ -40,24 +29,22 @@ bool WorldRenderer::LoadWorld(uint32 worldID)
         return false;
     }
 
-    m_pWorld = new WorldInfo();
-
     MemoryBuffer memBuffer(pData, fileSize);
-    m_pWorld->Serialize(memBuffer, false, true);
+    pOutWorld->Serialize(memBuffer, false, true);
+
     SAFE_DELETE_ARRAY(pData);
     file.Close();
-
     return true;
 }
 
-void WorldRenderer::Draw()
+void WorldRenderer::Draw(WorldInfo* pWorld)
 {
-    if (!m_pWorld)
+    if (!pWorld)
         return;
 
     m_renderer.SetThreadCount(2);
 
-    WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
+    WorldTileManager* pTileMgr = pWorld->GetTileManager();
     uint32 worldWidth = pTileMgr->GetSize().x;
     uint32 worldHeight = pTileMgr->GetSize().y;
 
@@ -70,17 +57,20 @@ void WorldRenderer::Draw()
         m_cachedWidth = targetWidth;
         m_cachedHeight = targetHeight;
     }
-
-    m_renderer.Clear();
-
-    DrawWeather();
-    ComputeVisibleBG();
-
-    for (int32 y = 0; y < worldHeight; ++y)
+    else
     {
-        for (int32 x = 0; x < worldWidth; ++x)
-        {
+        m_renderer.Clear();
+    }
 
+    m_renderer.Begin();
+
+    DrawWeather(pWorld);
+    ComputeVisibleBG(pWorld);
+
+    for (int32 y = 0; y < (int32)worldHeight; ++y)
+    {
+        for (int32 x = 0; x < (int32)worldWidth; ++x)
+        {
             TileInfo* pTile = pTileMgr->GetTile(x, y);
             if (!pTile)
                 continue;
@@ -89,12 +79,12 @@ void WorldRenderer::Draw()
 
             if (pTile->GetBG() != ITEM_ID_BLANK && m_visibleBG[idx])
             {
-                DrawTile(pTile, pTile->GetBG());
+                DrawTile(pWorld, pTile, pTile->GetBG());
             }
 
             if (pTile->GetFG() != ITEM_ID_BLANK)
             {
-                DrawTile(pTile, pTile->GetFG());
+                DrawTile(pWorld, pTile, pTile->GetFG());
             }
         }
     }
@@ -105,8 +95,7 @@ void WorldRenderer::Draw()
     BLFont* pFont = GetResourceManager()->GetFont(FONT_TYPE_CENTURY_GOTHIC_BOLD);
     if (pFont)
     {
-        string worldName = "`#Visit `0\"" + m_pWorld->GetWorlName() + "\" `#in";
-
+        string worldName = "`#Visit `0\"" + pWorld->GetWorlName() + "\" `#in";
         float textWidth = m_renderer.GetTextWidth(pFont, worldName, 32);
         float textHeight = m_renderer.GetTextHeight(pFont, 32);
 
@@ -116,13 +105,13 @@ void WorldRenderer::Draw()
                               worldName, 32);
     }
 
-    m_renderer.WriteToFile(GetContext()->GetGameConfig()->rendererSavePath + "/" + m_pWorld->GetWorlName() + ".png");
-    SAFE_DELETE(m_pWorld)
+    m_renderer.WriteToFile(GetContext()->GetGameConfig()->rendererSavePath + "/" + pWorld->GetWorlName() + ".png");
+    m_renderer.End();
 }
 
-void WorldRenderer::ComputeVisibleBG()
+void WorldRenderer::ComputeVisibleBG(WorldInfo* pWorld)
 {
-    WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
+    WorldTileManager* pTileMgr = pWorld->GetTileManager();
     uint32 worldWidth = pTileMgr->GetSize().x;
     uint32 worldHeight = pTileMgr->GetSize().y;
 
@@ -131,15 +120,13 @@ void WorldRenderer::ComputeVisibleBG()
 
     int32 neighbors[5][2] = {{0, 0}, {0, -1}, {-1, 0}, {1, 0}, {0, 1}};
 
-    for (int32 y = 0; y < worldHeight; ++y)
+    for (int32 y = 0; y < (int32)worldHeight; ++y)
     {
-        for (int32 x = 0; x < worldWidth; ++x)
+        for (int32 x = 0; x < (int32)worldWidth; ++x)
         {
             TileInfo* pTile = pTileMgr->GetTile(x, y);
             if (!pTile)
-            {
                 continue;
-            }
 
             if (IsFGTransparent(pTile->GetFG()) || ((worldHeight - y) >= 6 && pTile->GetFG() == ITEM_ID_BEDROCK))
             {
@@ -148,7 +135,7 @@ void WorldRenderer::ComputeVisibleBG()
                     int32 tileX = x + n[0];
                     int32 tileY = y + n[1];
 
-                    if (tileX >= 0 && tileY >= 0 && tileX < worldWidth && tileY < worldHeight)
+                    if (tileX >= 0 && tileY >= 0 && tileX < (int32)worldWidth && tileY < (int32)worldHeight)
                     {
                         int32 idx = tileY * worldWidth + tileX;
                         m_visibleBG[idx] = 1;
@@ -159,54 +146,40 @@ void WorldRenderer::ComputeVisibleBG()
     }
 }
 
-void WorldRenderer::DrawWeather()
+void WorldRenderer::DrawWeather(WorldInfo* pWorld)
 {
     WeatherRenderer weatherRenderer(m_renderer);
-
-    switch (m_pWorld->GetCurrentWeather())
+    switch (pWorld->GetCurrentWeather())
     {
         case WEATHER_TYPE_SUNSET:
-        {
             weatherRenderer.DrawSunset();
             break;
-        }
 
         case WEATHER_TYPE_HARVEST:
-        {
             weatherRenderer.DrawHarvest();
             break;
-        }
 
-        case WEATHER_TYPE_SUNNY:
-        case WEATHER_TYPE_DEFAULT:
         default:
-        {
             weatherRenderer.DrawDefault();
-        }
+            break;
     }
 }
 
-void WorldRenderer::DrawTile(TileInfo* pTile, int16 itemID)
+void WorldRenderer::DrawTile(WorldInfo* pWorld, TileInfo* pTile, int16 itemID)
 {
     if (!pTile)
-    {
         return;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
     if (!pItem)
-    {
         return;
-    }
 
     BLImage* pImg = GetResourceManager()->GetItemTileSheet(itemID);
     if (!pImg)
-    {
         return;
-    }
 
     Vector2Int tilePos = pTile->GetPos();
-    Vector2Int spriteCoords = GetSpriteCoords(pTile, pItem);
+    Vector2Int spriteCoords = GetSpriteCoords(pWorld, pTile, pItem);
 
     BLRect drawRect(tilePos.x * 16, tilePos.y * 16, 16, 16);
     BLRectI spriteRect(spriteCoords.x * 32, spriteCoords.y * 32, 32, 32);
@@ -214,18 +187,33 @@ void WorldRenderer::DrawTile(TileInfo* pTile, int16 itemID)
     m_renderer.DrawSprite(pImg, drawRect, spriteRect);
 }
 
-Vector2Int WorldRenderer::GetSpriteCoords(TileInfo* pTile, ItemInfo* pItem)
+void WorldRenderer::DrawTileShadows(WorldInfo* pWorld)
+{
+    if (!pWorld)
+        return;
+
+    WorldTileManager* pTileMgr = pWorld->GetTileManager();
+
+    Vector2Int& vWorldSize = pTileMgr->GetSize();
+
+    for (int32 i = 0; i < (vWorldSize.x * vWorldSize.y); ++i)
+    {
+        TileInfo* pTile = pTileMgr->GetTile(i);
+        if (!pTile)
+            continue;
+    }
+}
+
+Vector2Int WorldRenderer::GetSpriteCoords(WorldInfo* pWorld, TileInfo* pTile, ItemInfo* pItem)
 {
     if (!pItem)
-    {
         return {0, 0};
-    }
 
     uint8 coordX = pItem->textureX;
     uint8 coordY = pItem->textureY;
 
     Vector2Int tilePos = pTile->GetPos();
-    WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
+    WorldTileManager* pTileMgr = pWorld->GetTileManager();
 
     Vector2Int worldSize = pTileMgr->GetSize();
 

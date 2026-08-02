@@ -13,28 +13,28 @@ bool IPTracker::IsBanned(uint32 ip)
     return !it->second.bannedUntil.IsPassed();
 }
 
-bool IPTracker::CheckCooldown(uint32 ip, uint32 cooldownMS)
+bool IPTracker::CheckCooldown(uint32 ip, uint32 cooldownSec)
 {
     if (IsBanned(ip))
         return false;
 
     auto& info = m_tracks[ip];
 
-    if (info.lastSeenTimer.GetElapsedTime(false) < cooldownMS)
+    if ((info.lastSeenTimer.GetElapsedTime(false) / 1000) < cooldownSec)
         return false;
 
     info.lastSeenTimer.Reset();
     return true;
 }
 
-void IPTracker::RegisterFailure(uint32 ip, uint32 maxFails, uint32 banDurationMS)
+void IPTracker::RegisterFailure(uint32 ip, uint32 maxFails, uint32 banDurationSec)
 {
     auto& info = m_tracks[ip];
     info.failCount++;
 
     if (info.failCount >= maxFails)
     {
-        info.bannedUntil.Set(banDurationMS);
+        info.bannedUntil.Set(banDurationSec * 1000);
     }
 }
 

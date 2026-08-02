@@ -104,14 +104,17 @@ void ServerBroadwayBase::OnClientDisconnect(NetClient* pClient) {}
 
 void ServerBroadwayBase::RegisterEvents()
 {
-    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_CONNECT,
-                                       Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientConnect>(this));
+    m_pNetSocket->GetEvents().Register(
+        SOCKET_EVENT_TYPE_CONNECT,
+        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientConnect>(this));
 
-    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_RECEIVE,
-                                       Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientReceive>(this));
+    m_pNetSocket->GetEvents().Register(
+        SOCKET_EVENT_TYPE_RECEIVE,
+        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientReceive>(this));
 
-    m_pNetSocket->GetEvents().Register(SOCKET_EVENT_TYPE_DISCONNECT,
-                                       Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientDisconnect>(this));
+    m_pNetSocket->GetEvents().Register(
+        SOCKET_EVENT_TYPE_DISCONNECT,
+        Delegate<NetClient*>::Create<ServerBroadwayBase, &ServerBroadwayBase::OnClientDisconnect>(this));
 }
 
 void ServerBroadwayBase::Update(bool asClient)
@@ -126,7 +129,8 @@ void ServerBroadwayBase::Update(bool asClient)
 
 void ServerBroadwayBase::UpdateTCPLogic(uint64 maxTimeMS) {}
 
-bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCount, NetClient** pClient, const volatile sig_atomic_t* shutdownFlag)
+bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCount, NetClient** pClient,
+                                 const volatile sig_atomic_t* shutdownFlag)
 {
     if (!m_pNetSocket)
     {
@@ -153,7 +157,8 @@ bool ServerBroadwayBase::Connect(const string& host, uint16 port, uint8 retryCou
         uint64 timeNow = Time::GetSystemTime();
         if (timeNow - connStartTime >= CONNECT_SOCKET_TIMEOUT_MS)
         {
-            LOGGER_LOG_ERROR("Failed to connect to socket %s:%d retrying... (%d/%d)", host.c_str(), port, retriedSoFar + 1, retryCount);
+            LOGGER_LOG_ERROR("Failed to connect to socket %s:%d retrying... (%d/%d)", host.c_str(), port,
+                             retriedSoFar + 1, retryCount);
             m_pNetSocket->CloseAllClients();
             m_pNetSocket->Connect(host, port, true);
             retriedSoFar++;

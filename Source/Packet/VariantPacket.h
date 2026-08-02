@@ -46,4 +46,6 @@ VariantVector OnTradeStatus(int32 parnterNetID, const string& localStatus, const
                             const string& itemData);
 VariantVector OnForceTradeEnd();
 VariantVector OnKilled();
+VariantVector OnBillboardChange(int32 netID, int32 itemID, bool showBoard, float price, bool isLockPerItem, bool isBuy,
+                                int32 protocol = 9999);
 } // namespace VariantPacket

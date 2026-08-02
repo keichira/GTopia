@@ -1,6 +1,9 @@
 .vscode/*
 Test/*
 
+ThirdParty/asmjit/*
+ThirdParty/blend2d/*
+
 Util/*
 !Util/*.py
 

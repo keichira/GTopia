@@ -1,17 +1,14 @@
 #include "PlayerManager.h"
-#include "GamePlayer.h"
+#include "../Server/GamePresenceManager.h"
 #include "../Server/ServerManager.h"
-#include "PlayerPresenceManager.h"
+#include "GamePlayer.h"
 
 PlayerManager* GetPlayerManager()
 {
     return PlayerManager::GetInstance();
 }
 
-PlayerManager::PlayerManager()
-: m_isPlayerCountDirty(false), m_totalPlayerCount(0)
-{
-}
+PlayerManager::PlayerManager() : m_isPlayerCountDirty(false), m_totalPlayerCount(0) {}
 
 PlayerManager::~PlayerManager()
 {
@@ -21,7 +18,8 @@ PlayerManager::~PlayerManager()
 PlayerSession* PlayerManager::GetSessionByID(uint32 userID)
 {
     auto it = m_sessions.find(userID);
-    if(it != m_sessions.end()) {
+    if (it != m_sessions.end())
+    {
         return &it->second;
     }
 
@@ -31,20 +29,22 @@ PlayerSession* PlayerManager::GetSessionByID(uint32 userID)
 void PlayerManager::CreateSession(const PlayerSession& session)
 {
     m_sessions.insert_or_assign(session.userID, session);
-    GetPlayerPresenceManager()->OnPlayerStatusChanged(session.userID, true);
+    GetGamePresenceManager()->OnPlayerStatusChanged(session.userID, true);
 }
 
 void PlayerManager::EndSessionByID(uint32 userID)
 {
     m_sessions.erase(userID);
-    GetPlayerPresenceManager()->OnPlayerStatusChanged(userID, false);
+    GetGamePresenceManager()->OnPlayerStatusChanged(userID, false);
 }
 
 void PlayerManager::EndSessionsByServer(uint16 serverID)
 {
-    for(auto it = m_sessions.begin(); it != m_sessions.end();) {
-        if(it->second.serverID == serverID) {
-            GetPlayerPresenceManager()->OnPlayerStatusChanged(it->second.serverID, false);
+    for (auto it = m_sessions.begin(); it != m_sessions.end();)
+    {
+        if (it->second.serverID == serverID)
+        {
+            GetGamePresenceManager()->OnPlayerStatusChanged(it->second.serverID, false);
             it = m_sessions.erase(it);
             continue;
         }
@@ -58,7 +58,8 @@ void PlayerManager::EndSessionsByServer(uint16 serverID)
 GamePlayer* PlayerManager::GetPlayerByNetID(uint32 netID)
 {
     auto it = m_gamePlayers.find(netID);
-    if(it != m_gamePlayers.end()) {
+    if (it != m_gamePlayers.end())
+    {
         return it->second;
     }
 
@@ -67,7 +68,8 @@ GamePlayer* PlayerManager::GetPlayerByNetID(uint32 netID)
 
 void PlayerManager::AddPlayer(GamePlayer* pPlayer)
 {
-    if(!pPlayer) {
+    if (!pPlayer)
+    {
         return;
     }
 
@@ -78,7 +80,7 @@ void PlayerManager::AddPlayer(GamePlayer* pPlayer)
 void PlayerManager::RemovePlayer(uint32 netID)
 {
     auto it = m_gamePlayers.find(netID);
-    if(it == m_gamePlayers.end())
+    if (it == m_gamePlayers.end())
         return;
 
     SAFE_DELETE(it->second);
@@ -89,7 +91,7 @@ void PlayerManager::RemovePlayer(uint32 netID)
 
 void PlayerManager::RemoveAllPlayers()
 {
-    for(auto& [_, pPlayer] : m_gamePlayers) 
+    for (auto& [_, pPlayer] : m_gamePlayers)
     {
         SAFE_DELETE(pPlayer);
     }
@@ -104,7 +106,8 @@ uint32 PlayerManager::GetInGamePlayerCount()
 
 uint32 PlayerManager::GetTotalPlayerCount()
 {
-    if(!m_isPlayerCountDirty) {
+    if (!m_isPlayerCountDirty)
+    {
         return m_totalPlayerCount;
     }
 

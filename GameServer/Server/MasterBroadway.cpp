@@ -1,6 +1,6 @@
 #include "MasterBroadway.h"
 #include "../Context.h"
-#include "../Player/PlayerPresenceManager.h"
+#include "../Server/GamePresenceManager.h"
 #include "../World/WorldManager.h"
 #include "GameServer.h"
 #include "IO/Log.h"
@@ -48,9 +48,11 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
 
         if (event.isRaw)
         {
-            if (event.packetType == TCP_PACKET_ONLINE_DATA_UPDATE || event.packetType == TCP_PACKET_ONLINE_DATA_SNAPSHOT)
+            if (event.packetType == TCP_PACKET_PLAYER_SUBSCRIBE || event.packetType == TCP_PACKET_PLAYER_UNSUBSCRIBE ||
+                event.packetType == TCP_PACKET_WORLD_SNAPSHOT || event.packetType == TCP_PACKET_WORLD_UPDATE ||
+                event.packetType == TCP_PACKET_WORLD_REMOVE)
             {
-                GetPlayerPresenceManager()->OnTCPPacket(event.packetType, event.rawData);
+                GetGamePresenceManager()->OnTCPPacket(event.packetType, event.rawData);
             }
         }
         else if (!event.data.empty())
@@ -235,7 +237,7 @@ void MasterBroadway::SendPlayerPresenceSubscribe(const std::vector<uint32>& ids)
         return;
 
     uint32 totalByteSize = (uint32)(ids.size() * sizeof(uint32));
-    m_pNetClient->Send(TCP_PACKET_ONLINE_DATA_SUBSCRIBE, ids.data(), totalByteSize);
+    m_pNetClient->Send(TCP_PACKET_PLAYER_SUBSCRIBE, ids.data(), totalByteSize);
 }
 
 void MasterBroadway::SendPlayerPresenceUnsubscribe(const std::vector<uint32>& ids)
@@ -244,10 +246,19 @@ void MasterBroadway::SendPlayerPresenceUnsubscribe(const std::vector<uint32>& id
         return;
 
     uint32 totalByteSize = (uint32)(ids.size() * sizeof(uint32));
-    m_pNetClient->Send(TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE, ids.data(), totalByteSize);
+    m_pNetClient->Send(TCP_PACKET_PLAYER_UNSUBSCRIBE, ids.data(), totalByteSize);
 }
 
-bool MasterBroadway::ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts, const volatile sig_atomic_t* shutdownFlag)
+void MasterBroadway::SendRawPacket(eTCPPacketType type, void* pData, uint32 size)
+{
+    if (!m_pNetClient || !pData || size == 0)
+        return;
+
+    m_pNetClient->Send(type, pData, size);
+}
+
+bool MasterBroadway::ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts,
+                                    const volatile sig_atomic_t* shutdownFlag)
 {
     if (!Connect(host, port, maxConnectAttempts, shutdownFlag))
     {
@@ -297,7 +308,8 @@ bool MasterBroadway::ConnectAndAuth(const string& host, uint16 port, uint8 maxCo
     return false;
 }
 
-bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
+bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount,
+                             const volatile sig_atomic_t* shutdownFlag)
 {
     return ServerBroadwayBase::Connect(host, port, retryCount, &m_pNetClient, shutdownFlag);
 }

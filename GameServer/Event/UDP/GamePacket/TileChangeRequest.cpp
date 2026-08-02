@@ -1,6 +1,8 @@
 #include "TileChangeRequest.h"
 #include "../../../Item/HarmonicCrystal.h"
 #include "../../../Player/Dialog/DonationBoxDialog.h"
+#include "../../../Player/Dialog/DressupDialog.h"
+#include "../../../Player/Dialog/MannequinDialog.h"
 #include "../../../Player/Dialog/PlayerDialog.h"
 #include "Item/ItemInfoManager.h"
 
@@ -188,8 +190,24 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         return;
     }
 
-    if (pItem->IsBackground() && pItem->id == pTile->GetBG())
+    if (pTileItem->type == ITEM_TYPE_MANNEQUIN && pItem->id != ITEM_ID_FIST && pItem->id != ITEM_ID_WRENCH)
+    {
+        auto playersInRect = pWorld->GetPlayersInWorldRect(pTile->GetRect());
+        if (!playersInRect.empty())
+        {
+            pPlayer->SendOnTextOverlay("Somebody is in the way of the " + pTileItem->name + "``!");
+        }
+        else
+        {
+            MannequinDialog::RequestPutItem(pPlayer, pTile, pItem->id, false);
+        }
         return;
+    }
+
+    if (pTileItem)
+
+        if (pItem->IsBackground() && pItem->id == pTile->GetBG())
+            return;
 
     /**
      * arm check (hack)
@@ -356,7 +374,8 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
                 }
                 else if (pItem->id == ITEM_ID_WRENCH)
                 {
-                    if (pTileItem->type == ITEM_TYPE_MAILBOX || pTileItem->type == ITEM_TYPE_DONATION_BOX)
+                    if (pTileItem->type == ITEM_TYPE_MAILBOX || pTileItem->type == ITEM_TYPE_DONATION_BOX ||
+                        pTileItem->type == ITEM_TYPE_MANNEQUIN || pTileItem->type == ITEM_TYPE_DRESSUP)
                     {
                         PlayerDialog::Handle(pPlayer, pTile);
                         return;
@@ -681,6 +700,13 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
          *
          */
 
+        if (pTileItem->type == ITEM_TYPE_MANNEQUIN && MannequinDialog::RequestRemoveItem(pPlayer, pTile))
+            return;
+
+        if (pTileItem->type == ITEM_TYPE_DRESSUP && pPlayer->GetTilePlayerOn() == pTile &&
+            DressupDialog::RequestPunch(pPlayer, pTile))
+            return;
+
         tileHealthPercent = pTile->GetHealthPercent();
 
         if (pTileItem->type == ITEM_TYPE_SEED)
@@ -763,6 +789,13 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             }
         }
 
+        if (pTileItem->HasFlag(ITEM_FLAG_AUTOPICKUP) && !inventory.HaveRoomForItem(pTileItem->id, 1) &&
+            tileHealthPercent < 1.0f)
+        {
+            pPlayer->SendOnTalkBubble("I better not break that, I have no room to pick it up!", false);
+            return;
+        }
+
         /**
          * handle things that dont allow to break like empty the box
          */
@@ -770,7 +803,6 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         // bee
 
         uint32 punchDamage = pPlayer->GetCharData().punchDamage;
-
         pTile->PunchTile(punchDamage);
 
         if (pTileItem->type == ITEM_TYPE_LAB)
@@ -826,18 +858,42 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         {
         }
 
-        tileHealthPercent = pTile->GetHealthPercent();
-        if (tileHealthPercent > 0.0f)
+        float newTileHealthPercent = pTile->GetHealthPercent();
+        if (newTileHealthPercent > 0.0f)
         {
+            if ((pTileItem->type == ITEM_TYPE_WEATHER_MACHINE || pTileItem->type == ITEM_TYPE_WEATHER_SPECIAL ||
+                 pTileItem->type == ITEM_TYPE_WEATHER_SPECIAL2 ||
+                 pTileItem->type == ITEM_TYPE_INFINITY_WEATHER_MACHINE) &&
+                tileHealthPercent == 1.0f)
+            {
+                if (pTileItem->id == ITEM_ID_EPOCH_MACHINE)
+                {
+                }
+                else if (pTileItem->id == ITEM_ID_INFINITY_WEATHER_MACHINE)
+                {
+                }
+                else
+                {
+                    int32 currentWeather = pWorld->GetCurrentWeather();
+                    int32 selectedWeather = pItem->weatherID;
+
+                    if (pWorld->GetCurrentWeather() == pTileItem->weatherID)
+                    {
+                        pWorld->SetCurrentWeather(WEATHER_TYPE_DEFAULT);
+                    }
+                    else
+                    {
+                        pWorld->SetCurrentWeather(pTileItem->weatherID);
+                    }
+
+                    pWorld->SendCurrentWeatherToAll();
+                }
+            }
         }
         else
         {
-            if (pTileItem->HasFlag(ITEM_FLAG_AUTOPICKUP) && !inventory.HaveRoomForItem(pTileItem->id, 1) &&
-                tileHealthPercent < 1.0f)
-            {
-                pPlayer->SendOnTalkBubble("I better not break that, I have no room to pick it up!", false);
+            if (pTileItem->type == ITEM_TYPE_DRESSUP && !pPlayer->TryWearAllItemsFromDressup(pTile))
                 return;
-            }
 
             if (pTileItem->type == ITEM_TYPE_LOCK)
             {

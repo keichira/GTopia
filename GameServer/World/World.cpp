@@ -2,7 +2,7 @@
 #include "../Context.h"
 #include "../Item/HarmonicCrystal.h"
 #include "../Player/PlayerManager.h"
-#include "../Player/PlayerPresenceManager.h"
+#include "../Server/GamePresenceManager.h"
 #include "../Server/MasterBroadway.h"
 #include "../Server/UserCacheManager.h"
 #include "IO/File.h"
@@ -35,7 +35,7 @@ void World::OnHeartMonitorAdded(TileInfo* pTile)
     {
         if (pTileExtra->ownerID > 0)
         {
-            GetPlayerPresenceManager()->RequestPresence({(uint32)pTileExtra->ownerID}, false);
+            GetGamePresenceManager()->RequestPresence({(uint32)pTileExtra->ownerID}, false);
         }
     }
 }
@@ -49,7 +49,7 @@ void World::OnHeartMonitorRemoved(TileInfo* pTile)
     {
         if (pTileExtra->ownerID > 0)
         {
-            GetPlayerPresenceManager()->ReleasePresence({(uint32)pTileExtra->ownerID});
+            GetGamePresenceManager()->ReleasePresence({(uint32)pTileExtra->ownerID});
         }
     }
 }
@@ -101,7 +101,7 @@ void World::OnWorldDelete()
     }
 
     presences.erase(std::unique(presences.begin(), presences.end()), presences.end());
-    GetPlayerPresenceManager()->ReleasePresence(presences);
+    GetGamePresenceManager()->ReleasePresence(presences);
 }
 
 void World::SaveToDatabaseCB(QueryTaskResult&& result)
@@ -190,6 +190,9 @@ void World::Update()
             UpdatePresenceNeededThings(true);
         }
     }
+
+    GetGamePresenceManager()->UpdateLocalWorldPresence(
+        GetInstanceID(), GetPlayerCount(), GetTileManager()->GetKeyTile(KEY_TILE_SIGNAL_JAMMER) ? true : false);
 
     if (m_worldLastSaveTime.GetElapsedTime() >= 40 * 60 * 1000)
     {
@@ -414,6 +417,7 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         if (hardLeave)
         {
             GetMasterBroadway()->SendPlayerLeftWorld(pPlayer->GetUserID(), GetInstanceID());
+            GetWorldManager()->SendWorldMenuRequest(pPlayer);
         }
     }
 
@@ -858,6 +862,33 @@ void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldP
             continue;
 
         SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID(), delayMS);
+    }
+
+    SAFE_DELETE_ARRAY(pData);
+}
+
+void World::SendOnBillboardChangeToAll(GamePlayer* pPlayer)
+{
+    if (!pPlayer)
+        return;
+
+    PlayerExtraData& extraData = pPlayer->GetExtraData();
+
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(
+        VariantPacket::OnBillboardChange(
+            pPlayer->GetNetID(), extraData.Get(PLAYER_EXTRA_BILLBOARD_ITEM_ID).GetINT(),
+            extraData.Get(PLAYER_EXTRA_BILLBOARD_SHOW).GetBool(), extraData.Get(PLAYER_EXTRA_BILLBOARD_PRICE).GetINT(),
+            extraData.Get(PLAYER_EXTRA_BILLBOARD_IS_LOCK_PER).GetBool(),
+            extraData.Get(PLAYER_EXTRA_BILLBOARD_IS_BUY).GetBool(), pPlayer->GetLoginDetail().protocol),
+        &size, nullptr);
+
+    for (auto& pWorldPlayer : m_players)
+    {
+        if (!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
     }
 
     SAFE_DELETE_ARRAY(pData);
@@ -1477,14 +1508,6 @@ std::vector<GamePlayer*> World::GetPlayersInWorldRect(const RectFloat& rect)
     return out;
 }
 
-bool World::AbleToWorldBanSomeone(GamePlayer* pPlayer)
-{
-    if (!pPlayer)
-        return false;
-
-    return false;
-}
-
 bool World::FlameUpTile(TileInfo* pTile)
 {
     if (!pTile)
@@ -1797,6 +1820,142 @@ bool World::OnPunchHarmonicCrystal(TileInfo* pTile, GamePlayer* pPlayer)
     pPlayer->GiveXP(20);
     SendTileUpdate(pTile);
     return true;
+}
+
+void World::OnBunnyEggBreak(GamePlayer* pPlayer, TileInfo* pTile)
+{
+    if (!pTile)
+        return;
+
+    if (pTile->GetFG() != ITEM_ID_BUNNY_EGG)
+        return;
+
+    TileExtra_MagicEgg* pTileExtra = pTile->GetExtra<TileExtra_MagicEgg>();
+    if (!pTileExtra)
+        return;
+
+    int32 itemID = 0;
+    int32 itemCount = 0;
+
+    if (pTileExtra->eggCount < 100)
+    {
+        if (pPlayer)
+        {
+            Vector2Float vPlayerPos = pPlayer->GetWorldPosCenter();
+            vPlayerPos.x += RandomRangeFloat(-16.0f, 16.0f);
+            vPlayerPos.y += RandomRangeFloat(-16.0f, 16.0f);
+
+            SendParticleEffectToAll(PARTICLE_EFFECT_EGG_SPLAT, vPlayerPos);
+
+            pPlayer->GetModController().AddPlayMod(PLAYMOD_TYPE_EGGED);
+        }
+    }
+    else if (pTileExtra->eggCount < 200)
+    {
+        itemID = ITEM_ID_PASTEL_PINK_BLOCK + (RandomRangeInt(0, 6) * 2);
+        itemCount = 5;
+    }
+    else if (pTileExtra->eggCount < 300)
+    {
+        itemID = ITEM_ID_MARSHMALLOW;
+        itemCount = 7;
+    }
+    else if (pTileExtra->eggCount < 400)
+    {
+        itemID = ITEM_ID_CUDDLY_BUNNY;
+        if (RandomRangeInt(0, 100) < 7)
+            itemID = ITEM_ID_PSYCHOTIC_BUNNY;
+
+        itemCount = 1;
+    }
+    else if (pTileExtra->eggCount < 500)
+    {
+        itemID = ITEM_ID_EASTER_BONNET;
+        if (RandomRangeInt(0, 1) == 0)
+            itemID = ITEM_ID_BOWLER_BUNNY_HAT;
+
+        itemCount = 1;
+    }
+    else if (pTileExtra->eggCount < 600)
+    {
+        static WeightRand bunnyEggDrop = WeightRand({{ITEM_ID_HIPPIE_SANDALS, 550},
+                                                     {ITEM_ID_PASTEL_PANTS, 550},
+                                                     {ITEM_ID_PASTEL_SUIT, 550},
+                                                     {ITEM_ID_WICKER_BASKET, 550},
+                                                     {ITEM_ID_PASTEL_DRESS_BLUE, 550},
+                                                     {ITEM_ID_PASTEL_DRESS_PINK, 120},
+                                                     {ITEM_ID_PASTEL_DRESS_PURPLE, 120},
+                                                     {ITEM_ID_PASTEL_DRESS_ORANGE, 120},
+                                                     {ITEM_ID_PASTEL_DRESS_YELLOW, 120},
+                                                     {ITEM_ID_PASTEL_DRESS_AQUA, 120},
+                                                     {ITEM_ID_PASTEL_DRESS_GREEN, 120},
+                                                     {ITEM_ID_PASTEL_TIE, 550}});
+
+        if (!bunnyEggDrop.Roll(itemID))
+        {
+            LOGGER_LOG_ERROR("Something went wrong while rolling bunny egg drop in %d", GetInstanceID());
+            return;
+        }
+
+        itemCount = 1;
+    }
+    else if (pTileExtra->eggCount < 700)
+    {
+        int32 roll = RandomRangeInt(0, 2);
+        if (roll == 0)
+            itemID = ITEM_ID_BUNNY_MASK;
+        else if (roll == 1)
+            itemID = ITEM_ID_BUNNY_EARS;
+        else if (roll == 2)
+            itemID = ITEM_ID_BUNNY_TAIL;
+
+        if (RandomRangeInt(0, 5) == 2)
+            itemID = ITEM_ID_BIG_GOOFY_TEETH;
+
+        if (itemID == ITEM_ID_BUNNY_MASK && RandomRangeInt(0, 90) == 3)
+            itemID = ITEM_ID_PSYCHOTIC_BUNNY_MASK;
+
+        itemCount = 1;
+    }
+    else if (pTileExtra->eggCount < 800)
+    {
+        // itemID = ITEM_ID_PASTEL_PINK_FLOWER_BLOCK + (RandomRangeInt(0, 6) * 2);
+        itemID = ITEM_ID_PET_EGG;
+        itemCount = 1;
+    }
+    else if (pTileExtra->eggCount < 900)
+    {
+        itemID = ITEM_ID_EGG_HUNTING_BASKET;
+        itemCount = 1;
+    }
+    else if (pTileExtra->eggCount < 1000)
+    {
+        itemID = ITEM_ID_BUBBLE_WINGS;
+        itemCount = 1;
+    }
+    else
+    {
+        if (pTileExtra->eggCount > 1198 && pTileExtra->eggCount < 1400)
+            itemID = ITEM_ID_LOAFERS;
+        else if (pTileExtra->eggCount >= 1400 && pTileExtra->eggCount < 1600)
+            itemID = ITEM_ID_COOKING_RECIPE_CHOCOLATE_EASTER_BILBY;
+        else if (pTileExtra->eggCount >= 1600 && pTileExtra->eggCount < 1800)
+            itemID = ITEM_ID_CARROT_ON_A_STICK;
+        else if (pTileExtra->eggCount >= 1800 && pTileExtra->eggCount < 2000)
+            itemID = ITEM_ID_CHICK_TRICYCLE;
+        else if (itemID >= 2000)
+            itemID = ITEM_ID_EGG_CHAMPION_CAPE;
+
+        if (itemID == 0)
+            itemID = ITEM_ID_PET_BUNNY;
+
+        itemCount = 1;
+    }
+
+    if (itemID != 0)
+    {
+        DropObjectOnTile(pTile, itemID, itemCount, GetRandomItemDropOffset(), true);
+    }
 }
 
 bool World::CheckAndSwapTiles(GamePlayer* pPlayer, TileInfo* pTile, string& error)
@@ -2367,6 +2526,80 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
         return;
     }
 
+    if (pSeed->id == ITEM_ID_MAGIC_EGG)
+    {
+        if (pTile->GetFG() == ITEM_ID_BLANK)
+        {
+            pTile->SetFG(ITEM_ID_BUNNY_EGG, GetTileManager());
+            if (pTile->HasFlag(TILE_FLAG_PAINTED_WHITE))
+                pTile->RemoveFlag(TILE_FLAG_PAINTED_WHITE);
+
+            SendTileUpdate(pTile);
+
+            pPlayer->ModifyInventoryItem(pSeed->id, -1);
+            SendParticleEffectToAll(PARTICLE_EFFECT_DAISYPILE_BIG, pTile->GetWorldPosCenter());
+            return;
+        }
+
+        if (pTile->GetFG() == ITEM_ID_BUNNY_EGG)
+        {
+            TileExtra_MagicEgg* pTileExtra = pTile->GetExtra<TileExtra_MagicEgg>();
+            if (!pTileExtra)
+                return;
+
+            if (pTileExtra->eggCount >= 2000)
+            {
+                pPlayer->SendOnTalkBubble("That egg can't get any bigger!", false);
+                return;
+            }
+
+            pTileExtra->eggCount++;
+
+            if (pTile->HasFlag(TILE_FLAG_PAINTED_WHITE))
+                pTile->RemoveFlag(TILE_FLAG_PAINTED_WHITE);
+
+            SendTileUpdate(pTile);
+
+            pPlayer->ModifyInventoryItem(pSeed->id, -1);
+            SendParticleEffectToAll(PARTICLE_EFFECT_DAISYPILE_BIG, pTile->GetWorldPosCenter());
+
+            if (pTileExtra->eggCount > 1000)
+            {
+                float burstChance = (float)(pTileExtra->eggCount - 1000) / 100000.0f;
+                float randRoll = RandomRangeFloat(0.0f, 1.0f);
+
+                if (burstChance <= randRoll)
+                {
+                    string warnMsg;
+
+                    if (pTileExtra->eggCount >= 1400 && pTileExtra->eggCount < 1601)
+                    {
+                        warnMsg = "`6This oversized egg has a good chance to burst!``";
+                    }
+                    else if (pTileExtra->eggCount >= 1601 && pTileExtra->eggCount < 1801)
+                    {
+                        warnMsg = "`8This oversized egg has a huge chance to burst!``";
+                    }
+                    else if (pTileExtra->eggCount >= 1801)
+                    {
+                        warnMsg = "`4This oversized egg is so big it could burst at any moment!``";
+                    }
+
+                    if (!warnMsg.empty())
+                        pPlayer->SendOnTalkBubble(warnMsg, false);
+                }
+                else
+                {
+                    pPlayer->SendOnTalkBubble("`4The oversized egg burst!``", false);
+                    OnBunnyEggBreak(pPlayer, pTile);
+                    DestroyTileAndSendToAll(pTile);
+                }
+            }
+        }
+
+        return;
+    }
+
     if (pTile->GetFG() == ITEM_ID_BLANK)
     {
         uint32 fruitCount = 0;
@@ -2614,6 +2847,13 @@ void World::OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile)
     {
         // OnHarvestTree(pPlayer, pTile);
         // todo
+        return;
+    }
+
+    if (pItem->id == ITEM_ID_BUNNY_EGG)
+    {
+        OnBunnyEggBreak(pPlayer, pTile);
+        SendParticleEffectToAll(PARTICLE_EFFECT_DAISYPILE_BIG, pTile->GetWorldPosCenter());
         return;
     }
 
@@ -3312,7 +3552,7 @@ std::vector<uint32> World::GetRequiredPresenceUserIDs()
     if (heartMonitors.empty())
         return presences;
 
-    PlayerPresenceManager* pPresenceMgr = GetPlayerPresenceManager();
+    GamePresenceManager* pPresenceMgr = GetGamePresenceManager();
 
     for (auto& heartMonitor : heartMonitors)
     {
@@ -3358,7 +3598,7 @@ void World::UpdatePresenceNeededThings(bool sendUpdateToNetwork)
     if (heartMonitors.empty())
         return;
 
-    PlayerPresenceManager* pPresenceMgr = GetPlayerPresenceManager();
+    GamePresenceManager* pPresenceMgr = GetGamePresenceManager();
 
     std::vector<TileInfo*> tiles;
 

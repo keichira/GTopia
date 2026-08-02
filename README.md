@@ -95,7 +95,7 @@ Once compiled, navigate to the `Runtime/` folder.
 ---
 
 ## Note
-> The `Runtime/` directory is guarded by whitelist rules via `.gitignore`. Your localized configs (`config.txt`, `servers.txt`, logs) will never be accidentally leaked to the repository. Only the automation launchers (`.sh`, `.bat`) are committed.
+> `Runtime/` and `Build/` directories are guarded by whitelist rules via `.gitignore`. Your localized configs (`config.txt`, `servers.txt`, logs) will never be accidentally leaked to the repository. Only the automation launchers (`.sh`, `.bat`) are committed.
 
 **This project is for educational purposes only. The author is not responsible for any misuse. Use at your own risk.**
 

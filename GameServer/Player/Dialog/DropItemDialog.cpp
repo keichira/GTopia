@@ -23,10 +23,10 @@ void DropItemDialog::Request(GamePlayer* pPlayer, InventoryItemInfo* pInvItem)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`wDrop " + pItem->name + "``", pItem->id, true)
-        ->AddTextBox("How many to drop?")
-        ->AddTextInput("count", "", ToString(pInvItem->count), 5)
-        ->EmbedData("itemID", ToItemClientID(pItem->id));
+        .AddLabelWithIcon("`wDrop " + pItem->name + "``", pItem->id, true)
+        .AddTextBox("How many to drop?")
+        .AddTextInput("count", "", ToString(pInvItem->count), 5)
+        .EmbedData("itemID", ToItemClientID(pItem->id));
 
     bool showWarning = false;
 

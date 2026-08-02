@@ -1,7 +1,7 @@
 #include "WorldManager.h"
 #include "../Context.h"
 #include "../Player/PlayerManager.h"
-#include "../Player/PlayerPresenceManager.h"
+#include "../Server/GamePresenceManager.h"
 #include "../Server/GameServer.h"
 #include "../Server/MasterBroadway.h"
 #include "Database/Table/WorldDBTable.h"
@@ -22,53 +22,6 @@ WorldManager::WorldManager()
 WorldManager::~WorldManager()
 {
     Kill();
-}
-
-bool WorldManager::GetBalancedWorldName(const string& worldName, string& out)
-{
-    auto pBalancer = GetBalancerByNameMatch(worldName);
-    if (!pBalancer)
-        return false;
-
-    if (pBalancer->alwaysCreate)
-    {
-        out = GetBalancedFinalWorldName(worldName);
-        return true;
-    }
-
-    out.clear();
-
-    int32 maxPlayerCount = Min(GetContext()->GetGameConfig()->worldMaxPlayerCount, pBalancer->maxPlayerCount);
-    int32 lowest = 99999999;
-
-    for (auto& [_, pWorld] : m_worlds)
-    {
-        if (!pWorld)
-            continue;
-
-        if (pWorld->GetBalancerType() != pBalancer->id)
-            continue;
-
-        uint32 playerCount = pWorld->GetPlayerCount();
-        if (playerCount < maxPlayerCount && playerCount < lowest)
-        {
-            lowest = playerCount;
-            out = pWorld->GetWorlName();
-        }
-    }
-
-    return (!out.empty());
-}
-
-void WorldManager::Kill()
-{
-    for (auto& [_, pWorld] : m_worlds)
-    {
-        SAFE_DELETE(pWorld);
-    }
-
-    m_worlds.clear();
-    m_worldNameCache.clear();
 }
 
 void WorldManager::HandleWorldInit(VariantVector&& result)
@@ -113,10 +66,21 @@ void WorldManager::StartWorldLoad(World* pWorld)
     {
         pWorld->SetState(WORLD_STATE_LOADING);
 
-        GetPlayerPresenceManager()->RequestPresenceForWorld(pWorld->GetInstanceID(), presenceUserIDs);
+        GetGamePresenceManager()->RequestPresenceForWorld(pWorld->GetInstanceID(), presenceUserIDs);
         LOGGER_LOG_DEBUG("World %s is waiting for %d presence snapshots before going READY.",
                          pWorld->GetWorlName().c_str(), (int32)presenceUserIDs.size());
     }
+}
+
+void WorldManager::Kill()
+{
+    for (auto& [_, pWorld] : m_worlds)
+    {
+        SAFE_DELETE(pWorld);
+    }
+
+    m_worlds.clear();
+    m_worldNameCache.clear();
 }
 
 void WorldManager::HandlePlayerJoin(VariantVector&& result)
@@ -241,31 +205,13 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
                 return;
 
             pPlayerWorld->PlayerLeaveWorld(pPlayer, true);
-            pPlayer->SendOnRequestWorldSelectMenu("");
+            GetWorldManager()->SendWorldMenuRequest(pPlayer);
         }
         return;
     }
 
     string doorID = (targetWorld.size() > 1 ? targetWorld[1] : "");
     StripWhiteSpace(doorID);
-
-    /*if (doorID.empty() && IsBalancerEnabled())
-    {
-        if (auto pBalancer = GetBalancerByNameMatch(targetWorldName))
-        {
-            string balancedWorld;
-            if (GetBalancedWorldName(targetWorldName, balancedWorld))
-            {
-                if (balancedWorld.empty())
-                {
-                    GetMasterBroadway()->SendPlayerWorldJoin(pPlayer->GetUserID(), pBalancer->worldName, "");
-                    return;
-                }
-                else
-                    targetWorldName = balancedWorld;
-            }
-        }
-    }*/
 
     World* pWorld = GetWorldByName(targetWorldName);
     if (!pWorld)
@@ -288,7 +234,13 @@ void WorldManager::PlayerJoinRequest(GamePlayer* pPlayer, const string& worldNam
     }
 
     if (pWorld->GetState() == WORLD_STATE_LOADING)
+        return;
+
+    if (pWorld->GetBannedPlayers().IsBanned(pPlayer->GetAddressNum()))
     {
+        pPlayer->SendOnConsoleMessage("`4Oh no!`` You've been banned from that world by its owner!  Try again later "
+                                      "after the world ban wears off.");
+        pPlayer->SendOnFailedToEnterWorld();
         return;
     }
 
@@ -519,6 +471,71 @@ void WorldManager::SaveAllToDatabase()
 
         pWorld->SaveToDatabase();
     }
+}
+
+void WorldManager::SendWorldMenuRequest(GamePlayer* pPlayer)
+{
+    if (!pPlayer)
+        return;
+
+    GamePresenceManager* pPresenceMgr = GetGamePresenceManager();
+
+    if (m_worldListCacheTimer.GetElapsedTime() >= 15000 || m_cachedPopularWorldList.empty())
+    {
+        m_cachedPopularWorldList.clear();
+
+        pPresenceMgr->SortWorldsByPlayerCount();
+
+        uint32 totalWorlds = pPresenceMgr->GetWorldPresenceCount();
+        int32 popularTargetCount = Min(4, (int32)totalWorlds);
+
+        for (int32 i = 0; i < popularTargetCount; ++i)
+        {
+            auto* pPresence = pPresenceMgr->GetWorldPresenceDataByIndex(i);
+            if (!pPresence || pPresence->isSignalJammed)
+                continue;
+
+            WorldListElement item;
+            item.name = pPresence->name;
+            item.playerCount = pPresence->playerCount;
+
+            m_cachedPopularWorldList.push_back(item);
+        }
+
+        int32 remainingWorlds = totalWorlds - popularTargetCount;
+        int32 randomTargetCount = Min(3, remainingWorlds);
+
+        for (int32 i = 0; i < randomTargetCount; ++i)
+        {
+            auto* pPresence = pPresenceMgr->GetRandomWorldPresenceData(popularTargetCount);
+            if (!pPresence || pPresence->isSignalJammed)
+                continue;
+
+            WorldListElement item;
+            item.name = pPresence->name;
+            item.playerCount = pPresence->playerCount;
+            m_cachedPopularWorldList.push_back(item);
+        }
+
+        m_worldListCacheTimer.Reset();
+    }
+
+    DialogBuilder db;
+
+    if (pPlayer->GetLoginDetail().protocol >= 94) // might be wrong
+        db.AddHeading("Top Worlds");
+
+    if (m_cachedPopularWorldList.empty())
+    {
+        db.AddFloater("START", 0, 0.5f, 3529161471);
+    }
+
+    for (auto& world : m_cachedPopularWorldList)
+    {
+        db.AddFloater(world.name, world.playerCount, 0.5f, 3529161471);
+    }
+
+    pPlayer->SendOnRequestWorldSelectMenu(db.Get());
 }
 
 void WorldManager::RegisterEvents()

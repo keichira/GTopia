@@ -1,26 +1,21 @@
 #include "MasterBroadway.h"
+#include "Context.h"
 #include "IO/Log.h"
 #include "Utils/Timer.h"
-#include "Context.h"
 
-#include "Event/TCPEventHello.h"
-#include "Event/TCPEventAuth.h"
-#include "Event/TCPEventRenderWorld.h"
+#include "Event/TCPEvent_Server.h"
+#include "Event/TCPEvent_World.h"
 
-MasterBroadway::MasterBroadway()
-{
-}
+MasterBroadway::MasterBroadway() {}
 
-MasterBroadway::~MasterBroadway()
-{
-}
+MasterBroadway::~MasterBroadway() {}
 
 void MasterBroadway::OnClientConnect(NetClient* pClient)
 {
-    if(!pClient)
+    if (!pClient)
         return;
 
-    if(m_pNetClient && m_pNetClient != pClient) 
+    if (m_pNetClient && m_pNetClient != pClient)
     {
         pClient->status = SOCKET_CLIENT_CLOSE;
         return;
@@ -31,10 +26,10 @@ void MasterBroadway::OnClientConnect(NetClient* pClient)
 
 void MasterBroadway::OnClientDisconnect(NetClient* pClient)
 {
-    if(!pClient)
+    if (!pClient)
         return;
 
-    if(m_pNetClient == pClient)
+    if (m_pNetClient == pClient)
     {
         m_pNetClient = nullptr;
     }
@@ -44,9 +39,9 @@ void MasterBroadway::RegisterEvents()
 {
     ServerBroadwayBase::RegisterEvents();
 
-    RegisterEvent<TCPEventHello>(TCP_PACKET_HELLO);
-    RegisterEvent<TCPEventAuth>(TCP_PACKET_AUTH);
-    RegisterEvent<TCPEventRenderWorld>(TCP_PACKET_RENDER_WORLD);
+    RegisterEvent<TCPEvent_Hello>(TCP_PACKET_HELLO);
+    RegisterEvent<TCPEvent_Auth>(TCP_PACKET_AUTH);
+    RegisterEvent<TCPEvent_RenderWorld>(TCP_PACKET_RENDER_WORLD);
 }
 
 void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
@@ -56,15 +51,18 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
 
     uint32 processed = 0;
 
-    while(m_packetQueue.try_dequeue(event)) {
-        if(!event.pClient) {
+    while (m_packetQueue.try_dequeue(event))
+    {
+        if (!event.pClient)
+        {
             continue;
         }
 
         int8 type = event.data[0].GetINT();
         m_events.Dispatch(type, event.pClient, event.data);
 
-        if(startTime.GetElapsedTime() >= maxTimeMS) {
+        if (startTime.GetElapsedTime() >= maxTimeMS)
+        {
             break;
         }
     }
@@ -72,7 +70,8 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
 
 void MasterBroadway::SendHelloPacket()
 {
-    if(!m_pNetClient) {
+    if (!m_pNetClient)
+    {
         return;
     }
 
@@ -84,7 +83,8 @@ void MasterBroadway::SendHelloPacket()
 
 void MasterBroadway::SendAuthPacket(const string& authKey)
 {
-    if(!m_pNetClient) {
+    if (!m_pNetClient)
+    {
         return;
     }
 
@@ -121,19 +121,75 @@ void MasterBroadway::SendWorldRenderResult(bool succeed, uint32 userID, uint32 w
 
 void MasterBroadway::SendServerKillPacket()
 {
-    if(!m_pNetClient) {
+    if (!m_pNetClient)
+    {
         return;
     }
 
     VariantVector data(2);
     data[0] = TCP_PACKET_KILL_SERVER;
 
-    m_pNetClient->Send(data);   
+    m_pNetClient->Send(data);
 }
 
-bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag)
+bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount,
+                             const volatile sig_atomic_t* shutdownFlag)
 {
     return ServerBroadwayBase::Connect(host, port, retryCount, &m_pNetClient, shutdownFlag);
 }
 
-MasterBroadway* GetMasterBroadway() { return MasterBroadway::GetInstance(); }
+bool MasterBroadway::ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts,
+                                    const volatile sig_atomic_t* shutdownFlag)
+{
+    if (!Connect(host, port, maxConnectAttempts, shutdownFlag))
+    {
+        LOGGER_LOG_ERROR("Initial TCP connection to Master Server failed.");
+        return false;
+    }
+
+    SetAuthState(BROADWAY_AUTH_NONE);
+    SendHelloPacket();
+    LOGGER_LOG_INFO("Sent Hello packet. Waiting for Master response...");
+
+    uint64 authStartTime = Time::GetSystemTime();
+
+    while (GetAuthState() == BROADWAY_AUTH_NONE && (!shutdownFlag || *shutdownFlag == 0))
+    {
+        if (m_pNetSocket)
+        {
+            Update(true);
+            UpdateTCPLogic(1);
+        }
+
+        if (!IsConnected())
+        {
+            LOGGER_LOG_ERROR("Master server closed the connection during auth!");
+            break;
+        }
+
+        if (Time::GetSystemTime() - authStartTime >= 10000)
+        {
+            LOGGER_LOG_ERROR("Auth timeout.");
+            break;
+        }
+
+        SleepMS(10);
+    }
+
+    if (GetAuthState() == BROADWAY_AUTH_SUCCESS)
+    {
+        LOGGER_LOG_INFO("Successfully authenticated with Master Server!");
+        return true;
+    }
+    else if (GetAuthState() == BROADWAY_AUTH_FAILED)
+    {
+        LOGGER_LOG_ERROR("Master REJECTED authentication");
+    }
+
+    return false;
+}
+
+MasterBroadway* GetMasterBroadway()
+{
+    return MasterBroadway::GetInstance();
+}

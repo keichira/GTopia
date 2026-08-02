@@ -39,17 +39,35 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_DONATION_BOX:
             return TILE_EXTRA_TYPE_DONATION_BOX;
 
+        case ITEM_TYPE_MANNEQUIN:
+            return TILE_EXTRA_TYPE_MANNEQUIN;
+
+        case ITEM_TYPE_MAGICEGG:
+            return TILE_EXTRA_TYPE_MAGIC_EGG;
+
         case ITEM_TYPE_XENONITE:
             return TILE_EXTRA_TYPE_XENONITE;
 
+        case ITEM_TYPE_DRESSUP:
+            return TILE_EXTRA_TYPE_DRESSUP;
+
         case ITEM_TYPE_CRYSTAL:
             return TILE_EXTRA_TYPE_CRYSTAL;
+
+        case ITEM_TYPE_SPOTLIGHT:
+            return TILE_EXTRA_TYPE_SPOTLIGHT;
+
+        case ITEM_TYPE_DISPLAY_BLOCK:
+            return TILE_EXTRA_TYPE_DISPLAY_BLOCK;
 
         case ITEM_TYPE_BATTLE_CAGE:
             return TILE_EXTRA_TYPE_BATTLE_CAGE;
 
         case ITEM_TYPE_PET_TRAINER:
             return TILE_EXTRA_TYPE_PET_TRAINER;
+
+        case ITEM_TYPE_WEATHER_SPECIAL:
+            return TILE_EXTRA_TYPE_WEATHER_SPECIAL;
 
         case ITEM_TYPE_FIELD_NODE:
             return TILE_EXTRA_TYPE_FIELD_NODE;
@@ -99,17 +117,35 @@ TileExtra* CreateTileExtra(uint8 type)
         case TILE_EXTRA_TYPE_DONATION_BOX:
             return new TileExtra_DonaitonBox();
 
+        case TILE_EXTRA_TYPE_MANNEQUIN:
+            return new TileExtra_Mannequin();
+
+        case TILE_EXTRA_TYPE_MAGIC_EGG:
+            return new TileExtra_MagicEgg();
+
+        case TILE_EXTRA_TYPE_DRESSUP:
+            return new TileExtra_Dressup();
+
         case TILE_EXTRA_TYPE_XENONITE:
             return new TileExtra_Xenonite();
 
         case TILE_EXTRA_TYPE_CRYSTAL:
             return new TileExtra_Crystal();
 
+        case TILE_EXTRA_TYPE_SPOTLIGHT:
+            return new TileExtra_Spotlight();
+
+        case TILE_EXTRA_TYPE_DISPLAY_BLOCK:
+            return new TileExtra_DisplayBlock();
+
         case TILE_EXTRA_TYPE_BATTLE_CAGE:
             return new TileExtra_BattleCage();
 
-        case ITEM_TYPE_PET_TRAINER:
+        case TILE_EXTRA_TYPE_PET_TRAINER:
             return new TileExtra_PetTrainer();
+
+        case TILE_EXTRA_TYPE_WEATHER_SPECIAL:
+            return new TileExtra_WeatherSpecial();
 
         case TILE_EXTRA_TYPE_FIELD_NODE:
             return new TileExtra_FieldNode();
@@ -627,4 +663,104 @@ void TileExtra_DonaitonBox::Serialize(MemoryBuffer& memBuffer, bool write, bool 
 
         memBuffer.ReadWrite(minRarity, write);
     }
+}
+
+void TileExtra_WeatherSpecial::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                         uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    if (!database)
+    {
+        int32 clientID = ToItemClientID(itemID);
+        memBuffer.ReadWrite(clientID, write);
+    }
+    else
+    {
+        memBuffer.ReadWrite(itemID, write);
+        memBuffer.ReadWrite(cycleTime, write);
+        memBuffer.ReadWrite(flags, write);
+    }
+}
+
+void TileExtra_Mannequin::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                    uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    memBuffer.ReadWriteString(text, write);
+    memBuffer.ReadWrite(flags, write);
+
+    uint32 hairColorNum = hairColor.GetAsUINT();
+    memBuffer.ReadWrite(hairColorNum, write);
+    if (!write)
+    {
+        hairColor = Color(hairColorNum);
+    }
+
+    if (database)
+    {
+        memBuffer.ReadWriteRaw(&clothes, sizeof(int16) * 9, write);
+
+        if (!write)
+        {
+            for (int32 i = 0; i < 9; ++i)
+            {
+                clientClothes[i] = ToItemClientID(clothes[i]);
+            }
+        }
+    }
+    else
+    {
+        memBuffer.ReadWriteRaw(&clientClothes, sizeof(int16) * 9, write);
+
+        if (NeedsCharFlags(worldVersion))
+        {
+            memBuffer.ReadWrite(charFlags, write);
+            memBuffer.ReadWrite(char2Flags, write);
+        }
+    }
+}
+
+void TileExtra_MagicEgg::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                   uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWrite(eggCount, write);
+}
+
+void TileExtra_Dressup::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                  uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    if (database)
+    {
+        memBuffer.ReadWriteRaw(&clothes, sizeof(int16) * 9, write);
+
+        if (!write)
+        {
+            for (int32 i = 0; i < 9; ++i)
+            {
+                clientClothes[i] = ToItemClientID(clothes[i]);
+            }
+        }
+    }
+    else
+    {
+        memBuffer.ReadWriteRaw(&clientClothes, sizeof(int16) * 9, write);
+    }
+}
+
+void TileExtra_Spotlight::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                    uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+}
+
+void TileExtra_DisplayBlock::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                       uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+    memBuffer.ReadWrite(itemID, write);
 }

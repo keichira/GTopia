@@ -9,7 +9,8 @@ QueryRequest PlayerDB::GetByMac(const string& mac, uint8 platformType, uint32 ow
     return req;
 }
 
-QueryRequest PlayerDB::Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, std::string_view ip, uint32 ownerID)
+QueryRequest PlayerDB::Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac,
+                              std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
     req.AddData(guestName, platformType, guestID, mac, ip);
@@ -27,10 +28,11 @@ QueryRequest PlayerDB::GetData(uint32 userID, uint32 ownerID)
     return req;
 }
 
-QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 lastWorld, string progressData, int32 gems, uint32 ownerID)
+QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags,
+                            uint32 lastWorld, string progressData, int32 gems, const string& extraData, uint32 ownerID)
 {
     QueryRequest req(ownerID);
-    req.AddData(roleID, inventoryData, skinColor, flags, lastWorld, progressData, gems, userID);
+    req.AddData(roleID, inventoryData, skinColor, flags, lastWorld, progressData, gems, extraData, userID);
 
     req.queryID = DB_PLAYER_SAVE;
     return req;
@@ -164,52 +166,60 @@ QueryRequest PlayerDB::GetOfflineData(uint32 userID, int32 ownerID)
 
 void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
 {
-    if(req.queryID < 0) {
+    if (req.queryID < 0)
+    {
         DatabaseExec(pPool, "", req, QUERY_FLAG_RETURN_RESULT); // fail query
         return;
     }
 
     TableQuery& query = sPlayerQueryTable[req.queryID];
 
-    if(preapred) {
+    if (preapred)
+    {
         query.flags |= QUERY_FLAG_PREPARED;
     }
 
     DatabaseExec(pPool, query.query, req, query.flags);
 }
 
-void DatabasePlayerIdentifierExec(
-    DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, 
-    const string& rid, const string& gid, int32 hash, const string& guestName, QueryRequest& req)
+void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid,
+                                  const string& sid, const string& rid, const string& gid, int32 hash,
+                                  const string& guestName, QueryRequest& req)
 {
     string query = "UPDATE Players SET ";
 
-    if(!mac.empty() && mac != "02:00:00:00:00:00") {
+    if (!mac.empty() && mac != "02:00:00:00:00:00")
+    {
         query += "Mac = ?, ";
         req.AddData(mac);
     }
 
-    if(!vid.empty()) {
+    if (!vid.empty())
+    {
         query += "VID = UNHEX(MD5(?)), ";
         req.AddData(vid);
     }
 
-    if(!sid.empty()) {
+    if (!sid.empty())
+    {
         query += "SID = UNHEX(MD5(?)), ";
         req.AddData(sid);
     }
 
-    if(!rid.empty()) {
+    if (!rid.empty())
+    {
         query += "RID = UNHEX(?), ";
         req.AddData(rid);
     }
 
-    if(!gid.empty()) {
+    if (!gid.empty())
+    {
         query += "GID = UNHEX(MD5(?)), ";
         req.AddData(gid);
     }
 
-    if(!guestName.empty()) {
+    if (!guestName.empty())
+    {
         query += "GuestName = ?,";
         req.AddData(guestName);
     }

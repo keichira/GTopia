@@ -9,18 +9,20 @@
 #include "CrystalBlockDialog.h"
 #include "DonationBoxDialog.h"
 #include "DoorDialog.h"
+#include "DressupDialog.h"
 #include "LockDialog.h"
 #include "MailboxBlockDialog.h"
+#include "MannequinDialog.h"
 #include "OuijaBoardDialog.h"
 #include "SignDialog.h"
+#include "SpotlightDialog.h"
+#include "WeatherSpecialDialog.h"
 #include "XenoniteDialog.h"
 
 void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 {
     if (!pTile)
-    {
         return;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
     if (!pItem)
@@ -89,6 +91,30 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if (pItem->type == ITEM_TYPE_DONATION_BOX)
     {
         DonationBoxDialog::Request(pPlayer, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_WEATHER_SPECIAL || pItem->type == ITEM_TYPE_WEATHER_SPECIAL2)
+    {
+        WeatherSpecialDialog::Request(pPlayer, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_MANNEQUIN)
+    {
+        MannequinDialog::Request(pPlayer, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_DRESSUP)
+    {
+        DressupDialog::Request(pPlayer, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_SPOTLIGHT)
+    {
+        SpotlightDialog::Request(pPlayer, pTile);
         return;
     }
 }

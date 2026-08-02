@@ -85,3 +85,6 @@ set_timer|180|
 set_char_flag|SHADOW_HAUNTED|
 
 add_playmod|2072|Xenonite|||
+
+add_playmod|874|Egged!|You have egg on your face.|You washed your face!|
+set_timer|180|

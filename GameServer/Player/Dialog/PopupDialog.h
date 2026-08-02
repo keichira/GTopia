@@ -12,7 +12,9 @@ public:
     static void Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
     static void HandleTitleEdit(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
     static void HandleAcceptAccess(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
+    static void HandleBillboardEdit(GamePlayer* pPlayer, ParsedTextPacket<38>& packet);
 
 private:
     static void RequestTitleEdit(GamePlayer* pPlayer);
+    static void RequestBillboardEdit(GamePlayer* pPlayer);
 };

@@ -800,7 +800,7 @@ void ItemInfoManager::CreateDefaultSeedForItem(ItemInfo* pItem)
 
     switch (pItem->id)
     {
-        case ITEM_ID_MAGIC_EGG:
+        case ITEM_ID_BUNNY_EGG:
             seed.name = "Magic Egg";
             break;
         case ITEM_ID_COMET_DUST:

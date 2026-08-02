@@ -2,12 +2,13 @@
 
 #include "../DatabasePool.h"
 
+// clang-format off
 static TableQuery sPlayerQueryTable[] =
 {
     {"SELECT ID, Name, GuestID, GuestName FROM Players WHERE Name = '' AND Mac = ? AND PlatformType = ? LIMIT 1;", QUERY_FLAG_RETURN_RESULT},
     {"INSERT INTO Players (GuestName, PlatformType, GuestID, Mac, IP, CreationDate, LastSeenTime) VALUES (?, ?, ?, ?, ?, SYSDATE(), NOW());", QUERY_FLAG_RETURN_INCREMENT},
     {"SELECT GuestID, Name, GuestName, SkinColor, Gems, Flags, LastWorld, RoleID, HEX(ProgressData) AS ProgressData, HEX(Inventory) AS Inventory FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
-    {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = UNHEX(?), SkinColor = ?, Flags = ?, LastWorld = ?, ProgressData = UNHEX(?), Gems = ? WHERE ID = ?;", QUERY_FLAG_NONE},
+    {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = UNHEX(?), SkinColor = ?, Flags = ?, LastWorld = ?, ProgressData = UNHEX(?), Gems = ?, ExtraData = ? WHERE ID = ?;", QUERY_FLAG_NONE},
     {"SELECT ID FROM Players WHERE IP = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID, GuestName, GuestID FROM Players WHERE Name = '' AND VID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID, GuestName, GuestID FROM Players WHERE Name = '' AND GID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
@@ -23,6 +24,7 @@ static TableQuery sPlayerQueryTable[] =
     {"UPDATE Players SET RoleID = ? WHERE ID = ?;", QUERY_FLAG_NONE},
     {"SELECT ID, Name, GuestName, RoleID, GuestID FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT}
 };
+// clang-format on
 
 enum ePlayerDBQuery
 {
@@ -48,30 +50,34 @@ enum ePlayerDBQuery
 
 namespace PlayerDB
 {
-    QueryRequest GetByMac(const string& mac, uint8 platformType, uint32 ownerID = 0);
-    QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, std::string_view ip, uint32 ownerID = 0);
-    QueryRequest GetData(uint32 userID, uint32 ownerID = 0);
-    QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags, uint32 lastWorld, string progressData, int32 gems = 0, uint32 ownerID = 0);
-    QueryRequest CountByIP(std::string_view ip, uint32 ownerID = 0);
+QueryRequest GetByMac(const string& mac, uint8 platformType, uint32 ownerID = 0);
+QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID, const string& mac, std::string_view ip,
+                    uint32 ownerID = 0);
+QueryRequest GetData(uint32 userID, uint32 ownerID = 0);
+QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags,
+                  uint32 lastWorld, string progressData, int32 gems, const string& extraData, uint32 ownerID = 0);
+QueryRequest CountByIP(std::string_view ip, uint32 ownerID = 0);
 
-    QueryRequest GetByVID(const string& vid, uint8 platformType, uint32 ownerID = 0);
-    QueryRequest GetByGID(const string& gid, uint8 platformType, uint32 ownerID = 0);
-    QueryRequest GetByHash(int32 hash, uint8 platformType, uint32 ownerID = 0);
+QueryRequest GetByVID(const string& vid, uint8 platformType, uint32 ownerID = 0);
+QueryRequest GetByGID(const string& gid, uint8 platformType, uint32 ownerID = 0);
+QueryRequest GetByHash(int32 hash, uint8 platformType, uint32 ownerID = 0);
 
-    QueryRequest CountByGidMacIP(const string& gid, const string& mac, std::string_view ip, uint32 ownerID = 0);
-    QueryRequest CountByVidMacIP(const string& vid, const string& mac, std::string_view ip, uint32 ownerID = 0);
-    QueryRequest CountBySidMacIP(const string& sid, const string& mac, std::string_view ip, uint32 ownerID = 0);
-    QueryRequest CountByMacIP(const string& mac, std::string_view ip, uint32 ownerID = 0);
+QueryRequest CountByGidMacIP(const string& gid, const string& mac, std::string_view ip, uint32 ownerID = 0);
+QueryRequest CountByVidMacIP(const string& vid, const string& mac, std::string_view ip, uint32 ownerID = 0);
+QueryRequest CountBySidMacIP(const string& sid, const string& mac, std::string_view ip, uint32 ownerID = 0);
+QueryRequest CountByMacIP(const string& mac, std::string_view ip, uint32 ownerID = 0);
 
-    QueryRequest GrowIDExists(const string& growID, uint32 ownerID = 0);
-    QueryRequest GrowIDCreate(uint32 userID, const string& name, const string& pass, uint32 ownerID = 0);
+QueryRequest GrowIDExists(const string& growID, uint32 ownerID = 0);
+QueryRequest GrowIDCreate(uint32 userID, const string& name, const string& pass, uint32 ownerID = 0);
 
-    QueryRequest GetByNameAndPass(const string& name, const string& pass, uint32 ownerID = 0);
-    QueryRequest ExistByID(uint32 userID, int32 ownerID = 0);
+QueryRequest GetByNameAndPass(const string& name, const string& pass, uint32 ownerID = 0);
+QueryRequest ExistByID(uint32 userID, int32 ownerID = 0);
 
-    QueryRequest SetRoleByID(uint32 roleID, uint32 userID, int32 ownerID = 0);
-    QueryRequest GetOfflineData(uint32 userID, int32 ownerID = 0);
-}
+QueryRequest SetRoleByID(uint32 roleID, uint32 userID, int32 ownerID = 0);
+QueryRequest GetOfflineData(uint32 userID, int32 ownerID = 0);
+} // namespace PlayerDB
 
 void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred = false);
-void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid, const string& sid, const string& rid, const string& gid, int32 hash, const string& guestName, QueryRequest& req);
+void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid,
+                                  const string& sid, const string& rid, const string& gid, int32 hash,
+                                  const string& guestName, QueryRequest& req);

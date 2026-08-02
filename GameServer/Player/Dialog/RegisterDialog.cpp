@@ -1,32 +1,32 @@
 #include "RegisterDialog.h"
+#include "../../World/WorldManager.h"
 #include "../GamePlayer.h"
 #include "Utils/DialogBuilder.h"
-#include "../../World/WorldManager.h"
 
-void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder, const string& passPlaceholder, const string& passVerifPlaceholder, const string& errorMsg)
+void RegisterDialog::Request(GamePlayer* pPlayer, const string& namePlaceholder, const string& passPlaceholder,
+                             const string& passVerifPlaceholder, const string& errorMsg)
 {
-    if (!pPlayer || pPlayer->HasGrowID()) {
+    if (!pPlayer || pPlayer->HasGrowID())
+    {
         return;
     }
 
     DialogBuilder db;
-    db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`wGet a GrowID", ITEM_ID_FIST, true)
-        ->AddSpacer();
+    db.SetDefaultColor('o').AddLabelWithIcon("`wGet a GrowID", ITEM_ID_FIST, true).AddSpacer();
 
     if (!errorMsg.empty())
     {
-        db.AddTextBox(errorMsg)
-            ->AddSpacer();
+        db.AddTextBox(errorMsg).AddSpacer();
     }
 
-    db.AddTextBox("By choosing a `wGrowID``, you can use a name and password to logon from any device. Your `wname`` will be shown to other players!")
-        ->AddTextInput("logon", "Name", namePlaceholder, 18)
-        ->AddSpacer()
-        ->AddTextInputPassword("password", "Password", passPlaceholder, 18)
-        ->AddTextInputPassword("verify_password", "Verify Password", passVerifPlaceholder, 18)
-        ->AddSpacer()
-        ->EndDialog("growid_apply", "Get My GrowID!", "Cancel");
+    db.AddTextBox("By choosing a `wGrowID``, you can use a name and password to logon from any device. Your `wname`` "
+                  "will be shown to other players!")
+        .AddTextInput("logon", "Name", namePlaceholder, 18)
+        .AddSpacer()
+        .AddTextInputPassword("password", "Password", passPlaceholder, 18)
+        .AddTextInputPassword("verify_password", "Verify Password", passVerifPlaceholder, 18)
+        .AddSpacer()
+        .EndDialog("growid_apply", "Get My GrowID!", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get(), 1000);
 }
@@ -48,18 +48,20 @@ void RegisterDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
     string verifPass = pVerifPass->GetString();
     string error = "";
 
-    if (name.find(" ") != string::npos) error = "`4Oops!``  Your `$GrowID`` name can't have spaces in it.";
-    else if (name.find("`") != string::npos) error = "`4Oops!`` You can't use color codes in your `$GrowID``.";
-    else if (pass != verifPass) error = "`4Oops!``  Passwords don't match.  Try again.";
-    else if (pass.size() < 3 || pass.size() > 18) error = "`4Oops!``  Your password must be between `$3`` and `$18`` characters long.";
-    else if (name.size() < 3 || name.size() > 12) error = "`4Oops!``  Your `wGrowID`` must be between `$3`` and `$12`` characters long.";
+    if (name.find(" ") != string::npos)
+        error = "`4Oops!``  Your `$GrowID`` name can't have spaces in it.";
+    else if (name.find("`") != string::npos)
+        error = "`4Oops!`` You can't use color codes in your `$GrowID``.";
+    else if (pass != verifPass)
+        error = "`4Oops!``  Passwords don't match.  Try again.";
+    else if (pass.size() < 3 || pass.size() > 18)
+        error = "`4Oops!``  Your password must be between `$3`` and `$18`` characters long.";
+    else if (name.size() < 3 || name.size() > 12)
+        error = "`4Oops!``  Your `wGrowID`` must be between `$3`` and `$12`` characters long.";
 
     if (!error.empty())
     {
-        Request(
-            pPlayer, name,
-            pass, verifPass, error
-        );
+        Request(pPlayer, name, pass, verifPass, error);
         return;
     }
 
@@ -75,9 +77,10 @@ void RegisterDialog::Success(GamePlayer* pPlayer, const string& growID, const st
 {
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`wGrowID GET!", ITEM_ID_FIST, true)
-        ->AddTextBox("A `wGrowID`` with the log on of `w" + growID + "`` and the password of `w" + pass + "`` created. Write them down, they will be required to log on from now on!")
-        ->EndDialog("growid_succ", "", "Continue");
+        .AddLabelWithIcon("`wGrowID GET!", ITEM_ID_FIST, true)
+        .AddTextBox("A `wGrowID`` with the log on of `w" + growID + "`` and the password of `w" + pass +
+                    "`` created. Write them down, they will be required to log on from now on!")
+        .EndDialog("growid_succ", "", "Continue");
 
     pPlayer->SendSetHasGrowID(true);
 

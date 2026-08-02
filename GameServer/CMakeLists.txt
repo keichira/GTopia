@@ -104,6 +104,10 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/ItemFinderDialog.cpp
     ${GAME_DIALOG}/TradeDialog.cpp
     ${GAME_DIALOG}/DonationBoxDialog.cpp
+    ${GAME_DIALOG}/WeatherSpecialDialog.cpp
+    ${GAME_DIALOG}/MannequinDialog.cpp
+    ${GAME_DIALOG}/DressupDialog.cpp
+    ${GAME_DIALOG}/SpotlightDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
@@ -118,8 +122,8 @@ set(GAME_FILES PRIVATE
     ${GAME_PLAYER}/AchievementManager.cpp
     ${GAME_PLAYER}/PlayerProgress.cpp
     ${GAME_PLAYER}/PlayerPlayModController.cpp
-    ${GAME_PLAYER}/PlayerPresenceManager.cpp
     ${GAME_PLAYER}/PlayerTrade.cpp
+    ${GAME_PLAYER}/PlayerExtraData.cpp
 
     ${GAME_STORE}/StoreManager.cpp
     ${GAME_ITEM}/HarmonicCrystal.cpp
@@ -131,6 +135,7 @@ set(GAME_FILES PRIVATE
     ${GAME_SERVER}/GameServer.cpp
     ${GAME_SERVER}/MasterBroadway.cpp
     ${GAME_SERVER}/UserCacheManager.cpp
+    ${GAME_SERVER}/GamePresenceManager.cpp
 
     ${GAME_ROOT}/Context.cpp
     ${GAME_ROOT}/Main.cpp

@@ -2,17 +2,13 @@
 #include "../Utils/StringUtils.h"
 #include "ItemInfoManager.h"
 
-BattlePetInfo::BattlePetInfo()
-{
-}
+BattlePetInfo::BattlePetInfo() {}
 
-BattlePetInfo::~BattlePetInfo()
-{
-}
+BattlePetInfo::~BattlePetInfo() {}
 
 string BattlePetInfo::GetColorCodeByElement()
 {
-    switch(element)
+    switch (element)
     {
         case ITEM_ELEMENT_EARTH:
             return "`2";
@@ -33,7 +29,7 @@ string BattlePetInfo::GetColorCodeByElement()
 
 string BattlePetInfo::GetElementName()
 {
-    switch(element)
+    switch (element)
     {
         case ITEM_ELEMENT_EARTH:
             return "Earth";
@@ -55,10 +51,10 @@ string BattlePetInfo::GetElementName()
 string BattlePetInfo::GetDescribedPower()
 {
     string out = GetColorCodeByElement() + powerName + ":`` " + description;
-    
-    if(abilityVal > 0)
+
+    if (abilityVal > 0)
     {
-        switch(ability)
+        switch (ability)
         {
             case PET_ABILITY_HEAL_SELF:
                 out += " Heals " + ToString(abilityVal) + " life.";
@@ -73,7 +69,7 @@ string BattlePetInfo::GetDescribedPower()
         }
     }
 
-    if(cooldownSec > 0)
+    if (cooldownSec > 0)
     {
         out += " Cooldown: " + ToString(cooldownSec);
     }
@@ -84,19 +80,19 @@ string BattlePetInfo::GetDescribedPower()
 string GetFullBattlePetName(int32 basePet, int32 pet2, int32 pet3)
 {
     BattlePetInfo* pBasePet = GetItemInfoManager()->GetBattlePetInfo(basePet);
-    if(!pBasePet)
+    if (!pBasePet)
         return "???";
 
     string name = pBasePet->subName;
 
     BattlePetInfo* pSecondPet = GetItemInfoManager()->GetBattlePetInfo(pet2);
-    if(!pSecondPet)
+    if (!pSecondPet)
         return "???";
 
     name += pSecondPet->subName;
 
     BattlePetInfo* pThirdPet = GetItemInfoManager()->GetBattlePetInfo(pet3);
-    if(!pThirdPet)
+    if (!pThirdPet)
         return "???";
 
     name += pThirdPet->endName;

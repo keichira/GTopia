@@ -63,6 +63,7 @@ public:
     bool IsPlayerOwnerOfTheTile(TileInfo* pTile, int32 userID);
 
     TileInfo* GetTileInfoFlaggedWith(eItemFlag flag, uint32 skipItemID = 0);
+    TileInfo* GetTileInfoByItemID(int32 itemID, int32 startIndex = 0);
 
     int32 GetTileIndex(TileInfo* pTile);
     bool CanPlantTreeHere(TileInfo* pTile);

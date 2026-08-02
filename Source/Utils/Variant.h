@@ -1,10 +1,10 @@
 #pragma once
 
-#include "../Precompiled.h"
 #include "../Math/Vector2.h"
 #include "../Math/Vector3.h"
+#include "../Precompiled.h"
 
-enum eVariantTypes 
+enum eVariantTypes
 {
     VARIANT_TYPE_NONE,
     VARIANT_TYPE_INT,
@@ -20,13 +20,39 @@ enum eVariantTypes
 
 struct VariantValue
 {
-    union { int32 i_0; uint32 u_0; float f_0; bool b_0; void* ptr_0; };
-    union { int32 i_1; uint32 u_1; float f_1; void* ptr_1; };
-    union { int32 i_2; uint32 u_2; float f_2; void* ptr_2; };
-    union { int32 i_3; uint32 u_3; float f_3; void* ptr_3; };
+    union
+    {
+        int32 i_0;
+        uint32 u_0;
+        float f_0;
+        bool b_0;
+        void* ptr_0;
+    };
+    union
+    {
+        int32 i_1;
+        uint32 u_1;
+        float f_1;
+        void* ptr_1;
+    };
+    union
+    {
+        int32 i_2;
+        uint32 u_2;
+        float f_2;
+        void* ptr_2;
+    };
+    union
+    {
+        int32 i_3;
+        uint32 u_3;
+        float f_3;
+        void* ptr_3;
+    };
 };
 
-class Variant {
+class Variant
+{
 public:
     Variant();
     Variant(const int32 rhs) { *this = rhs; }
@@ -40,7 +66,7 @@ public:
     Variant(std::string_view rhs) { *this = rhs; }
 
 public:
-    void operator=(const int32 rhs) 
+    void operator=(const int32 rhs)
     {
         m_type = VARIANT_TYPE_INT;
         m_value.i_0 = rhs;
@@ -79,7 +105,7 @@ public:
     void operator=(std::string_view rhs)
     {
         m_type = VARIANT_TYPE_STRING;
-        m_str = rhs; 
+        m_str = rhs;
     }
 
     void operator=(const Vector2Int& rhs)
@@ -108,61 +134,58 @@ public:
 
     int32 GetINT() const
     {
-        if(m_type == VARIANT_TYPE_INT)
+        if (m_type == VARIANT_TYPE_INT)
             return m_value.i_0;
         return 0;
     }
 
     uint32 GetUINT() const
     {
-        if(m_type == VARIANT_TYPE_UINT)
+        if (m_type == VARIANT_TYPE_UINT)
             return m_value.u_0;
         return 0;
     }
 
     float GetFloat() const
     {
-        if(m_type == VARIANT_TYPE_FLOAT)
+        if (m_type == VARIANT_TYPE_FLOAT)
             return m_value.f_0;
         return 0.0f;
     }
 
     bool GetBool() const
     {
-        if(m_type == VARIANT_TYPE_BOOL)
+        if (m_type == VARIANT_TYPE_BOOL)
             return m_value.b_0;
         return false;
     }
 
-    const string& GetString() const
-    {
-        return m_str;
-    }
+    const string& GetString() const { return m_str; }
 
     const Vector2Int& GetVector2Int() const
     {
-        if(m_type == VARIANT_TYPE_VECTOR2INT)
+        if (m_type == VARIANT_TYPE_VECTOR2INT)
             return *reinterpret_cast<const Vector2Int*>(&m_value);
         return Vector2Int::New;
     }
 
     const Vector2Float& GetVector2Float() const
     {
-        if(m_type == VARIANT_TYPE_VECTOR2FLOAT)
+        if (m_type == VARIANT_TYPE_VECTOR2FLOAT)
             return *reinterpret_cast<const Vector2Float*>(&m_value);
         return Vector2Float::New;
     }
 
     const Vector3Int& GetVector3Int() const
     {
-        if(m_type == VARIANT_TYPE_VECTOR3INT)
+        if (m_type == VARIANT_TYPE_VECTOR3INT)
             return *reinterpret_cast<const Vector3Int*>(&m_value);
         return Vector3Int::New;
     }
 
     const Vector3Float& GetVector3Float() const
     {
-        if(m_type == VARIANT_TYPE_VECTOR3FLOAT)
+        if (m_type == VARIANT_TYPE_VECTOR3FLOAT)
             return *reinterpret_cast<const Vector3Float*>(&m_value);
         return Vector3Float::New;
     }
@@ -180,4 +203,4 @@ private:
 };
 
 typedef std::vector<Variant> VariantVector;
-typedef std::unordered_map<string, Variant> VariantMap;
+template <typename T> using VariantMap = std::unordered_map<T, Variant>;

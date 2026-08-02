@@ -1,3 +1,7 @@
+--
+-- Table structure for table `Players`
+--
+
 CREATE TABLE `Players` (
   `ID` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `GuestName` varchar(32) NOT NULL,
@@ -21,6 +25,7 @@ CREATE TABLE `Players` (
   `Gems` int NOT NULL DEFAULT '0',
   `ProgressData` varbinary(512) DEFAULT NULL,
   `LastWorld` int NOT NULL DEFAULT '0',
+  `ExtraData` varbinary(2048) DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `idx_gid` (`GID`),
   KEY `idx_rid` (`RID`),
@@ -31,6 +36,10 @@ CREATE TABLE `Players` (
   KEY `idx_name` (`Name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+--
+-- Table structure for table `Worlds`
+--
+
 CREATE TABLE `Worlds` (
   `ID` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `Name` varchar(64) NOT NULL,
@@ -40,4 +49,13 @@ CREATE TABLE `Worlds` (
   `CreationDate` date DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `idx_name` (`Name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+--
+-- Table structure for table `SchemaMigrations`
+--
+
+CREATE TABLE IF NOT EXISTS `SchemaMigrations` (
+  `Version` VARCHAR(255) PRIMARY KEY,
+  `ApplyTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

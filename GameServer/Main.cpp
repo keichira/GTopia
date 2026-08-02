@@ -6,9 +6,9 @@
 #include "Math/Random.h"
 #include "Player/AchievementManager.h"
 #include "Player/PlayModManager.h"
-#include "Player/PlayerPresenceManager.h"
 #include "Player/PlayerTribute.h"
 #include "Player/RoleManager.h"
+#include "Server/GamePresenceManager.h"
 #include "Server/GameServer.h"
 #include "Server/MasterBroadway.h"
 #include "Server/UserCacheManager.h"
@@ -228,11 +228,13 @@ bool LoadItemData()
         }
     }
 
-    uint32 minVersion = GetMinRequiredItemDataVersion(pGameConfig->androidSupportedVersions[0], pGameConfig->windowsSupportedVersions[0],
-                                                      pGameConfig->iosSupportedVersions[0], pGameConfig->macosSupportedVersions[0]);
+    uint32 minVersion = GetMinRequiredItemDataVersion(
+        pGameConfig->androidSupportedVersions[0], pGameConfig->windowsSupportedVersions[0],
+        pGameConfig->iosSupportedVersions[0], pGameConfig->macosSupportedVersions[0]);
 
-    uint32 maxVersion = GetMinRequiredItemDataVersion(pGameConfig->androidSupportedVersions[1], pGameConfig->windowsSupportedVersions[1],
-                                                      pGameConfig->iosSupportedVersions[1], pGameConfig->macosSupportedVersions[1]);
+    uint32 maxVersion = GetMinRequiredItemDataVersion(
+        pGameConfig->androidSupportedVersions[1], pGameConfig->windowsSupportedVersions[1],
+        pGameConfig->iosSupportedVersions[1], pGameConfig->macosSupportedVersions[1]);
 
     if (!usingGTCDN)
     {
@@ -315,7 +317,7 @@ void RunGameLoop()
 
             pGameServer->UpdateGameLogic(GAME_TICK_MS);
             GetUserCacheManager()->Update();
-            GetPlayerPresenceManager()->Update();
+            GetGamePresenceManager()->Update();
 
             uint64 tickEnd = Time::GetSystemTime();
             uint32 tickDur = (uint32)(tickEnd - tickStart);
@@ -418,7 +420,8 @@ int main(int argc, char const* argv[])
 
     if (pGameConfig->servers[1].serverType != CONFIG_SERVER_GAME)
     {
-        LOGGER_LOG_ERROR_ASAP("Woops trying to run server with wrong type %d it should be game", pGameConfig->servers[1].serverType);
+        LOGGER_LOG_ERROR_ASAP("Woops trying to run server with wrong type %d it should be game",
+                              pGameConfig->servers[1].serverType);
         return 0;
     }
 
@@ -431,7 +434,8 @@ int main(int argc, char const* argv[])
     auto gameServerInfo = pGameConfig->servers[1];
     if (!GetMasterBroadway()->Init(gameServerInfo.lanIP, gameServerInfo.tcpPort, 0))
     {
-        LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", gameServerInfo.lanIP.c_str(),
+                              gameServerInfo.tcpPort);
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Started netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
@@ -439,7 +443,8 @@ int main(int argc, char const* argv[])
     auto masterServerInfo = pGameConfig->servers[0];
     LOGGER_LOG_INFO_ASAP("Connecting and Authenticating with Master Server...");
 
-    if (!GetMasterBroadway()->ConnectAndAuth(masterServerInfo.lanIP, masterServerInfo.tcpPort, 3, GetContext()->GetShutdownFlag()))
+    if (!GetMasterBroadway()->ConnectAndAuth(masterServerInfo.lanIP, masterServerInfo.tcpPort, 3,
+                                             GetContext()->GetShutdownFlag()))
     {
         LOGGER_LOG_ERROR_ASAP("Master Server connection or authentication failed. Aborting startup.");
         GetMasterBroadway()->Kill();
@@ -487,7 +492,8 @@ int main(int argc, char const* argv[])
 
     if (!GetGameServer()->Init(gameServerInfo.wanIP, gameServerInfo.udpPort))
     {
-        LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", gameServerInfo.wanIP.c_str(), gameServerInfo.udpPort);
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", gameServerInfo.wanIP.c_str(),
+                              gameServerInfo.udpPort);
         return 0;
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
@@ -508,7 +514,7 @@ int main(int argc, char const* argv[])
 
     RunGameLoop();
 
-    LOGGER_LOG_INFO_ASAP("Killing Game server %d", GetContext()->GetID());
+    LOGGER_LOG_INFO("Killing Game server %d", GetContext()->GetID());
 
     GetLog()->Flush();
 

@@ -1,43 +1,43 @@
 #include "LockDialog.h"
-#include "../GamePlayer.h"
-#include "Utils/DialogBuilder.h"
-#include "Item/ItemInfoManager.h"
-#include "../../World/WorldManager.h"
-#include "../../Server/UserCacheManager.h"
 #include "../../Player/PlayerManager.h"
+#include "../../Server/UserCacheManager.h"
+#include "../../World/WorldManager.h"
+#include "../GamePlayer.h"
+#include "Item/ItemInfoManager.h"
+#include "Utils/DialogBuilder.h"
 
 void LockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
 {
-    if(!pPlayer || !pTile || pPlayer->GetCurrentWorld() == 0)
+    if (!pPlayer || !pTile || pPlayer->GetCurrentWorld() == 0)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-    if(!pTileExtra)
+    if (!pTileExtra)
         return;
 
-    if(!pTileExtra->HasAccess(pPlayer->GetUserID()))
+    if (!pTileExtra->HasAccess(pPlayer->GetUserID()))
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
-    if(!pItem || pItem->type != ITEM_TYPE_LOCK)
+    if (!pItem || pItem->type != ITEM_TYPE_LOCK)
         return;
 
-    if(pTileExtra->ownerID != pPlayer->GetUserID())
+    if (pTileExtra->ownerID != pPlayer->GetUserID())
     {
-        if(pTileExtra->IsAdmin(pPlayer->GetUserID()))
+        if (pTileExtra->IsAdmin(pPlayer->GetUserID()))
         {
             // not "someone" but lets keep it no need to care much it no?
             DialogBuilder db;
             db.SetDefaultColor('o')
-                ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
-                ->EmbedData("tilex", pTile->GetPos().x)
-                ->EmbedData("tiley", pTile->GetPos().y)
-                ->AddLabel("This lock is owned by someone, but I have access on it.")
-                ->EndDialog("lock_edit", "Remove My Access", "Cancel");
+                .AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
+                .EmbedData("tilex", pTile->GetPos().x)
+                .EmbedData("tiley", pTile->GetPos().y)
+                .AddLabel("This lock is owned by someone, but I have access on it.")
+                .EndDialog("lock_edit", "Remove My Access", "Cancel");
             pPlayer->SendOnDialogRequest(db.Get());
         }
         else
@@ -50,69 +50,65 @@ void LockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
 
     Vector2Int& vTilePos = pTile->GetPos();
 
-    if(pTileExtra->GetTotalAccessedCount() == 0)
+    if (pTileExtra->GetTotalAccessedCount() == 0)
     {
         HandleFromCache(pPlayer, pWorld->GetInstanceID(), vTilePos.x, vTilePos.y);
     }
     else
     {
-        GetUserCacheManager()->FetchMetadata(
-            pPlayer->GetNetID(),
-            CACHE_REQ_WORLD_LOCK_DIALOG,
-            pTileExtra->accessList,
-            { pWorld->GetInstanceID(), vTilePos.x, vTilePos.y }
-        );
+        GetUserCacheManager()->FetchMetadata(pPlayer->GetNetID(), CACHE_REQ_WORLD_LOCK_DIALOG, pTileExtra->accessList,
+                                             {pWorld->GetInstanceID(), vTilePos.x, vTilePos.y});
     }
 }
 
 void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, int32 tileX, int32 tileY)
 {
-    if(!pPlayer || pPlayer->GetCurrentWorld() != worldInstanceID)
+    if (!pPlayer || pPlayer->GetCurrentWorld() != worldInstanceID)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(worldInstanceID);
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
-    if(!pTile)
+    if (!pTile)
         return;
 
     TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-    if(!pTileExtra)
+    if (!pTileExtra)
     {
         pPlayer->SendOnTalkBubble("I'm `4unable`` to pick the lock.", true);
         return;
     }
 
-    if(pTileExtra->ownerID != pPlayer->GetUserID())
+    if (pTileExtra->ownerID != pPlayer->GetUserID())
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if(pItem->type != ITEM_TYPE_LOCK)
+    if (pItem->type != ITEM_TYPE_LOCK)
         return;
 
     Vector2Int& vTilePos = pTile->GetPos();
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->AddLabel("`wAccess list:``")
-        ->AddSpacer();
+        .AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .AddLabel("`wAccess list:``")
+        .AddSpacer();
 
     uint32 totalAcccessedCount = pTileExtra->GetTotalAccessedCount();
-    if(totalAcccessedCount > 0)
+    if (totalAcccessedCount > 0)
     {
         UserCacheManager* pUserMgr = GetUserCacheManager();
 
         for (auto& id : pTileExtra->accessList)
         {
-            if(id > 0 && id != pPlayer->GetUserID())
+            if (id > 0 && id != pPlayer->GetUserID())
             {
                 UserMetadata* pMetaData = pUserMgr->GetMetadata(id);
-                if(!pMetaData)
+                if (!pMetaData)
                 {
                     db.AddCheckBox("checkbox_" + ToString(id), "Error get name (#" + ToString(id) + ")", true);
                     continue;
@@ -127,34 +123,34 @@ void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, in
         db.AddLabel("Currently. you're the only one with access.``");
     }
 
-    if(totalAcccessedCount < 26)
+    if (totalAcccessedCount < 26)
     {
-        db.AddSpacer()
-            ->AddPlayerPicker("playerNetID", "`wAdd``");
+        db.AddSpacer().AddPlayerPicker("playerNetID", "`wAdd``");
     }
     else
     {
-        db.AddSpacer()
-            ->AddLabel("`4(max players added)``");
+        db.AddSpacer().AddLabel("`4(max players added)``");
     }
 
-    if(pItem->id == ITEM_ID_BUILDERS_LOCK)
+    if (pItem->id == ITEM_ID_BUILDERS_LOCK)
     {
-        db.AddCheckBox("checkbox_public", "Allow anyone to Build or Break", pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC));
+        db.AddCheckBox("checkbox_public", "Allow anyone to Build or Break",
+                       pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC));
     }
     else
     {
         db.AddCheckBox("checkbox_public", "Allow anyone to build", pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC));
     }
 
-    if(IsWorldLock(pItem->id))
+    if (IsWorldLock(pItem->id))
     {
-        db.AddCheckBox("checkbox_disable_music", "Disable Custom Music Blocks", pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC));
+        db.AddCheckBox("checkbox_disable_music", "Disable Custom Music Blocks",
+                       pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC));
 
-        if(!pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC))
+        if (!pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC))
         {
             int32 tempo = pTileExtra->GetTempo();
-            if(tempo == -1)
+            if (tempo == -1)
             {
                 tempo = 100;
                 pTileExtra->SetTempo(100);
@@ -163,16 +159,17 @@ void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, in
             db.AddTextInput("tempo", "Music BPM", ToString(tempo), 3);
         }
 
-        db.AddCheckBox("checkbox_disable_music_render", "Make Custom Music Blocks invisible", pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_RENDER_MUSIC));
+        db.AddCheckBox("checkbox_disable_music_render", "Make Custom Music Blocks invisible",
+                       pTileExtra->HasFlag(TILE_EXTRA_LOCK_DISABLE_RENDER_MUSIC));
 
-        if(pItem->id == ITEM_ID_ROYAL_LOCK)
+        if (pItem->id == ITEM_ID_ROYAL_LOCK)
         {
             db.AddTextBox("Ye Royal Options")
-                ->AddCheckBox("checkbox_silence", "Silence, Peasants!", pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE))
-                ->AddCheckBox("checkbox_rainbow", "Royal Rainbows!", pTileExtra->HasFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL));
+                .AddCheckBox("checkbox_silence", "Silence, Peasants!", pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE))
+                .AddCheckBox("checkbox_rainbow", "Royal Rainbows!", pTileExtra->HasFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL));
         }
 
-        if(pPlayer->GetInventory().GetCountOfItem(ITEM_ID_WORLD_KEY) == 0)
+        if (pPlayer->GetInventory().GetCountOfItem(ITEM_ID_WORLD_KEY) == 0)
         {
             db.AddButton("getKey", "Get World Key");
         }
@@ -180,18 +177,21 @@ void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, in
     else
     {
         db.AddCheckBox("checkbox_ignore", "Ignore empty air", pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY))
-            ->AddButton("recalcLock", "`wRe-apply lock``");
+            .AddButton("recalcLock", "`wRe-apply lock``");
 
-        if(pItem->id == ITEM_ID_BUILDERS_LOCK)
+        if (pItem->id == ITEM_ID_BUILDERS_LOCK)
         {
             db.AddSpacer()
-                ->AddSmallText("This lock allows Building or Breaking.")
-                ->AddSmallText("(ONLY if \"Allow anyone to Build or Break\" is checked above)!")
-                ->AddSpacer()
-                ->AddSmallText("Leaving this box unchecked only allows Breaking.")
-                ->AddCheckBox("checkbox_buildonly", "Only Allow Building!", pTileExtra->HasFlag(TILE_EXTRA_LOCK_BUILD_ONLY))
-                ->AddSmallText("People with lock access can both build and break unless you check below. The lock owner can always build and break.")
-                ->AddCheckBox("checkbox_admins", "Admins Are Limited", pTileExtra->HasFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS));
+                .AddSmallText("This lock allows Building or Breaking.")
+                .AddSmallText("(ONLY if \"Allow anyone to Build or Break\" is checked above)!")
+                .AddSpacer()
+                .AddSmallText("Leaving this box unchecked only allows Breaking.")
+                .AddCheckBox("checkbox_buildonly", "Only Allow Building!",
+                             pTileExtra->HasFlag(TILE_EXTRA_LOCK_BUILD_ONLY))
+                .AddSmallText("People with lock access can both build and break unless you check below. The lock "
+                              "owner can always build and break.")
+                .AddCheckBox("checkbox_admins", "Admins Are Limited",
+                             pTileExtra->HasFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS));
         }
     }
 
@@ -201,115 +201,113 @@ void LockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstanceID, in
 
 void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
-    if(pPlayer->GetCurrentWorld() == 0)
+    if (pPlayer->GetCurrentWorld() == 0)
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
-    if(!pTileX)
+    if (!pTileX)
         return;
 
     auto pTileY = packet.Find("tiley"_hash);
-    if(!pTileY)
+    if (!pTileY)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
-    if(!pWorld)
+    if (!pWorld)
         return;
 
     int32 tileX = 0;
-    if(pTileX->GetInt(tileX) != TO_INT_SUCCESS)
+    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS)
         return;
 
     int32 tileY = 0;
-    if(pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+    if (pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
-    if(!pTile)
+    if (!pTile)
     {
         pPlayer->SendOnTalkBubble("I was looking at a lock but now it's gone.  Magic is real!", false);
         return;
     }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if(pItem->type != ITEM_TYPE_LOCK)
+    if (pItem->type != ITEM_TYPE_LOCK)
         return;
 
     TileExtra_Lock* pTileExtra = pTile->GetExtra<TileExtra_Lock>();
-    if(!pTileExtra)
+    if (!pTileExtra)
         return;
 
-    if(!pTileExtra->HasAccess(pPlayer->GetUserID()))
+    if (!pTileExtra->HasAccess(pPlayer->GetUserID()))
         return;
 
-    if(pTileExtra->ownerID != pPlayer->GetUserID())
+    if (pTileExtra->ownerID != pPlayer->GetUserID())
     {
         pTileExtra->RemoveFromList(pPlayer->GetUserID());
         pWorld->SendTileUpdate(pTile, pPlayer);
         pWorld->SendNameChangeToAll(pPlayer);
         pPlayer->PlaySFX("dialog_cancel.wav");
 
-        pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(true) + "`` removed their access from a " + pItem->name);
+        pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(true) + "`` removed their access from a " +
+                                        pItem->name);
         return;
     }
 
     bool tileNeedsUpdate = false;
 
-    if(auto pIgnoreAir = packet.Find("checkbox_ignore"_hash))
+    if (auto pIgnoreAir = packet.Find("checkbox_ignore"_hash))
     {
         bool val;
-        if(pIgnoreAir->GetBool(val) != TO_INT_SUCCESS)
+        if (pIgnoreAir->GetBool(val) != TO_INT_SUCCESS)
             return;
 
-        if(val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY))
+        if (val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY))
         {
             tileNeedsUpdate = true;
         }
 
-        val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY)
-            : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
+        val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY) : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY);
     }
 
     bool oldPublicFlag = pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
-    if(auto pPublic = packet.Find("checkbox_public"_hash))
+    if (auto pPublic = packet.Find("checkbox_public"_hash))
     {
         bool val;
-        if(pPublic->GetBool(val) != TO_INT_SUCCESS)
+        if (pPublic->GetBool(val) != TO_INT_SUCCESS)
             return;
 
-        if(val != pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC))
+        if (val != pTile->HasFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC))
         {
             tileNeedsUpdate = true;
         }
 
-        val ? pTile->SetFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC)
-            : pTile->RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
+        val ? pTile->SetFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC) : pTile->RemoveFlag(TILE_FLAG_IS_OPEN_TO_PUBLIC);
     }
 
-    if(pItem->id == ITEM_ID_BUILDERS_LOCK)
+    if (pItem->id == ITEM_ID_BUILDERS_LOCK)
     {
-        if(auto pBuildOnly = packet.Find("checkbox_buildonly"_hash))
+        if (auto pBuildOnly = packet.Find("checkbox_buildonly"_hash))
         {
             bool val;
-            if(pBuildOnly->GetBool(val) != TO_INT_SUCCESS)
+            if (pBuildOnly->GetBool(val) != TO_INT_SUCCESS)
                 return;
 
-            if(val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_BUILD_ONLY))
+            if (val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_BUILD_ONLY))
             {
                 tileNeedsUpdate = true;
             }
 
-            val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_BUILD_ONLY)
-                : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
+            val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_BUILD_ONLY) : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_BUILD_ONLY);
         }
 
-        if(auto pLimitAdmins = packet.Find("checkbox_admins"_hash))
+        if (auto pLimitAdmins = packet.Find("checkbox_admins"_hash))
         {
             bool val;
-            if(pLimitAdmins->GetBool(val) != TO_INT_SUCCESS)
+            if (pLimitAdmins->GetBool(val) != TO_INT_SUCCESS)
                 return;
 
-            if(val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS))
+            if (val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_LIMIT_ADMINS))
             {
                 tileNeedsUpdate = true;
             }
@@ -319,7 +317,7 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         }
     }
 
-    if(tileNeedsUpdate && IsWorldLock(pItem->id))
+    if (tileNeedsUpdate && IsWorldLock(pItem->id))
     {
         string notifyPublic = pPlayer->GetDisplayName(true);
         notifyPublic += " `whas set `$World Lock`w to ";
@@ -327,88 +325,90 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         pWorld->SendConsoleMessageToAll(notifyPublic);
     }
 
-    if(IsWorldLock(pItem->id))
+    if (IsWorldLock(pItem->id))
     {
-        if(auto pDisableMusic = packet.Find("checkbox_disable_music"_hash))
+        if (auto pDisableMusic = packet.Find("checkbox_disable_music"_hash))
         {
             bool val;
-            if(pDisableMusic->GetBool(val) != TO_INT_SUCCESS)
+            if (pDisableMusic->GetBool(val) != TO_INT_SUCCESS)
                 return;
 
             val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC)
                 : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_DISABLE_MUSIC);
         }
 
-        if(auto pDisableMusicRender = packet.Find("checkbox_disable_music_render"_hash))
+        if (auto pDisableMusicRender = packet.Find("checkbox_disable_music_render"_hash))
         {
             bool val;
-            if(pDisableMusicRender->GetBool(val) != TO_INT_SUCCESS)
+            if (pDisableMusicRender->GetBool(val) != TO_INT_SUCCESS)
                 return;
 
             val ? pTileExtra->SetFlag(TILE_EXTRA_LOCK_DISABLE_RENDER_MUSIC)
                 : pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_DISABLE_RENDER_MUSIC);
         }
 
-        if(auto pTempo = packet.Find("tempo"_hash))
+        if (auto pTempo = packet.Find("tempo"_hash))
         {
             int32 tempo = 100;
-            if(pTempo->GetInt(tempo) != TO_INT_SUCCESS)
+            if (pTempo->GetInt(tempo) != TO_INT_SUCCESS)
             {
                 tempo = 100;
             }
 
-            if(tempo < 0)
+            if (tempo < 0)
             {
                 tempo = 20;
                 pPlayer->SendOnTalkBubble("Tempo must be from 20-200 BPM.", false);
             }
 
-            if(tempo > 200)
+            if (tempo > 200)
             {
                 tempo = 200;
                 pPlayer->SendOnTalkBubble("Tempo must be from 20-200 BPM.", false);
             }
 
             int32 currentTempo = pTileExtra->GetTempo();
-            if((currentTempo == -1 && tempo != 100) || (currentTempo != -1 && currentTempo != tempo))
+            if ((currentTempo == -1 && tempo != 100) || (currentTempo != -1 && currentTempo != tempo))
             {
                 pTileExtra->SetTempo(tempo);
                 tileNeedsUpdate = true;
             }
         }
 
-        if(pItem->id == ITEM_ID_ROYAL_LOCK)
+        if (pItem->id == ITEM_ID_ROYAL_LOCK)
         {
-            if(auto pSilenced = packet.Find("checkbox_silence"_hash))
+            if (auto pSilenced = packet.Find("checkbox_silence"_hash))
             {
                 bool val;
-                if(pSilenced->GetBool(val) != TO_INT_SUCCESS)
+                if (pSilenced->GetBool(val) != TO_INT_SUCCESS)
                     return;
 
-                if(val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE))
+                if (val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE))
                 {
                     tileNeedsUpdate = true;
                 }
 
-                if(val)
+                if (val)
                 {
                     pTileExtra->SetFlag(TILE_EXTRA_LOCK_SILENCE);
-                    pWorld->SendTalkBubbleAndConsoleToAll("`w" + pPlayer->GetDisplayName(true) + "```w has silenced the peasants!``", false);
+                    pWorld->SendTalkBubbleAndConsoleToAll(
+                        "`w" + pPlayer->GetDisplayName(true) + "```w has silenced the peasants!``", false);
                 }
                 else
                 {
                     pTileExtra->RemoveFlag(TILE_EXTRA_LOCK_SILENCE);
-                    pWorld->SendTalkBubbleAndConsoleToAll("`w" + pPlayer->GetDisplayName(true) + "```w has allowed the peasants to speak.``", false);
+                    pWorld->SendTalkBubbleAndConsoleToAll(
+                        "`w" + pPlayer->GetDisplayName(true) + "```w has allowed the peasants to speak.``", false);
                 }
             }
 
-            if(auto pTrail = packet.Find("checkbox_rainbow"_hash))
+            if (auto pTrail = packet.Find("checkbox_rainbow"_hash))
             {
                 bool val;
-                if(pTrail->GetBool(val) != TO_INT_SUCCESS)
+                if (pTrail->GetBool(val) != TO_INT_SUCCESS)
                     return;
 
-                if(val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL))
+                if (val != pTileExtra->HasFlag(TILE_EXTRA_LOCK_RAINBOW_TRAIL))
                 {
                     tileNeedsUpdate = true;
                 }
@@ -421,37 +421,37 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         }
     }
 
-    if(tileNeedsUpdate)
+    if (tileNeedsUpdate)
     {
         pWorld->SendTileUpdate(pTile);
     }
 
-    if(auto pPlayerNetID = packet.Find("playerNetID"_hash))
+    if (auto pPlayerNetID = packet.Find("playerNetID"_hash))
     {
         int32 targetPlayerUserID = 0;
-        if(pPlayerNetID->GetInt(targetPlayerUserID) != TO_INT_SUCCESS)
+        if (pPlayerNetID->GetInt(targetPlayerUserID) != TO_INT_SUCCESS)
             return;
 
         GamePlayer* pTarget = GetPlayerManager()->GetPlayerByNetID(targetPlayerUserID);
-        if(!pTarget)
+        if (!pTarget)
         {
             pPlayer->SendOnTalkBubble("Unable to add person to lock. Try again.", false);
             return;
         }
 
-        if(pTileExtra->ownerID == targetPlayerUserID)
+        if (pTileExtra->ownerID == targetPlayerUserID)
         {
             pPlayer->SendOnTalkBubble("I already have access!", false);
             return;
         }
 
-        if(pTileExtra->HasAccess(targetPlayerUserID))
+        if (pTileExtra->HasAccess(targetPlayerUserID))
         {
             pPlayer->SendOnTalkBubble(pTarget->GetRawName() + " already has access to the lock", false);
             return;
         }
 
-        if(pTileExtra->GetTotalAccessedCount() > 25)
+        if (pTileExtra->GetTotalAccessedCount() > 25)
         {
             pPlayer->SendOnTalkBubble("Unable to add, the lock is full!", false);
             return;
@@ -466,66 +466,71 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
     for (uint8 i = 0; i < packet.count; ++i)
     {
-        if(packet.fields[i].keySize == 0)
+        if (packet.fields[i].keySize == 0)
             continue;
 
         std::string_view key = packet.fields[i].GetKeyStringView();
-        if(key.size() <= accPrefix.size() || key.substr(0, accPrefix.size()) != accPrefix)
+        if (key.size() <= accPrefix.size() || key.substr(0, accPrefix.size()) != accPrefix)
             continue;
 
         std::string_view numStr = key.substr(accPrefix.size());
         uint32 targetUserID = 0;
-        if(ToUInt(numStr.data(), numStr.size(), targetUserID) != TO_INT_SUCCESS)
+        if (ToUInt(numStr.data(), numStr.size(), targetUserID) != TO_INT_SUCCESS)
             continue;
 
         bool isChecked;
-        if(packet.fields[i].GetBool(isChecked) != TO_INT_SUCCESS || isChecked)
+        if (packet.fields[i].GetBool(isChecked) != TO_INT_SUCCESS || isChecked)
             continue;
 
         pTileExtra->RemoveFromList(targetUserID);
 
         GamePlayer* pTarget = GetPlayerManager()->GetPlayerByUserID(targetUserID);
-        if(!pTarget)
+        if (!pTarget)
         {
             UserMetadata* pUserMeta = pUserMgr->GetMetadata(targetUserID);
-            if(!pUserMeta)
+            if (!pUserMeta)
                 continue;
 
             pWorld->SendConsoleMessageToAll(pUserMeta->displayName + "`w was removed from a " + pItem->name + "`w.");
         }
         else
         {
-            if(pPlayer->GetCurrentWorld() == pTarget->GetCurrentWorld())
+            if (pPlayer->GetCurrentWorld() == pTarget->GetCurrentWorld())
             {
                 pWorld->SendTileUpdate(pTile);
             }
 
-            pTarget->SendOnTalkBubble(pPlayer->GetDisplayName(true) + "`w has `4removed`w your access from a lock on world `w" + pWorld->GetWorlName() + "`w.", false);
+            pTarget->SendOnTalkBubble(pPlayer->GetDisplayName(true) +
+                                          "`w has `4removed`w your access from a lock on world `w" +
+                                          pWorld->GetWorlName() + "`w.",
+                                      false);
             pTarget->PlaySFX("dialog_cancel.wav");
 
             pWorld->SendNameChangeToAll(pTarget);
-            pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o was removed from a " + pItem->name + "`o.");
+            pWorld->SendConsoleMessageToAll(pPlayer->GetDisplayName(false) + "`o was removed from a " + pItem->name +
+                                            "`o.");
         }
     }
 
     auto pButtonClicked = packet.Find("buttonClicked"_hash);
-    if(!pButtonClicked)
+    if (!pButtonClicked)
         return;
 
-    if(pButtonClicked->valueSize == 0 || pButtonClicked->valueSize > 20)
+    if (pButtonClicked->valueSize == 0 || pButtonClicked->valueSize > 20)
         return;
 
     std::string_view clickedButton = pButtonClicked->GetStringView();
 
-    if(clickedButton == "recalcLock")
+    if (clickedButton == "recalcLock")
     {
-        if(IsWorldLock(pItem->id))
+        if (IsWorldLock(pItem->id))
             return;
 
         std::vector<TileInfo*> lockedTiles;
-        bool lockSuccsess = pWorld->GetTileManager()->ApplyLockTiles(pTile, GetMaxTilesToLock(pItem->id), pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY), lockedTiles);
+        bool lockSuccsess = pWorld->GetTileManager()->ApplyLockTiles(
+            pTile, GetMaxTilesToLock(pItem->id), pTileExtra->HasFlag(TILE_EXTRA_LOCK_IGNORE_EMPTY), lockedTiles);
 
-        if(!lockSuccsess)
+        if (!lockSuccsess)
         {
             pPlayer->SendOnTalkBubble("Something went wrong, unable to re-calc lock.", true);
             return;
@@ -539,19 +544,21 @@ void LockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         return;
     }
 
-    if(clickedButton == "getKey" && IsWorldLock(pItem->id))
+    if (clickedButton == "getKey" && IsWorldLock(pItem->id))
     {
 
-        //add floating & untradeable check
+        // add floating & untradeable check
 
-        if(pTileExtra->GetTotalAccessedCount() != 0)
+        if (pTileExtra->GetTotalAccessedCount() != 0)
         {
-            pPlayer->SendOnTalkBubble("`4You'll first need to remove all co-owners`` from your `5World Lock`` to get a `#World Key`` to trade this world.", false);
+            pPlayer->SendOnTalkBubble("`4You'll first need to remove all co-owners`` from your `5World Lock`` to get a "
+                                      "`#World Key`` to trade this world.",
+                                      false);
         }
         else
         {
             PlayerInventory& inventory = pPlayer->GetInventory();
-            if(inventory.GetCountOfItem(ITEM_ID_WORLD_KEY) != 0)
+            if (inventory.GetCountOfItem(ITEM_ID_WORLD_KEY) != 0)
             {
                 pPlayer->SendOnTalkBubble("`4Looks like you already have the key!", false);
                 return;

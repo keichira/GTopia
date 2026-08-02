@@ -7,16 +7,20 @@
 #include "../../../Player/Dialog/BulletinBlockDialog.h"
 #include "../../../Player/Dialog/DonationBoxDialog.h"
 #include "../../../Player/Dialog/DoorDialog.h"
+#include "../../../Player/Dialog/DressupDialog.h"
 #include "../../../Player/Dialog/DropItemDialog.h"
 #include "../../../Player/Dialog/LockDialog.h"
 #include "../../../Player/Dialog/MailboxBlockDialog.h"
+#include "../../../Player/Dialog/MannequinDialog.h"
 #include "../../../Player/Dialog/OuijaBoardDialog.h"
 #include "../../../Player/Dialog/PopupDialog.h"
 #include "../../../Player/Dialog/RegisterDialog.h"
 #include "../../../Player/Dialog/RenderWorldDialog.h"
 #include "../../../Player/Dialog/SignDialog.h"
+#include "../../../Player/Dialog/SpotlightDialog.h"
 #include "../../../Player/Dialog/TradeDialog.h"
 #include "../../../Player/Dialog/TrashDialog.h"
+#include "../../../Player/Dialog/WeatherSpecialDialog.h"
 #include "../../../Player/Dialog/XenoniteDialog.h"
 
 DialogReturn::DialogReturn()
@@ -78,6 +82,12 @@ void DialogReturn::RegisterDialogs()
     RegisterDialog<TradeDialog::Handle>("trade_item"_hash);
     RegisterDialog<DonationBoxDialog::Handle>("donation_box_edit"_hash);
     RegisterDialog<DonationBoxDialog::HandleGiveItem>("give_item"_hash);
+    RegisterDialog<PopupDialog::HandleBillboardEdit>("billboard_edit"_hash);
+    RegisterDialog<WeatherSpecialDialog::Handle>("weatherspcl"_hash);
+    RegisterDialog<MannequinDialog::Handle>("mannequin_edit"_hash);
+    RegisterDialog<DressupDialog::Handle>("dressup_edit"_hash);
+    RegisterDialog<DressupDialog::HandleAsk>("dressup_ask"_hash);
+    RegisterDialog<SpotlightDialog::Handle>("spotlight"_hash);
 }
 
 void GameMessage_DialogReturn(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
@@ -99,7 +109,7 @@ void GameMessage_SetSkin(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         if (pColor->GetUInt(skinColor) != TO_INT_SUCCESS)
             return;
 
-        // pPlayer->SetSkinColor(skinColor);
+        pPlayer->GetCharData().SetSkinColor(pPlayer->NormalizeSkinColor(skinColor));
     }
 }
 

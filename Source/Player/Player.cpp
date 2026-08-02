@@ -5,7 +5,7 @@
 #include "../Utils/Timer.h"
 #include "Proton/ProtonUtils.h"
 
-Player::Player() : m_netID(0), m_userID(0)
+Player::Player() : m_netID(0), m_userID(0), m_addressNum(0)
 {
     ResetFeatures();
     m_freezeState = PLAYER_FREEZE_STATE_NONE;
@@ -208,6 +208,12 @@ void Player::SendOnTradeStatus(int32 parnterNetID, const string& localStatus, co
                            VariantPacket::OnTradeStatus(parnterNetID, localStatus, partnerStatus, itemData));
 }
 
+void Player::SendOnBillboardChange(int32 itemID, bool showBoard, float price, bool isLockPerItem, bool isBuy)
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnBillboardChange(GetNetID(), itemID, showBoard, price,
+                                                                        isLockPerItem, isBuy, m_loginDetail.protocol));
+}
+
 void Player::SendOnForceTradeEnded()
 {
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnForceTradeEnd());
@@ -215,7 +221,7 @@ void Player::SendOnForceTradeEnded()
 
 void Player::SendOnKilled()
 {
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnKilled());
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnKilled(), GetNetID());
 }
 
 void Player::SendFakePingReply()
@@ -370,8 +376,8 @@ void Player::SendCharacterState(Player* pPlayer)
     CharacterData& charData = pPlayer ? pPlayer->GetCharData() : GetCharData();
 
     packet.field_1 = charData.punchType;
-    packet.field_2 = charData.punchRange;
-    packet.field_3 = charData.buildRange;
+    packet.field_2 = charData.buildRange;
+    packet.field_3 = charData.punchRange;
     packet.flags = charData.char2State;
     packet.field_6 = charData.waterSpeed;
     packet.field_7 = charData.charState;

@@ -126,6 +126,12 @@ public:
     void SetCharFlag(uint32 flag) { charFlags |= flag; }
     void RemoveCharFlag(uint32 flag) { charFlags &= ~flag; }
 
+    void SetSkinColor(uint32 color)
+    {
+        skinColor = Color(color);
+        needSkinUpdate = true;
+    };
+
 public:
     uint8 punchType;
     uint8 punchRange;

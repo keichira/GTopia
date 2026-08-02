@@ -40,9 +40,9 @@ void TrashDialog::Request(GamePlayer* pPlayer, int16 itemID)
     }
 
     db.AddTextBox("How many to `4destory``? (you have " + ToString(invItemCount) + ")")
-        ->AddTextInput("count", "", "0", 4)
-        ->EmbedData("itemID", ToItemClientID(pItem->id))
-        ->EndDialog("trash_item", "OK", "Cancel");
+        .AddTextInput("count", "", "0", 4)
+        .EmbedData("itemID", ToItemClientID(pItem->id))
+        .EndDialog("trash_item", "OK", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get());
 }
@@ -80,12 +80,12 @@ void TrashDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
         DialogBuilder db;
         db.SetDefaultColor('o')
-            ->AddLabelWithIcon("`4Trash ``" + ToString(count) + " " + pItem->name, pItem->id, true)
-            ->AddTextBox("You are recycling an `9UNTRADABLE`` item. Are you absolutely sure you want to do this? There "
-                         "is no way to get the item back if you click yes.")
-            ->EmbedData("itemID", ToItemClientID(pItem->id))
-            ->EmbedData("count", count)
-            ->EndDialog("trash_item2", "Yes, I am sure", "NO!");
+            .AddLabelWithIcon("`4Trash ``" + ToString(count) + " " + pItem->name, pItem->id, true)
+            .AddTextBox("You are recycling an `9UNTRADABLE`` item. Are you absolutely sure you want to do this? There "
+                        "is no way to get the item back if you click yes.")
+            .EmbedData("itemID", ToItemClientID(pItem->id))
+            .EmbedData("count", count)
+            .EndDialog("trash_item2", "Yes, I am sure", "NO!");
 
         pPlayer->SendOnDialogRequest(db.Get());
         return;

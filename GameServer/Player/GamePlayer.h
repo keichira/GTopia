@@ -6,6 +6,7 @@
 #include "Player/PlayMod.h"
 #include "Player/Player.h"
 #include "Player/Role.h"
+#include "PlayerExtraData.h"
 #include "PlayerPlayModController.h"
 #include "PlayerProgress.h"
 #include "PlayerTrade.h"
@@ -101,6 +102,7 @@ public:
 
     void ToggleCloth(int32 itemID);
     void ToggleBattlePetLeash(bool forceFirstSlot);
+    bool TryWearAllItemsFromDressup(TileInfo* pTile);
     int32 GetActiveBattlePetSlot() const { return m_activeBattlePetSlot; }
 
     void SetGems(uint32 amount) { m_gems = amount; }
@@ -111,6 +113,8 @@ public:
     void GiveXP(uint32 amount);
     uint32 GetPlayerLevel();
     uint32 GetPlayerNextLevelXP();
+
+    uint32 NormalizeSkinColor(uint32 skinColor);
 
     void ModifyInventoryItem(int32 itemID, int16 amount);
     void TrashItem(int32 itemID, uint16 amount);
@@ -142,6 +146,7 @@ public:
     PlayerProgress& GetProgressData() { return m_progressData; }
     PlayerPlayModController& GetModController() { return m_modController; }
     PlayerTrade& GetTradeManager() { return m_tradeMgr; }
+    PlayerExtraData& GetExtraData() { return m_extraData; }
 
     Timer& GetLastActionTime() { return m_lastActionTime; }
     Timer& GetLastDBSaveTime() { return m_lastDbSaveTime; }
@@ -175,6 +180,7 @@ private:
     PlayerProgress m_progressData;
     PlayerPlayModController m_modController;
     PlayerTrade m_tradeMgr;
+    PlayerExtraData m_extraData;
 
     Timer m_lastSentAccessTime;
     Timer m_lastActionTime;

@@ -38,10 +38,13 @@ public:
     void SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstanceID);
     void SendPlayerPresenceSubscribe(const std::vector<uint32>& ids);
     void SendPlayerPresenceUnsubscribe(const std::vector<uint32>& ids);
+    void SendRawPacket(eTCPPacketType type, void* pData, uint32 size);
 
     bool IsConnected() { return m_pNetClient != nullptr; }
-    bool Connect(const string& host, uint16 port, uint8 retryCount, const volatile sig_atomic_t* shutdownFlag = nullptr);
-    bool ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts, const volatile sig_atomic_t* shutdownFlag);
+    bool Connect(const string& host, uint16 port, uint8 retryCount,
+                 const volatile sig_atomic_t* shutdownFlag = nullptr);
+    bool ConnectAndAuth(const string& host, uint16 port, uint8 maxConnectAttempts,
+                        const volatile sig_atomic_t* shutdownFlag);
 
     eBroadwayAuthState GetAuthState() const { return m_authState; }
     void SetAuthState(eBroadwayAuthState state) { m_authState = state; }

@@ -1,7 +1,7 @@
 #include "ServerManager.h"
 #include "../Context.h"
 #include "../Player/PlayerManager.h"
-#include "../Player/PlayerPresenceManager.h"
+#include "../Server/GamePresenceManager.h"
 #include "../World/WorldManager.h"
 #include "IO/Log.h"
 #include "Utils/Timer.h"
@@ -93,10 +93,10 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
 
         if (event.isRaw)
         {
-            if (event.packetType == TCP_PACKET_ONLINE_DATA_SUBSCRIBE ||
-                event.packetType == TCP_PACKET_ONLINE_DATA_UNSUBSCRIBE)
+            if (event.packetType == TCP_PACKET_PLAYER_SUBSCRIBE || event.packetType == TCP_PACKET_PLAYER_UNSUBSCRIBE ||
+                event.packetType == TCP_PACKET_WORLD_UPDATE || event.packetType == TCP_PACKET_WORLD_REMOVE)
             {
-                GetPlayerPresenceManager()->OnTCPPacket(event.pClient, event.packetType, event.rawData);
+                GetGamePresenceManager()->OnTCPPacket(event.pClient, event.packetType, event.rawData);
             }
         }
         else
@@ -324,7 +324,7 @@ void ServerManager::SendPlayerPresenceSnapshot(ServerInfo* pServer,
         return;
 
     uint32 totalByteSize = (uint32)(elements.size() * sizeof(PlayerPresencePacketElement));
-    pServer->pClient->Send(TCP_PACKET_ONLINE_DATA_SNAPSHOT, elements.data(), totalByteSize);
+    pServer->pClient->Send(TCP_PACKET_PLAYER_SNAPSHOT, elements.data(), totalByteSize);
 }
 
 void ServerManager::SendPlayerPresenceUpdate(ServerInfo* pServer,
@@ -334,7 +334,21 @@ void ServerManager::SendPlayerPresenceUpdate(ServerInfo* pServer,
         return;
 
     uint32 totalByteSize = (uint32)(elements.size() * sizeof(PlayerPresencePacketElement));
-    pServer->pClient->Send(TCP_PACKET_ONLINE_DATA_UPDATE, elements.data(), totalByteSize);
+    pServer->pClient->Send(TCP_PACKET_PLAYER_UPDATE, elements.data(), totalByteSize);
+}
+
+void ServerManager::SendRawDataToAllGame(eTCPPacketType type, void* pData, uint32 size)
+{
+    if (!pData || size == 0)
+        return;
+
+    for (auto& [_, pServer] : m_servers)
+    {
+        if (!pServer || !pServer->pClient || pServer->serverType != CONFIG_SERVER_GAME)
+            continue;
+
+        pServer->pClient->Send(type, pData, size);
+    }
 }
 
 bool ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverType)
@@ -379,6 +393,11 @@ bool ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverT
 
     m_pendingClients.erase(pServer->GetNetID());
     m_servers.insert_or_assign(pServer->serverID, pServer);
+
+    if (pServer->serverType == CONFIG_SERVER_GAME)
+    {
+        GetGamePresenceManager()->OnGameServerConnected(pServer);
+    }
     return true;
 }
 
@@ -393,6 +412,11 @@ void ServerManager::RemoveServer(uint16 serverID)
     {
         m_servers.erase(it);
         return;
+    }
+
+    if (pServer->serverType == CONFIG_SERVER_GAME)
+    {
+        GetGamePresenceManager()->OnGameServerDisconnect(serverID);
     }
 
     if (pServer->pClient)
@@ -436,9 +460,7 @@ ServerInfo* ServerManager::GetBestRenderServer()
     for (auto& [_, pServer] : m_servers)
     {
         if (!pServer || pServer->serverType != CONFIG_SERVER_RENDERER)
-        {
             continue;
-        }
 
         return pServer;
     }
@@ -483,7 +505,7 @@ void ServerManager::UpdateServers()
     if (m_lastServerUpdateTime.GetElapsedTime() < 1000)
         return;
 
-    GetPlayerPresenceManager()->Update();
+    GetGamePresenceManager()->Update();
 
     if (m_lastHeartBeatTime.GetElapsedTime() >= 5000)
     {

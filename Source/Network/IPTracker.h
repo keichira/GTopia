@@ -19,8 +19,8 @@ public:
 
 public:
     bool IsBanned(uint32 ip);
-    bool CheckCooldown(uint32 ip, uint32 cooldownMS);
-    void RegisterFailure(uint32 ip, uint32 maxFails, uint32 banDurationMS);
+    bool CheckCooldown(uint32 ip, uint32 cooldownSec);
+    void RegisterFailure(uint32 ip, uint32 maxFails, uint32 banDurationSec);
     void ResetFailures(uint32 ip);
     void Cleanup();
 

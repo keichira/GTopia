@@ -27,19 +27,20 @@ void DoorDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pItem)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->AddTextInput("door_name", "Label", pTileExtra->name, 100)
-        ->AddTextInput("door_target", "Destination", pTileExtra->text, 24)
-        ->AddSmallText("Enter a Destination in this format: `2WORLDNAME:ID``")
-        ->AddSmallText("Leave `2WORLDNAME`` blank (:ID) to go to the door with `2ID`` in the `2Current World``.");
+        .AddLabelWithIcon("`wEdit " + pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .AddTextInput("door_name", "Label", pTileExtra->name, 100)
+        .AddTextInput("door_target", "Destination", pTileExtra->text, 24)
+        .AddSmallText("Enter a Destination in this format: `2WORLDNAME:ID``")
+        .AddSmallText("Leave `2WORLDNAME`` blank (:ID) to go to the door with `2ID`` in the `2Current World``.");
 
     if (pTile->GetFG() == ITEM_ID_PASSWORD_DOOR || pTile->GetFG() == ITEM_ID_HAUNTED_DOOR)
         db.AddTextInput("door_id", "Password", pTileExtra->id, 23);
     else
     {
-        db.AddTextInput("door_id", "ID", pTileExtra->id, 11)->AddSmallText("Set a unique `2ID`` to target this door as a Destination from another!");
+        db.AddTextInput("door_id", "ID", pTileExtra->id, 11)
+            .AddSmallText("Set a unique `2ID`` to target this door as a Destination from another!");
     }
 
     if (pWorld->GetTileManager()->IsTileLockedWithLock(pTile))
@@ -128,7 +129,8 @@ void DoorDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
     if (!doorTarget.empty() && !IsValidWorldName(doorTarget, true))
     {
-        pPlayer->SendOnTalkBubble("Sorry, spaces and special characters are not allowed in world or door names.", false);
+        pPlayer->SendOnTalkBubble("Sorry, spaces and special characters are not allowed in world or door names.",
+                                  false);
         return;
     }
 
@@ -141,7 +143,8 @@ void DoorDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 
     if (!doorID.empty() && !IsValidWorldName(doorID))
     {
-        pPlayer->SendOnTalkBubble("Sorry, spaces and special characters are not allowed in world or door names.", false);
+        pPlayer->SendOnTalkBubble("Sorry, spaces and special characters are not allowed in world or door names.",
+                                  false);
         return;
     }
 
@@ -184,12 +187,12 @@ void DoorDialog::RequestPasswordDoor(GamePlayer* pPlayer, TileInfo* pTile, ItemI
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->AddTextBox("The door requires a password.")
-        ->AddTextInput("password", "Password", "", 24)
-        ->EndDialog("password_reply", "OK", "Cancel");
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .AddTextBox("The door requires a password.")
+        .AddTextInput("password", "Password", "", 24)
+        .EndDialog("password_reply", "OK", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get());
 }
@@ -246,7 +249,8 @@ void DoorDialog::HandlePasswordReply(GamePlayer* pPlayer, ParsedTextPacket<38>& 
         return;
     }
 
-    if (pPassword->valueSize != pTileExtra->id.size() || ToLower(pPassword->GetString().data()) != ToLower(pTileExtra->id))
+    if (pPassword->valueSize != pTileExtra->id.size() ||
+        ToLower(pPassword->GetString().data()) != ToLower(pTileExtra->id))
     {
         pPlayer->SendOnTalkBubble("`4Wrong password!``", false);
         return;

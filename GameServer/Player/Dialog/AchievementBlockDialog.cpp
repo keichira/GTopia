@@ -27,9 +27,9 @@ void AchievementBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemI
 
     DialogBuilder db;
     db.AddLabelWithIcon("`w" + pItem->name + "``", pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->AddTextBox("Which design do you want to etch into the block? (Tap the icon)");
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .AddTextBox("Which design do you want to etch into the block? (Tap the icon)");
 
     if (pPlayer->GetProgressData().BuildAchievementsDialog(db, true) == 0)
     {

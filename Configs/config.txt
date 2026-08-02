@@ -72,3 +72,7 @@ net_panic_burst|1024
 # net_normal_burst|128
 # net_heavy_burst|512
 # net_panic_burst|4096
+
+# Filter Signal Jammed worlds on select menu
+# This may be usefull if player count is low
+filter_jammed_worlds|1

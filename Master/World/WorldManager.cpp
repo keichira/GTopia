@@ -1,6 +1,7 @@
 #include "WorldManager.h"
 #include "../Context.h"
 #include "../Player/PlayerManager.h"
+#include "../Server/GamePresenceManager.h"
 #include "../Server/ServerManager.h"
 #include "Database/Table/WorldDBTable.h"
 #include "Utils/StringUtils.h"
@@ -73,8 +74,9 @@ void WorldManager::CheckWorldExistCB(QueryTaskResult&& result)
             return;
         }
 
-        GetWorldManager()->CreateWorldSessionAndNotice(NetEntity(ENTITY_TYPE_WORLD).GetNetID(), pID->GetUINT(), pWorldName->GetString(),
-                                                       pPlayerID->GetUINT(), pServerID->GetUINT());
+        GetWorldManager()->CreateWorldSessionAndNotice(NetEntity(ENTITY_TYPE_WORLD).GetNetID(), pID->GetUINT(),
+                                                       pWorldName->GetString(), pPlayerID->GetUINT(),
+                                                       pServerID->GetUINT());
         return;
     }
 
@@ -103,12 +105,12 @@ void WorldManager::CreateWorldCB(QueryTaskResult&& result)
         return;
     }
 
-    GetWorldManager()->CreateWorldSessionAndNotice(NetEntity(ENTITY_TYPE_WORLD).GetNetID(), result.increment, pWorldName->GetString(),
-                                                   pPlayerID->GetUINT(), pServerID->GetUINT());
+    GetWorldManager()->CreateWorldSessionAndNotice(NetEntity(ENTITY_TYPE_WORLD).GetNetID(), result.increment,
+                                                   pWorldName->GetString(), pPlayerID->GetUINT(), pServerID->GetUINT());
 }
 
-void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName, uint32 playerUserID,
-                                               uint32 sourceServerID)
+void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databaseID, const string& worldName,
+                                               uint32 playerUserID, uint32 sourceServerID)
 {
     ServerInfo* pTargetServer = GetServerManager()->GetBestGameServer();
     if (!pTargetServer)
@@ -191,11 +193,12 @@ void WorldManager::HandleWorldInit(VariantVector&& result)
         if (!pSourceServer)
             continue;
 
-        pServerMgr->SendWorldPlayerSuccessPacket(pSourceServer, pending.userID, pWorld->serverID, pWorld->instanceID, pending.doorID,
-                                                 pTargetServer->wanIP, pTargetServer->port);
+        pServerMgr->SendWorldPlayerSuccessPacket(pSourceServer, pending.userID, pWorld->serverID, pWorld->instanceID,
+                                                 pending.doorID, pTargetServer->wanIP, pTargetServer->port);
     }
 
     pWorld->waitingPlayers.clear();
+    GetGamePresenceManager()->OnWorldCreated(pWorld->instanceID, pWorld->worldName, pWorld->serverID);
 }
 
 WorldSession* WorldManager::GetWorldByName(const string& worldName)
@@ -234,7 +237,8 @@ void WorldManager::EndSessionsByServerID(uint32 serverID)
     }
 }
 
-void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, const string& doorID, WorldSession& world)
+void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 userID, const string& doorID,
+                                              WorldSession& world)
 {
     if (!pSourceServer)
         return;
@@ -257,8 +261,8 @@ void WorldManager::RoutePlayerToExistingWorld(ServerInfo* pSourceServer, uint32 
         pSession->worldInstanceID = world.instanceID;
     }
 
-    pServerMgr->SendWorldPlayerSuccessPacket(pSourceServer, userID, world.serverID, world.instanceID, doorID, pTargetServer->wanIP,
-                                             pTargetServer->port);
+    pServerMgr->SendWorldPlayerSuccessPacket(pSourceServer, userID, world.serverID, world.instanceID, doorID,
+                                             pTargetServer->wanIP, pTargetServer->port);
 }
 
 void WorldManager::AttachPending(WorldSession* pWorld, uint32 sourceServerID, uint32 userID, const string& doorID)

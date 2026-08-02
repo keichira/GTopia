@@ -26,19 +26,19 @@ void MailboxBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo*
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y);
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y);
 
     if (pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
     {
         if (pTileExtra->letters.empty())
         {
             db.AddTextBox("Your mailbox is currently empty.")
-                ->AddTextBox("Write a letter to yourself?")
-                ->AddTextInput("sign_text", "", "", 128)
-                ->AddSpacer()
-                ->AddButton("send", "`2Send Letter``");
+                .AddTextBox("Write a letter to yourself?")
+                .AddTextInput("sign_text", "", "", 128)
+                .AddSpacer()
+                .AddButton("send", "`2Send Letter``");
         }
         else
         {
@@ -75,9 +75,9 @@ void MailboxBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo*
         else if (canWrite)
         {
             db.AddTextBox("Want to leave a message for the owner?")
-                ->AddTextInput("sign_text", "", "", 128)
-                ->AddSpacer()
-                ->AddButton("send", "`2Send Letter``");
+                .AddTextInput("sign_text", "", "", 128)
+                .AddSpacer()
+                .AddButton("send", "`2Send Letter``");
         }
     }
 
@@ -113,12 +113,12 @@ void MailboxBlockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstan
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon(pItem->name, pItem->id, true)
-        ->EmbedData("tilex", vTilePos.x)
-        ->EmbedData("tiley", vTilePos.y)
-        ->AddTextBox("You have `w" + ToString(pTileExtra->letters.size()) + "`` letter" +
-                     (pTileExtra->letters.size() > 1 ? "s:" : ":"))
-        ->AddSpacer();
+        .AddLabelWithIcon(pItem->name, pItem->id, true)
+        .EmbedData("tilex", vTilePos.x)
+        .EmbedData("tiley", vTilePos.y)
+        .AddTextBox("You have `w" + ToString(pTileExtra->letters.size()) + "`` letter" +
+                    (pTileExtra->letters.size() > 1 ? "s:" : ":"))
+        .AddSpacer();
 
     UserCacheManager* pUserMgr = GetUserCacheManager();
 
@@ -129,7 +129,7 @@ void MailboxBlockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstan
         db.AddLabelWithIcon("`#\"" + letter.message + "\" - `w" +
                                 (pMetaData ? pMetaData->displayName : ToString(letter.userID)),
                             ITEM_ID_LETTER)
-            ->AddSpacer();
+            .AddSpacer();
     }
 
     if (pTileExtra->letters.size() >= 20)
@@ -140,12 +140,12 @@ void MailboxBlockDialog::HandleFromCache(GamePlayer* pPlayer, uint32 worldInstan
     else
     {
         db.AddTextBox("Write a letter to yourself?")
-            ->AddTextInput("sign_text", "", "", 128)
-            ->AddSpacer()
-            ->AddButton("send", "`2Send Letter``");
+            .AddTextInput("sign_text", "", "", 128)
+            .AddSpacer()
+            .AddButton("send", "`2Send Letter``");
     }
 
-    db.AddSpacer()->AddButton("clear", "`4Empty Mailbox``")->EndDialog("mailbox_edit", "", "Cancel");
+    db.AddSpacer().AddButton("clear", "`4Empty Mailbox``").EndDialog("mailbox_edit", "", "Cancel");
 
     pPlayer->SendOnDialogRequest(db.Get());
 }

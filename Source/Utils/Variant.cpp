@@ -1,13 +1,11 @@
 #include "Variant.h"
 
-Variant::Variant()
-: m_type(VARIANT_TYPE_NONE)
-{
-}
+Variant::Variant() : m_type(VARIANT_TYPE_NONE) {}
 
 uint32 Variant::GetSize() const
 {
-    switch(GetType()) {
+    switch (GetType())
+    {
         case VARIANT_TYPE_INT:
         case VARIANT_TYPE_UINT:
         case VARIANT_TYPE_FLOAT:

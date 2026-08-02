@@ -16,11 +16,11 @@ void ItemFinderDialog::Render(GamePlayer* pPlayer)
 
     DialogBuilder db;
     db.SetDefaultColor('o')
-        ->AddLabelWithIcon("Item Finder", ITEM_ID_GROWSCAN_9000, true)
-        ->AddSmallText("`2" + ToString(GetTotalCount()) + "`` items found. Listing `w" + ToString(m_pageSize) +
-                       "`` items per page (Page `w" + ToString(m_page + 1) + "`5/`w" + ToString(GetMaxPageCount()) +
-                       "``)")
-        ->AddSpacer();
+        .AddLabelWithIcon("Item Finder", ITEM_ID_GROWSCAN_9000, true)
+        .AddSmallText("`2" + ToString(GetTotalCount()) + "`` items found. Listing `w" + ToString(m_pageSize) +
+                      "`` items per page (Page `w" + ToString(m_page + 1) + "`5/`w" + ToString(GetMaxPageCount()) +
+                      "``)")
+        .AddSpacer();
 
     uint32 start = m_page * m_pageSize;
     uint32 end = Min(start + m_pageSize, GetTotalCount());

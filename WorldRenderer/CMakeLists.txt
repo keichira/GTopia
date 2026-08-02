@@ -49,9 +49,8 @@ set(WORLD_RENDERER_FILES PRIVATE
     ${WORLD_RENDERER_ROOT}/MasterBroadway.cpp
     ${SOURCE_SERVER}/ServerBroadwayBase.cpp
 
-    ${WORLD_RENDERER_EVENT}/TCPEventAuth.cpp
-    ${WORLD_RENDERER_EVENT}/TCPEventHello.cpp
-    ${WORLD_RENDERER_EVENT}/TCPEventRenderWorld.cpp
+    ${WORLD_RENDERER_EVENT}/TCPEvent_Server.cpp
+    ${WORLD_RENDERER_EVENT}/TCPEvent_World.cpp
 
     ${WORLD_RENDERER_ROOT}/Renderer2D.cpp
     ${WORLD_RENDERER_ROOT}/WeatherRenderer.cpp

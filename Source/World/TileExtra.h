@@ -148,7 +148,14 @@ enum eTileExtraFlags
     TILE_EXTRA_BULLETIN_READ_ONLY = 1 << 3,
     TILE_EXTRA_BULLETIN_HIDE_NAMES = 1 << 4,
 
-    TILE_EXTRA_LOCKED = 1 << 3
+    TILE_EXTRA_LOCKED = 1 << 3,
+
+    TILE_EXTRA_EPOCH_ICE_AGE = 1 << 2,
+    TILE_EXTRA_EPOCH_VOLCANO = 1 << 3,
+    TILE_EXTRA_EPOCH_ISLANDS = 1 << 4,
+
+    TILE_EXTRA_STUFF_SPIN = 1 << 0,
+    TILE_EXTRA_STUFF_INVERT = 1 << 1
 };
 
 uint8 GetTileExtraType(uint8 itemType);
@@ -449,4 +456,95 @@ TILE_EXTRA(TileExtra_DonaitonBox, TILE_EXTRA_TYPE_DONATION_BOX)
 
         return count;
     }
+};
+
+TILE_EXTRA(TileExtra_WeatherSpecial, TILE_EXTRA_TYPE_WEATHER_SPECIAL)
+    union
+    {
+        int32 itemID = 0;
+        int32 color;
+    };
+
+    union
+    {
+        int32 gravity = 0;
+        int32 cycleTime;
+    };
+
+    uint8 flags = 0;
+
+    void SetFlag(uint8 flag) { flags |= flag; }
+    void RemoveFlag(uint8 flag) { flags &= ~flag; }
+    bool HasFlag(uint8 flag) { return flags & flag; };
+};
+
+TILE_EXTRA(TileExtra_Mannequin, TILE_EXTRA_TYPE_MANNEQUIN)
+    string text;
+    uint8 flags = 0;
+    Color hairColor;
+    int16 clothes[9] = {0};
+    Color skinColor{0xB4, 0xB4, 0xB4, 0xFF};
+
+    uint32 charFlags = 0;
+    uint32 char2Flags = 0;
+
+    int16 clientClothes[9] = {0};
+
+    void SetCloth(int8 bodyPart, int16 itemID)
+    {
+        if(bodyPart < 0 || bodyPart >= 9)
+            return;
+
+        clothes[bodyPart] = itemID;
+        clientClothes[bodyPart] = ToItemClientID(itemID);
+    }
+
+private:
+    bool NeedToSaveCharFlags(int16 itemID, uint16 worldVersion)
+    {
+        if(worldVersion < 4)
+            return false;
+
+        if(itemID == ITEM_ID_WILL_OF_THE_WILD || itemID == ITEM_ID_GOLEMS_GIFT)
+            return true;
+
+        return false;
+    }
+
+    bool NeedsCharFlags(uint16 worldVersion)
+    {
+        for (int32 i = 0; i < 9; ++i)
+        {
+            if (NeedToSaveCharFlags(clothes[i], worldVersion))
+                return true;
+        }
+
+        return false;
+    }
+};
+
+TILE_EXTRA(TileExtra_MagicEgg, TILE_EXTRA_TYPE_MAGIC_EGG)
+    uint32 eggCount = 0;
+};
+
+TILE_EXTRA(TileExtra_Dressup, TILE_EXTRA_TYPE_DRESSUP)
+    int16 clothes[9] = {0};
+    int16 clientClothes[9] = {0};
+
+    void SetCloth(int8 bodyPart, int16 itemID)
+    {
+        if(bodyPart < 0 || bodyPart >= 9)
+            return;
+
+        clothes[bodyPart] = itemID;
+        clientClothes[bodyPart] = ToItemClientID(itemID);
+    }
+};
+
+TILE_EXTRA(TileExtra_Spotlight, TILE_EXTRA_TYPE_SPOTLIGHT)
+    int32 playerNetID = 0;
+};
+
+TILE_EXTRA(TileExtra_DisplayBlock, TILE_EXTRA_TYPE_DISPLAY_BLOCK)
+    int32 itemID = -1;
 };

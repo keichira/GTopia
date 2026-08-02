@@ -1,7 +1,6 @@
 #include "TCPEvent_Server.h"
-#include "../../Context.h"
-#include "../../Player/PlayerManager.h"
-#include "../../Server/MasterBroadway.h"
+#include "../Context.h"
+#include "../MasterBroadway.h"
 #include "IO/Log.h"
 #include "Utils/StringUtils.h"
 

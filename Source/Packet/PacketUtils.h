@@ -11,30 +11,15 @@ struct TextPacketField
     const char* value;
     uint16 valueSize = 0;
 
-    std::string_view GetKeyStringView() const
-    {
-        return std::string_view(key, keySize);
-    }
+    std::string_view GetKeyStringView() const { return std::string_view(key, keySize); }
 
-    std::string_view GetStringView() const
-    {
-        return std::string_view(value, valueSize);
-    }
+    std::string_view GetStringView() const { return std::string_view(value, valueSize); }
 
-    string GetString()
-    {
-        return string(value, valueSize);
-    }
+    string GetString() { return string(value, valueSize); }
 
-    eToIntResult GetUInt(uint32& out)
-    {
-        return ToUInt(value, valueSize, out);
-    }
+    eToIntResult GetUInt(uint32& out) { return ToUInt(value, valueSize, out); }
 
-    eToIntResult GetInt(int32& out)
-    {
-        return ToInt(value, valueSize, out);
-    }
+    eToIntResult GetInt(int32& out) { return ToInt(value, valueSize, out); }
 
     eToIntResult GetBool(bool& out)
     {
@@ -49,15 +34,17 @@ struct TextPacketField
     }
 };
 
-template<uint8 N>
-struct ParsedTextPacket
+template <uint8 N> struct ParsedTextPacket
 {
     TextPacketField fields[N];
     uint8 count;
 
-    TextPacketField* Find(uint32 hash) {
-        for (uint8 i = 0; i < count; ++i) {
-            if (fields[i].hash == hash) {
+    TextPacketField* Find(uint32 hash)
+    {
+        for (uint8 i = 0; i < count; ++i)
+        {
+            if (fields[i].hash == hash)
+            {
                 return &fields[i];
             }
         }
@@ -66,8 +53,7 @@ struct ParsedTextPacket
     }
 };
 
-template<uint8 N>
-inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& out)
+template <uint8 N> inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& out)
 {
     out.count = 0;
     if (!data || size == 0)
@@ -117,10 +103,12 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
             while (secondKeyStart > valStart)
             {
                 char c = *(secondKeyStart - 1);
-                if (IsAlpha(c)) {
+                if (IsAlpha(c))
+                {
                     --secondKeyStart;
                 }
-                else {
+                else
+                {
                     break;
                 }
             }
@@ -132,7 +120,8 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
                 if (keyStart < keyEnd && valStart <= valEnd && out.count < N)
                 {
                     uint32 hash = HashString(keyStart, (uint32)(keyEnd - keyStart));
-                    out.fields[out.count++] = { hash, keyStart, (uint16)(keyEnd - keyStart), valStart, (uint16)(valEnd - valStart) };
+                    out.fields[out.count++] = {hash, keyStart, (uint16)(keyEnd - keyStart), valStart,
+                                               (uint16)(valEnd - valStart)};
                 }
 
                 keyStart = secondKeyStart;
@@ -154,12 +143,6 @@ inline void ParseTextPacket(const char* data, uint32 size, ParsedTextPacket<N>& 
 
         uint32 hash = HashString(keyStart, (uint32)(keyEnd - keyStart));
 
-        out.fields[out.count++] = {
-            hash,
-            keyStart,
-            (uint16)(keyEnd - keyStart),
-            valStart,
-            (uint16)(valEnd - valStart)
-        };
+        out.fields[out.count++] = {hash, keyStart, (uint16)(keyEnd - keyStart), valStart, (uint16)(valEnd - valStart)};
     }
 }
