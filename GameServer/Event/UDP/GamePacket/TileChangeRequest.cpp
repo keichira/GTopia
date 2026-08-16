@@ -1,5 +1,6 @@
 #include "TileChangeRequest.h"
 #include "../../../Item/HarmonicCrystal.h"
+#include "../../../Player/Dialog/DisplayBlockDialog.h"
 #include "../../../Player/Dialog/DonationBoxDialog.h"
 #include "../../../Player/Dialog/DressupDialog.h"
 #include "../../../Player/Dialog/MannequinDialog.h"
@@ -184,13 +185,13 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
      * donation box, mannequin click with item check
      */
 
-    if (pTileItem->type == ITEM_TYPE_DONATION_BOX && pItem->id != ITEM_ID_FIST && pItem->id != ITEM_ID_WRENCH)
+    if (pTileItem->type == ITEM_TYPE_DONATION_BOX && pItem->type != ITEM_TYPE_FIST && pItem->type != ITEM_TYPE_WRENCH)
     {
         DonationBoxDialog::RequestDonatingItem(pPlayer, pTile, pItem->id);
         return;
     }
 
-    if (pTileItem->type == ITEM_TYPE_MANNEQUIN && pItem->id != ITEM_ID_FIST && pItem->id != ITEM_ID_WRENCH)
+    if (pTileItem->type == ITEM_TYPE_MANNEQUIN && pItem->type != ITEM_TYPE_FIST && pItem->type != ITEM_TYPE_WRENCH)
     {
         auto playersInRect = pWorld->GetPlayersInWorldRect(pTile->GetRect());
         if (!playersInRect.empty())
@@ -201,6 +202,12 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         {
             MannequinDialog::RequestPutItem(pPlayer, pTile, pItem->id, false);
         }
+        return;
+    }
+
+    if (pTileItem->type == ITEM_TYPE_DISPLAY_BLOCK && pItem->type != ITEM_TYPE_FIST && pItem->type != ITEM_TYPE_WRENCH)
+    {
+        DisplayBlockDialog::RequestPutItem(pPlayer, pTile, pItem->id);
         return;
     }
 

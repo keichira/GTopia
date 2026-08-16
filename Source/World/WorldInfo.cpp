@@ -48,9 +48,7 @@ bool WorldInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, fl
     memBuffer.ReadWriteString(m_name, write);
 
     if (!m_pTileMgr->Serialize(memBuffer, write, database, this, gameVersion))
-    {
         return false;
-    }
 
     if (!database && write && gameVersion >= 5.40f) // 5.40 is not the actual value lazy to dig for it
     {

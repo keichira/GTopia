@@ -5,6 +5,7 @@
 #include "../../../Player/Dialog/AchievementBlockDialog.h"
 #include "../../../Player/Dialog/BattleCageDialog.h"
 #include "../../../Player/Dialog/BulletinBlockDialog.h"
+#include "../../../Player/Dialog/DisplayBlockDialog.h"
 #include "../../../Player/Dialog/DonationBoxDialog.h"
 #include "../../../Player/Dialog/DoorDialog.h"
 #include "../../../Player/Dialog/DressupDialog.h"
@@ -88,6 +89,7 @@ void DialogReturn::RegisterDialogs()
     RegisterDialog<DressupDialog::Handle>("dressup_edit"_hash);
     RegisterDialog<DressupDialog::HandleAsk>("dressup_ask"_hash);
     RegisterDialog<SpotlightDialog::Handle>("spotlight"_hash);
+    RegisterDialog<DisplayBlockDialog::Handle>("displayblock"_hash);
 }
 
 void GameMessage_DialogReturn(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)

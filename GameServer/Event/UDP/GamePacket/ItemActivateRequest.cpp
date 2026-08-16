@@ -3,28 +3,30 @@
 
 void ItemActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
-    if(!pPlayer || !pWorld || !pPacket)
+    if (!pPlayer || !pWorld || !pPacket)
         return;
 
-    if(!pPlayer->CanActivateItemNow())
+    if (!pPlayer->CanActivateItemNow())
         return;
 
     pPlayer->ResetItemActiveTime();
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pPacket->field_7);
-    if(!pItem) 
+    if (!pItem)
     {
-        LOGGER_LOG_WARN("Player %s (ID: %d) tried to activate item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->field_7);
+        LOGGER_LOG_WARN("Player %s (ID: %d) tried to activate item %d", pPlayer->GetRawName(), pPlayer->GetUserID(),
+                        pPacket->field_7);
         return;
     }
 
-    if(pItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm("bypass.item_mod"_hash)) 
+    if (pItem->HasFlag(ITEM_FLAG_MOD) && !pPlayer->GetRole()->HasPerm("bypass.item_mod"_hash))
     {
-        LOGGER_LOG_WARN("Player %s (ID: %d) tried to use mod flagged item %d", pPlayer->GetRawName(), pPlayer->GetUserID(), pPacket->field_7);
+        LOGGER_LOG_WARN("Player %s (ID: %d) tried to use mod flagged item %d", pPlayer->GetRawName(),
+                        pPlayer->GetUserID(), pPacket->field_7);
         return;
     }
 
-    if(pItem->type == ITEM_TYPE_CLOTHES) 
+    if (pItem->type == ITEM_TYPE_CLOTHES)
     {
         pPlayer->ToggleCloth(pPacket->field_7);
         return;

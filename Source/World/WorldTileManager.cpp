@@ -39,7 +39,7 @@ bool WorldTileManager::Serialize(MemoryBuffer& memBuffer, bool write, bool datab
         m_tempTiles.resize(totalTiles);
     }
 
-    if (write && !database && gameVersion >= 3.31f)
+    if (write && !database && gameVersion >= 4.31f)
     {
         uint32 val1 = 0;
         uint8 val2 = 0;

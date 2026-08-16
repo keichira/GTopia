@@ -45,6 +45,10 @@ void WorldRendererManager::Update()
             if (readyJob.pWorld)
             {
                 m_renderer.Draw(readyJob.pWorld);
+
+                LOGGER_LOG_INFO("World %d took %dms to draw", readyJob.worldID,
+                                readyJob.renderStartTimer.GetElapsedTime());
+
                 GetMasterBroadway()->SendWorldRenderResult(true, readyJob.userID, readyJob.worldID);
                 SAFE_DELETE(readyJob.pWorld);
             }
@@ -86,6 +90,7 @@ void WorldRendererManager::Update()
         job.userID = renderInfo.userID;
         job.worldID = renderInfo.worldID;
         job.pWorld = pWorld;
+        job.renderStartTimer.Reset();
 
         PushReadyJob(job);
     }

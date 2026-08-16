@@ -546,5 +546,12 @@ TILE_EXTRA(TileExtra_Spotlight, TILE_EXTRA_TYPE_SPOTLIGHT)
 };
 
 TILE_EXTRA(TileExtra_DisplayBlock, TILE_EXTRA_TYPE_DISPLAY_BLOCK)
-    int32 itemID = -1;
+    int32 itemID = 0;
+};
+
+TILE_EXTRA(TileExtra_VendingMachine, TILE_EXTRA_TYPE_VENDING)
+    int32 itemID = 0;
+    int32 price = 0;
+    uint32 stock = 0;
+    uint32 worldLockCount = 0;
 };

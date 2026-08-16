@@ -1,24 +1,21 @@
 #include "DatabaseWorker.h"
+#include "../IO/Log.h"
+#include "../Utils/StringUtils.h"
 #include "../Utils/Timer.h"
 #include "DatabasePool.h"
-#include "../Utils/StringUtils.h"
-#include "../IO/Log.h"
 
-DatabaseWorker::DatabaseWorker()
-: m_pDatabaseMgr(nullptr), m_pPrepParam(nullptr)
-{
-}
+DatabaseWorker::DatabaseWorker() : m_pDatabaseMgr(nullptr), m_pPrepParam(nullptr) {}
 
 DatabaseWorker::~DatabaseWorker()
 {
     Kill();
 }
 
-
 bool DatabaseWorker::Init(DatabasePool* pDbPool, const DatabaseConnectConfig& config)
 {
     m_pDatabaseMgr = new DatabaseManager();
-    if(!m_pDatabaseMgr->Init(config)) {
+    if (!m_pDatabaseMgr->Init(config))
+    {
         Kill();
         return false;
     }
@@ -38,18 +35,17 @@ void DatabaseWorker::Kill()
 
 void DatabaseWorker::Update()
 {
-    if(!m_pDatabaseMgr) {
+    if (!m_pDatabaseMgr)
         return;
-    }
 
-    if(!m_pDatabaseMgr->IsConnected())
+    if (!m_pDatabaseMgr->IsConnected())
     {
-        if(m_lastConnTime.GetElapsedTime() > 2000)
+        if (m_lastConnTime.GetElapsedTime() > 2000)
         {
             m_lastConnTime.Reset();
             LOGGER_LOG_WARN("Database is offline. Trying to reconnect...");
 
-            if(m_pDatabaseMgr->Init(m_config))
+            if (m_pDatabaseMgr->Init(m_config))
             {
                 LOGGER_LOG_INFO("Database reconnected successfully!");
             }
@@ -61,45 +57,55 @@ void DatabaseWorker::Update()
     uint64 updateStartTime = Time::GetSystemTime();
     QueryTaskRequest taskReq;
 
-    while(m_taskQueue.try_dequeue(taskReq)) {
+    while (m_taskQueue.try_dequeue(taskReq))
+    {
         uint64 taskStartTime = Time::GetSystemTime();
 
         QueryTaskResult taskRes;
         taskRes.callback = taskReq.callback;
         taskRes.queryID = taskReq.queryID;
 
-        if(taskReq.query.empty()) {
+        if (taskReq.query.empty())
+        {
             MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_FAIL);
             continue;
         }
 
-        if(taskStartTime - taskReq.reqTime >= QUERY_TIMEOUT_MS) {
+        if (taskStartTime - taskReq.reqTime >= QUERY_TIMEOUT_MS)
+        {
             MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_TIMEOUT);
             continue;
         }
 
         bool succeed = false;
-        if((taskReq.flags & QUERY_FLAG_PREPARED)) {
-            if(taskReq.flags & QUERY_FLAG_BULK) { // actually i have no idea why im doing that
+        if ((taskReq.flags & QUERY_FLAG_PREPARED))
+        {
+            if (taskReq.flags & QUERY_FLAG_BULK)
+            { // actually i have no idea why im doing that
                 uint32 querySize = (taskReq.data.size() - 1) / taskReq.data[0].GetUINT();
-                if(!m_pDatabaseMgr->PrepareBulkStmt(taskReq.query)) {
+                if (!m_pDatabaseMgr->PrepareBulkStmt(taskReq.query))
+                {
                     // what should we do wtf
                 }
 
-                for(int32 i = 0; i < querySize; ++i) {
+                for (int32 i = 0; i < querySize; ++i)
+                {
                     SetupPreparedParams(taskReq.data, true, 1 + (i - 1) * (taskReq.data[0].GetUINT()));
                     m_pDatabaseMgr->QueryBulk(m_pPrepParam->GetBinds().data());
                 }
                 break;
             }
-            else {
+            else
+            {
                 SetupPreparedParams(taskReq.data, false);
                 succeed = m_pDatabaseMgr->Query(taskReq.query, m_pPrepParam->GetBinds().data());
             }
             m_pPrepParam->Reset();
         }
-        else {
-            if(!BuildRawQueryParams(taskReq.query, taskReq.data)) {
+        else
+        {
+            if (!BuildRawQueryParams(taskReq.query, taskReq.data))
+            {
                 MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_FAIL);
                 continue;
             }
@@ -107,11 +113,13 @@ void DatabaseWorker::Update()
             succeed = m_pDatabaseMgr->Query(taskReq.query);
         }
 
-        if(succeed && (taskReq.flags & QUERY_FLAG_RETURN_RESULT)) {
+        if (succeed && (taskReq.flags & QUERY_FLAG_RETURN_RESULT))
+        {
             taskRes.result = m_pDatabaseMgr->GetResults();
         }
 
-        if(succeed && (taskReq.flags & QUERY_FLAG_RETURN_INCREMENT)) {
+        if (succeed && (taskReq.flags & QUERY_FLAG_RETURN_INCREMENT))
+        {
             taskRes.increment = m_pDatabaseMgr->GetLastInsertID();
         }
 
@@ -131,16 +139,24 @@ void DatabaseWorker::SetupPreparedParams(VariantVector& params, bool bulk, uint3
 {
     uint32 paramSize = bulk ? params[0].GetUINT() : params.size();
 
-    for(auto i = startPos; i < (paramSize + startPos); ++i) {
-        switch(params[i].GetType()) {
-            case VARIANT_TYPE_INT: {
-                m_pPrepParam->SetInt(i, params[i].GetINT()); break;
+    for (auto i = startPos; i < (paramSize + startPos); ++i)
+    {
+        switch (params[i].GetType())
+        {
+            case VARIANT_TYPE_INT:
+            {
+                m_pPrepParam->SetInt(i, params[i].GetINT());
+                break;
             }
-            case VARIANT_TYPE_UINT: {
-                m_pPrepParam->SetInt(i, params[i].GetUINT()); break;
+            case VARIANT_TYPE_UINT:
+            {
+                m_pPrepParam->SetInt(i, params[i].GetUINT());
+                break;
             }
-            case VARIANT_TYPE_STRING: {
-                m_pPrepParam->SetString(i, params[i].GetString()); break;
+            case VARIANT_TYPE_STRING:
+            {
+                m_pPrepParam->SetString(i, params[i].GetString());
+                break;
             }
         }
     }
@@ -148,9 +164,10 @@ void DatabaseWorker::SetupPreparedParams(VariantVector& params, bool bulk, uint3
 
 string DatabaseWorker::EscapeStringRawParams(const Variant& var)
 {
-    switch(var.GetType()) {
+    switch (var.GetType())
+    {
         case VARIANT_TYPE_INT:
-            return  m_pDatabaseMgr->EscapeString(ToString(var.GetINT()));
+            return m_pDatabaseMgr->EscapeString(ToString(var.GetINT()));
         case VARIANT_TYPE_UINT:
             return m_pDatabaseMgr->EscapeString(ToString(var.GetUINT()));
         case VARIANT_TYPE_FLOAT:
@@ -165,7 +182,8 @@ string DatabaseWorker::EscapeStringRawParams(const Variant& var)
 
 bool DatabaseWorker::BuildRawQueryParams(string& query, const VariantVector& params)
 {
-    if(CountCharacter(query, '?') != params.size()) {
+    if (CountCharacter(query, '?') != params.size())
+    {
         return false;
     }
 
@@ -175,12 +193,15 @@ bool DatabaseWorker::BuildRawQueryParams(string& query, const VariantVector& par
     string res;
     res.reserve(query.size() + 120);
 
-    for(uint32 i = 0; i < query.size(); ++i) {
-        if(query[i] == '?') {
+    for (uint32 i = 0; i < query.size(); ++i)
+    {
+        if (query[i] == '?')
+        {
             res.append(query, lastPos, i - lastPos);
 
             string value = EscapeStringRawParams(params[paramIndex]);
-            if(value.empty() && params[paramIndex].GetType() != VARIANT_TYPE_STRING) {
+            if (value.empty() && params[paramIndex].GetType() != VARIANT_TYPE_STRING)
+            {
                 return false;
             }
 

@@ -183,9 +183,9 @@ void GamePlayer::SaveToDatabase()
         LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting to default role %d", GetRawName(), GetUserID(),
                         roleID);
 
-    QueryRequest req =
-        PlayerDB::Save(m_userID, roleID, ToHex(pInvData, invMemSize), 0, m_flags, worldID,
-                       ToHex(pProgressData, progressMemSize), m_gems, ToHex(pExtraData, extraMemSize), GetNetID());
+    QueryRequest req = PlayerDB::Save(m_userID, roleID, string((char*)pInvData, invMemSize), 0, m_flags, worldID,
+                                      string((char*)pProgressData, progressMemSize), m_gems,
+                                      string((char*)pExtraData, extraMemSize), GetNetID());
 
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
     SAFE_DELETE_ARRAY(pProgressData);
@@ -340,43 +340,22 @@ void GamePlayer::OnEnterGameCB(QueryTaskResult&& result)
 
     if (!dbInv.empty())
     {
-        uint32 invMemEstimate = dbInv.size() / 2;
-        uint8* pInvData = new uint8[invMemEstimate];
-
-        HexToBytes(dbInv, pInvData);
-
-        MemoryBuffer invMemBuffer(pInvData, invMemEstimate);
+        MemoryBuffer invMemBuffer(dbInv.data(), dbInv.size());
         inventory.Serialize(invMemBuffer, false, true);
-
-        SAFE_DELETE_ARRAY(pInvData);
     }
 
     string progressData = result.result->GetField("ProgressData", 0).GetString();
     if (!progressData.empty())
     {
-        uint32 progressMemEstimate = progressData.size() / 2;
-        uint8* pProgressData = new uint8[progressMemEstimate];
-
-        HexToBytes(progressData, pProgressData);
-
-        MemoryBuffer progressMemBuffer(pProgressData, progressMemEstimate);
+        MemoryBuffer progressMemBuffer(progressData.data(), progressData.size());
         pPlayer->GetProgressData().Serialize(progressMemBuffer, false);
-
-        SAFE_DELETE_ARRAY(pProgressData);
     }
 
     string extraData = result.result->GetField("ExtraData", 0).GetString();
     if (!extraData.empty())
     {
-        uint32 extraMemEstimate = extraData.size() / 2;
-        uint8* pExtraData = new uint8[extraMemEstimate];
-
-        HexToBytes(extraData, pExtraData);
-
-        MemoryBuffer extraMemBuffer(pExtraData, extraMemEstimate);
+        MemoryBuffer extraMemBuffer(extraData.data(), extraData.size());
         pPlayer->GetExtraData().Serialize(extraMemBuffer, false);
-
-        SAFE_DELETE_ARRAY(pExtraData);
     }
 
     if (inventory.GetCountOfItem(ITEM_ID_FIST) == 0)
@@ -1299,6 +1278,22 @@ TileInfo* GamePlayer::GetTilePlayerOn()
         return nullptr;
 
     return pWorld->GetTileManager()->GetTileByWorldPos(m_worldPos);
+}
+
+TileInfo* GamePlayer::GetTilePlayerOnCenter()
+{
+    if (m_currentWorldID == 0)
+        return nullptr;
+
+    World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID);
+    if (!pWorld)
+        return nullptr;
+
+    Vector2Float worldPos = m_worldPos;
+    m_worldPos.x += (m_characterData.avatarSize.x - 1.0f);
+    m_worldPos.y += (m_characterData.avatarSize.y / 2.0f);
+
+    return pWorld->GetTileManager()->GetTileByWorldPos(worldPos);
 }
 
 float GamePlayer::GetDistToTile(TileInfo* pGoalTile)

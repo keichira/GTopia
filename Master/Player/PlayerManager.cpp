@@ -111,6 +111,6 @@ uint32 PlayerManager::GetTotalPlayerCount()
         return m_totalPlayerCount;
     }
 
-    m_totalPlayerCount = GetServerManager()->GetPlayerCount() + GetInGamePlayerCount();
+    m_totalPlayerCount = GetServerManager()->GetPlayerCount(); //+ GetInGamePlayerCount();
     return m_totalPlayerCount;
 }

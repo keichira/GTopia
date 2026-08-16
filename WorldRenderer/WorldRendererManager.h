@@ -26,6 +26,7 @@ struct RenderJob
     uint32 userID = 0;
     uint32 worldID = 0;
     WorldInfo* pWorld = nullptr;
+    Timer renderStartTimer;
     std::vector<PlayerRenderData> players;
 };
 

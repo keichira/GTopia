@@ -130,6 +130,7 @@ public:
     void AcceptLockAccess();
 
     TileInfo* GetTilePlayerOn();
+    TileInfo* GetTilePlayerOnCenter();
     float GetDistToTile(TileInfo* pGoalTile);
     uint32 GetDistToTileInTiles(TileInfo* pGoalTile);
     bool HasLOSToTile(TileInfo* pGoalTile);

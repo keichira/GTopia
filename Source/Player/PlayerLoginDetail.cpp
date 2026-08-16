@@ -52,7 +52,7 @@ bool PlayerLoginDetail::Serialize(ParsedTextPacket<40>& packet, Player* pPlayer,
     }
 
     string loginInfo;
-    if (!asGameServer && protocol > 200)
+    if (!asGameServer && protocol > 207)
     {
         auto pLToken = packet.Find("ltoken"_hash);
         if (!pLToken)

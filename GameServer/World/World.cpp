@@ -300,6 +300,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
     packet.extraDataSize = worldMemSize;
     SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData);
+
     SAFE_DELETE_ARRAY(pWorldData);
 
     if (GetTileManager()->GetKeyTile(KEY_TILE_XENONITE))
@@ -412,6 +413,7 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         m_players.pop_back();
 
         pPlayer->GetModController().RemovePlayMod(PLAYMOD_TYPE_XENONITE);
+        pPlayer->GetModController().RemovePlayMod(PLAYMOD_TYPE_IN_THE_SPOTLIGHT);
         pPlayer->SetCurrentWorld(0);
 
         if (hardLeave)

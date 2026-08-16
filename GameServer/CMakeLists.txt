@@ -108,6 +108,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/MannequinDialog.cpp
     ${GAME_DIALOG}/DressupDialog.cpp
     ${GAME_DIALOG}/SpotlightDialog.cpp
+    ${GAME_DIALOG}/DisplayBlockDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp

@@ -82,9 +82,13 @@ set_char2_flags|MIND_CONTROL|
 
 add_playmod|6060|Haunted|You are Haunted! No more spirit board for you!|The ghosts have left you.|
 set_timer|180|
-set_char_flag|SHADOW_HAUNTED|
+set_char_flags|SHADOW_HAUNTED|
 
 add_playmod|2072|Xenonite|||
 
 add_playmod|874|Egged!|You have egg on your face.|You washed your face!|
 set_timer|180|
+
+add_playmod|732|Ban|Reality flickers as you begin to wake up.|You are no longer banned. Now be good!|
+set_audio|gate_close.wav|
+set_char_flags|DUCT_TAPED|

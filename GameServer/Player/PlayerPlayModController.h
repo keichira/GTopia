@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Precompiled.h"
 #include "Player/PlayModManager.h"
+#include "Precompiled.h"
 #include "Utils/Timer.h"
 
 class GamePlayer;
 class DialogBuilder;
 
-struct ActivePlayMod 
+struct ActivePlayMod
 {
     ePlayModType type = PLAYMOD_TYPE_NONE;
     uint32 remainingMS = 0;
@@ -16,14 +16,14 @@ struct ActivePlayMod
     Timer customTickTimer;
 };
 
-class PlayerPlayModController 
+class PlayerPlayModController
 {
 public:
     PlayerPlayModController(GamePlayer* pPlayer);
     ~PlayerPlayModController();
 
     void Update();
-    
+
     ActivePlayMod* AddPlayMod(ePlayModType type);
     bool RemovePlayMod(ePlayModType type);
     bool HasPlayMod(ePlayModType type);

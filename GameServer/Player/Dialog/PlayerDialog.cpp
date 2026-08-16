@@ -7,6 +7,7 @@
 #include "BattleCageDialog.h"
 #include "BulletinBlockDialog.h"
 #include "CrystalBlockDialog.h"
+#include "DisplayBlockDialog.h"
 #include "DonationBoxDialog.h"
 #include "DoorDialog.h"
 #include "DressupDialog.h"
@@ -115,6 +116,12 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if (pItem->type == ITEM_TYPE_SPOTLIGHT)
     {
         SpotlightDialog::Request(pPlayer, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_DISPLAY_BLOCK)
+    {
+        DisplayBlockDialog::Request(pPlayer, pTile);
         return;
     }
 }
