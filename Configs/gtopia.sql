@@ -25,7 +25,7 @@ CREATE TABLE `Players` (
   `Gems` int NOT NULL DEFAULT '0',
   `ProgressData` varbinary(512) DEFAULT NULL,
   `LastWorld` int NOT NULL DEFAULT '0',
-  `ExtraData` varbinary(2048) DEFAULT NULL,
+  `ExtraData` BLOB DEFAULT NULL,
   PRIMARY KEY (`ID`),
   KEY `idx_gid` (`GID`),
   KEY `idx_rid` (`RID`),

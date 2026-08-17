@@ -322,13 +322,10 @@ void Player::SendInventoryPacket()
     uint32 memSize = m_inventory.GetMemEstimate(false);
     gamePacket.extraDataSize = memSize;
 
-    uint8* pData = new uint8[memSize];
-    MemoryBuffer memBuffer(pData, memSize);
-
+    MemoryBuffer memBuffer(memSize);
     m_inventory.Serialize(memBuffer, true, false);
 
-    SendUDPPacketRaw(GetNetID(), NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), pData);
-    SAFE_DELETE_ARRAY(pData);
+    SendUDPPacketRaw(GetNetID(), NET_MESSAGE_GAME_PACKET, &gamePacket, sizeof(GameUpdatePacket), memBuffer.GetData());
 }
 
 void Player::SendOnSetClothing(Player* pPlayer)

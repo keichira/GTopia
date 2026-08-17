@@ -96,16 +96,16 @@ void GameMessage_Respawn(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
     pPlayer->SendOnConsoleMessage("I can't respawn right now!");
 }
 
-void GameMessage_RespawnSpkie(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
+void GameMessage_RespawnSpike(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
 {
     if (!pPlayer || pPlayer->GetCurrentWorld() == 0)
         return;
 
-    auto pTileX = packet.Find("tilex"_hash);
+    auto pTileX = packet.Find("tileX"_hash);
     if (!pTileX)
         return;
 
-    auto pTileY = packet.Find("tiley"_hash);
+    auto pTileY = packet.Find("tileY"_hash);
     if (!pTileY)
         return;
 

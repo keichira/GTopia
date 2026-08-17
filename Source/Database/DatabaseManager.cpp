@@ -160,6 +160,49 @@ bool DatabaseManager::QueryBulk(MYSQL_BIND* pBind)
     return true;
 }
 
+bool DatabaseManager::BeginTransaction()
+{
+    if (!m_pConnection)
+        return false;
+
+    if (mysql_autocommit(m_pConnection, 0) != 0)
+    {
+        PrintError();
+        return false;
+    }
+    return true;
+}
+
+bool DatabaseManager::Commit()
+{
+    if (!m_pConnection)
+        return false;
+
+    if (mysql_commit(m_pConnection) != 0)
+    {
+        PrintError();
+        return false;
+    }
+
+    mysql_autocommit(m_pConnection, 1);
+    return true;
+}
+
+bool DatabaseManager::Rollback()
+{
+    if (!m_pConnection)
+        return false;
+
+    bool result = (mysql_rollback(m_pConnection) == 0);
+    if (!result)
+    {
+        PrintError();
+    }
+
+    mysql_autocommit(m_pConnection, 1);
+    return result;
+}
+
 uint64 DatabaseManager::GetLastInsertID()
 {
     return mysql_insert_id(m_pConnection);

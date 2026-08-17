@@ -195,7 +195,7 @@ void GameServer::RegisterEvents()
     RegisterMessagePacket<GameMessage_Buy>("buy"_hash);
     RegisterMessagePacket<GameMessage_Store>("store"_hash);
     RegisterMessagePacket<GameMessage_Respawn>("respawn"_hash);
-    RegisterMessagePacket<GameMessage_RespawnSpkie>("respawn_spike"_hash);
+    RegisterMessagePacket<GameMessage_RespawnSpike>("respawn_spike"_hash);
 
     RegisterCommand<RenderWorld>();
     RegisterCommand<GiveItem>();

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Precompiled.h"
 #include "DatabaseResult.h"
+#include "Precompiled.h"
 #include <mysql.h>
 
 struct DatabaseConnectConfig
@@ -15,7 +15,8 @@ struct DatabaseConnectConfig
     uint32 clientFlag = 0;
 };
 
-class DatabaseManager {
+class DatabaseManager
+{
 public:
     DatabaseManager();
     ~DatabaseManager();
@@ -29,6 +30,10 @@ public:
 
     bool PrepareBulkStmt(const string& query);
     bool QueryBulk(MYSQL_BIND* pBind); /** if Query() called there would be a problem */
+
+    bool BeginTransaction();
+    bool Commit();
+    bool Rollback();
 
     uint64 GetLastInsertID();
     string EscapeString(const string& value);

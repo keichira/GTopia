@@ -1,17 +1,18 @@
 #pragma once
 
+#include "../Utils/Timer.h"
 #include "DatabaseManager.h"
-#include <concurrentqueue.h>
 #include "PreparedParam.h"
 #include "QueryUtils.h"
-#include "../Utils/Timer.h"
+#include <concurrentqueue.h>
 
 #define QUERY_TIMEOUT_MS 3000
-#define PREPARED_PARAM_MAX_SIZE 8
+#define PREPARED_PARAM_MAX_SIZE 15
 
 class DatabasePool;
 
-class DatabaseWorker {
+class DatabaseWorker
+{
 public:
     DatabaseWorker();
     ~DatabaseWorker();
@@ -27,7 +28,7 @@ public:
     uint32 GetQueueSize() const { return m_taskQueue.size_approx(); }
 
 private:
-    void SetupPreparedParams(VariantVector& params, bool bulk, uint32 startPos = 0);
+    bool SetupPreparedParams(VariantVector& params, bool bulk, uint32 startPos = 0);
     string EscapeStringRawParams(const Variant& var);
     bool BuildRawQueryParams(string& query, const VariantVector& params);
     void MakeFailedTaskAndAdd(QueryTaskRequest& taskReq, QueryTaskResult&& taskRes, eQueryStatus status);

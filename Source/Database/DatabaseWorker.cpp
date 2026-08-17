@@ -81,19 +81,56 @@ void DatabaseWorker::Update()
         if ((taskReq.flags & QUERY_FLAG_PREPARED))
         {
             if (taskReq.flags & QUERY_FLAG_BULK)
-            { // actually i have no idea why im doing that
-                uint32 querySize = (taskReq.data.size() - 1) / taskReq.data[0].GetUINT();
-                if (!m_pDatabaseMgr->PrepareBulkStmt(taskReq.query))
+            {
+                if (taskReq.data.size() < 2 || taskReq.data[0].GetINT() == 0)
                 {
-                    // what should we do wtf
+                    MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_FAIL);
+                    continue;
                 }
 
-                for (int32 i = 0; i < querySize; ++i)
+                int32 paramsPerRow = taskReq.data[0].GetINT();
+                uint32 rowCount = ((taskReq.data.size() - 1) / paramsPerRow);
+
+                if (!m_pDatabaseMgr->PrepareBulkStmt(taskReq.query))
                 {
-                    SetupPreparedParams(taskReq.data, true, 1 + (i - 1) * (taskReq.data[0].GetUINT()));
-                    m_pDatabaseMgr->QueryBulk(m_pPrepParam->GetBinds().data());
+                    MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_FAIL);
+                    continue;
                 }
-                break;
+
+                if (!m_pDatabaseMgr->BeginTransaction())
+                {
+                    LOGGER_LOG_ERROR("Failed to start database transaction!");
+                    MakeFailedTaskAndAdd(taskReq, std::move(taskRes), QUERY_STATUS_FAIL);
+                    continue;
+                }
+                bool bulkSuccess = true;
+
+                for (uint32 i = 0; i < rowCount; ++i)
+                {
+                    uint32 offset = 1 + (i * paramsPerRow);
+                    SetupPreparedParams(taskReq.data, true, offset);
+
+                    if (!m_pDatabaseMgr->QueryBulk(m_pPrepParam->GetBinds().data()))
+                    {
+                        LOGGER_LOG_ERROR("Database bulk query failed at row index %d", i);
+                        bulkSuccess = false;
+                        break;
+                    }
+                }
+
+                if (bulkSuccess && m_pDatabaseMgr->Commit())
+                {
+                    taskRes.status = QUERY_STATUS_OK;
+                }
+                else
+                {
+                    m_pDatabaseMgr->Rollback();
+                    taskRes.status = QUERY_STATUS_FAIL;
+                }
+
+                m_pPrepParam->Reset();
+                m_pDbPool->AddResult(std::move(taskRes));
+                continue;
             }
             else
             {
@@ -135,31 +172,46 @@ void DatabaseWorker::AddTask(QueryTaskRequest&& taskReq)
     m_taskQueue.enqueue(std::move(taskReq));
 }
 
-void DatabaseWorker::SetupPreparedParams(VariantVector& params, bool bulk, uint32 startPos)
+bool DatabaseWorker::SetupPreparedParams(VariantVector& params, bool bulk, uint32 startPos)
 {
-    uint32 paramSize = bulk ? params[0].GetUINT() : params.size();
+    uint32 paramsPerRow = params.size();
 
-    for (auto i = startPos; i < (paramSize + startPos); ++i)
+    if (bulk)
     {
-        switch (params[i].GetType())
+        if (params.empty())
+            return false;
+
+        paramsPerRow = params[0].GetINT();
+    }
+
+    if (paramsPerRow + startPos > params.size())
+        return false;
+
+    for (uint32 i = 0; i < paramsPerRow; ++i)
+    {
+        uint32 srcIdx = startPos + i;
+
+        switch (params[srcIdx].GetType())
         {
             case VARIANT_TYPE_INT:
             {
-                m_pPrepParam->SetInt(i, params[i].GetINT());
+                m_pPrepParam->SetInt(i, params[srcIdx].GetINT());
                 break;
             }
             case VARIANT_TYPE_UINT:
             {
-                m_pPrepParam->SetInt(i, params[i].GetUINT());
+                m_pPrepParam->SetInt(i, params[srcIdx].GetUINT());
                 break;
             }
             case VARIANT_TYPE_STRING:
             {
-                m_pPrepParam->SetString(i, params[i].GetString());
+                m_pPrepParam->SetString(i, params[srcIdx].GetString());
                 break;
             }
         }
     }
+
+    return true;
 }
 
 string DatabaseWorker::EscapeStringRawParams(const Variant& var)

@@ -1,6 +1,8 @@
 #include "PlayerManager.h"
 #include "../Context.h"
+#include "Database/Table/PlayerDBTable.h"
 #include "GamePlayer.h"
+#include "IO/Log.h"
 #include "Math/Math.h"
 
 PlayerManager::PlayerManager() : m_totalPlayerCount(0) {}
@@ -144,12 +146,23 @@ void PlayerManager::SaveAllToDatabase()
     if (!GetContext()->GetDatabasePool()->GetWorker(0)->IsConnected())
         return;
 
+    QueryRequest req = PlayerDB::BulkSave();
+
+    uint32 savedPlayerCount = 0;
+
     for (auto& [_, pPlayer] : m_gamePlayers)
     {
         if (!pPlayer || !pPlayer->HasState(PLAYER_STATE_IN_GAME))
             continue;
 
-        pPlayer->SaveToDatabase();
+        pPlayer->BuildForBulkDatabaseSave(req.data);
+        savedPlayerCount++;
+    }
+
+    if (savedPlayerCount > 0)
+    {
+        DatabasePlayerExec(GetContext()->GetDatabasePool(), req, true, true);
+        LOGGER_LOG_INFO("Saving %d players to database bulk", savedPlayerCount);
     }
 }
 

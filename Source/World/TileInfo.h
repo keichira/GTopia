@@ -47,6 +47,7 @@ public:
 
 public:
     void Serialize(MemoryBuffer& memBuffer, bool write, bool database, uint16 worldVersion);
+    uint32 GetMemEstimate(bool database, uint16 worldVersion);
 
     void SetFG(int16 itemID, WorldTileManager* pTileMgr);
     void SetBG(int16 itemID, WorldTileManager* pTileMgr);

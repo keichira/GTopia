@@ -484,7 +484,8 @@ int main(int argc, char const* argv[])
 
     if (!GetContext()->GetDatabasePool()->Init(1, dbConfig))
     {
-        LOGGER_LOG_ERROR_ASAP("Failed to initialize database pool");
+        LOGGER_LOG_ERROR_ASAP(
+            "Failed to initialize database pool, database credentials might be wrong check config.txt");
         GetContext()->GetDatabasePool()->Kill();
         return 0;
     }

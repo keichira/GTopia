@@ -136,24 +136,22 @@ void World::SaveToFile(World* pWorld)
     File file;
     string worldSavePath =
         GetContext()->GetGameConfig()->worldSavePath + "/world_" + ToString(pWorld->GetDatabaseID()) + ".bin";
+
     if (!file.Open(worldSavePath, FILE_MODE_WRITE))
         return;
 
     uint32 worldMemSize = pWorld->GetMemEstimate(true);
-    uint8* pWorldData = new uint8[worldMemSize];
-
-    MemoryBuffer memBuffer(pWorldData, worldMemSize);
+    MemoryBuffer memBuffer(worldMemSize);
     pWorld->Serialize(memBuffer, true, true);
 
-    if (file.Write(pWorldData, worldMemSize) != worldMemSize)
+    if (file.Write(memBuffer.GetData(), memBuffer.GetOffset()) != worldMemSize)
     {
         file.Close();
-        SAFE_DELETE_ARRAY(pWorldData);
+        memBuffer.Destroy();
         return;
     }
 
     file.Close();
-    SAFE_DELETE_ARRAY(pWorldData);
 }
 
 void World::Update()
@@ -210,20 +208,17 @@ bool World::ExportWorld(const string& name)
         return false;
 
     uint32 worldMemEst = GetMemEstimate(true);
-    uint8* pData = new uint8[worldMemEst];
-
-    MemoryBuffer memBuffer(pData, worldMemEst);
+    MemoryBuffer memBuffer(worldMemEst);
     Serialize(memBuffer, true, true);
 
-    if (file.Write(pData, worldMemEst) != worldMemEst)
+    if (file.Write(memBuffer.GetData(), memBuffer.GetOffset()) != worldMemEst)
     {
         file.Close();
-        SAFE_DELETE_ARRAY(pData);
+        memBuffer.Destroy();
         return false;
     }
 
     file.Close();
-    SAFE_DELETE_ARRAY(pData);
     return true;
 }
 
@@ -289,19 +284,18 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     pPlayer->ClosePaginatedDialog();
 
     uint32 worldMemSize = GetMemEstimate(false, loginDetail.gameVersion);
-    uint8* pWorldData = new uint8[worldMemSize];
-
-    MemoryBuffer memBuffer(pWorldData, worldMemSize);
+    MemoryBuffer memBuffer(worldMemSize);
     Serialize(memBuffer, true, false, loginDetail.gameVersion);
 
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_SEND_MAP_DATA;
     packet.field_4 = -1;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    packet.extraDataSize = worldMemSize;
-    SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), pWorldData);
+    packet.extraDataSize = memBuffer.GetOffset();
+    SendUDPPacketRaw(pPlayer->GetNetID(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket),
+                     memBuffer.GetData());
 
-    SAFE_DELETE_ARRAY(pWorldData);
+    memBuffer.Destroy();
 
     if (GetTileManager()->GetKeyTile(KEY_TILE_XENONITE))
     {
@@ -586,18 +580,13 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY, GamePlayer* pPlayer)
     packet.field_12 = tileY;
     packet.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
 
-    MemoryBuffer memSizeBuf;
-    pTile->Serialize(memSizeBuf, true, false, GetWorldVersion());
+    uint32 tileMemSize = pTile->GetMemEstimate(false, GetWorldVersion());
+    packet.extraDataSize = tileMemSize;
 
-    uint32 memSize = memSizeBuf.GetOffset();
-    packet.extraDataSize = memSize;
-
-    uint8* pTileData = new uint8[memSize];
-    MemoryBuffer memBuffer(pTileData, memSize);
+    MemoryBuffer memBuffer(tileMemSize);
     pTile->Serialize(memBuffer, true, false, GetWorldVersion());
 
-    SendGamePacketToAll(&packet, nullptr, pTileData);
-    SAFE_DELETE_ARRAY(pTileData);
+    SendGamePacketToAll(&packet, nullptr, memBuffer.GetData());
 }
 
 void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
@@ -608,13 +597,13 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
     MemoryBuffer memSizeBuf;
     for (auto& pTile : tiles)
     {
+        // this should be ok instead using GetMemEstimate
         pTile->Serialize(memSizeBuf, true, false, GetWorldVersion());
     }
 
     uint32 memSize = tiles.size() * 2 * sizeof(int32) + memSizeBuf.GetOffset() + sizeof(int32);
-    uint8* pData = new uint8[memSize];
 
-    MemoryBuffer memBuffer(pData, memSize);
+    MemoryBuffer memBuffer(memSize);
     for (auto& pTile : tiles)
     {
         Vector2Int vTilePos = pTile->GetPos();
@@ -634,8 +623,7 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
     packet.field_11 = -1;
     packet.field_12 = -1;
 
-    SendGamePacketToAll(&packet, nullptr, pData);
-    SAFE_DELETE_ARRAY(pData);
+    SendGamePacketToAll(&packet, nullptr, memBuffer.GetData());
 }
 
 void World::SendTileApplyDamage(TileInfo* pTile, int32 damage, int32 netID)
@@ -668,7 +656,7 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
     packet.field_4 = userID;
     packet.field_5 = tiles.size();
 
-    uint8* pData = nullptr;
+    MemoryBuffer memBuffer;
 
     if (!tiles.empty())
     {
@@ -676,28 +664,23 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
         packet.extraDataSize = tiles.size() * sizeof(uint16);
 
         uint32 memSize = packet.extraDataSize;
-        pData = new uint8[memSize];
+        memBuffer = MemoryBuffer(memSize);
 
-        MemoryBuffer memBuffer(pData, memSize);
         uint32 worldWidth = GetTileManager()->GetSize().x;
 
         for (auto& pTile : tiles)
         {
             if (!pTile)
-            {
                 continue;
-            }
 
-            Vector2Int vTilePos = pTile->GetPos();
-            uint16 index = vTilePos.x + vTilePos.y * worldWidth;
+            uint16 index = pTile->GetMapIndex();
             memBuffer.Write(index);
         }
     }
 
     HandleTilePackets(&packet);
 
-    SendGamePacketToAll(&packet, nullptr, pData);
-    SAFE_DELETE_ARRAY(pData);
+    SendGamePacketToAll(&packet, nullptr, memBuffer.GetData());
 }
 
 void World::SendPlayerDataConfigToAll(GamePlayer* pPlayer)

@@ -72,6 +72,14 @@ void TileInfo::Serialize(MemoryBuffer& memBuffer, bool write, bool database, uin
     }
 }
 
+uint32 TileInfo::GetMemEstimate(bool database, uint16 worldVersion)
+{
+    MemoryBuffer memSize;
+    Serialize(memSize, true, database, worldVersion);
+
+    return memSize.GetOffset();
+}
+
 void TileInfo::SetFG(int16 itemID, WorldTileManager* pTileMgr)
 {
     if (!pTileMgr)

@@ -1,33 +1,35 @@
 #include "Context.h"
 #include "IO/Log.h"
+#include "Math/Math.h"
 #include "Math/Random.h"
-#include "Utils/Timer.h"
+#include "Player/GamePlayer.h"
+#include "Player/RoleManager.h"
 #include "Server/GameServer.h"
 #include "Server/ServerManager.h"
-#include "Player/GamePlayer.h"
-#include "World/WorldManager.h"
 #include "Server/TelnetServer.h"
-#include "Player/RoleManager.h"
-#include "Math/Math.h"
+#include "Utils/Timer.h"
+#include "World/WorldManager.h"
 
 #include <signal.h>
-void SignalStop(int32 signum) 
-{ 
+void SignalStop(int32 signum)
+{
     LOGGER_LOG_WARN_ASAP("Received signal %d", signum);
     GetContext()->Shutdown();
 }
 
-void DatabaseThreadFunc() 
+void DatabaseThreadFunc()
 {
     uint64 lastLogWriteTime = Time::GetSystemTime();
     uint64 nextTick = Time::GetSystemTime();
 
-    while(GetContext()->IsRunning()) {
+    while (GetContext()->IsRunning())
+    {
         DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
         pWorker->Update();
 
         uint64 logWriteStart = Time::GetSystemTime();
-        if(logWriteStart - lastLogWriteTime >= 5000) {
+        if (logWriteStart - lastLogWriteTime >= 5000)
+        {
             GetLog()->Write();
             lastLogWriteTime = Time::GetSystemTime();
         }
@@ -36,7 +38,7 @@ void DatabaseThreadFunc()
     }
 }
 
-void EventThreadFunc() 
+void EventThreadFunc()
 {
     GameServer* pGameServer = GetGameServer();
     ServerManager* pServerMgr = GetServerManager();
@@ -46,15 +48,16 @@ void EventThreadFunc()
     uint64 lastCalculateTime = Time::GetSystemTime();
     uint64 totalWorkTime = 0;
 
-    while(pContext->IsRunning())
+    while (pContext->IsRunning())
     {
         uint64 currentTime = Time::GetSystemTime();
 
         uint32 elapsedMs = (uint32)(currentTime - lastCalculateTime);
-        if (elapsedMs >= 1000) {
+        if (elapsedMs >= 1000)
+        {
             uint32 permille = (uint32)((totalWorkTime * 1000) / elapsedMs);
 
-            if(permille > 1000)
+            if (permille > 1000)
             {
                 permille = 1000;
             }
@@ -66,7 +69,7 @@ void EventThreadFunc()
         }
 
         uint64 workStart = Time::GetSystemTime();
-        
+
         pGameServer->Update();
         pServerMgr->Update(false);
         pTelnetServer->Update(); // todo here handle on gameloop
@@ -81,20 +84,24 @@ void EventThreadFunc()
 void ProcessDatabaseResults(uint64 maxTimeMS)
 {
     DatabasePool* pDatabasePool = GetContext()->GetDatabasePool();
-    if(!pDatabasePool) {
+    if (!pDatabasePool)
+    {
         return;
     }
 
     QueryTaskResult taskRes;
     Timer startTime;
 
-    while(pDatabasePool->GetResult(taskRes)) {
-        if(taskRes.callback) {
+    while (pDatabasePool->GetResult(taskRes))
+    {
+        if (taskRes.callback)
+        {
             taskRes.callback(std::move(taskRes));
             taskRes.Destroy();
         }
 
-        if(startTime.GetElapsedTime() >= maxTimeMS) {
+        if (startTime.GetElapsedTime() >= maxTimeMS)
+        {
             break;
         }
     }
@@ -116,11 +123,11 @@ void RunGameLoop()
 
     uint32 intervalMaxTickMs = 0;
     uint32 intervalMaxLagSpikeMs = 0;
-    
+
     uint64 totalWorkTimeInInterval = 0;
     uint64 loopIterStart = now;
 
-    while(pContext->IsRunning())
+    while (pContext->IsRunning())
     {
         loopIterStart = Time::GetSystemTime();
         now = loopIterStart;
@@ -130,13 +137,13 @@ void RunGameLoop()
         pServerMgr->UpdateTCPLogic(NETWORK_BUDGET_MS);
         ProcessDatabaseResults(DB_RESULT_BUDGET_MS);
 
-        if(pContext->IsShutting())
+        if (pContext->IsShutting())
         {
             pContext->Stop();
             continue;
         }
 
-        while(now >= nextTick && loops < MAX_CATCHUP_TICKS)
+        while (now >= nextTick && loops < MAX_CATCHUP_TICKS)
         {
             uint64 tickStart = Time::GetSystemTime();
 
@@ -149,7 +156,7 @@ void RunGameLoop()
             ++tickCount;
 
             intervalMaxTickMs = Max(intervalMaxTickMs, tickDur);
-            if(tickDur > GAME_TICK_MS)
+            if (tickDur > GAME_TICK_MS)
             {
                 uint32 currentSpike = tickDur - GAME_TICK_MS;
                 intervalMaxLagSpikeMs = Max(intervalMaxLagSpikeMs, currentSpike);
@@ -160,7 +167,7 @@ void RunGameLoop()
             now = Time::GetSystemTime();
         }
 
-        if(now >= nextTick)
+        if (now >= nextTick)
         {
             nextTick = now + GAME_TICK_MS;
         }
@@ -168,12 +175,12 @@ void RunGameLoop()
         uint64 loopIterEnd = Time::GetSystemTime();
         totalWorkTimeInInterval += (loopIterEnd - loopIterStart);
 
-        if(now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
+        if (now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
         {
             ContextPerfStats& perf = pContext->GetPerfStats();
             uint32 elapsedIntervalMs = (uint32)(now - lastPerfUpdateTime);
 
-            if(tickCount > 0)
+            if (tickCount > 0)
             {
                 perf.avgTickMs = (uint32)(tickDurSum / tickCount);
             }
@@ -186,7 +193,7 @@ void RunGameLoop()
             perf.lagSpikeMs = intervalMaxLagSpikeMs;
 
             perf.cpuPermille = (uint32)((totalWorkTimeInInterval * 1000) / elapsedIntervalMs);
-            if(perf.cpuPermille > 1000)
+            if (perf.cpuPermille > 1000)
             {
                 perf.cpuPermille = 1000;
             }
@@ -199,7 +206,7 @@ void RunGameLoop()
             lastPerfUpdateTime = now;
         }
 
-        if(nextTick > now)
+        if (nextTick > now)
         {
             SleepMS((uint32)(nextTick - now));
         }
@@ -226,14 +233,15 @@ int main(int argc, char const* argv[])
     signal(SIGTERM, SignalStop);
     signal(SIGINT, SignalStop);
 
-    if(!GetLog()->InitFile(GetProgramPath() + "/logs/log_MASTER.txt")) {
+    if (!GetLog()->InitFile(GetProgramPath() + "/logs/log_MASTER.txt"))
+    {
         LOGGER_LOG_ERROR_ASAP("Failed to init log file, maybe try to create 'logs' folder?");
         return 0;
     }
 
     LOGGER_LOG_INFO_ASAP("Starting Master Server");
     LOGGER_LOG_INFO_ASAP("Project created by keichira https://github.com/keichira/GTopia")
-    
+
     GetContext()->Init();
 
     SetRandomSeed(Time::GetSystemTime());
@@ -242,25 +250,30 @@ int main(int argc, char const* argv[])
     GetContext()->SetID(0);
 
     auto pGameConfig = GetContext()->GetGameConfig();
-    if(pGameConfig->LoadServersMaster(GetProgramPath() + "/servers.txt") == 0) {
+    if (pGameConfig->LoadServersMaster(GetProgramPath() + "/servers.txt") == 0)
+    {
         LOGGER_LOG_ERROR_ASAP("Failed to load servers.txt");
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Loaded %d servers from servers.txt", pGameConfig->servers.size());
 
-    if(!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt")) {
+    if (!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt"))
+    {
         LOGGER_LOG_ERROR_ASAP("Failed to load config.txt");
         return 0;
     }
 
-    if(!GetRoleManager()->Load(GetProgramPath() + "/roles.txt")) {
+    if (!GetRoleManager()->Load(GetProgramPath() + "/roles.txt"))
+    {
         LOGGER_LOG_ERROR_ASAP("Failed to load roles.txt");
         return 0;
     }
 
     auto masterServerInfo = pGameConfig->servers[0];
-    if(!GetServerManager()->Init(masterServerInfo.lanIP, masterServerInfo.tcpPort)) {
-        LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
+    if (!GetServerManager()->Init(masterServerInfo.lanIP, masterServerInfo.tcpPort))
+    {
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", masterServerInfo.lanIP.c_str(),
+                              masterServerInfo.tcpPort);
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Started netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
@@ -272,34 +285,44 @@ int main(int argc, char const* argv[])
     dbConfig.database = pGameConfig->database.database.c_str();
     dbConfig.port = pGameConfig->database.port;
 
-    if(!GetContext()->GetDatabasePool()->Init(1, dbConfig)) {
-        LOGGER_LOG_ERROR_ASAP("Failed to initialize database pool");
+    if (!GetContext()->GetDatabasePool()->Init(1, dbConfig))
+    {
+        LOGGER_LOG_ERROR_ASAP(
+            "Failed to initialize database pool, database credentials might be wrong check config.txt");
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
 
-    if(!GetGameServer()->Init(masterServerInfo.wanIP, masterServerInfo.udpPort)) {
-        LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
+    if (!GetGameServer()->Init(masterServerInfo.wanIP, masterServerInfo.udpPort))
+    {
+        LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(),
+                              masterServerInfo.udpPort);
         return 0;
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
     LOGGER_LOG_INFO_ASAP("Started game server on %s:%d", masterServerInfo.wanIP.c_str(), masterServerInfo.udpPort);
 
-    //RegisterBalancedWorlds();
+    // RegisterBalancedWorlds();
 
-    if(pGameConfig->enableTelnetServer)
+    if (pGameConfig->enableTelnetServer)
     {
         TelnetServer* pTelnetServer = GetTelnetServer();
-        if(pTelnetServer->LoadTelnetConfigFromFile(GetProgramPath() + "/telnet_config.txt")) {
-            if(!pTelnetServer->Init()) {
-                LOGGER_LOG_ERROR_ASAP("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+        if (pTelnetServer->LoadTelnetConfigFromFile(GetProgramPath() + "/telnet_config.txt"))
+        {
+            if (!pTelnetServer->Init())
+            {
+                LOGGER_LOG_ERROR_ASAP("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(),
+                                      pTelnetServer->GetPort());
                 return 0;
             }
-            else {
-                LOGGER_LOG_INFO_ASAP("Started telnet server on %s:%d", pTelnetServer->GetHost().c_str(), pTelnetServer->GetPort());
+            else
+            {
+                LOGGER_LOG_INFO_ASAP("Started telnet server on %s:%d", pTelnetServer->GetHost().c_str(),
+                                     pTelnetServer->GetPort());
             }
         }
-        else {
+        else
+        {
             LOGGER_LOG_ERROR_ASAP("Failed to load telnet_config.txt not gonna initialize telnet server");
         }
     }
@@ -318,15 +341,17 @@ int main(int argc, char const* argv[])
 
     std::thread dbThread(DatabaseThreadFunc);
     std::thread eventThread(EventThreadFunc);
-    
+
     RunGameLoop();
 
     LOGGER_LOG_INFO_ASAP("Killing Master server");
 
     GetLog()->Flush();
 
-    if(dbThread.joinable()) dbThread.join();
-    if(eventThread.joinable()) eventThread.join();
+    if (dbThread.joinable())
+        dbThread.join();
+    if (eventThread.joinable())
+        eventThread.join();
 
     GetTelnetServer()->Kill();
     GetGameServer()->Kill();

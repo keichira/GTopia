@@ -597,9 +597,8 @@ void ItemInfoManager::SaveToClientData(bool forOgg, uint16 minVersion, uint16 ma
         }
 
         uint32 memSize = memSizeBuffer.GetOffset() + sizeof(m_version) + sizeof(m_itemCount);
-        uint8* pData = new uint8[memSize];
 
-        MemoryBuffer memBuffer(pData, memSize);
+        MemoryBuffer memBuffer(memSize);
         memBuffer.Write(i);
         memBuffer.Write(m_itemCount);
 
@@ -609,24 +608,24 @@ void ItemInfoManager::SaveToClientData(bool forOgg, uint16 minVersion, uint16 ma
         }
 
         uint32 compressSize = 0;
-        uint8* pCompress = zLibDefalteToMemory(pData, memSize, compressSize);
+        uint8* pCompress = zLibDefalteToMemory(memBuffer.GetData(), memBuffer.GetOffset(), compressSize);
 
         if (forOgg)
         {
             m_itemDataOgg[i].pItemData = pCompress;
             m_itemDataOgg[i].size = memSize;
             m_itemDataOgg[i].compressSize = compressSize;
-            m_itemDataOgg[i].hash = Proton::HashString((const char*)pData, memSize);
+            m_itemDataOgg[i].hash = Proton::HashString((const char*)memBuffer.GetData(), memBuffer.GetOffset());
         }
         else
         {
             m_itemDataMp3[i].pItemData = pCompress;
             m_itemDataMp3[i].size = memSize;
             m_itemDataMp3[i].compressSize = compressSize;
-            m_itemDataMp3[i].hash = Proton::HashString((const char*)pData, memSize);
+            m_itemDataMp3[i].hash = Proton::HashString((const char*)memBuffer.GetData(), memBuffer.GetOffset());
         }
 
-        SAFE_DELETE_ARRAY(pData);
+        memBuffer.Destroy();
     }
 }
 

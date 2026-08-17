@@ -50,6 +50,7 @@ public:
     void HandleCheckSession(VariantVector&& result);
     void TransferToGame();
     void SaveToDatabase();
+    void BuildForBulkDatabaseSave(VariantVector& outParams);
     void LogOff(bool forceDelete, bool saveToDb, bool endSession, bool sendNetworkPackets = true);
 
     bool HasGrowID() const { return !m_loginDetail.tankIDPass.empty(); }

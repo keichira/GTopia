@@ -6,58 +6,44 @@ class MemoryBuffer
 {
 public:
     MemoryBuffer();
+
+    explicit MemoryBuffer(uint32 size);
+
     MemoryBuffer(void* pData, uint32 size);
     MemoryBuffer(const void* pData, uint32 size);
-    MemoryBuffer(std::vector<uint8>& data);
-    MemoryBuffer(const std::vector<uint8>& data);
+
+    ~MemoryBuffer();
 
 public:
-    uint32 Seek(uint32 position);
+    void Destroy();
+
+    uint8* GetData() { return m_pBuffer; }
+    const uint8* GetData() const { return m_pBuffer; }
     uint32 GetOffset() const { return m_pos; }
+    uint32 GetBufferSize() const { return m_bufferSize; }
+    bool IsCountOnly() const { return m_countOnly; }
+
+    uint32 Seek(uint32 position);
 
     template <typename T> uint32 Read(T& data) { return ReadRaw(&data, sizeof(T)); }
     template <typename T> uint32 Write(const T& data) { return WriteRaw(&data, sizeof(T)); }
+
     template <typename T> uint32 ReadWrite(T& data, bool write)
     {
-        if (write)
-        {
-            return WriteRaw(&data, sizeof(T));
-        }
-        else
-        {
-            return ReadRaw(&data, sizeof(T));
-        }
+        return write ? WriteRaw(&data, sizeof(T)) : ReadRaw(&data, sizeof(T));
     }
 
-    uint32 ReadWriteString(string& data, bool write)
-    {
-        if (write)
-        {
-            return WriteStringRaw(data);
-        }
-        else
-        {
-            return ReadStringRaw(data);
-        }
-    }
+    uint32 ReadWriteString(string& data, bool write) { return write ? WriteStringRaw(data) : ReadStringRaw(data); }
 
     uint32 ReadWriteRaw(void* data, uint32 size, bool write)
     {
-        if (write)
-        {
-            return WriteRaw(data, size);
-        }
-        else
-        {
-            return ReadRaw(data, size);
-        }
+        return write ? WriteRaw(data, size) : ReadRaw(data, size);
     }
 
     uint32 ReadRaw(void* pDest, uint32 size);
     uint32 WriteRaw(const void* pData, uint32 size);
     uint32 ReadStringRaw(string& pDest);
     uint32 WriteStringRaw(const string& pData);
-    void Destroy() { SAFE_DELETE_ARRAY(m_pBuffer); }
 
 private:
     uint8* m_pBuffer;
@@ -66,4 +52,5 @@ private:
 
     bool m_ableToWrite;
     bool m_countOnly;
+    bool m_ownsMemory;
 };

@@ -56,6 +56,7 @@ QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID,
 QueryRequest GetData(uint32 userID, uint32 ownerID = 0);
 QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags,
                   uint32 lastWorld, string progressData, int32 gems, const string& extraData, uint32 ownerID = 0);
+QueryRequest BulkSave();
 QueryRequest CountByIP(std::string_view ip, uint32 ownerID = 0);
 
 QueryRequest GetByVID(const string& vid, uint8 platformType, uint32 ownerID = 0);
@@ -77,7 +78,7 @@ QueryRequest SetRoleByID(uint32 roleID, uint32 userID, int32 ownerID = 0);
 QueryRequest GetOfflineData(uint32 userID, int32 ownerID = 0);
 } // namespace PlayerDB
 
-void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred = false);
+void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred = false, bool bulk = false);
 void DatabasePlayerIdentifierExec(DatabasePool* pPool, uint32 userID, const string& mac, const string& vid,
                                   const string& sid, const string& rid, const string& gid, int32 hash,
                                   const string& guestName, QueryRequest& req);

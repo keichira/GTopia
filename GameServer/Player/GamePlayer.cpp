@@ -153,18 +153,15 @@ void GamePlayer::SaveToDatabase()
         return;
 
     uint32 invMemSize = m_inventory.GetMemEstimate(true);
-    uint8* pInvData = new uint8[invMemSize];
-    MemoryBuffer invMemBuffer(pInvData, invMemSize);
+    MemoryBuffer invMemBuffer(invMemSize);
     m_inventory.Serialize(invMemBuffer, true, true);
 
     uint32 progressMemSize = m_progressData.GetMemEstimate();
-    uint8* pProgressData = new uint8[progressMemSize];
-    MemoryBuffer progressMemBuffer(pProgressData, progressMemSize);
+    MemoryBuffer progressMemBuffer(progressMemSize);
     m_progressData.Serialize(progressMemBuffer, true);
 
     uint32 extraMemSize = m_extraData.GetMemEstimate();
-    uint8* pExtraData = new uint8[extraMemSize];
-    MemoryBuffer extraMemBuffer(pExtraData, extraMemSize);
+    MemoryBuffer extraMemBuffer(extraMemSize);
     m_extraData.Serialize(extraMemBuffer, true);
 
     uint32 worldID = 0;
@@ -183,14 +180,55 @@ void GamePlayer::SaveToDatabase()
         LOGGER_LOG_WARN("Player %s (%d) SaveDB role is NULL setting to default role %d", GetRawName(), GetUserID(),
                         roleID);
 
-    QueryRequest req = PlayerDB::Save(m_userID, roleID, string((char*)pInvData, invMemSize), 0, m_flags, worldID,
-                                      string((char*)pProgressData, progressMemSize), m_gems,
-                                      string((char*)pExtraData, extraMemSize), GetNetID());
+    QueryRequest req =
+        PlayerDB::Save(m_userID, roleID, string((char*)invMemBuffer.GetData(), invMemBuffer.GetOffset()), 0, m_flags,
+                       worldID, string((char*)progressMemBuffer.GetData(), progressMemBuffer.GetOffset()), m_gems,
+                       string((char*)extraMemBuffer.GetData(), extraMemBuffer.GetOffset()), GetNetID());
 
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
-    SAFE_DELETE_ARRAY(pProgressData);
-    SAFE_DELETE_ARRAY(pInvData);
-    SAFE_DELETE_ARRAY(pExtraData);
+}
+
+void GamePlayer::BuildForBulkDatabaseSave(VariantVector& outParams)
+{
+    uint32 invSize = m_inventory.GetMemEstimate(true);
+    string invStr;
+    invStr.resize(invSize);
+
+    MemoryBuffer invMemBuffer(invStr.data(), invSize);
+    m_inventory.Serialize(invMemBuffer, true, true);
+
+    uint32 progressSize = m_progressData.GetMemEstimate();
+    string progressStr;
+    progressStr.resize(progressSize);
+
+    MemoryBuffer progressMemBuffer(progressStr.data(), progressSize);
+    m_progressData.Serialize(progressMemBuffer, true);
+
+    uint32 extraSize = m_extraData.GetMemEstimate();
+    string extraStr;
+    extraStr.resize(extraSize);
+
+    MemoryBuffer extraMemBuffer(extraStr.data(), extraSize);
+    m_extraData.Serialize(extraMemBuffer, true);
+
+    uint32 worldID = 0;
+    if (m_currentWorldID != 0)
+    {
+        if (World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_currentWorldID))
+            worldID = pWorld->GetDatabaseID();
+    }
+
+    uint32 roleID = m_pRole ? m_pRole->GetID() : GetRoleManager()->GetDefaultRoleID();
+
+    outParams.emplace_back(roleID);
+    outParams.emplace_back(std::move(invStr));
+    outParams.emplace_back((uint32)0);
+    outParams.emplace_back(m_flags);
+    outParams.emplace_back(worldID);
+    outParams.emplace_back(std::move(progressStr));
+    outParams.emplace_back(m_gems);
+    outParams.emplace_back(std::move(extraStr));
+    outParams.emplace_back(m_userID);
 }
 
 void GamePlayer::LogOff(bool forceDelete, bool saveToDb, bool endSession, bool sendNetworkPackets)

@@ -38,6 +38,17 @@ QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventor
     return req;
 }
 
+QueryRequest PlayerDB::BulkSave()
+{
+    constexpr int32 PARAMS_PER_ROW = 9;
+
+    QueryRequest req;
+    req.queryID = DB_PLAYER_SAVE;
+
+    req.AddData(PARAMS_PER_ROW);
+    return req;
+}
+
 QueryRequest PlayerDB::CountByIP(std::string_view ip, uint32 ownerID)
 {
     QueryRequest req(ownerID);
@@ -164,7 +175,7 @@ QueryRequest PlayerDB::GetOfflineData(uint32 userID, int32 ownerID)
     return req;
 }
 
-void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
+void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred, bool bulk)
 {
     if (req.queryID < 0)
     {
@@ -177,6 +188,11 @@ void DatabasePlayerExec(DatabasePool* pPool, QueryRequest& req, bool preapred)
     if (preapred)
     {
         query.flags |= QUERY_FLAG_PREPARED;
+    }
+
+    if (bulk)
+    {
+        query.flags |= QUERY_FLAG_BULK;
     }
 
     DatabaseExec(pPool, query.query, req, query.flags);

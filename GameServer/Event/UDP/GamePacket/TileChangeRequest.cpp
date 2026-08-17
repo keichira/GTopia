@@ -6,6 +6,7 @@
 #include "../../../Player/Dialog/MannequinDialog.h"
 #include "../../../Player/Dialog/PlayerDialog.h"
 #include "Item/ItemInfoManager.h"
+#include "Utils/GrowUtils.h"
 
 void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
@@ -803,6 +804,19 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             return;
         }
 
+        if (pTileItem->type == ITEM_TYPE_DISPLAY_BLOCK)
+        {
+            if (TileExtra_DisplayBlock* pTileExtra = pTile->GetExtra<TileExtra_DisplayBlock>())
+            {
+                if (pTileExtra->itemID != ITEM_ID_BLANK &&
+                    pWorld->GetTileManager()->IsPlayerOwnerOfTheTile(pTile, pPlayer->GetUserID()))
+                {
+                    pPlayer->SendOnTalkBubble("Only the block's owner can break it!", false);
+                    return;
+                }
+            }
+        }
+
         /**
          * handle things that dont allow to break like empty the box
          */
@@ -907,9 +921,33 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
                 pWorld->OnRemoveLock(pPlayer, pTile);
             }
 
-            if (pItem->type == ITEM_TYPE_XENONITE)
+            if (pTileItem->type == ITEM_TYPE_XENONITE)
             {
                 pWorld->ToggleXenoniteCrystal(true);
+            }
+
+            if (pTileItem->type == ITEM_TYPE_DISPLAY_BLOCK)
+            {
+                if (TileExtra_DisplayBlock* pTileExtra = pTile->GetExtra<TileExtra_DisplayBlock>())
+                {
+                    if (pTileExtra->itemID != ITEM_ID_BLANK)
+                    {
+                        ItemInfo* pDispItem = GetItemInfoManager()->GetItemByID(pTileExtra->itemID);
+                        if (!pDispItem)
+                            return;
+
+                        if (pPlayer->GetInventory().GetFitItemCount(pTileExtra->itemID) < 1)
+                        {
+                            pWorld->DropObjectOnTile(pTile, pDispItem->id, 1, GetRandomItemDropOffset(), true);
+                        }
+                        else
+                        {
+                            pPlayer->ModifyInventoryItem(pDispItem->id, 1);
+                        }
+
+                        pTileExtra->itemID = ITEM_ID_BLANK;
+                    }
+                }
             }
 
             // tile broken
