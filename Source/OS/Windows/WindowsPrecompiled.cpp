@@ -88,9 +88,7 @@ bool IsFolderExists(const string& path)
 
     DWORD attr = GetFileAttributesW(UTF8ToUTF16(path).c_str());
     if (attr == INVALID_FILE_ATTRIBUTES || !(attr & FILE_ATTRIBUTE_DIRECTORY))
-    {
         return false;
-    }
 
     return true;
 }
@@ -149,4 +147,18 @@ string UTF16ToUTF8(const std::wstring& wstr)
     WideCharToMultiByte(CP_UTF8, 0, wstr.data(), (int)wstr.size(), &str[0], targetLen, nullptr, nullptr);
 
     return str;
+}
+
+bool CreateDir(const string& path)
+{
+    if (IsFolderExists(path))
+        return true;
+
+    std::wstring wpath = UTF8ToUTF16(path);
+    return CreateDirectoryW(wpath.c_str(), nullptr) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
+}
+
+void GetTimeLocal(tm* outTime, const time_t* timer)
+{
+    localtime_s(outTime, timer);
 }

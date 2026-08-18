@@ -17,6 +17,37 @@ void PreparedParam::Reset()
     }
 }
 
+void PreparedParam::SetBinary(const uint8 index, const void* value, uint32 size)
+{
+    assert(index < m_binds.size());
+
+    m_binds[index].buffer_type = MYSQL_TYPE_BLOB;
+
+    if (value && size > 0)
+    {
+        const char* pByteVal = (const char*)(value);
+        m_buffers[index].assign(pByteVal, pByteVal + size);
+    }
+    else
+    {
+        m_buffers[index].clear();
+    }
+
+    m_binds[index].buffer = (void*)m_buffers[index].data();
+    m_binds[index].buffer_length = (unsigned long)m_buffers[index].size();
+
+    m_lengths[index] = m_buffers[index].size();
+    m_binds[index].length = &m_lengths[index];
+
+    m_nulls[index] = (value == nullptr);
+    m_binds[index].is_null = (bool*)&m_nulls[index];
+}
+
+void PreparedParam::SetBinary(const uint8 index, const string& value)
+{
+    SetBinary(index, value.data(), value.size());
+}
+
 void PreparedParam::SetString(const uint8 index, const string& value)
 {
     assert(index < m_binds.size());

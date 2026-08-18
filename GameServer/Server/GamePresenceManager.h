@@ -53,7 +53,7 @@ public:
     void RemoveLocalWorld(uint32 worldID);
 
     void SortWorldsByPlayerCount();
-    uint32 GetWorldPresenceCount() { return static_cast<uint32>(m_sortedWorldPresences.size()); }
+    uint32 GetWorldPresenceCount() { return m_sortedWorldPresences.size(); }
     WorldPresenceData* GetWorldPresenceDataByIndex(int32 index);
     WorldPresenceData* GetRandomWorldPresenceData(int32 startIndex = 0);
 

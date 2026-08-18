@@ -96,21 +96,20 @@ void GameServer::OnEventReceive(NetworkEvent& event)
         case NET_MESSAGE_GENERIC_TEXT:
         case NET_MESSAGE_GAME_MESSAGE:
         {
-            LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength));
+            const char* textFromPacket = GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength);
+            LOGGER_LOG_DEBUG("%s", textFromPacket);
 
             if (pPlayer->HasState(PLAYER_STATE_LOGIN_REQUEST))
             {
                 ParsedTextPacket<40> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4,
-                                packet);
+                ParseTextPacket(textFromPacket, pPacket->dataLength - 4, packet);
 
                 pPlayer->StartLoginRequest(packet);
             }
             else if (pPlayer->HasState(PLAYER_STATE_ENTERING_GAME))
             {
                 ParsedTextPacket<38> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4,
-                                packet);
+                ParseTextPacket(textFromPacket, pPacket->dataLength - 4, packet);
 
                 auto pAction = packet.Find("action"_hash);
                 if (pAction)
@@ -127,8 +126,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
             else if (pPlayer->HasState(PLAYER_STATE_IN_GAME))
             {
                 ParsedTextPacket<38> packet;
-                ParseTextPacket(GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength), pPacket->dataLength - 4,
-                                packet);
+                ParseTextPacket(textFromPacket, pPacket->dataLength - 4, packet);
 
                 auto pAction = packet.Find("action"_hash);
                 if (pAction)
@@ -138,6 +136,7 @@ void GameServer::OnEventReceive(NetworkEvent& event)
                 }
             }
 
+            CRASH_SET("LastTextPacket", textFromPacket);
             break;
         }
 
@@ -222,7 +221,7 @@ void GameServer::Update()
 
     Context* pContext = GetContext();
 
-    uint32 currentCpuPermille = pContext->GetPerfStats().netCpuPermille;
+    uint32 currentCpuPermille = pContext->GetRuntimeStats().GetPerfStats().netCpuPermille;
     usize outgoingQueueSize = gPacketOutgoingQueue.size_approx();
 
     uint32 currentBurstLimit = 0;

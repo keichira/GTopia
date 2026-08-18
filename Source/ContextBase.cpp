@@ -6,14 +6,14 @@ void EvaluateNetHealth(usize queueSize, uint32 currentCpuPermille, uint32& outBu
 {
     auto& th = gNetBurstConfig.threshold;
 
-    if(queueSize >= th.panicQueueSize || currentCpuPermille >= th.panicCpuPermille)
+    if (queueSize >= th.panicQueueSize || currentCpuPermille >= th.panicCpuPermille)
     {
         outBurstLimit = gNetBurstConfig.panicBurst;
         outIsPanic = true;
         return;
     }
 
-    if(queueSize >= th.heavyQueueSize || currentCpuPermille >= th.heavyCpuPermille)
+    if (queueSize >= th.heavyQueueSize || currentCpuPermille >= th.heavyCpuPermille)
     {
         outBurstLimit = gNetBurstConfig.heavyBurst;
         outIsPanic = false;
@@ -24,19 +24,13 @@ void EvaluateNetHealth(usize queueSize, uint32 currentCpuPermille, uint32& outBu
     outIsPanic = false;
 }
 
-ContextBase::ContextBase()
-: m_stopFlag(0), m_shutdownFlag(0)
-{
-}
+ContextBase::ContextBase() : m_stopFlag(0), m_shutdownFlag(0) {}
 
-ContextBase::~ContextBase()
-{
-}
+ContextBase::~ContextBase() {}
 
 void ContextBase::Init()
 {
+    m_runtimeStats.Init();
 }
 
-void ContextBase::Kill()
-{
-}
+void ContextBase::Kill() {}

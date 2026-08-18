@@ -10,13 +10,14 @@ static const uint32 DB_RESULT_BUDGET_MS = 5;
 static const uint32 MAX_CATCHUP_TICKS = 4;
 static const uint32 PERF_SAMPLE_INTERVAL_MS = 1000;
 
-class Context : public ContextBase {
+class Context : public ContextBase
+{
 public:
     Context();
     ~Context();
 
 public:
-    static Context* GetInstance() 
+    static Context* GetInstance()
     {
         static Context instance;
         return &instance;

@@ -55,7 +55,7 @@ void WorldManager::StartWorldLoad(World* pWorld)
         pWorld->SaveToDatabase();
     }
 
-    auto& presenceUserIDs = pWorld->GetRequiredPresenceUserIDs();
+    auto presenceUserIDs = pWorld->GetRequiredPresenceUserIDs();
     if (presenceUserIDs.empty())
     {
         pWorld->SetState(WORLD_STATE_READY);
@@ -440,6 +440,8 @@ void WorldManager::OnHandleGamePacket(NetworkEvent& event)
         gPacketPool.Release(event.pPacket);
         return;
     }
+
+    CRASH_SET("LastGamePacket", pGamePacket->type);
 
     if (pGamePacket->type != NET_GAME_PACKET_NPC && pGamePacket->type != NET_GAME_PACKET_PING_REPLY &&
         pGamePacket->type != NET_GAME_PACKET_PING_REQUEST && pGamePacket->type != NET_GAME_PACKET_SET_ICON_STATE)

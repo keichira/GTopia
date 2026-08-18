@@ -22,10 +22,20 @@ void DatabaseThreadFunc()
     uint64 lastLogWriteTime = Time::GetSystemTime();
     uint64 nextTick = Time::GetSystemTime();
 
+    Context* pContext = GetContext();
+    DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
+
     while (GetContext()->IsRunning())
     {
-        DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
-        pWorker->Update();
+        if (pWorker)
+        {
+            pWorker->Update();
+            CRASH_SET("DatabaseConnected", pWorker->IsConnected());
+        }
+        else
+        {
+            CRASH_SET("DatabaseConnected", false);
+        }
 
         uint64 logWriteStart = Time::GetSystemTime();
         if (logWriteStart - lastLogWriteTime >= 5000)
@@ -62,7 +72,7 @@ void EventThreadFunc()
                 permille = 1000;
             }
 
-            pContext->GetPerfStats().netCpuPermille = permille;
+            pContext->GetRuntimeStats().GetPerfStats().netCpuPermille = permille;
 
             totalWorkTime = 0;
             lastCalculateTime = currentTime;
@@ -177,7 +187,7 @@ void RunGameLoop()
 
         if (now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
         {
-            ContextPerfStats& perf = pContext->GetPerfStats();
+            ContextPerfStats& perf = pContext->GetRuntimeStats().GetPerfStats();
             uint32 elapsedIntervalMs = (uint32)(now - lastPerfUpdateTime);
 
             if (tickCount > 0)
@@ -243,7 +253,6 @@ int main(int argc, char const* argv[])
     LOGGER_LOG_INFO_ASAP("Project created by keichira https://github.com/keichira/GTopia")
 
     GetContext()->Init();
-
     SetRandomSeed(Time::GetSystemTime());
     RandomizeRandomSeed();
 
@@ -253,6 +262,7 @@ int main(int argc, char const* argv[])
     if (pGameConfig->LoadServersMaster(GetProgramPath() + "/servers.txt") == 0)
     {
         LOGGER_LOG_ERROR_ASAP("Failed to load servers.txt");
+        GetContext()->Kill();
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Loaded %d servers from servers.txt", pGameConfig->servers.size());
@@ -260,12 +270,14 @@ int main(int argc, char const* argv[])
     if (!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt"))
     {
         LOGGER_LOG_ERROR_ASAP("Failed to load config.txt");
+        GetContext()->Kill();
         return 0;
     }
 
     if (!GetRoleManager()->Load(GetProgramPath() + "/roles.txt"))
     {
         LOGGER_LOG_ERROR_ASAP("Failed to load roles.txt");
+        GetContext()->Kill();
         return 0;
     }
 
@@ -274,6 +286,7 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", masterServerInfo.lanIP.c_str(),
                               masterServerInfo.tcpPort);
+        GetContext()->Kill();
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Started netsocket on %s:%d", masterServerInfo.lanIP.c_str(), masterServerInfo.tcpPort);
@@ -289,6 +302,7 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP(
             "Failed to initialize database pool, database credentials might be wrong check config.txt");
+        GetContext()->Kill();
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
@@ -297,6 +311,7 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(),
                               masterServerInfo.udpPort);
+        GetContext()->Kill();
         return 0;
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);
@@ -313,6 +328,7 @@ int main(int argc, char const* argv[])
             {
                 LOGGER_LOG_ERROR_ASAP("Failed to initialize telnet server on %s:%d", pTelnetServer->GetHost().c_str(),
                                       pTelnetServer->GetPort());
+                GetContext()->Kill();
                 return 0;
             }
             else

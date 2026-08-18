@@ -12,6 +12,7 @@ set(SOURCE_SERVER "${SOURCE_ROOT}/Server")
 set(SOURCE_UTILS "${SOURCE_ROOT}/Utils")
 set(SOURCE_WORLD "${SOURCE_ROOT}/World")
 set(SOURCE_OS "${SOURCE_ROOT}/OS")
+set(SOURCE_CRASH "${SOURCE_ROOT}/Crash")
 
 set(THIRD_PARTY_ROOT "${CMAKE_CURRENT_LIST_DIR}/../ThirdParty")
 set(THIRD_PARTY_ENET "${THIRD_PARTY_ROOT}/enet")
@@ -35,6 +36,12 @@ set(SOURCE_DEFAULT_FILES
     ${SOURCE_MEMORY}/RingBuffer.cpp
 
     ${SOURCE_PROTON}/ProtonUtils.cpp
+
+    ${SOURCE_SERVER}/ServerRuntimeStats.cpp
+
+    ${SOURCE_CRASH}/CrashContext.cpp
+    ${SOURCE_CRASH}/CrashHandler.cpp
+    ${SOURCE_CRASH}/CrashReport.cpp
 
     ${SOURCE_OS}/OSPrecompiled.cpp
 
@@ -90,9 +97,9 @@ set(SOURCE_ZLIB_FILES
 )
 
 if(WIN32)
-    list(APPEND SOURCE_DEFAULT_FILES ${SOURCE_ROOT}/OS/Windows/WindowsPrecompiled.cpp)
+    list(APPEND SOURCE_DEFAULT_FILES ${SOURCE_OS}/Windows/WindowsPrecompiled.cpp ${SOURCE_CRASH}/CrashHandler_Windows.cpp)
 else()
-    list(APPEND SOURCE_DEFAULT_FILES ${SOURCE_ROOT}/OS/Linux/LinuxPrecompiled.cpp)
+    list(APPEND SOURCE_DEFAULT_FILES ${SOURCE_OS}/Linux/LinuxPrecompiled.cpp ${SOURCE_CRASH}/CrashHandler_Linux.cpp)
 endif(WIN32)
 
 function(add_default_sources target_name)

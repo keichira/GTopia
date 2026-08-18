@@ -1,22 +1,40 @@
 #pragma once
 
 #include "../Precompiled.h"
-#include <mysql.h>
 #include <cassert>
+#include <mysql.h>
 
 // iphone kupi
 
-template<typename T>
-struct MySQLINTType;
+template <typename T> struct MySQLINTType;
 
-template<> struct MySQLINTType<int8> { static constexpr enum_field_types Type = MYSQL_TYPE_TINY; };
-template<> struct MySQLINTType<uint8> { static constexpr enum_field_types Type = MYSQL_TYPE_TINY; };
-template<> struct MySQLINTType<int16> { static constexpr enum_field_types Type = MYSQL_TYPE_SHORT; };
-template<> struct MySQLINTType<uint16> { static constexpr enum_field_types Type = MYSQL_TYPE_SHORT; };
-template<> struct MySQLINTType<int32> { static constexpr enum_field_types Type = MYSQL_TYPE_LONG; };
-template<> struct MySQLINTType<uint32> { static constexpr enum_field_types Type = MYSQL_TYPE_LONG; };
+template <> struct MySQLINTType<int8>
+{
+    static constexpr enum_field_types Type = MYSQL_TYPE_TINY;
+};
+template <> struct MySQLINTType<uint8>
+{
+    static constexpr enum_field_types Type = MYSQL_TYPE_TINY;
+};
+template <> struct MySQLINTType<int16>
+{
+    static constexpr enum_field_types Type = MYSQL_TYPE_SHORT;
+};
+template <> struct MySQLINTType<uint16>
+{
+    static constexpr enum_field_types Type = MYSQL_TYPE_SHORT;
+};
+template <> struct MySQLINTType<int32>
+{
+    static constexpr enum_field_types Type = MYSQL_TYPE_LONG;
+};
+template <> struct MySQLINTType<uint32>
+{
+    static constexpr enum_field_types Type = MYSQL_TYPE_LONG;
+};
 
-class PreparedParam {
+class PreparedParam
+{
 public:
     typedef std::vector<MYSQL_BIND> BindVector;
     typedef std::vector<std::vector<uint8>> BufferVector;
@@ -29,11 +47,14 @@ public:
 
 public:
     void Reset();
+
+    void SetBinary(const uint8 index, const void* value, uint32 size);
+    void SetBinary(const uint8 index, const string& value);
     void SetString(const uint8 index, const string& value);
 
-    template<typename T>
-    void SetInt(const uint8 index, const T& value) {
-        assert(index < m_binds.size()); 
+    template <typename T> void SetInt(const uint8 index, const T& value)
+    {
+        assert(index < m_binds.size());
 
         m_binds[index].buffer_type = MySQLINTType<T>::Type;
 

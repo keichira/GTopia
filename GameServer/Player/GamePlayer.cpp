@@ -95,6 +95,8 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
     m_userID = m_loginDetail.user;
     GetMasterBroadway()->SendCheckSessionPacket(GetNetID(), m_loginDetail.user, m_loginDetail.token,
                                                 GetContext()->GetID());
+
+    CRASH_SET("LastPlayerUserID", m_userID);
 }
 
 void GamePlayer::HandleCheckSession(VariantVector&& result)
@@ -221,13 +223,25 @@ void GamePlayer::BuildForBulkDatabaseSave(VariantVector& outParams)
     uint32 roleID = m_pRole ? m_pRole->GetID() : GetRoleManager()->GetDefaultRoleID();
 
     outParams.emplace_back(roleID);
-    outParams.emplace_back(std::move(invStr));
+
+    Variant invVar;
+    invVar.SetBinary(std::move(invStr));
+    outParams.emplace_back(std::move(invVar));
+
     outParams.emplace_back((uint32)0);
     outParams.emplace_back(m_flags);
     outParams.emplace_back(worldID);
-    outParams.emplace_back(std::move(progressStr));
+
+    Variant progressVar;
+    progressVar.SetBinary(std::move(progressStr));
+    outParams.emplace_back(std::move(progressVar));
+
     outParams.emplace_back(m_gems);
-    outParams.emplace_back(std::move(extraStr));
+
+    Variant extraVar;
+    extraVar.SetBinary(std::move(extraStr));
+    outParams.emplace_back(std::move(extraVar));
+
     outParams.emplace_back(m_userID);
 }
 

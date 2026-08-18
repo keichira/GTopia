@@ -79,13 +79,21 @@ void DatabaseThreadFunc()
     Timer logTimer;
 
     uint64 now = Time::GetSystemTime();
+    Context* pContext = GetContext();
     DatabaseWorker* pWorker = GetContext()->GetDatabasePool()->GetWorker(0);
 
     while (GetContext()->IsRunning())
     {
         now = Time::GetSystemTime();
-
-        pWorker->Update();
+        if (pWorker)
+        {
+            pWorker->Update();
+            CRASH_SET("DatabaseConnected", pWorker->IsConnected());
+        }
+        else
+        {
+            CRASH_SET("DatabaseConnected", false);
+        }
 
         if (logTimer.GetElapsedTime() >= 5000)
         {
@@ -121,7 +129,7 @@ void EventThreadFunc()
                 permille = 1000;
             }
 
-            pContext->GetPerfStats().netCpuPermille = permille;
+            pContext->GetRuntimeStats().GetPerfStats().netCpuPermille = permille;
 
             totalWorkTime = 0;
             lastCalculateTime = currentTime;
@@ -352,7 +360,7 @@ void RunGameLoop()
 
         if (now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
         {
-            ContextPerfStats& perf = pContext->GetPerfStats();
+            ContextPerfStats& perf = pContext->GetRuntimeStats().GetPerfStats();
             uint32 elapsedIntervalMs = (uint32)(now - lastPerfUpdateTime);
 
             if (tickCount > 0)
@@ -392,8 +400,6 @@ int main(int argc, char const* argv[])
 {
     signal(SIGTERM, SignalStop);
     signal(SIGINT, SignalStop);
-    signal(SIGSEGV, SignalStop);
-    signal(SIGABRT, SignalStop);
 
     if (!ReadArgs(argc, argv))
         return 0;
@@ -415,6 +421,7 @@ int main(int argc, char const* argv[])
     if (pGameConfig->LoadServersClient(GetProgramPath() + "/servers.txt", GetContext()->GetID()) != 2)
     {
         LOGGER_LOG_ERROR_ASAP("Failed to load servers.txt");
+        GetContext()->Kill();
         return 0;
     }
 
@@ -422,12 +429,14 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP("Woops trying to run server with wrong type %d it should be game",
                               pGameConfig->servers[1].serverType);
+        GetContext()->Kill();
         return 0;
     }
 
     if (!pGameConfig->LoadConfig(GetProgramPath() + "/config.txt"))
     {
         LOGGER_LOG_ERROR_ASAP("Failed to load config.txt");
+        GetContext()->Kill();
         return 0;
     }
 
@@ -436,6 +445,7 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP("Failed to initialize netsocket on %s:%d", gameServerInfo.lanIP.c_str(),
                               gameServerInfo.tcpPort);
+        GetContext()->Kill();
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Started netsocket on %s:%d", gameServerInfo.lanIP.c_str(), gameServerInfo.tcpPort);
@@ -447,18 +457,22 @@ int main(int argc, char const* argv[])
                                              GetContext()->GetShutdownFlag()))
     {
         LOGGER_LOG_ERROR_ASAP("Master Server connection or authentication failed. Aborting startup.");
-        GetMasterBroadway()->Kill();
+        GetContext()->Kill();
         return 0;
     }
 
     if (!GetRoleManager()->Load(GetProgramPath() + "/roles.txt"))
     {
         LOGGER_LOG_ERROR_ASAP("Failed to load roles.txt");
+        GetContext()->Kill();
         return 0;
     }
 
     if (!LoadItemData())
+    {
+        GetContext()->Kill();
         return 0;
+    }
 
     if (!GetPlayModManager()->Load(GetProgramPath() + "/playmods.txt"))
     {
@@ -486,7 +500,7 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP(
             "Failed to initialize database pool, database credentials might be wrong check config.txt");
-        GetContext()->GetDatabasePool()->Kill();
+        GetContext()->Kill();
         return 0;
     }
     LOGGER_LOG_INFO_ASAP("Loaded %d workers for database", GetContext()->GetDatabasePool()->GetWorkerSize());
@@ -495,6 +509,7 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP("Failed to initialize game server on %s:%d", gameServerInfo.wanIP.c_str(),
                               gameServerInfo.udpPort);
+        GetContext()->Kill();
         return 0;
     }
     GetGameServer()->SetENetIncomeCmdType(pGameConfig->enetIncomeCmdType);

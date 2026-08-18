@@ -51,18 +51,6 @@ enum ePlayerOnlineStatus
     PLAYER_ONLINE_STATUS_COUNT
 };
 
-enum ePlayerTitle
-{
-    PLAYER_TITLE_LEGEND = 1 << 0,
-    PLAYER_TITLE_DOCTOR = 1 << 1,
-    PLAYER_TITLE_MAX_LVL = 1 << 2,
-    PLAYER_TITLE_MASTER = 1 << 3,
-    PLAYER_TITLE_G4G = 1 << 4,
-    PLAYER_TITLE_THANKSGIVING = 1 << 5,
-    PLAYER_TITLE_ANNIVERSARY = 1 << 6,
-    PLAYER_TITLE_PARTY = 1 << 7
-};
-
 enum ePlayerFreezeState
 {
     PLAYER_FREEZE_STATE_NONE,              // can move

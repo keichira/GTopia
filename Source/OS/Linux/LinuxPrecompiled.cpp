@@ -1,11 +1,11 @@
+#include "../../Utils/StringUtils.h"
 #include "../OSPrecompiled.h"
-#include <sys/time.h>
 #include <ctime>
-#include <unistd.h>
 #include <libgen.h>
 #include <sys/random.h>
 #include <sys/stat.h>
-#include "../../Utils/StringUtils.h"
+#include <sys/time.h>
+#include <unistd.h>
 
 string GetDateTimeAsStr()
 {
@@ -29,15 +29,16 @@ uint64 GetTick()
 
 string GetProgramPath()
 {
-    char buf[1024] = { 0 };
-    if(readlink("/proc/self/exe", buf, sizeof(buf) - 1) < 0) {
+    char buf[1024] = {0};
+    if (readlink("/proc/self/exe", buf, sizeof(buf) - 1) < 0)
+    {
         return "";
     }
 
     return string(dirname(buf));
 }
 
-int32 SleepMS(uint64 ms) 
+int32 SleepMS(uint64 ms)
 {
     timespec ts;
     ts.tv_sec = ms / 1000;
@@ -51,12 +52,16 @@ int32 GetRandomBytes(void* pDest, uint32 size)
     uint32 offset = 0;
     uint8 attm = 0;
 
-    while(offset < size) {
+    while (offset < size)
+    {
         int32 byteSize = getrandom((uint8*)pDest + offset, size - offset, 0);
-        
-        if(byteSize <= 0) {
-            if(byteSize < 0 && errno == EINTR) {
-                if(++attm > RANDOM_BYTE_MAX_RETRIES) {
+
+        if (byteSize <= 0)
+        {
+            if (byteSize < 0 && errno == EINTR)
+            {
+                if (++attm > RANDOM_BYTE_MAX_RETRIES)
+                {
                     return -1;
                 }
                 continue;
@@ -85,7 +90,8 @@ bool IsFolderExists(const string& path)
 string GetFileExtension(const string& file)
 {
     usize index = file.find_last_of('.');
-    if(index != string::npos) {
+    if (index != string::npos)
+    {
         return file.substr(index + 1, file.length());
     }
 
@@ -104,10 +110,24 @@ uint32 GetSecondsFromMidnight()
 
 string GetLoadAvgString()
 {
-    double avg[3] = { 0.0f };
-    if(getloadavg(avg, 3) < 0) {
+    double avg[3] = {0.0f};
+    if (getloadavg(avg, 3) < 0)
+    {
         return "";
     }
 
     return ToString(avg[0]) + " " + ToString(avg[1]) + " " + ToString(avg[2]);
+}
+
+bool CreateDir(const string& path)
+{
+    if (IsFolderExists(path))
+        return true;
+
+    return mkdir(path.c_str(), 0755) == 0;
+}
+
+void GetTimeLocal(tm* outTime, const time_t* timer)
+{
+    localtime_r(timer, outTime);
 }

@@ -492,6 +492,7 @@ def run_full_setup():
         move_file(CONFIGS_DIR / config, RUNTIME_DIR)
 
     (RUNTIME_DIR / "logs").mkdir(parents=True, exist_ok=True)
+    (RUNTIME_DIR / "logs" / "crash").mkdir(parents=True, exist_ok=True)
     
     local_ip = get_local_ip()
     latest_cdn = get_latest_growtopia_cdn()

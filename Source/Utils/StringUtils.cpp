@@ -282,6 +282,23 @@ void RemoveGTColorCodes(char* str)
     *out = '\0';
 }
 
+void StrCopyFast(char* pDest, const char* pSrc, usize destSize)
+{
+    if (!pDest || destSize == 0)
+        return;
+
+    usize i = 0;
+    if (pSrc)
+    {
+        while (pSrc[i] != '\0' && i < (destSize - 1))
+        {
+            pDest[i] = pSrc[i];
+            ++i;
+        }
+    }
+    pDest[i] = '\0';
+}
+
 eToIntResult ToInt(const string& str, int32& out, int32 base)
 {
     return ToInt(str.c_str(), out, base);

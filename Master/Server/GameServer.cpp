@@ -94,7 +94,10 @@ void GameServer::OnEventReceive(NetworkEvent& event)
     {
         case NET_MESSAGE_GENERIC_TEXT:
         {
-            LOGGER_LOG_DEBUG("%s", GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength));
+            const char* textFromPacket = GetTextFromEnetPacket(pPacket->payload, pPacket->dataLength);
+            LOGGER_LOG_DEBUG("%s", textFromPacket);
+
+            CRASH_SET("LastTextPacket", textFromPacket);
 
             switch (pPlayer->GetState())
             {
@@ -146,7 +149,7 @@ void GameServer::Update()
 
     Context* pContext = GetContext();
 
-    uint32 currentCpuPermille = pContext->GetPerfStats().netCpuPermille;
+    uint32 currentCpuPermille = pContext->GetRuntimeStats().GetPerfStats().netCpuPermille;
     usize outgoingQueueSize = gPacketOutgoingQueue.size_approx();
 
     uint32 currentBurstLimit = 0;

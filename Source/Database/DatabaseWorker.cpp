@@ -208,6 +208,11 @@ bool DatabaseWorker::SetupPreparedParams(VariantVector& params, bool bulk, uint3
                 m_pPrepParam->SetString(i, params[srcIdx].GetString());
                 break;
             }
+            case VARIANT_TYPE_BINARY:
+            {
+                m_pPrepParam->SetBinary(i, params[srcIdx].GetString());
+                break;
+            }
         }
     }
 

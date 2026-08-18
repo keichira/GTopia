@@ -58,6 +58,8 @@ void StripWhiteSpace(string& str);
 void RemoveGTColorCodes(string& str);
 void RemoveGTColorCodes(char* str);
 
+void StrCopyFast(char* pDest, const char* pSrc, usize destSize);
+
 enum eToIntResult
 {
     TO_INT_FAIL,

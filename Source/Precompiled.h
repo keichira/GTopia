@@ -1,10 +1,13 @@
 #pragma once
 
+#include "Crash/CrashContext.h"
 #include "OS/OSPrecompiled.h"
 
+#include <cstring>
 #include <unordered_map>
 #include <vector>
-#include <cstring>
+
+// clang-format off
 
 #ifndef SAFE_DELETE
 #define SAFE_DELETE(p) { if(p) { delete (p); (p) = nullptr; } }

@@ -16,6 +16,8 @@ enum eVariantTypes
     VARIANT_TYPE_VECTOR2FLOAT,
     VARIANT_TYPE_VECTOR3INT,
     VARIANT_TYPE_VECTOR3FLOAT,
+
+    VARIANT_TYPE_BINARY // used for database
 };
 
 struct VariantValue
@@ -190,8 +192,15 @@ public:
         return Vector3Float::New;
     }
 
+    void SetBinary(const string& rhs)
+    {
+        m_type = VARIANT_TYPE_BINARY;
+        m_str = rhs;
+    }
+
 public:
     eVariantTypes GetType() const { return m_type; }
+
     VariantValue GetValue() const { return m_value; }
 
     uint32 GetSize() const;
