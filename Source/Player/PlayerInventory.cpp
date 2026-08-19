@@ -87,9 +87,7 @@ void PlayerInventory::Serialize(MemoryBuffer& memBuffer, bool write, bool databa
 
             ItemInfo* pItem = pItemMgr->GetItemByID(item.id);
             if (!pItem)
-            {
                 continue;
-            }
 
             if (item.flags == 1)
             {
@@ -349,6 +347,26 @@ void PlayerInventory::RemoveFromQuickSlots(int32 itemID)
             m_quickSlots[i] = 0;
         }
     }
+}
+
+bool PlayerInventory::IsWearingPlayMod(int32 playModType)
+{
+    if (playModType == 0)
+        return false;
+
+    ItemInfoManager* pItemMgr = GetItemInfoManager();
+
+    for (auto& item : m_items)
+    {
+        if (item.id == ITEM_ID_BLANK)
+            continue;
+
+        ItemInfo* pItem = GetItemInfoManager()->GetItemByID(item.id);
+        if (pItem && pItem->playModType == playModType)
+            return true;
+    }
+
+    return false;
 }
 
 uint32 PlayerInventory::GetMemEstimate(bool database)

@@ -4,25 +4,33 @@
 #include "Utils/DialogBuilder.h"
 #include "Utils/StringUtils.h"
 
-PlayerPlayModController::PlayerPlayModController(GamePlayer* pPlayer)
-    : m_pPlayer(pPlayer), m_cachedSkinColor(0xFFFFFFFF)
-{
-}
+PlayerPlayModController::PlayerPlayModController(GamePlayer* pPlayer) : m_pPlayer(pPlayer) {}
 
 PlayerPlayModController::~PlayerPlayModController() {}
 
 ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
 {
-    if (type == PLAYMOD_TYPE_NONE)
+    if (type == PLAYMOD_TYPE_NONE || m_activeMods.size() >= 50)
         return nullptr;
 
     PlayMod* pConfig = GetPlayModManager()->GetPlayMod(type);
     if (!pConfig)
         return nullptr;
 
+    bool isOnlineOnly = IsOnlineOnlyPlayMod(type);
+    uint32 durationSec = pConfig->GetTime();
+
     if (ActivePlayMod* pExist = GetActiveMod(type))
     {
-        pExist->remainingMS = pConfig->GetTime() * 1000;
+        if (isOnlineOnly)
+        {
+            pExist->timeValue = durationSec;
+        }
+        else
+        {
+            pExist->timeValue = (durationSec > 0) ? ((uint32)(Time::GetTimeSinceEpoch()) + durationSec) : 0;
+        }
+
         pExist->updateTimer.Reset();
         RecalculateStats();
         return pExist;
@@ -30,10 +38,10 @@ ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
 
     if (!pConfig->GetAddMessage().empty())
     {
-        if (pConfig->GetTime() != 0)
+        if (durationSec != 0)
         {
             m_pPlayer->SendOnConsoleMessage("`o" + pConfig->GetName() + " (`$" + pConfig->GetAddMessage() +
-                                            " `omod added, `$" + Time::ConvertTimeToStr(pConfig->GetTime() * 1000) +
+                                            " `omod added, `$" + Time::ConvertTimeToStr(durationSec * 1000) +
                                             "`oleft)");
         }
         else
@@ -45,7 +53,16 @@ ActivePlayMod* PlayerPlayModController::AddPlayMod(ePlayModType type)
 
     ActivePlayMod newMod;
     newMod.type = type;
-    newMod.remainingMS = pConfig->GetTime() * 1000;
+
+    if (isOnlineOnly)
+    {
+        newMod.timeValue = durationSec;
+    }
+    else
+    {
+        newMod.timeValue = (durationSec > 0) ? ((uint32)(Time::GetTimeSinceEpoch()) + durationSec) : 0;
+    }
+
     newMod.updateTimer.Reset();
     newMod.customTickTimer.Reset();
 
@@ -105,7 +122,6 @@ ActivePlayMod* PlayerPlayModController::GetActiveMod(ePlayModType type)
 
 void PlayerPlayModController::RecalculateStats()
 {
-
     CharacterData& charData = m_pPlayer->GetCharData();
     charData.ResetToBaseStats();
 
@@ -300,7 +316,7 @@ void PlayerPlayModController::RecalculateStats()
         }
     }
 
-    m_cachedSkinColor = finalColor.GetAsUINTSwap();
+    charData.cachedSkinColor = finalColor.GetAsUINTSwap();
     charData.needCharStateUpdate = true;
     charData.needSkinUpdate = true;
 }
@@ -309,7 +325,7 @@ void PlayerPlayModController::Update()
 {
     bool needRefresh = false;
 
-    for (uint32 i = 0; i < m_activeMods.size();)
+    for (int32 i = 0; i < m_activeMods.size();)
     {
         ActivePlayMod& mod = m_activeMods[i];
 
@@ -332,25 +348,40 @@ void PlayerPlayModController::Update()
             continue;
         }
 
-        if (mod.remainingMS == 0)
+        bool isOnlineOnly = IsOnlineOnlyPlayMod(mod.type);
+
+        if (isOnlineOnly && mod.timeValue > 0)
         {
-            ++i;
-            continue;
+            uint64 elapsedMS = mod.updateTimer.GetElapsedTime();
+            if (elapsedMS >= 1000)
+            {
+                uint32 elapsedSec = (uint32)(elapsedMS / 1000);
+                mod.updateTimer.Reset();
+
+                if (elapsedSec >= mod.timeValue)
+                {
+                    RemovePlayMod(mod.type);
+                    needRefresh = true;
+                    continue;
+                }
+                else
+                {
+                    mod.timeValue -= elapsedSec;
+                }
+            }
+        }
+        else if (!isOnlineOnly && mod.timeValue > 0)
+        {
+            uint32 nowSec = (uint32)(Time::GetTimeSinceEpoch());
+            if (nowSec >= mod.timeValue)
+            {
+                RemovePlayMod(mod.type);
+                needRefresh = true;
+                continue;
+            }
         }
 
-        uint64 elapsed = mod.updateTimer.GetElapsedTime();
-        mod.updateTimer.Reset();
-
-        if (elapsed >= mod.remainingMS)
-        {
-            RemovePlayMod(mod.type);
-            needRefresh = true;
-        }
-        else
-        {
-            mod.remainingMS -= elapsed;
-            ++i;
-        }
+        ++i;
     }
 
     if (needRefresh)
@@ -369,11 +400,101 @@ void PlayerPlayModController::BuildActiveModsDialog(DialogBuilder& db)
             continue;
 
         string label = pConfig->GetName();
-        if (mod.remainingMS > 0)
+        uint32 remainingSec = mod.GetRemainingSeconds();
+        if (remainingSec > 0)
         {
-            label += " `o(`w" + Time::ConvertTimeToStr(mod.remainingMS) + " `oleft)";
+            label += " `o(`w" + Time::ConvertTimeToStr(remainingSec * 1000) + " `oleft)";
         }
         db.AddLabelWithIcon(label, pConfig->GetDisplayItem());
+    }
+}
+
+uint32 PlayerPlayModController::GetMemEstimate()
+{
+    return sizeof(uint16) * 2 + (m_activeMods.size() * (sizeof(uint16) + sizeof(uint32) + sizeof(int32)));
+}
+
+void PlayerPlayModController::Serialize(MemoryBuffer& memBuffer, bool write)
+{
+    uint16 version = PLAYER_MOD_CONTROLLER_VERSION;
+    memBuffer.ReadWrite(version, write);
+
+    uint16 modCount = m_activeMods.size();
+    memBuffer.ReadWrite(modCount, write);
+
+    if (!write)
+    {
+        m_activeMods.resize(modCount);
+    }
+
+    for (uint16 i = 0; i < modCount; ++i)
+    {
+        ActivePlayMod& activeMod = m_activeMods[i];
+        uint16 rawType = (uint16)(activeMod.type);
+        memBuffer.ReadWrite(rawType, write);
+        if (!write)
+        {
+            activeMod.type = (ePlayModType)(rawType);
+        }
+
+        memBuffer.ReadWrite(activeMod.timeValue, write);
+        memBuffer.ReadWrite(activeMod.extraData, write);
+    }
+
+    if (!write)
+    {
+        VerifyMods();
+        RecalculateStats();
+    }
+}
+
+void PlayerPlayModController::VerifyMods()
+{
+    if (!m_pPlayer)
+        return;
+
+    bool hasCorruptedData = false;
+
+    PlayerInventory& inventory = m_pPlayer->GetInventory();
+
+    for (int32 i = 0; i < m_activeMods.size();)
+    {
+        ActivePlayMod& activeMod = m_activeMods[i];
+        PlayMod* pConfig = GetPlayModManager()->GetPlayMod(activeMod.type);
+
+        if (!pConfig)
+        {
+            hasCorruptedData = true;
+            ++i;
+            continue;
+        }
+
+        if (activeMod.timeValue == 0)
+        {
+            if (pConfig->GetType() != PLAYMOD_TYPE_XENONITE)
+            {
+                if (!inventory.IsWearingPlayMod(activeMod.type))
+                {
+                    RemovePlayMod(activeMod.type);
+                    continue;
+                }
+            }
+        }
+        else
+        {
+            if (activeMod.GetRemainingSeconds() == 0)
+            {
+                RemovePlayMod(activeMod.type);
+                continue;
+            }
+        }
+
+        ++i;
+    }
+
+    if (hasCorruptedData)
+    {
+        m_activeMods.clear();
     }
 }
 

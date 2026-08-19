@@ -166,6 +166,10 @@ void GamePlayer::SaveToDatabase()
     MemoryBuffer extraMemBuffer(extraMemSize);
     m_extraData.Serialize(extraMemBuffer, true);
 
+    uint32 playModMemSize = m_modController.GetMemEstimate();
+    MemoryBuffer playModMemBuffer(playModMemSize);
+    m_modController.Serialize(playModMemBuffer, true);
+
     uint32 worldID = 0;
     if (m_currentWorldID != 0)
     {
@@ -185,7 +189,8 @@ void GamePlayer::SaveToDatabase()
     QueryRequest req =
         PlayerDB::Save(m_userID, roleID, string((char*)invMemBuffer.GetData(), invMemBuffer.GetOffset()), 0, m_flags,
                        worldID, string((char*)progressMemBuffer.GetData(), progressMemBuffer.GetOffset()), m_gems,
-                       string((char*)extraMemBuffer.GetData(), extraMemBuffer.GetOffset()), GetNetID());
+                       string((char*)extraMemBuffer.GetData(), extraMemBuffer.GetOffset()),
+                       string((char*)playModMemBuffer.GetData(), playModMemBuffer.GetOffset()), GetNetID());
 
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
 }
@@ -212,6 +217,13 @@ void GamePlayer::BuildForBulkDatabaseSave(VariantVector& outParams)
 
     MemoryBuffer extraMemBuffer(extraStr.data(), extraSize);
     m_extraData.Serialize(extraMemBuffer, true);
+
+    uint32 playModSize = m_modController.GetMemEstimate();
+    string playModStr;
+    playModStr.resize(playModSize);
+
+    MemoryBuffer playModMemBuffer(playModStr.data(), playModSize);
+    m_modController.Serialize(playModMemBuffer, true);
 
     uint32 worldID = 0;
     if (m_currentWorldID != 0)
@@ -241,6 +253,10 @@ void GamePlayer::BuildForBulkDatabaseSave(VariantVector& outParams)
     Variant extraVar;
     extraVar.SetBinary(std::move(extraStr));
     outParams.emplace_back(std::move(extraVar));
+
+    Variant playModVar;
+    playModVar.SetBinary(std::move(playModStr));
+    outParams.emplace_back(std::move(playModVar));
 
     outParams.emplace_back(m_userID);
 }
@@ -408,6 +424,13 @@ void GamePlayer::OnEnterGameCB(QueryTaskResult&& result)
     {
         MemoryBuffer extraMemBuffer(extraData.data(), extraData.size());
         pPlayer->GetExtraData().Serialize(extraMemBuffer, false);
+    }
+
+    string playMods = result.result->GetField("PlayMods", 0).GetString();
+    if (!playMods.empty())
+    {
+        MemoryBuffer playModBuffer(playMods.data(), playMods.size());
+        pPlayer->GetModController().Serialize(playModBuffer, false);
     }
 
     if (inventory.GetCountOfItem(ITEM_ID_FIST) == 0)
@@ -815,7 +838,7 @@ void GamePlayer::ToggleCloth(int32 itemID)
         m_inventory.SetClothByPart(pItem->id, pItem->bodyPart);
 
         ItemInfo* pWornItem = GetItemInfoManager()->GetItemByID(wornItem);
-        if (pWornItem)
+        if (pWornItem && pWornItem->playModType != PLAYMOD_TYPE_NONE)
         {
             m_modController.RemovePlayMod(pWornItem->playModType);
         }
@@ -1131,7 +1154,7 @@ void GamePlayer::DropItem(int32 itemID, uint16 amount, bool openDialog)
     if (IsMainDoor(pTile->GetDisplayedItem()))
     {
         SendOnTalkBubble("You can't drop items on the white door.", true);
-        PlaySFX("audio/cant_place_tile.wav");
+        PlaySFX("cant_place_tile.wav");
         return;
     }
 
@@ -1342,8 +1365,8 @@ TileInfo* GamePlayer::GetTilePlayerOnCenter()
         return nullptr;
 
     Vector2Float worldPos = m_worldPos;
-    m_worldPos.x += (m_characterData.avatarSize.x - 1.0f);
-    m_worldPos.y += (m_characterData.avatarSize.y / 2.0f);
+    worldPos.x += (m_characterData.avatarSize.x - 1.0f);
+    worldPos.y += (m_characterData.avatarSize.y / 2.0f);
 
     return pWorld->GetTileManager()->GetTileByWorldPos(worldPos);
 }

@@ -1,5 +1,7 @@
 #include "ItemUtils.h"
 
+// clang-format off
+
 uint16 StrToItemFlag(const string& type)
 {
     static const std::unordered_map<string, uint16> itemFlagMap 

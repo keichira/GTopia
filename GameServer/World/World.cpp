@@ -454,7 +454,7 @@ void World::SendSkinColorUpdateToAll(GamePlayer* pPlayer)
     if (!pPlayer)
         return;
 
-    uint32 skinColor = pPlayer->GetModController().GetSkinColor();
+    uint32 skinColor = pPlayer->GetCharData().GetSkinColor();
     for (auto& pWorldPlayer : m_players)
     {
         if (pWorldPlayer)

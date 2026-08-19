@@ -341,8 +341,7 @@ void Player::SendOnSetClothing(Player* pPlayer)
     data[3] = Vector3Float(ToItemClientID(clothes[BODY_PART_BACK]), ToItemClientID(clothes[BODY_PART_HAT]),
                            ToItemClientID(clothes[BODY_PART_CHESTITEM]));
 
-    data[4] = pPlayer ? (int32)pPlayer->GetCharData().skinColor.GetAsUINTSwap()
-                      : (int32)m_characterData.skinColor.GetAsUINTSwap();
+    data[4] = pPlayer ? (int32)pPlayer->GetCharData().GetSkinColor() : (int32)m_characterData.GetSkinColor();
 
     bool isInvis = true;
 

@@ -81,6 +81,18 @@ uint32 StrToCharacterState2Flag(const string& flag)
     return (it != charFlag2StrMap.end()) ? it->second : 0;
 }
 
+bool IsOnlineOnlyPlayMod(ePlayModType type)
+{
+    switch (type)
+    {
+        case PLAYMOD_TYPE_CARRYING_A_TORCH:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 PlayModManager::PlayModManager() {}
 
 PlayModManager::~PlayModManager() {}

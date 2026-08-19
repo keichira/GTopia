@@ -17,7 +17,7 @@ set_items|290|
 
 add_playmod|196|Feelin' Blue|A `!blueberry`` slides down your throat!|The effects of the `!blueberry`` have worn off.|
 set_skin_color|0,0,255,255|
-set_timer|3|
+set_timer|3600|
 
 add_playmod|290|Ghost in the shell|Your atoms are suddenly aware of quantum tunneling.|Your body stops shimmering and returns to normal.|
 set_skin_color|255,255,255,100|

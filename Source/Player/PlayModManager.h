@@ -6,7 +6,10 @@
 uint32 StrToCharacterStateFlag(const string& flag);
 uint32 StrToCharacterState2Flag(const string& flag);
 
-class PlayModManager {
+bool IsOnlineOnlyPlayMod(ePlayModType type);
+
+class PlayModManager
+{
 public:
     PlayModManager();
     ~PlayModManager();
@@ -17,7 +20,7 @@ public:
         static PlayModManager instance;
         return &instance;
     }
-    
+
 public:
     bool Load(const string& filePath);
 

@@ -7,8 +7,8 @@ static TableQuery sPlayerQueryTable[] =
 {
     {"SELECT ID, Name, GuestID, GuestName FROM Players WHERE Name = '' AND Mac = ? AND PlatformType = ? LIMIT 1;", QUERY_FLAG_RETURN_RESULT},
     {"INSERT INTO Players (GuestName, PlatformType, GuestID, Mac, IP, CreationDate, LastSeenTime) VALUES (?, ?, ?, ?, ?, SYSDATE(), NOW());", QUERY_FLAG_RETURN_INCREMENT},
-    {"SELECT GuestID, Name, GuestName, SkinColor, Gems, Flags, LastWorld, RoleID, ProgressData, Inventory FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
-    {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = ?, SkinColor = ?, Flags = ?, LastWorld = ?, ProgressData = ?, Gems = ?, ExtraData = ? WHERE ID = ?;", QUERY_FLAG_NONE},
+    {"SELECT GuestID, Name, GuestName, SkinColor, Gems, Flags, LastWorld, RoleID, ProgressData, Inventory, ExtraData, PlayMods FROM Players WHERE ID = ?;", QUERY_FLAG_RETURN_RESULT},
+    {"UPDATE Players SET LastSeenTime = NOW(), RoleID = ?, Inventory = ?, SkinColor = ?, Flags = ?, LastWorld = ?, ProgressData = ?, Gems = ?, ExtraData = ?, PlayMods = ? WHERE ID = ?;", QUERY_FLAG_NONE},
     {"SELECT ID FROM Players WHERE IP = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID, GuestName, GuestID FROM Players WHERE Name = '' AND VID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
     {"SELECT ID, GuestName, GuestID FROM Players WHERE Name = '' AND GID = UNHEX(MD5(?)) AND PlatformType = ?;", QUERY_FLAG_RETURN_RESULT},
@@ -55,7 +55,8 @@ QueryRequest Create(const string& guestName, uint8 platformType, uint16 guestID,
                     uint32 ownerID = 0);
 QueryRequest GetData(uint32 userID, uint32 ownerID = 0);
 QueryRequest Save(uint32 userID, uint32 roleID, const string& inventoryData, uint32 skinColor, uint32 flags,
-                  uint32 lastWorld, string progressData, int32 gems, const string& extraData, uint32 ownerID = 0);
+                  uint32 lastWorld, string progressData, int32 gems, const string& extraData, const string& playMods,
+                  uint32 ownerID = 0);
 QueryRequest BulkSave();
 QueryRequest CountByIP(std::string_view ip, uint32 ownerID = 0);
 

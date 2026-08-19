@@ -109,6 +109,7 @@ public:
         punchType = 0;
         skinColor = Color(180, 138, 120, 255);
         avatarSize = Vector2Int(20, 30);
+        cachedSkinColor = 0xFFFFFFFF;
 
         needSkinUpdate = false;
         needCharStateUpdate = false;
@@ -132,6 +133,8 @@ public:
         needSkinUpdate = true;
     };
 
+    uint32 GetSkinColor() { return (cachedSkinColor == 0xFFFFFFFF) ? skinColor.GetAsUINTSwap() : cachedSkinColor; }
+
 public:
     uint8 punchType;
     uint8 punchRange;
@@ -152,4 +155,5 @@ public:
     bool needCharStateUpdate;
 
     Vector2Int avatarSize;
+    uint32 cachedSkinColor;
 };

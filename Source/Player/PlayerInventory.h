@@ -51,6 +51,8 @@ public:
     void UpdateInventory(Player* pPlayer, int32 itemID, uint8 count, bool added);
     void RemoveFromQuickSlots(int32 itemID);
 
+    bool IsWearingPlayMod(int32 playModType);
+
     uint32 GetMemEstimate(bool database);
     void SetVersion(uint32 protocol);
 
