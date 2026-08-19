@@ -656,7 +656,7 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
     packet.field_4 = userID;
     packet.field_5 = tiles.size();
 
-    MemoryBuffer memBuffer;
+    uint8* pData = nullptr;
 
     if (!tiles.empty())
     {
@@ -664,8 +664,9 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
         packet.extraDataSize = tiles.size() * sizeof(uint16);
 
         uint32 memSize = packet.extraDataSize;
-        memBuffer = MemoryBuffer(memSize);
+        pData = new uint8[memSize];
 
+        MemoryBuffer memBuffer(pData, memSize);
         uint32 worldWidth = GetTileManager()->GetSize().x;
 
         for (auto& pTile : tiles)
@@ -680,7 +681,8 @@ void World::SendLockPacketToAll(int32 userID, int32 lockID, std::vector<TileInfo
 
     HandleTilePackets(&packet);
 
-    SendGamePacketToAll(&packet, nullptr, memBuffer.GetData());
+    SendGamePacketToAll(&packet, nullptr, pData);
+    SAFE_DELETE_ARRAY(pData);
 }
 
 void World::SendPlayerDataConfigToAll(GamePlayer* pPlayer)

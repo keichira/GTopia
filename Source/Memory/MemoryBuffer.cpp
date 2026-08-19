@@ -32,7 +32,7 @@ void MemoryBuffer::Destroy()
 {
     if (m_ownsMemory)
     {
-        SAFE_DELETE(m_pBuffer);
+        SAFE_DELETE_ARRAY(m_pBuffer);
     }
     m_bufferSize = 0;
     m_pos = 0;
