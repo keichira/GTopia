@@ -109,6 +109,7 @@ set(GAME_FILES PRIVATE
     ${GAME_DIALOG}/DressupDialog.cpp
     ${GAME_DIALOG}/SpotlightDialog.cpp
     ${GAME_DIALOG}/DisplayBlockDialog.cpp
+    ${GAME_DIALOG}/SuckerBlockDialog.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
@@ -128,6 +129,7 @@ set(GAME_FILES PRIVATE
 
     ${GAME_STORE}/StoreManager.cpp
     ${GAME_ITEM}/HarmonicCrystal.cpp
+    ${GAME_ITEM}/SuckerBlockManager.cpp
 
     ${SOURCE_NETWORK}/IPTracker.cpp
 

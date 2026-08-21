@@ -48,4 +48,5 @@ VariantVector OnForceTradeEnd();
 VariantVector OnKilled();
 VariantVector OnBillboardChange(int32 netID, int32 itemID, bool showBoard, float price, bool isLockPerItem, bool isBuy,
                                 int32 protocol = 9999);
+VariantVector OnPlanterActivated(uint32 itemID, uint32 tileX, uint32 tileY);
 } // namespace VariantPacket

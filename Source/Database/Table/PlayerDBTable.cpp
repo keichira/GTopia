@@ -41,7 +41,7 @@ QueryRequest PlayerDB::Save(uint32 userID, uint32 roleID, const string& inventor
 
 QueryRequest PlayerDB::BulkSave()
 {
-    constexpr int32 PARAMS_PER_ROW = 9;
+    constexpr int32 PARAMS_PER_ROW = 10;
 
     QueryRequest req;
     req.queryID = DB_PLAYER_SAVE;

@@ -111,6 +111,7 @@ public:
     void SendOnBillboardChange(int32 itemID, bool showBoard, float price, bool isLockPerItem, bool isBuy = false);
     void SendOnForceTradeEnded();
     void SendOnKilled();
+    void SendOnPlanterActivated(int32 itemID, uint32 tileX, uint32 tileY);
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);

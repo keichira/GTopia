@@ -14,7 +14,8 @@
 #include "Utils/GrowUtils.h"
 #include "WorldManager.h"
 
-World::World() : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0), m_balancerType(-1)
+World::World()
+    : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0), m_balancerType(-1), m_suckerManager(this)
 {
     m_pNpcManager = new WorldNPCManager(this);
     m_pBossManager = new WorldBossManager(this);
@@ -22,6 +23,8 @@ World::World() : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0),
 
 World::~World()
 {
+    m_suckerManager.Reset();
+
     SAFE_DELETE(m_pNpcManager);
     SAFE_DELETE(m_pBossManager);
 }
@@ -54,6 +57,22 @@ void World::OnHeartMonitorRemoved(TileInfo* pTile)
     }
 }
 
+void World::OnSuckerBlockAdded(TileInfo* pTile)
+{
+    m_suckerManager.Add(pTile);
+}
+
+void World::OnSuckerBlockRemoved(TileInfo* pTile)
+{
+    m_suckerManager.Remove(pTile);
+}
+
+void World::GenerateWorld(eWorldGenerationType type)
+{
+    m_suckerManager.Reset();
+    WorldInfo::GenerateWorld(type);
+}
+
 bool World::InitWorld()
 {
     if (m_databaseID == 0)
@@ -81,6 +100,8 @@ bool World::InitWorld()
     Serialize(memBuffer, false, true);
 
     SAFE_DELETE_ARRAY(pData);
+
+    m_suckerManager.ReInit();
     return true;
 }
 
@@ -876,6 +897,36 @@ void World::SendOnBillboardChangeToAll(GamePlayer* pPlayer)
             continue;
 
         SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size, pPlayer->GetNetID());
+    }
+
+    SAFE_DELETE_ARRAY(pData);
+}
+
+void World::SendOnPlanterActivatedToAll()
+{
+    uint32 itemID = 0;
+    uint32 tileX = 0;
+    uint32 tileY = 0;
+
+    if (TileInfo* pTile = m_suckerManager.GetActivePlanter();
+        TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>())
+    {
+        itemID = ToItemClientID(pTileExtra->itemID);
+
+        Vector2Int& vTilePos = pTile->GetPos();
+        tileX = vTilePos.x;
+        tileY = vTilePos.y;
+    }
+
+    uint32 size = 0;
+    uint8* pData = Proton::SerializeToMem(VariantPacket::OnPlanterActivated(itemID, tileX, tileY), &size, nullptr);
+
+    for (auto& pWorldPlayer : m_players)
+    {
+        if (!pWorldPlayer)
+            continue;
+
+        SendCallFunctionPacket(pWorldPlayer->GetNetID(), pData, size);
     }
 
     SAFE_DELETE_ARRAY(pData);
@@ -3231,6 +3282,37 @@ void World::OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileIn
             DropGemsOnTile(pTile, dropGems);
         }
     }
+}
+
+bool World::RemoveSingleItemFromPlayerOrSucker(GamePlayer* pPlayer, int32 itemID, bool isSucker)
+{
+    if (isSucker)
+    {
+        TileInfo* pTile = m_suckerManager.GetActivePlanter();
+        if (pTile)
+        {
+            if (TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>())
+            {
+                if (pTileExtra->itemID != itemID)
+                    return false;
+
+                m_suckerManager.OnPlayerUsedRemote(pPlayer);
+                return true;
+            }
+        }
+    }
+    else
+    {
+        if (pPlayer)
+        {
+            pPlayer->ModifyInventoryItem(itemID, -1);
+            return true;
+        }
+
+        return false;
+    }
+
+    return false;
 }
 
 bool World::IsPlayerWorldOwner(GamePlayer* pPlayer)

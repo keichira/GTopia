@@ -32,8 +32,10 @@ WorldInfo::~WorldInfo()
 }
 
 void WorldInfo::OnHeartMonitorAdded(TileInfo* pTile) {}
-
 void WorldInfo::OnHeartMonitorRemoved(TileInfo* pTile) {}
+
+void WorldInfo::OnSuckerBlockAdded(TileInfo* pTile) {}
+void WorldInfo::OnSuckerBlockRemoved(TileInfo* pTile) {}
 
 void WorldInfo::Kill()
 {

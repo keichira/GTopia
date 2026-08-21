@@ -506,7 +506,14 @@ void WorldTileManager::ModifyKeyTile(TileInfo* pTile, bool remove)
         }
     }
 
-    if (pTile->GetType() == ITEM_TYPE_LOCK)
+    if (pTile->GetType() == ITEM_TYPE_SUCKER)
+    {
+        if (!remove)
+            m_pWorld->OnSuckerBlockAdded(pTile);
+        else
+            m_pWorld->OnSuckerBlockRemoved(pTile);
+    }
+    else if (pTile->GetType() == ITEM_TYPE_LOCK)
     {
         if (remove)
         {

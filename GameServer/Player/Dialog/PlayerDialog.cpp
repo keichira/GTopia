@@ -17,6 +17,7 @@
 #include "OuijaBoardDialog.h"
 #include "SignDialog.h"
 #include "SpotlightDialog.h"
+#include "SuckerBlockDialog.h"
 #include "WeatherSpecialDialog.h"
 #include "XenoniteDialog.h"
 
@@ -122,6 +123,15 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
     if (pItem->type == ITEM_TYPE_DISPLAY_BLOCK)
     {
         DisplayBlockDialog::Request(pPlayer, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_SUCKER)
+    {
+        if (pItem->id != ITEM_ID_GAIAS_BEACON && pItem->id != ITEM_ID_UNSTABLE_TESSERACT)
+        {
+            SuckerBlockDialog::Request(pPlayer, pTile);
+        }
         return;
     }
 }

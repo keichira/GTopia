@@ -19,6 +19,7 @@
 #include "../../../Player/Dialog/RenderWorldDialog.h"
 #include "../../../Player/Dialog/SignDialog.h"
 #include "../../../Player/Dialog/SpotlightDialog.h"
+#include "../../../Player/Dialog/SuckerBlockDialog.h"
 #include "../../../Player/Dialog/TradeDialog.h"
 #include "../../../Player/Dialog/TrashDialog.h"
 #include "../../../Player/Dialog/WeatherSpecialDialog.h"
@@ -90,6 +91,9 @@ void DialogReturn::RegisterDialogs()
     RegisterDialog<DressupDialog::HandleAsk>("dressup_ask"_hash);
     RegisterDialog<SpotlightDialog::Handle>("spotlight"_hash);
     RegisterDialog<DisplayBlockDialog::Handle>("displayblock"_hash);
+    RegisterDialog<SuckerBlockDialog::Handle>("itemsucker"_hash);
+    RegisterDialog<SuckerBlockDialog::HandleAddItem>("itemaddedtosucker"_hash);
+    RegisterDialog<SuckerBlockDialog::HandleRetrieveItem>("itemremovedfromsucker"_hash);
 }
 
 void GameMessage_DialogReturn(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)

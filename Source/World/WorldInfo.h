@@ -34,12 +34,15 @@ public:
 public:
     virtual void OnHeartMonitorAdded(TileInfo* pTile);
     virtual void OnHeartMonitorRemoved(TileInfo* pTile);
+    virtual void OnSuckerBlockAdded(TileInfo* pTile);
+    virtual void OnSuckerBlockRemoved(TileInfo* pTile);
+
+    virtual void GenerateWorld(eWorldGenerationType type);
 
 public:
     void Kill();
 
     bool Serialize(MemoryBuffer& memBuffer, bool write, bool database, float gameVersion = 0.0f);
-    void GenerateWorld(eWorldGenerationType type);
     uint32 GetMemEstimate(bool database, float gameVersion = 0.0f);
 
     void SetName(const string& worldName) { m_name = worldName; }

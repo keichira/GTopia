@@ -41,7 +41,65 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     if (!pPlayerTile)
         return;
 
+    bool isFromSuckerRemote = (pItem->type == ITEM_TYPE_PLANTER);
+
     PlayerInventory& inventory = pPlayer->GetInventory();
+
+    if (isFromSuckerRemote)
+    {
+        TileInfo* pSuckerTile = pWorld->GetSuckerBlockManager().GetActivePlanter();
+        if (!pSuckerTile)
+        {
+            pPlayer->SendOnTalkBubble("There's no active planter!", false);
+            return;
+        }
+
+        TileExtra_Sucker* pSuckerExtra = pSuckerTile->GetExtra<TileExtra_Sucker>();
+        if (!pSuckerExtra || pSuckerExtra->itemID == ITEM_ID_BLANK)
+            return;
+
+        if (pSuckerExtra->itemID != ITEM_ID_BLANK)
+        {
+            if (!SuckerBlockManager::IsAllowedToBuildOrPlantItem(pSuckerExtra->itemID))
+            {
+                if (ItemInfo* pSuckerItemInfo = GetItemInfoManager()->GetItemByID(pSuckerTile->GetFG()))
+                {
+                    pPlayer->SendOnTalkBubble("There's no active " + pSuckerItemInfo->name + "!", false);
+                }
+                return;
+            }
+
+            if (!pWorld->PlayerHasAccessOnTile(pPlayer, pTile))
+            {
+                if (ItemInfo* pSuckedItemInfo = GetItemInfoManager()->GetItemByID(pSuckerExtra->itemID))
+                {
+                    if (pSuckedItemInfo->type == ITEM_TYPE_SEED)
+                    {
+                        pPlayer->SendOnTalkBubble("You don't have the access to plant there", false);
+                    }
+                    else
+                    {
+                        pPlayer->SendOnTalkBubble("You don't have the access to build there!", false);
+                    }
+                }
+                return;
+            }
+
+            if (pSuckerExtra->count < 1)
+            {
+                if (ItemInfo* pSuckerItemInfo = GetItemInfoManager()->GetItemByID(pSuckerTile->GetFG()))
+                {
+                    pPlayer->SendOnTalkBubble("The " + pSuckerItemInfo->name + " is empty!", false);
+                }
+            }
+
+            pPacket->field_7 = pSuckerExtra->itemID;
+        }
+    }
+
+    pItem = GetItemInfoManager()->GetItemByID(pPacket->field_7);
+    if (!pItem)
+        return;
 
     if (pItem->id == ITEM_ID_FIST)
     {
@@ -534,7 +592,13 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
             }
         }
 
-        if (inventory.GetCountOfItem(pItem->id) < 1)
+        int32 itemAmount = inventory.GetCountOfItem(pItem->id);
+        if (isFromSuckerRemote)
+        {
+            itemAmount = pWorld->GetSuckerBlockManager().GetItemCountOfPlanter();
+        }
+
+        if (itemAmount < 1)
             return;
 
         if (pItem->HasFlag(ITEM_FLAG_WORLDLOCKED))
@@ -625,7 +689,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
         pPlayer->GetProgressData().AddProgress(PLAYER_PROGRESS_PLACE_COUNT, 1);
         if (!pItem->IsUnlimited())
         {
-            pPlayer->ModifyInventoryItem(pItem->id, -1);
+            pWorld->RemoveSingleItemFromPlayerOrSucker(pPlayer, pItem->id, isFromSuckerRemote);
         }
 
         if (pItem->type == ITEM_TYPE_ACHIEVEMENT)
@@ -910,9 +974,26 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
                     pWorld->SendCurrentWeatherToAll();
                 }
             }
+
+            if (pTileItem->type == ITEM_TYPE_SUCKER && tileHealthPercent == 1.0f)
+            {
+                pWorld->GetSuckerBlockManager().TogglePlanting(pPlayer, pTile);
+            }
         }
         else
         {
+            if (pTileItem->type == ITEM_TYPE_SUCKER)
+            {
+                if (TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>())
+                {
+                    if (pTileExtra->count != 0)
+                    {
+                        pPlayer->SendOnTalkBubble("Empty the " + pTileItem->name + " before breaking!", false);
+                        return;
+                    }
+                }
+            }
+
             if (pTileItem->type == ITEM_TYPE_DRESSUP && !pPlayer->TryWearAllItemsFromDressup(pTile))
                 return;
 

@@ -103,6 +103,8 @@ enum eTileExtraType
     TILE_EXTRA_TYPE_SUPER_MUSIC = 56,
     TILE_EXTRA_TYPE_GEIGER_CHARGER = 57,
 
+    TILE_EXTRA_TYPE_SUCKER = 62,
+
     TILE_EXTRA_TYPE_FIELD_NODE = 67,
     TILE_EXTRA_TYPE_OUIJA_BOARD = 68,
 
@@ -554,4 +556,12 @@ TILE_EXTRA(TileExtra_VendingMachine, TILE_EXTRA_TYPE_VENDING)
     int32 price = 0;
     uint32 stock = 0;
     uint32 worldLockCount = 0;
+};
+
+TILE_EXTRA(TileExtra_Sucker, TILE_EXTRA_TYPE_SUCKER)
+    int32 itemID = 0;
+    int32 count = 0;
+    uint8 isSucking = 1;
+    uint8 isPlanting = 0;
+    int32 unk = 0;
 };

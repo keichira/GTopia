@@ -9,8 +9,8 @@ static LONG WINAPI ExceptionHandler(EXCEPTION_POINTERS* exceptionInfo)
     {
         DWORD code = exceptionInfo->ExceptionRecord->ExceptionCode;
 
-        if (code == STATUS_CONTROL_C_EXIT || code == DBG_CONTROL_C) // check dunno if it work
-            return EXCEPTION_CONTINUE_SEARCH;
+        // if (code == STATUS_CONTROL_C_EXIT || code == DBG_CONTROL_C) // check dunno if it work
+        //     return EXCEPTION_CONTINUE_SEARCH;
 
         info.code = (uint32)code;
         info.address = (uintptr_t)(exceptionInfo->ExceptionRecord->ExceptionAddress);

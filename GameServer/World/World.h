@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Item/SuckerBlockManager.h"
 #include "../Player/GamePlayer.h"
 #include "Database/Table/WorldDBTable.h"
 #include "Item/ItemInfoManager.h"
@@ -11,11 +12,6 @@
 #include "WorldBossManager.h"
 #include "WorldNPCManager.h"
 #include <queue>
-
-/**
- * todo packets
- * we are wasting for nothing, allocating same thing again and again
- */
 
 enum eWorldState
 {
@@ -35,6 +31,11 @@ public:
 public:
     void OnHeartMonitorAdded(TileInfo* pTile) override;
     void OnHeartMonitorRemoved(TileInfo* pTile) override;
+
+    void OnSuckerBlockAdded(TileInfo* pTile) override;
+    void OnSuckerBlockRemoved(TileInfo* pTile) override;
+
+    void GenerateWorld(eWorldGenerationType type) override;
 
 public:
     void SetDatabaseID(uint32 id) { m_databaseID = id; }
@@ -92,6 +93,7 @@ public:
     void SendOnCountryStateToAll(GamePlayer* pPlayer);
     void SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos, int32 delayMS = -1);
     void SendOnBillboardChangeToAll(GamePlayer* pPlayer);
+    void SendOnPlanterActivatedToAll();
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
                             const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
@@ -143,6 +145,8 @@ public:
     void OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile);
     void OnConsumeConsumable(GamePlayer* pPlayer, GamePlayer* pTarget, TileInfo* pTile, ItemInfo* pItem);
 
+    bool RemoveSingleItemFromPlayerOrSucker(GamePlayer* pPlayer, int32 itemID, bool isSucker);
+
     bool IsPlayerWorldOwner(GamePlayer* pPlayer);
     bool IsPlayerWorldAdmin(GamePlayer* pPlayer);
     int32 GetWorldOwnerID();
@@ -164,6 +168,7 @@ public:
     void UpdatePresenceNeededThings(bool sendUpdatesToNetwork);
 
     IPTracker& GetBannedPlayers() { return m_bannedPlayers; };
+    SuckerBlockManager& GetSuckerBlockManager() { return m_suckerManager; }
 
 private:
     void DropObject(const WorldObject& obj);
@@ -176,6 +181,7 @@ private:
 
     WorldNPCManager* m_pNpcManager;
     WorldBossManager* m_pBossManager;
+    SuckerBlockManager m_suckerManager;
 
     eWorldState m_state;
     std::vector<GamePlayer*> m_players;

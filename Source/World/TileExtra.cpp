@@ -66,6 +66,9 @@ uint8 GetTileExtraType(uint8 itemType)
         case ITEM_TYPE_PET_TRAINER:
             return TILE_EXTRA_TYPE_PET_TRAINER;
 
+        case ITEM_TYPE_SUCKER:
+            return TILE_EXTRA_TYPE_SUCKER;
+
         case ITEM_TYPE_WEATHER_SPECIAL:
             return TILE_EXTRA_TYPE_WEATHER_SPECIAL;
 
@@ -143,6 +146,9 @@ TileExtra* CreateTileExtra(uint8 type)
 
         case TILE_EXTRA_TYPE_PET_TRAINER:
             return new TileExtra_PetTrainer();
+
+        case TILE_EXTRA_TYPE_SUCKER:
+            return new TileExtra_Sucker();
 
         case TILE_EXTRA_TYPE_WEATHER_SPECIAL:
             return new TileExtra_WeatherSpecial();
@@ -763,4 +769,24 @@ void TileExtra_DisplayBlock::Serialize(MemoryBuffer& memBuffer, bool write, bool
 {
     TileExtra::Serialize(memBuffer, write);
     memBuffer.ReadWrite(itemID, write);
+}
+
+void TileExtra_Sucker::Serialize(MemoryBuffer& memBuffer, bool write, bool database, TileInfo* pTile,
+                                 uint16 worldVersion)
+{
+    TileExtra::Serialize(memBuffer, write);
+
+    if (!database)
+    {
+        int32 clientID = ToItemClientID(itemID);
+        memBuffer.ReadWrite(clientID, write);
+    }
+    else
+        memBuffer.ReadWrite(itemID, write);
+
+    memBuffer.ReadWrite(count, write);
+    memBuffer.ReadWrite(isSucking, write);
+    memBuffer.ReadWrite(isPlanting, write);
+
+    memBuffer.ReadWrite(unk, write);
 }

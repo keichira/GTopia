@@ -222,6 +222,11 @@ VariantVector OnBillboardChange(int32 netID, int32 itemID, bool showBoard, float
     return data;
 }
 
+VariantVector OnPlanterActivated(uint32 itemID, uint32 tileX, uint32 tileY)
+{
+    return {"OnPlanterActivated", itemID, tileX, tileY};
+}
+
 VariantVector OnStoreRequest(const string& storeData)
 {
     return {"OnStoreRequest", storeData};

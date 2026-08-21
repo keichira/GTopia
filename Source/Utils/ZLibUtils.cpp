@@ -15,13 +15,15 @@ uint8* zLibInflateToMemory(uint8* pCompData, uint32 compSize, uint32 decompSize)
     strm.next_out = pOut;
 
     int32 ret = inflateInit(&strm);
-    if(ret != Z_OK) {
+    if (ret != Z_OK)
+    {
         SAFE_DELETE_ARRAY(pOut);
         return nullptr;
     }
 
     ret = inflate(&strm, Z_FINISH);
-    if(ret != Z_STREAM_END) {
+    if (ret != Z_STREAM_END)
+    {
         SAFE_DELETE_ARRAY(pOut);
         inflateEnd(&strm);
         return nullptr;
@@ -45,13 +47,15 @@ uint8* zLibDefalteToMemory(uint8* pData, uint32 size, uint32& compSize)
     strm.next_out = pOut;
 
     int32 ret = deflateInit(&strm, Z_DEFAULT_COMPRESSION);
-    if(ret != Z_OK) {
+    if (ret != Z_OK)
+    {
         SAFE_DELETE_ARRAY(pOut);
         return nullptr;
     }
 
     ret = deflate(&strm, Z_FINISH);
-    if(ret != Z_STREAM_END) {
+    if (ret != Z_STREAM_END)
+    {
         SAFE_DELETE_ARRAY(pOut);
         deflateEnd(&strm);
         return nullptr;

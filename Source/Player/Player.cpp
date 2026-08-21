@@ -224,6 +224,12 @@ void Player::SendOnKilled()
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnKilled(), GetNetID());
 }
 
+void Player::SendOnPlanterActivated(int32 itemID, uint32 tileX, uint32 tileY)
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnPlanterActivated(ToItemClientID(itemID), tileX, tileY),
+                           GetNetID());
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;

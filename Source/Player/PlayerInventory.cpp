@@ -200,20 +200,21 @@ uint8 PlayerInventory::RemoveItem(int32 itemID, Player* pPlayer)
 void PlayerInventory::SetClothByPart(int32 itemID, uint8 bodyPart)
 {
     if (bodyPart > BODY_PART_SIZE)
-    {
         return;
+
+    if (InventoryItemInfo* pOldItem = GetItemByID(m_clothes[bodyPart]))
+    {
+        if (itemID != ITEM_ID_BLANK)
+        {
+            pOldItem->flags = 0;
+        }
     }
 
-    InventoryItemInfo* pItem = GetItemByID(itemID);
-    if (pItem)
+    if (InventoryItemInfo* pNewItem = GetItemByID(itemID))
     {
-        if (itemID == ITEM_ID_BLANK)
+        if (itemID != ITEM_ID_BLANK)
         {
-            pItem->flags = 0;
-        }
-        else
-        {
-            pItem->flags = 1;
+            pNewItem->flags = 1;
         }
     }
 
