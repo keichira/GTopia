@@ -2,20 +2,48 @@
 #include "Item/ItemInfoManager.h"
 #include "World/WorldManager.h"
 
-SuckerBlockManager::SuckerBlockManager(World* pWorld) : m_pWorld(pWorld) {}
+SuckerBlockManager::SuckerBlockManager(World* pWorld) : m_pWorld(pWorld), m_pActivePlanter(nullptr) {}
 
-bool SuckerBlockManager::IsCorrupted(TileExtra_Sucker* pSucker)
+SuckerBlockManager::~SuckerBlockManager() {}
+
+bool SuckerBlockManager::IsRestrictedItem(ItemInfo* pItem)
+{
+    if (!pItem)
+        return true;
+
+    if (pItem->HasFlag(ITEM_FLAG_PERMANENT) || pItem->HasFlag(ITEM_FLAG_AUTOPICKUP) ||
+        pItem->HasFlag(ITEM_FLAG_PUBLIC) || pItem->HasFlag(ITEM_FLAG_UNTRADEABLE))
+    {
+        return true;
+    }
+
+    if (pItem->id == ITEM_ID_WATER_BUCKET || pItem->id == ITEM_ID_DIAMOND_HORN || pItem->id == ITEM_ID_DIAMOND_HORNS ||
+        pItem->id == ITEM_ID_DIAMOND_DEVIL_HORNS)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool SuckerBlockManager::IsCorrupted(TileInfo* pSucker)
 {
     if (!pSucker)
         return true;
 
-    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pSucker->itemID);
+    TileExtra_Sucker* pTileExtra = pSucker->GetExtra<TileExtra_Sucker>();
+    if (!pTileExtra)
+        return true;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTileExtra->itemID);
     if (!pItem)
     {
-        pSucker->itemID = 0;
-        pSucker->count = 0;
-        pSucker->isSucking = 1;
-        pSucker->isPlanting = 0;
+        ChangeSuckerItem(pSucker, pTileExtra->itemID, ITEM_ID_BLANK);
+
+        pTileExtra->itemID = 0;
+        pTileExtra->count = 0;
+        pTileExtra->isSucking = 1;
+        pTileExtra->isPlanting = 0;
         return true;
     }
 
@@ -25,15 +53,7 @@ bool SuckerBlockManager::IsCorrupted(TileExtra_Sucker* pSucker)
 bool SuckerBlockManager::IsAllowedToBuildOrPlantItem(int32 itemID)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if (!pItem)
-        return false;
-
-    if (pItem->HasFlag(ITEM_FLAG_PERMANENT) || pItem->HasFlag(ITEM_FLAG_AUTOPICKUP) ||
-        pItem->HasFlag(ITEM_FLAG_PUBLIC) || pItem->HasFlag(ITEM_FLAG_UNTRADEABLE))
-        return false;
-
-    if (pItem->id == ITEM_ID_WATER_BUCKET || pItem->id == ITEM_ID_DIAMOND_HORN || pItem->id == ITEM_ID_DIAMOND_HORNS ||
-        pItem->id == ITEM_ID_DIAMOND_DEVIL_HORNS)
+    if (!pItem || IsRestrictedItem(pItem))
         return false;
 
     switch (pItem->type)
@@ -136,15 +156,7 @@ int32 SuckerBlockManager::GetMachineCapacity(int32 itemID)
 bool SuckerBlockManager::IsAllowedItemInMachine(int32 itemID, int32 machineID)
 {
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
-    if (!pItem)
-        return false;
-
-    if (pItem->HasFlag(ITEM_FLAG_PERMANENT) || pItem->HasFlag(ITEM_FLAG_AUTOPICKUP) ||
-        pItem->HasFlag(ITEM_FLAG_PUBLIC) || pItem->HasFlag(ITEM_FLAG_UNTRADEABLE))
-        return false;
-
-    if (pItem->id == ITEM_ID_WATER_BUCKET || pItem->id == ITEM_ID_DIAMOND_HORN || pItem->id == ITEM_ID_DIAMOND_HORNS ||
-        pItem->id == ITEM_ID_DIAMOND_DEVIL_HORNS)
+    if (!pItem || IsRestrictedItem(pItem))
         return false;
 
     if (pItem->type == ITEM_TYPE_SEED)
@@ -153,15 +165,13 @@ bool SuckerBlockManager::IsAllowedItemInMachine(int32 itemID, int32 machineID)
             return false;
 
         ItemInfo* pSeed = GetItemInfoManager()->GetItemByID(SEED_TO_ITEM_ID(pItem->id));
-        if (!pSeed)
-            return false;
-
-        if (pSeed->HasFlag(ITEM_FLAG_PERMANENT) || pSeed->HasFlag(ITEM_FLAG_AUTOPICKUP) ||
-            pSeed->HasFlag(ITEM_FLAG_PUBLIC) || pSeed->HasFlag(ITEM_FLAG_UNTRADEABLE))
+        if (!pSeed || IsRestrictedItem(pSeed))
             return false;
     }
     else if (machineID == ITEM_ID_GAIAS_BEACON)
+    {
         return false;
+    }
 
     if (IsAllowedToBuildOrPlantItem(pItem->id))
         return true;
@@ -182,10 +192,14 @@ bool SuckerBlockManager::IsAllowedItemInMachine(int32 itemID, int32 machineID)
 
 void SuckerBlockManager::Add(TileInfo* pTile)
 {
-    if (!pTile || Has(pTile))
+    if (!pTile)
         return;
 
-    m_suckerTiles.push_back(pTile);
+    TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
+    if (!pTileExtra)
+        return;
+
+    RegisterSuckerTile(pTile, pTileExtra->itemID);
 
     if (TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>())
     {
@@ -206,39 +220,30 @@ void SuckerBlockManager::Remove(TileInfo* pTile)
     if (!pTile)
         return;
 
-    auto it = std::find(m_suckerTiles.begin(), m_suckerTiles.end(), pTile);
-    if (it != m_suckerTiles.end())
-        return;
-
-    m_suckerTiles.erase(it);
-
-    if (TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>())
+    TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
+    if (pTileExtra)
     {
-        if (pTileExtra->isPlanting == 1)
-        {
-            if (m_pWorld)
-            {
-                m_pWorld->SendOnPlanterActivatedToAll();
-            }
-        }
+        UnregisterSuckerTile(pTile, pTileExtra->itemID);
+    }
+
+    if (m_pActivePlanter == pTile)
+    {
+        m_pActivePlanter = nullptr;
     }
 }
 
-bool SuckerBlockManager::Has(TileInfo* pTile)
+void SuckerBlockManager::ChangeSuckerItem(TileInfo* pTile, int32 oldItemID, int32 newItemID)
 {
-    if (!pTile)
-        return false;
+    if (!pTile || oldItemID == newItemID)
+        return;
 
-    return std::find(m_suckerTiles.begin(), m_suckerTiles.end(), pTile) != m_suckerTiles.end();
+    UnregisterSuckerTile(pTile, oldItemID);
+    RegisterSuckerTile(pTile, newItemID);
 }
 
 bool SuckerBlockManager::TogglePlanting(GamePlayer* pPlayer, TileInfo* pTile)
 {
-    if (!pTile)
-        return false;
-
-    TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
-    if (!pTileExtra)
+    if (!pPlayer || !pTile)
         return false;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
@@ -248,74 +253,63 @@ bool SuckerBlockManager::TogglePlanting(GamePlayer* pPlayer, TileInfo* pTile)
     if (!pWorld->GetTileManager()->IsPlayerOwnerOfTheTile(pTile, pPlayer->GetUserID()))
         return false;
 
-    int16 fgID = pTile->GetFG();
-    if (fgID == ITEM_ID_GAIAS_BEACON || fgID == ITEM_ID_UNSTABLE_TESSERACT)
-    {
-        pWorld->SendTileUpdate(pTile);
-        return true;
-    }
+    if (pTile->GetFG() == ITEM_ID_GAIAS_BEACON || pTile->GetFG() == ITEM_ID_UNSTABLE_TESSERACT)
+        return false;
 
-    ItemInfo* pMachineItemInfo = GetItemInfoManager()->GetItemByID(fgID);
+    TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
+    if (!pTileExtra)
+    {
+        pPlayer->SendOnTalkBubble("The item sucker tile extra is corrupted!", false);
+        return false;
+    }
 
     if (pTileExtra->itemID == ITEM_ID_BLANK)
     {
-        if (pMachineItemInfo)
+        pPlayer->SendOnTalkBubble("Select an item first!", false);
+        if (m_pActivePlanter == pTile)
         {
-            pPlayer->SendOnTalkBubble("You need to select an item first for " + pMachineItemInfo->name + "!", false);
+            m_pActivePlanter = nullptr;
+            pTileExtra->isPlanting = 0;
         }
-
         return false;
     }
 
     if (!IsAllowedToBuildOrPlantItem(pTileExtra->itemID))
     {
-        if (pMachineItemInfo)
-        {
-            pPlayer->SendOnTalkBubble("This item cannot be planted using " + pMachineItemInfo->name + "!", false);
-        }
-
+        pPlayer->SendOnTalkBubble("You cannot activate planting mode for this item!", false);
         return false;
     }
 
-    if (!m_pActivePlanter)
+    if (m_pActivePlanter == nullptr)
     {
-        GiveRemoteToPlayer(pPlayer);
-        pTileExtra->isPlanting = 1;
         m_pActivePlanter = pTile;
+        pTileExtra->isPlanting = 1;
 
         pWorld->SendOnPlanterActivatedToAll();
     }
     else if (m_pActivePlanter == pTile)
     {
-        if (pTileExtra->isPlanting == 0)
-        {
-            ReInit();
-            return true;
-        }
-
-        pTileExtra->isPlanting = 0;
         m_pActivePlanter = nullptr;
+        pTileExtra->isPlanting = 0;
 
         pWorld->SendOnPlanterActivatedToAll();
     }
     else
     {
-        TileExtra_Sucker* pPrevExtra = m_pActivePlanter->GetExtra<TileExtra_Sucker>();
-
-        if (pPrevExtra && pPrevExtra->isPlanting == 0)
+        if (m_pActivePlanter)
         {
-            ReInit();
-            return true;
+            TileExtra_Sucker* pOldExtra = m_pActivePlanter->GetExtra<TileExtra_Sucker>();
+            if (pOldExtra)
+            {
+                pOldExtra->isPlanting = 0;
+            }
+            pWorld->SendTileUpdate(m_pActivePlanter);
         }
-
-        pPrevExtra->isPlanting = 0;
-        pWorld->SendTileUpdate(m_pActivePlanter);
 
         m_pActivePlanter = pTile;
         pTileExtra->isPlanting = 1;
 
         pWorld->SendOnPlanterActivatedToAll();
-        GiveRemoteToPlayer(pPlayer);
     }
 
     pWorld->SendTileUpdate(pTile);
@@ -340,17 +334,14 @@ void SuckerBlockManager::GiveRemoteToPlayer(GamePlayer* pPlayer)
 
 bool SuckerBlockManager::OnPlayerUsedRemote(GamePlayer* pPlayer)
 {
-    if (!m_pActivePlanter || !m_pWorld)
+    if (!pPlayer || !m_pActivePlanter || !m_pWorld)
         return false;
 
     if (pPlayer->GetCurrentWorld() != m_pWorld->GetInstanceID())
         return false;
 
     TileExtra_Sucker* pTileExtra = m_pActivePlanter->GetExtra<TileExtra_Sucker>();
-    if (!pTileExtra)
-        return false;
-
-    if (pTileExtra->count < 1)
+    if (!pTileExtra || pTileExtra->count < 1)
         return false;
 
     bool needsUpdate = (pTileExtra->count > GetMachineCapacity(m_pActivePlanter->GetFG()) - 50);
@@ -360,13 +351,14 @@ bool SuckerBlockManager::OnPlayerUsedRemote(GamePlayer* pPlayer)
     {
         m_pWorld->SendTileUpdate(m_pActivePlanter);
     }
+
     return true;
 }
 
 void SuckerBlockManager::Reset()
 {
     m_pActivePlanter = nullptr;
-    m_suckerTiles.clear();
+    m_suckerMap.clear();
 }
 
 void SuckerBlockManager::ReInit()
@@ -377,11 +369,15 @@ void SuckerBlockManager::ReInit()
         return;
 
     WorldTileManager* pTileMgr = m_pWorld->GetTileManager();
+    if (!pTileMgr)
+        return;
+
     Vector2Int& vWorldSize = pTileMgr->GetSize();
+    int32 totalTiles = vWorldSize.x * vWorldSize.y;
 
     std::vector<TileInfo*> tileUpdates;
 
-    for (int32 i = 0; i < (vWorldSize.x * vWorldSize.y); ++i)
+    for (int32 i = 0; i < totalTiles; ++i)
     {
         TileInfo* pTile = pTileMgr->GetTile(i);
         if (!pTile)
@@ -395,10 +391,108 @@ void SuckerBlockManager::ReInit()
         tileUpdates.push_back(pTile);
     }
 
-    m_pWorld->SendTileUpdateMultiple(tileUpdates);
+    if (!tileUpdates.empty())
+    {
+        m_pWorld->SendTileUpdateMultiple(tileUpdates);
+    }
 }
 
-int32 SuckerBlockManager::GetItemCountOfPlanter()
+TileInfo* SuckerBlockManager::GetSuckerToSuckItemByID(int32 itemID, int32 count)
+{
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemID);
+    if (!pItem)
+        return nullptr;
+
+    if (pItem->id == ITEM_ID_BLANK)
+        return nullptr;
+
+    auto it = m_suckerMap.find(pItem->id);
+    if (it == m_suckerMap.end())
+        return nullptr;
+
+    auto& tiles = it->second;
+
+    for (int32 i = 0; i < tiles.size();)
+    {
+        TileInfo* pTile = tiles[i];
+        if (!pTile)
+        {
+            tiles[i] = tiles.back();
+            tiles.pop_back();
+            continue;
+        }
+
+        TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
+        if (!pTileExtra)
+        {
+            tiles[i] = tiles.back();
+            tiles.pop_back();
+            continue;
+        }
+
+        if (pTileExtra->itemID != pItem->id)
+        {
+            tiles[i] = tiles.back();
+            tiles.pop_back();
+            continue;
+        }
+
+        if (pTileExtra->isSucking == 0)
+        {
+            ++i;
+            continue;
+        }
+
+        if (pTileExtra->count + count <= GetMachineCapacity(pTile->GetFG()))
+            return pTile;
+
+        ++i;
+    }
+
+    return nullptr;
+}
+
+void SuckerBlockManager::RegisterSuckerTile(TileInfo* pTile, int32 itemID)
+{
+    if (!pTile || itemID == ITEM_ID_BLANK)
+        return;
+
+    auto& vec = m_suckerMap[itemID];
+    for (TileInfo* pSuckerTile : vec)
+    {
+        if (pSuckerTile == pTile)
+            return;
+    }
+    vec.push_back(pTile);
+}
+
+void SuckerBlockManager::UnregisterSuckerTile(TileInfo* pTile, int32 itemID)
+{
+    if (!pTile)
+        return;
+
+    auto it = m_suckerMap.find(itemID);
+    if (it == m_suckerMap.end())
+        return;
+
+    auto& suckerTiles = it->second;
+    for (int32 i = 0; i < suckerTiles.size(); ++i)
+    {
+        if (suckerTiles[i] == pTile)
+        {
+            suckerTiles[i] = suckerTiles.back();
+            suckerTiles.pop_back();
+            break;
+        }
+    }
+
+    if (suckerTiles.empty())
+    {
+        m_suckerMap.erase(it);
+    }
+}
+
+int32 SuckerBlockManager::GetItemCountOfPlanter() const
 {
     if (!m_pActivePlanter)
         return 0;

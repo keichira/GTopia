@@ -104,6 +104,8 @@ public:
 
     void ThrowItemToPlayerFromPosition(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
     void ThrowItemToPositionFromPlayer(GamePlayer* pPlayer, const Vector2Float& pos, int32 itemID, int32 count);
+    void ThrowItemToPositionFromToPosition(const Vector2Float& srcPos, const Vector2Float& destPos, int32 itemID,
+                                           int32 count);
 
     uint32 PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal);
     int32 PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
@@ -155,6 +157,7 @@ public:
 
     void DropGemsOnTile(TileInfo* pTile, uint32 gemCount);
     void DropObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const Vector2Float& offset, bool merge);
+    void DropOrSuckObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const Vector2Float& offset, bool merge);
     void DropObject(int16 itemID, uint8 count, const Vector2Float& pos);
 
     void SendCurrentWeatherToAll();

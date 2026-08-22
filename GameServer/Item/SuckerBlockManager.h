@@ -1,39 +1,50 @@
 #pragma once
 
-#include "World/TileInfo.h"
+#include "Precompiled.h"
 
 class World;
+class TileInfo;
+class TileExtra_Sucker;
 class GamePlayer;
+struct ItemInfo;
 
 class SuckerBlockManager
 {
 public:
     SuckerBlockManager(World* pWorld);
+    ~SuckerBlockManager();
 
 public:
-    static bool IsCorrupted(TileExtra_Sucker* pSucker);
     static bool IsAllowedToBuildOrPlantItem(int32 itemID);
-    static int32 GetMachineCapacity(int32 itemID);
     static bool IsAllowedItemInMachine(int32 itemID, int32 machineID);
+    static int32 GetMachineCapacity(int32 itemID);
+    static bool IsRestrictedItem(ItemInfo* pItem);
 
 public:
+    int32 GetItemCountOfPlanter() const;
+    bool IsCorrupted(TileInfo* pSucker);
+
     void Add(TileInfo* pTile);
     void Remove(TileInfo* pTile);
-    bool Has(TileInfo* pTile);
+
+    void ChangeSuckerItem(TileInfo* pTile, int32 oldItemID, int32 newItemID);
 
     bool TogglePlanting(GamePlayer* pPlayer, TileInfo* pTile);
-    void GiveRemoteToPlayer(GamePlayer* pPlayer);
     bool OnPlayerUsedRemote(GamePlayer* pPlayer);
+    void GiveRemoteToPlayer(GamePlayer* pPlayer);
 
     void Reset();
     void ReInit();
 
-    int32 GetItemCountOfPlanter();
-
-    TileInfo* GetActivePlanter() { return m_pActivePlanter; };
+    TileInfo* GetSuckerToSuckItemByID(int32 itemID, int32 count);
+    TileInfo* GetActivePlanter() { return m_pActivePlanter; }
 
 private:
-    TileInfo* m_pActivePlanter;
-    std::vector<TileInfo*> m_suckerTiles;
+    void RegisterSuckerTile(TileInfo* pTile, int32 itemID);
+    void UnregisterSuckerTile(TileInfo* pTile, int32 itemID);
+
+private:
     World* m_pWorld;
+    TileInfo* m_pActivePlanter;
+    std::unordered_map<int32, std::vector<TileInfo*>> m_suckerMap;
 };

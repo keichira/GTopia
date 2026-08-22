@@ -1232,7 +1232,7 @@ void GamePlayer::DropItem(int32 itemID, uint16 amount, bool openDialog)
         return;
     }
 
-    pWorld->DropObjectOnTile(pTile, pItem->id, amount, dropPos - pTile->GetWorldPosCenter(), true);
+    pWorld->DropOrSuckObjectOnTile(pTile, pItem->id, amount, dropPos - pTile->GetWorldPosCenter(), true);
 }
 
 void GamePlayer::SendLockAccessRequest(GamePlayer* pOwner, TileInfo* pLockTile)

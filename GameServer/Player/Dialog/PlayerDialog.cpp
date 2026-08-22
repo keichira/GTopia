@@ -128,10 +128,7 @@ void PlayerDialog::Handle(GamePlayer* pPlayer, TileInfo* pTile)
 
     if (pItem->type == ITEM_TYPE_SUCKER)
     {
-        if (pItem->id != ITEM_ID_GAIAS_BEACON && pItem->id != ITEM_ID_UNSTABLE_TESSERACT)
-        {
-            SuckerBlockDialog::Request(pPlayer, pTile);
-        }
+        SuckerBlockDialog::Request(pPlayer, pTile);
         return;
     }
 }

@@ -15,15 +15,14 @@ void SuckerBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if (!pItem)
-        return;
-
-    if (pItem->type != ITEM_TYPE_SUCKER)
+    if (!pItem || pItem->type != ITEM_TYPE_SUCKER)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if (!pWorld)
         return;
+
+    pWorld->GetSuckerBlockManager().IsCorrupted(pTile);
 
     Vector2Int& vTilePos = pTile->GetPos();
 
@@ -32,8 +31,6 @@ void SuckerBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
         .AddLabelWithIcon(pItem->name + "``", pItem->id, true)
         .EmbedData("tilex", vTilePos.x)
         .EmbedData("tiley", vTilePos.y);
-
-    SuckerBlockManager::IsCorrupted(pTileExtra);
 
     bool isOwner = pWorld->GetTileManager()->IsPlayerOwnerOfTheTile(pTile, pPlayer->GetUserID());
 
@@ -45,7 +42,9 @@ void SuckerBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
                 .AddItemPicker("selectitem", "`wChoose Item``", "Choose an item to put in the " + pItem->name);
         }
         else
+        {
             db.AddTextBox("There is no item selected.");
+        }
 
         db.EndDialog("itemsucker", "", "Close");
         pPlayer->SendOnDialogRequest(db.Get());
@@ -56,7 +55,9 @@ void SuckerBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
     if (!pSuckedItemInfo)
         return;
 
-    db.AddLabelWithIcon("`2" + pSuckedItemInfo->name + "``", pSuckedItemInfo->id);
+    int32 tileFg = pTile->GetFG();
+
+    db.AddSpacer().AddLabelWithIcon("`2" + pSuckedItemInfo->name + "``", pSuckedItemInfo->id);
 
     if (isOwner)
     {
@@ -85,62 +86,72 @@ void SuckerBlockDialog::Request(GamePlayer* pPlayer, TileInfo* pTile)
         }
 
         if (pTileExtra->count == 0)
+        {
             db.AddButton("clearitem", "Change Item");
+        }
         else if (pTileExtra->count == 1)
+        {
             db.AddButton("retrieveitem", "Retrieve Item");
+        }
         else
         {
-            if (pPlayer->GetInventory().GetCountOfItem(pTileExtra->itemID) == 200)
+            if (pPlayer->GetInventory().GetCountOfItem(pTileExtra->itemID) >= 200)
                 db.AddTextBox("You have too many " + pSuckedItemInfo->name + "!");
             else
                 db.AddButton("retrieveitem", "Retrieve Items");
         }
     }
 
-    if (canPlantOrBuildItem)
+    if (tileFg != ITEM_ID_GAIAS_BEACON && tileFg != ITEM_ID_UNSTABLE_TESSERACT)
     {
-        if (pTileExtra->isPlanting == 1)
+        if (canPlantOrBuildItem)
         {
-            if (pSuckedItemInfo->type == ITEM_TYPE_SEED)
+            if (pTileExtra->isPlanting == 1)
             {
-                db.AddTextBox("Planting mode: `5ACTIVE``");
+                if (pSuckedItemInfo->type == ITEM_TYPE_SEED)
+                    db.AddTextBox("Planting mode: `5ACTIVE``");
+                else
+                    db.AddTextBox("Building mode: `5ACTIVE``");
             }
             else
             {
-                db.AddTextBox("Building mode: `5ACTIVE``");
+                if (pSuckedItemInfo->type == ITEM_TYPE_SEED)
+                {
+                    db.AddTextBox("Planting mode: `6DISABLED``");
+                    if (isOwner)
+                        db.AddTextBox("Punch to activate planting mode.");
+                }
+                else
+                {
+                    db.AddTextBox("Building mode: `6DISABLED``");
+                    if (isOwner)
+                        db.AddTextBox("Punch to activate building mode.");
+                }
             }
+
+            if (pPlayer->GetInventory().GetCountOfItem(ITEM_ID_MAGPLANT_5000_REMOTE) < 1)
+                db.AddButton("getplantationdevice", "Get Remote");
         }
         else
         {
-            if (pSuckedItemInfo->type == ITEM_TYPE_SEED)
-            {
-                db.AddTextBox("Planting mode: `6DISABLED`");
-
-                if (isOwner)
-                    db.AddTextBox("Punch to activate planting mode.");
-            }
-            else
-            {
-                db.AddTextBox("Building mode: `6DISABLED``");
-
-                if (isOwner)
-                    db.AddTextBox("Punch to activate building mode.");
-            }
+            db.AddTextBox("`6You cannot place this item.``");
         }
-
-        if (pPlayer->GetInventory().GetCountOfItem(ITEM_ID_MAGPLANT_5000_REMOTE) < 1)
-            db.AddButton("getplantationdevice", "Get Remote");
     }
-    else
-        db.AddTextBox("`6You cannot place this item.``");
 
     if (isOwner)
     {
-        db.AddCheckBox("chk_enablesucking", "Enable Collection", pTileExtra->isSucking == 1 ? true : false)
+        db.AddCheckBox("chk_enablesucking", "Enable Collection", pTileExtra->isSucking == 1)
             .EndDialog("itemsucker", "Update", "Close");
     }
     else
-        db.EndDialog("itemsucker", "", "Close");
+    {
+        if (tileFg != ITEM_ID_GAIAS_BEACON && tileFg != ITEM_ID_UNSTABLE_TESSERACT)
+        {
+            db.EndDialog("itemsucker", "", "Close");
+        }
+        else
+            return;
+    }
 
     pPlayer->SendOnDialogRequest(db.Get());
 }
@@ -155,10 +166,7 @@ void SuckerBlockDialog::RequestAddItem(GamePlayer* pPlayer, TileInfo* pTile)
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if (!pItem)
-        return;
-
-    if (pItem->type != ITEM_TYPE_SUCKER)
+    if (!pItem || pItem->type != ITEM_TYPE_SUCKER)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
@@ -168,11 +176,7 @@ void SuckerBlockDialog::RequestAddItem(GamePlayer* pPlayer, TileInfo* pTile)
     if (!pWorld->GetTileManager()->IsPlayerOwnerOfTheTile(pTile, pPlayer->GetUserID()))
         return;
 
-    uint8 amountToAdd = pPlayer->GetInventory().GetCountOfItem(pTileExtra->itemID);
     int32 maxCapacity = SuckerBlockManager::GetMachineCapacity(pItem->id);
-
-    if (amountToAdd > (maxCapacity - amountToAdd))
-        amountToAdd = (maxCapacity - amountToAdd);
 
     if (pTileExtra->count >= maxCapacity)
     {
@@ -185,11 +189,15 @@ void SuckerBlockDialog::RequestAddItem(GamePlayer* pPlayer, TileInfo* pTile)
     if (!pSuckedItemInfo)
         return;
 
-    if (amountToAdd == 0)
+    int32 playerItemCount = pPlayer->GetInventory().GetCountOfItem(pTileExtra->itemID);
+    if (playerItemCount < 1)
     {
-        pPlayer->SendOnTalkBubble("You don't have " + pSuckedItemInfo->name, false);
+        pPlayer->SendOnTalkBubble("You don't have " + pSuckedItemInfo->name + "!", false);
         return;
     }
+
+    int32 availableSpace = maxCapacity - pTileExtra->count;
+    int32 defaultAmountToAdd = Min(playerItemCount, availableSpace);
 
     Vector2Int& vTilePos = pTile->GetPos();
 
@@ -199,10 +207,9 @@ void SuckerBlockDialog::RequestAddItem(GamePlayer* pPlayer, TileInfo* pTile)
         .EmbedData("tilex", vTilePos.x)
         .EmbedData("tiley", vTilePos.y)
         .AddLabelWithIcon("`2" + pSuckedItemInfo->name + "``", pSuckedItemInfo->id)
-        .AddTextBox("You have " + ToString(pPlayer->GetInventory().GetCountOfItem(pTileExtra->itemID)) + " `2" +
-                    pSuckedItemInfo->name + "`` in your backpack.")
+        .AddTextBox("You have " + ToString(playerItemCount) + " `2" + pSuckedItemInfo->name + "`` in your backpack.")
         .AddTextBox("How many `2" + pSuckedItemInfo->name + "`` would you like to add?")
-        .AddTextInput("itemtoadd", "Amount:", ToString(amountToAdd), 20)
+        .AddTextInput("itemtoadd", "Amount:", ToString(defaultAmountToAdd), 20)
         .EndDialog("itemaddedtosucker", "Add", "Close");
 
     pPlayer->SendOnDialogRequest(db.Get());
@@ -218,10 +225,7 @@ void SuckerBlockDialog::RequestRetrieveItem(GamePlayer* pPlayer, TileInfo* pTile
         return;
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetFG());
-    if (!pItem)
-        return;
-
-    if (pItem->type != ITEM_TYPE_SUCKER)
+    if (!pItem || pItem->type != ITEM_TYPE_SUCKER)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
@@ -231,22 +235,26 @@ void SuckerBlockDialog::RequestRetrieveItem(GamePlayer* pPlayer, TileInfo* pTile
     if (!pWorld->GetTileManager()->IsPlayerOwnerOfTheTile(pTile, pPlayer->GetUserID()))
         return;
 
+    if (pTileExtra->count < 1)
+    {
+        pPlayer->SendOnTalkBubble("You don't have any items to retrieve.", false);
+        return;
+    }
+
     ItemInfo* pSuckedItemInfo = GetItemInfoManager()->GetItemByID(pTileExtra->itemID);
     if (!pSuckedItemInfo)
         return;
 
-    int32 remainingSpace = pSuckedItemInfo->maxCanHold - pPlayer->GetInventory().GetCountOfItem(pSuckedItemInfo->id);
-    if (!pPlayer->GetInventory().HaveRoomForItem(pSuckedItemInfo->id, remainingSpace))
+    int32 playerHoldCount = pPlayer->GetInventory().GetCountOfItem(pSuckedItemInfo->id);
+    int32 remainingSpace = pSuckedItemInfo->maxCanHold - playerHoldCount;
+
+    if (remainingSpace <= 0 || !pPlayer->GetInventory().HaveRoomForItem(pSuckedItemInfo->id, 1))
     {
-        pPlayer->SendOnTalkBubble("You dont have any space left in your backpack for this", false);
+        pPlayer->SendOnTalkBubble("You don't have any space left in your backpack for this.", false);
         return;
     }
 
-    if (pTileExtra->count < 1)
-    {
-        pPlayer->SendOnTalkBubble("You dont have any items to retrieve.", false);
-        return;
-    }
+    int32 defaultRetrieveAmount = Min(pTileExtra->count, remainingSpace);
 
     Vector2Int& vTilePos = pTile->GetPos();
 
@@ -257,7 +265,7 @@ void SuckerBlockDialog::RequestRetrieveItem(GamePlayer* pPlayer, TileInfo* pTile
         .EmbedData("tiley", vTilePos.y)
         .AddLabelWithIcon("`2" + pSuckedItemInfo->name + "``", pSuckedItemInfo->id)
         .AddTextBox("How many `2" + pSuckedItemInfo->name + "`` would you like to remove?")
-        .AddTextInput("itemtoremove", "Amount:", ToString(Min(pTileExtra->count, remainingSpace)), 20)
+        .AddTextInput("itemtoremove", "Amount:", ToString(defaultRetrieveAmount), 20)
         .EndDialog("itemremovedfromsucker", "Retrieve", "Close");
 
     pPlayer->SendOnDialogRequest(db.Get());
@@ -269,23 +277,16 @@ void SuckerBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
-    if (!pTileX)
-        return;
-
     auto pTileY = packet.Find("tiley"_hash);
-    if (!pTileY)
+    if (!pTileX || !pTileY)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if (!pWorld)
         return;
 
-    int32 tileX = 0;
-    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS)
-        return;
-
-    int32 tileY = 0;
-    if (pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+    int32 tileX = 0, tileY = 0;
+    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS || pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
@@ -295,58 +296,83 @@ void SuckerBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet
     TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
     if (!pTileExtra)
     {
-        pPlayer->SendOnTalkBubble("Huh? It's is gone!", false);
+        pPlayer->SendOnTalkBubble("Huh? It's gone!", false);
         return;
     }
 
+    SuckerBlockManager& suckerMgr = pWorld->GetSuckerBlockManager();
     bool tileNeedsUpdate = false;
     auto pButtonClicked = packet.Find("buttonClicked"_hash);
+
+    int32 tileFG = pTile->GetFG();
 
     if (pWorld->GetTileManager()->IsPlayerOwnerOfTheTile(pTile, pPlayer->GetUserID()))
     {
         if (auto pEnableSucking = packet.Find("chk_enablesucking"_hash))
         {
-            bool val;
-            if (pEnableSucking->GetBool(val) != TO_INT_SUCCESS)
-                return;
-
-            if (pTileExtra->isSucking != (val ? 1 : 0))
+            bool val = false;
+            if (pEnableSucking->GetBool(val) == TO_INT_SUCCESS)
             {
-                pTileExtra->isSucking = val ? 1 : 0;
-                tileNeedsUpdate = true;
+                uint8 newSuckingState = val ? 1 : 0;
+                if (pTileExtra->isSucking != newSuckingState)
+                {
+                    pTileExtra->isSucking = newSuckingState;
+                    tileNeedsUpdate = true;
+                }
             }
         }
 
         if (auto pItemID = packet.Find("selectitem"_hash))
         {
             uint32 itemID = 0;
-            if (pItemID->GetUInt(itemID) != TO_INT_SUCCESS)
-                return;
-
-            ItemInfo* pSelectedItem = GetItemInfoManager()->GetItemByID(itemID);
-            if (!pSelectedItem)
-                return;
-
-            SuckerBlockManager::IsCorrupted(pTileExtra);
-            if (pTileExtra->itemID == ITEM_ID_BLANK)
+            if (pItemID->GetUInt(itemID) == TO_INT_SUCCESS)
             {
-                if (SuckerBlockManager::IsAllowedItemInMachine(pSelectedItem->id, pTile->GetFG()))
+                ItemInfo* pSelectedItem = GetItemInfoManager()->GetItemByID(itemID);
+                if (pSelectedItem)
                 {
-                    pTileExtra->itemID = pSelectedItem->id;
-                    pTileExtra->count = 0;
-                    pTileExtra->isSucking = 1;
-                    pTileExtra->isPlanting = 0;
-                    tileNeedsUpdate = true;
+                    if (pPlayer->GetInventory().GetCountOfItem(pSelectedItem->id) < 1)
+                    {
+                        pPlayer->SendOnTalkBubble("You don't have that.", false);
+                        return;
+                    }
+
+                    suckerMgr.IsCorrupted(pTile);
+                    if (pTileExtra->itemID == ITEM_ID_BLANK)
+                    {
+                        if (SuckerBlockManager::IsAllowedItemInMachine(pSelectedItem->id, tileFG))
+                        {
+                            suckerMgr.ChangeSuckerItem(pTile, pTileExtra->itemID, pSelectedItem->id);
+
+                            pTileExtra->itemID = pSelectedItem->id;
+                            pTileExtra->count = 0;
+                            pTileExtra->isSucking = 1;
+                            pTileExtra->isPlanting = 0;
+
+                            tileNeedsUpdate = true;
+                        }
+                        else
+                        {
+                            if (tileFG == ITEM_ID_GAIAS_BEACON && pSelectedItem->type != ITEM_TYPE_SEED)
+                            {
+                                pPlayer->SendOnTalkBubble("You can only store seeds in this machine.", false);
+                                return;
+                            }
+
+                            if (tileFG == ITEM_ID_UNSTABLE_TESSERACT && pSelectedItem->type != ITEM_TYPE_SEED)
+                            {
+                                pPlayer->SendOnTalkBubble("You cannot store seeds in this machine.", false);
+                                return;
+                            }
+
+                            pPlayer->SendOnTalkBubble("This item is not compatible.", false);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        pPlayer->SendOnTalkBubble("You cannot select an item.", false);
+                    }
                 }
-                else
-                {
-                    pPlayer->SendOnTalkBubble("This item is not compatible.", false);
-                    return;
-                }
-            }
-            else
-            {
-                pPlayer->SendOnTalkBubble("You cannot Select an item", false);
             }
         }
 
@@ -356,16 +382,19 @@ void SuckerBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet
 
             if (buttonClicked == "clearitem")
             {
+                if (pTileExtra->count != 0)
+                {
+                    pPlayer->SendOnTalkBubble("Empty the machine first.", false);
+                    return;
+                }
+
+                suckerMgr.TogglePlanting(pPlayer, pTile);
+                suckerMgr.ChangeSuckerItem(pTile, pTileExtra->itemID, ITEM_ID_BLANK);
+
                 pTileExtra->itemID = 0;
                 pTileExtra->count = 0;
                 pTileExtra->isSucking = 1;
                 pTileExtra->isPlanting = 0;
-
-                TileInfo* pActivePlanterTile = pWorld->GetSuckerBlockManager().GetActivePlanter();
-                if (!pActivePlanterTile || pActivePlanterTile == pTile)
-                {
-                    pWorld->GetSuckerBlockManager().TogglePlanting(pPlayer, pTile);
-                }
 
                 pWorld->SendTileUpdate(pTile);
                 Request(pPlayer, pTile);
@@ -386,14 +415,19 @@ void SuckerBlockDialog::Handle(GamePlayer* pPlayer, ParsedTextPacket<38>& packet
         }
     }
 
-    if (pButtonClicked && pButtonClicked->GetStringView() == "getplantationdevice")
+    if (tileFG != ITEM_ID_GAIAS_BEACON && tileFG != ITEM_ID_UNSTABLE_TESSERACT)
     {
-        pWorld->GetSuckerBlockManager().GiveRemoteToPlayer(pPlayer);
-        return;
+        if (pButtonClicked && pButtonClicked->GetStringView() == "getplantationdevice")
+        {
+            suckerMgr.GiveRemoteToPlayer(pPlayer);
+            return;
+        }
     }
 
     if (tileNeedsUpdate)
+    {
         pWorld->SendTileUpdate(pTile);
+    }
 }
 
 void SuckerBlockDialog::HandleAddItem(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
@@ -402,23 +436,16 @@ void SuckerBlockDialog::HandleAddItem(GamePlayer* pPlayer, ParsedTextPacket<38>&
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
-    if (!pTileX)
-        return;
-
     auto pTileY = packet.Find("tiley"_hash);
-    if (!pTileY)
+    if (!pTileX || !pTileY)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if (!pWorld)
         return;
 
-    int32 tileX = 0;
-    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS)
-        return;
-
-    int32 tileY = 0;
-    if (pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+    int32 tileX = 0, tileY = 0;
+    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS || pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
@@ -428,7 +455,7 @@ void SuckerBlockDialog::HandleAddItem(GamePlayer* pPlayer, ParsedTextPacket<38>&
     TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
     if (!pTileExtra)
     {
-        pPlayer->SendOnTalkBubble("Huh? It's is gone!", false);
+        pPlayer->SendOnTalkBubble("Huh? It's gone!", false);
         return;
     }
 
@@ -441,17 +468,13 @@ void SuckerBlockDialog::HandleAddItem(GamePlayer* pPlayer, ParsedTextPacket<38>&
 
     int32 itemToAdd = 0;
     auto pItemToAdd = packet.Find("itemtoadd"_hash);
-    if (!pItemToAdd || pItemToAdd->GetInt(itemToAdd) != TO_INT_SUCCESS)
+    if (!pItemToAdd || pItemToAdd->GetInt(itemToAdd) != TO_INT_SUCCESS || itemToAdd <= 0)
         return;
 
-    if (itemToAdd < 0)
-        itemToAdd = 0;
-    if (itemToAdd > pSuckedItem->maxCanHold)
-        itemToAdd = pSuckedItem->maxCanHold;
-
-    if (pPlayer->GetInventory().GetCountOfItem(pSuckedItem->id) < itemToAdd)
+    int32 playerInventoryCount = pPlayer->GetInventory().GetCountOfItem(pSuckedItem->id);
+    if (playerInventoryCount < itemToAdd)
     {
-        pPlayer->SendOnTalkBubble("You don't have " + pSuckedItem->name + "!", false);
+        pPlayer->SendOnTalkBubble("You don't have " + ToString(itemToAdd) + " " + pSuckedItem->name + "!", false);
         return;
     }
 
@@ -475,23 +498,16 @@ void SuckerBlockDialog::HandleRetrieveItem(GamePlayer* pPlayer, ParsedTextPacket
         return;
 
     auto pTileX = packet.Find("tilex"_hash);
-    if (!pTileX)
-        return;
-
     auto pTileY = packet.Find("tiley"_hash);
-    if (!pTileY)
+    if (!pTileX || !pTileY)
         return;
 
     World* pWorld = GetWorldManager()->GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if (!pWorld)
         return;
 
-    int32 tileX = 0;
-    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS)
-        return;
-
-    int32 tileY = 0;
-    if (pTileY->GetInt(tileY) != TO_INT_SUCCESS)
+    int32 tileX = 0, tileY = 0;
+    if (pTileX->GetInt(tileX) != TO_INT_SUCCESS || pTileY->GetInt(tileY) != TO_INT_SUCCESS)
         return;
 
     TileInfo* pTile = pWorld->GetTileManager()->GetTile(tileX, tileY);
@@ -501,7 +517,7 @@ void SuckerBlockDialog::HandleRetrieveItem(GamePlayer* pPlayer, ParsedTextPacket
     TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
     if (!pTileExtra)
     {
-        pPlayer->SendOnTalkBubble("Huh? It's is gone!", false);
+        pPlayer->SendOnTalkBubble("Huh? It's gone!", false);
         return;
     }
 
@@ -514,23 +530,18 @@ void SuckerBlockDialog::HandleRetrieveItem(GamePlayer* pPlayer, ParsedTextPacket
 
     int32 itemToRemove = 0;
     auto pItemToRemove = packet.Find("itemtoremove"_hash);
-    if (!pItemToRemove || pItemToRemove->GetInt(itemToRemove) != TO_INT_SUCCESS)
+    if (!pItemToRemove || pItemToRemove->GetInt(itemToRemove) != TO_INT_SUCCESS || itemToRemove <= 0)
         return;
 
-    if (itemToRemove < 0)
-        itemToRemove = 0;
-    if (itemToRemove > pSuckedItem->maxCanHold)
-        itemToRemove = pSuckedItem->maxCanHold;
+    if (pTileExtra->count < itemToRemove)
+    {
+        pPlayer->SendOnTalkBubble("You don't have that many items in the machine.", false);
+        return;
+    }
 
     if (!pPlayer->GetInventory().HaveRoomForItem(pSuckedItem->id, itemToRemove))
     {
         pPlayer->SendOnTalkBubble("You don't have enough space in your backpack for this.", false);
-        return;
-    }
-
-    if (pTileExtra->count < itemToRemove)
-    {
-        pPlayer->SendOnTalkBubble("You are removing what you dont have.", false);
         return;
     }
 

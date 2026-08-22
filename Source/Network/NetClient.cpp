@@ -41,7 +41,7 @@ bool NetClient::Send(uint16 packetID, const void* pData, uint32 size)
     pBuffer[4] = 0xFF;
     *(uint16*)(pBuffer + 5) = packetID;
 
-    if (size > 0 && pData != nullptr)
+    if (size > 0 && pData)
     {
         memcpy(pBuffer + 7, pData, size);
     }

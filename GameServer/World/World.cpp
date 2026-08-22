@@ -430,6 +430,7 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         pPlayer->GetModController().RemovePlayMod(PLAYMOD_TYPE_XENONITE);
         pPlayer->GetModController().RemovePlayMod(PLAYMOD_TYPE_IN_THE_SPOTLIGHT);
         pPlayer->SetCurrentWorld(0);
+        pPlayer->ModifyInventoryItem(ITEM_ID_MAGPLANT_5000_REMOTE, -1);
 
         if (hardLeave)
         {
@@ -908,14 +909,18 @@ void World::SendOnPlanterActivatedToAll()
     uint32 tileX = 0;
     uint32 tileY = 0;
 
-    if (TileInfo* pTile = m_suckerManager.GetActivePlanter();
-        TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>())
+    TileInfo* pTile = m_suckerManager.GetActivePlanter();
+    if (pTile)
     {
-        itemID = ToItemClientID(pTileExtra->itemID);
+        TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
+        if (pTileExtra)
+        {
+            itemID = ToItemClientID(pTileExtra->itemID);
 
-        Vector2Int& vTilePos = pTile->GetPos();
-        tileX = vTilePos.x;
-        tileY = vTilePos.y;
+            Vector2Int& vTilePos = pTile->GetPos();
+            tileX = vTilePos.x;
+            tileY = vTilePos.y;
+        }
     }
 
     uint32 size = 0;
@@ -1238,6 +1243,24 @@ void World::ThrowItemToPositionFromPlayer(GamePlayer* pPlayer, const Vector2Floa
     packet.field_4 = 0;
     packet.field_11 = ToItemClientID(itemID);
     packet.field_12 = count;
+
+    SendGamePacketToAll(&packet);
+}
+
+void World::ThrowItemToPositionFromToPosition(const Vector2Float& srcPos, const Vector2Float& destPos, int32 itemID,
+                                              int32 count)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_ITEM_EFFECT;
+    packet.field_9.x = srcPos.x;
+    packet.field_9.y = srcPos.y;
+    packet.field_8.x = destPos.x;
+    packet.field_8.y = destPos.y;
+    packet.field_5 = -1;
+    packet.field_3 = 6;
+    packet.field_4 = -1;
+    packet.field_11 = ToItemClientID(itemID);
+    packet.field_12 = 0;
 
     SendGamePacketToAll(&packet);
 }
@@ -2796,8 +2819,8 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
     {
         for (uint8 i = 0; i < fruitCount; ++i)
         {
-            DropObjectOnTile(pTile, pItemFruit->id, RandomRangeInt(1, pItemFruit->farmablity),
-                             GetRandomItemDropOffset(), true);
+            DropOrSuckObjectOnTile(pTile, pItemFruit->id, RandomRangeInt(1, pItemFruit->farmablity),
+                                   GetRandomItemDropOffset(), true);
         }
 
         uint32 gemAmount = GetGemCountHarvestTree(pItem);
@@ -2808,7 +2831,7 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
 
         if (pTile->HasFlag(TILE_FLAG_WILL_SPAWN_SEEDS_TOO))
         {
-            DropObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
+            DropOrSuckObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
             pPlayer->SendOnTalkBubble("A `w" + pItem->name + "`` falls out!", true);
         }
     }
@@ -2913,12 +2936,12 @@ void World::OnTileDestroyedDropObject(GamePlayer* pPlayer, TileInfo* pTile)
 
     if (dropBlock)
     {
-        DropObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
+        DropOrSuckObjectOnTile(pTile, pItem->id, 1, GetRandomItemDropOffset(), true);
     }
 
     if (dropSeed)
     {
-        DropObjectOnTile(pTile, ITEM_TO_SEED_ID(pItem->id), 1, GetRandomItemDropOffset(), true);
+        DropOrSuckObjectOnTile(pTile, ITEM_TO_SEED_ID(pItem->id), 1, GetRandomItemDropOffset(), true);
     }
 
     if (dropGems > 0)
@@ -3409,7 +3432,7 @@ GamePlayer* World::GetPlayerByNameStartsWith(const string& name, string& errorMs
             return pPlayer;
         }
 
-        if (pMatchedPlayer != nullptr)
+        if (pMatchedPlayer)
         {
             errorMsg =
                 "Error, more than one person's name in this world starts with `w" + name + "``. Be more specific.";
@@ -3594,6 +3617,58 @@ void World::DropObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const V
     }
 
     DropObject(obj);
+}
+
+void World::DropOrSuckObjectOnTile(TileInfo* pTile, int16 itemID, uint8 count, const Vector2Float& offset, bool merge)
+{
+    if (!pTile)
+        return;
+
+    TileInfo* pSuckerTile = m_suckerManager.GetSuckerToSuckItemByID(itemID, count);
+    bool shouldSpawnNormal = true;
+
+    if (pSuckerTile)
+    {
+        TileExtra_Sucker* pSuckerExtra = pSuckerTile->GetExtra<TileExtra_Sucker>();
+        if (pSuckerExtra && pSuckerExtra->isSucking)
+        {
+            shouldSpawnNormal = false;
+        }
+    }
+
+    if (!shouldSpawnNormal)
+    {
+        TileExtra_Sucker* pSuckerExtra = pSuckerTile->GetExtra<TileExtra_Sucker>();
+        if (!pSuckerExtra ||
+            (pSuckerExtra->count + count) > SuckerBlockManager::GetMachineCapacity(pSuckerTile->GetFG()))
+        {
+            shouldSpawnNormal = true;
+        }
+    }
+
+    if (!shouldSpawnNormal)
+    {
+        TileExtra_Sucker* pTileExtra = pSuckerTile->GetExtra<TileExtra_Sucker>();
+        if (!pTileExtra)
+            return;
+
+        bool wasEmpty = (pTileExtra->count == 0);
+
+        pTileExtra->count += count;
+
+        bool isNearFull = (pTileExtra->count >= (SuckerBlockManager::GetMachineCapacity(pSuckerTile->GetFG()) - 50));
+
+        if (wasEmpty || isNearFull)
+        {
+            SendTileUpdate(pTile);
+        }
+
+        ThrowItemToPositionFromToPosition(pTile->GetWorldPosCenter(), pSuckerTile->GetWorldPos(), itemID, count);
+    }
+    else
+    {
+        DropObjectOnTile(pTile, itemID, count, offset, merge);
+    }
 }
 
 void World::DropObject(int16 itemID, uint8 count, const Vector2Float& pos)
