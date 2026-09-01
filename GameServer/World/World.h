@@ -97,6 +97,7 @@ public:
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
                             const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
+    // void SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y);
 
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void HandleTilePackets(GameUpdatePacket* pGamePacket);
@@ -110,7 +111,7 @@ public:
     uint32 PathfindCalcDistance(TileInfo* pNode, TileInfo* pStart, TileInfo* pGoal);
     int32 PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std::vector<TileInfo*>& openList);
     bool PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal,
-                                    std::vector<TileInfo*>& openList);
+                                    std::vector<TileInfo*>& openList, std::vector<TileInfo*>& closedList);
     bool CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal);
     bool CanPlayerTravelStraight(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal);
 

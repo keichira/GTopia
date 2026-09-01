@@ -29,7 +29,7 @@ public:
 
     void ChangeSuckerItem(TileInfo* pTile, int32 oldItemID, int32 newItemID);
 
-    bool TogglePlanting(GamePlayer* pPlayer, TileInfo* pTile);
+    bool ToggleRemote(GamePlayer* pPlayer, TileInfo* pTile);
     bool OnPlayerUsedRemote(GamePlayer* pPlayer);
     void GiveRemoteToPlayer(GamePlayer* pPlayer);
 

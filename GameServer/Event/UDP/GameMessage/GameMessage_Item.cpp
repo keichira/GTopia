@@ -1,6 +1,5 @@
 #include "GameMessage_Item.h"
-#include "../../../Player/Dialog/PopupDialog.h"
-#include "../../../Player/Dialog/TrashDialog.h"
+#include "../../../Dialog/GameDialogs.h"
 #include "../../../Store/StoreManager.h"
 #include "Item/ItemInfoManager.h"
 #include "Packet/NetPacket.h"

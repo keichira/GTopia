@@ -353,6 +353,8 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
         }
     }
 
+    pPlayer->PlaySFX("door_open.wav");
+
     string worldSituationMsg;
 
     WorldTileManager* pTileMgr = GetTileManager();
@@ -972,6 +974,18 @@ void World::SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int
     SendGamePacketToAll(&packet);
 }
 
+/*void World::SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y)
+{
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_STEAM;
+    packet.field_11 = x;
+    packet.field_12 = y;
+    packet.field_3 = eventType;
+    packet.field_4 = -1;
+
+    SendGamePacketToAll(&packet);
+}*/
+
 void World::SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe, uint8* pExtraData)
 {
     for (auto& pWorldPlayer : m_players)
@@ -1289,7 +1303,7 @@ int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std:
         if (!pTile)
             continue;
 
-        int32 dist = PathfindCalcDistance(pTile, pStart, pGoal);
+        uint32 dist = PathfindCalcDistance(pTile, pStart, pGoal);
         if (bestIndex == -1 || dist < bestDist)
         {
             bestIndex = i;
@@ -1300,14 +1314,19 @@ int32 World::PathfindGetShortestOpenTile(TileInfo* pStart, TileInfo* pGoal, std:
     return bestIndex;
 }
 
-bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, TileInfo* pGoal,
-                                       std::vector<TileInfo*>& openList)
+// todo complexity
+bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pCurrent, TileInfo* pGoal,
+                                       std::vector<TileInfo*>& openList, std::vector<TileInfo*>& closedList)
 {
-    if (!pStart || !pGoal)
+    if (!pCurrent || !pGoal)
         return false;
 
     WorldTileManager* pTileMgr = GetTileManager();
-    Vector2Int vStartPos = pStart->GetPos();
+    Vector2Int vCurrentPos = pCurrent->GetPos();
+
+    ItemInfo* pCurrentItem = GetItemInfoManager()->GetItemByID(pCurrent->GetDisplayedItem());
+    if (!pCurrentItem)
+        return false;
 
     for (int32 dy = -1; dy <= 1; ++dy)
     {
@@ -1315,13 +1334,42 @@ bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, Ti
         {
             if (dx == 0 && dy == 0)
                 continue;
-
-            if (dx != 0 && dy != 0)
+            if (dy == dx)
+                continue;
+            if (dy == 1 && dx == -1)
+                continue;
+            if (dy == -1 && dx == 1)
                 continue;
 
-            TileInfo* pTile = pTileMgr->GetTile(vStartPos.x + dx, vStartPos.y + dy);
+            if (pCurrentItem->collisionType == COLLISION_ONE_WAY)
+            {
+                if ((dy < 0 && !pCurrent->HasFlag(TILE_FLAG_FLIPPED_X)) ||
+                    (dy > 0 && pCurrent->HasFlag(TILE_FLAG_FLIPPED_X)))
+                    continue;
+            }
+
+            TileInfo* pTile = pTileMgr->GetTile(vCurrentPos.x + dy, vCurrentPos.y + dx);
             if (!pTile)
                 continue;
+
+            ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
+            if (!pItem)
+                continue;
+
+            if (dy == 0)
+            {
+                if (dx == 1 && pItem->collisionType == COLLISION_JUMP_THROUGH)
+                    continue;
+
+                if (dx == -1 && pItem->collisionType == COLLISION_JUMP_DOWN)
+                    continue;
+            }
+
+            if (pItem->collisionType == COLLISION_ONE_WAY)
+            {
+                if ((dy < 0 && !pTile->HasFlag(TILE_FLAG_FLIPPED_X)) || (dy > 0 && pTile->HasFlag(TILE_FLAG_FLIPPED_X)))
+                    continue;
+            }
 
             if (IsTileCollidableForPlayer(pPlayer, pTile, true))
                 continue;
@@ -1329,17 +1377,29 @@ bool World::PathfindAddNeighborsToList(GamePlayer* pPlayer, TileInfo* pStart, Ti
             if (pTile == pGoal)
                 return true;
 
-            bool exists = false;
+            bool isClosed = false;
+            for (auto& pClosed : closedList)
+            {
+                if (pClosed == pTile)
+                {
+                    isClosed = true;
+                    break;
+                }
+            }
+            if (isClosed)
+                continue;
+
+            bool existsInOpen = false;
             for (auto& pOpen : openList)
             {
                 if (pOpen == pTile)
                 {
-                    exists = true;
+                    existsInOpen = true;
                     break;
                 }
             }
 
-            if (!exists)
+            if (!existsInOpen)
             {
                 openList.push_back(pTile);
             }
@@ -1357,25 +1417,31 @@ bool World::CanPlayerTravelToTile(GamePlayer* pPlayer, TileInfo* pStart, TileInf
     if (pStart == pGoal)
         return true;
 
-    WorldTileManager* pTileMgr = GetTileManager();
-
     std::vector<TileInfo*> openList;
+    std::vector<TileInfo*> closedList;
+
     openList.reserve(64);
+    closedList.reserve(64);
+
     openList.push_back(pStart);
 
-    const int32 maxIteration = 350; // add to config?
+    const int32 maxIteration = 350;
 
     for (int32 i = 0; i < maxIteration; ++i)
     {
-        int32 bestIndex = PathfindGetShortestOpenTile(pStart, pGoal, openList);
+        if (openList.empty())
+            return false;
 
+        int32 bestIndex = PathfindGetShortestOpenTile(pStart, pGoal, openList);
         if (bestIndex < 0)
             return false;
 
         TileInfo* pCurrent = openList[bestIndex];
         openList.erase(openList.begin() + bestIndex);
 
-        if (PathfindAddNeighborsToList(pPlayer, pCurrent, pGoal, openList))
+        closedList.push_back(pCurrent);
+
+        if (PathfindAddNeighborsToList(pPlayer, pCurrent, pGoal, openList, closedList))
             return true;
     }
 
@@ -1434,7 +1500,7 @@ bool World::CanPlayerTravelStraight(GamePlayer* pPlayer, TileInfo* pStart, TileI
 
 bool World::IsTileCollidableForPlayer(GamePlayer* pPlayer, TileInfo* pTile, bool ignorePlatforms)
 {
-    if (!pTile || pTile->IsCollidable())
+    if (!pTile)
         return true;
 
     uint16 displayedItem = pTile->GetDisplayedItem();

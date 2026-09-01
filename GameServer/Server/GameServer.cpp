@@ -1,5 +1,7 @@
 #include "GameServer.h"
+#include "../Command/CommandManager.h"
 #include "../Context.h"
+#include "../Dialog/DialogManager.h"
 #include "../Player/GamePlayer.h"
 #include "../World/WorldManager.h"
 #include "IO/Log.h"
@@ -15,15 +17,6 @@
 #include "../Event/UDP/GameMessage/GameMessage_Item.h"
 #include "../Event/UDP/GameMessage/GameMessage_Player.h"
 #include "../Event/UDP/GameMessage/GameMessage_Trade.h"
-
-#include "../Command/AgeWorld.h"
-#include "../Command/Emotes.h"
-#include "../Command/FindItem.h"
-#include "../Command/Ghost.h"
-#include "../Command/GiveItem.h"
-#include "../Command/Magic.h"
-#include "../Command/RenderWorld.h"
-#include "../Command/TogglePlayMod.h"
 
 static const uint32 SMALL_PACKET_SIZE = 80;
 static const uint32 MED_PACKET_SIZE = 800;
@@ -196,14 +189,8 @@ void GameServer::RegisterEvents()
     RegisterMessagePacket<GameMessage_Respawn>("respawn"_hash);
     RegisterMessagePacket<GameMessage_RespawnSpike>("respawn_spike"_hash);
 
-    RegisterCommand<RenderWorld>();
-    RegisterCommand<GiveItem>();
-    RegisterCommand<Ghost>();
-    RegisterCommand<TogglePlayMod>();
-    RegisterCommand<Magic>();
-    RegisterCommand<AgeWorld>();
-    RegisterCommand<Emotes>();
-    RegisterCommand<FindItem>();
+    GetCommandManager()->RegisterAllCommands();
+    GetDialogManager()->RegisterAllDialogs();
 }
 
 void GameServer::UpdateGameLogic(uint64 maxTimeMS)
@@ -402,21 +389,6 @@ void GameServer::Update()
             }
         }
     }
-}
-
-void GameServer::ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args)
-{
-    if (!pPlayer || args.empty())
-        return;
-
-    uint32 hashCmd = HashString(args[0].substr(1));
-    if (!m_commands.HasHandler(hashCmd))
-    {
-        pPlayer->SendOnConsoleMessage("`4Unknown command. ``Enter `$/help`` for a list of valid commands.");
-        return;
-    }
-
-    m_commands.Dispatch(hashCmd, pPlayer, args);
 }
 
 void GameServer::ForceSaveEverything()

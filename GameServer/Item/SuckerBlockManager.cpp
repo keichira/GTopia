@@ -241,7 +241,7 @@ void SuckerBlockManager::ChangeSuckerItem(TileInfo* pTile, int32 oldItemID, int3
     RegisterSuckerTile(pTile, newItemID);
 }
 
-bool SuckerBlockManager::TogglePlanting(GamePlayer* pPlayer, TileInfo* pTile)
+bool SuckerBlockManager::ToggleRemote(GamePlayer* pPlayer, TileInfo* pTile)
 {
     if (!pPlayer || !pTile)
         return false;
@@ -258,10 +258,7 @@ bool SuckerBlockManager::TogglePlanting(GamePlayer* pPlayer, TileInfo* pTile)
 
     TileExtra_Sucker* pTileExtra = pTile->GetExtra<TileExtra_Sucker>();
     if (!pTileExtra)
-    {
-        pPlayer->SendOnTalkBubble("The item sucker tile extra is corrupted!", false);
         return false;
-    }
 
     if (pTileExtra->itemID == ITEM_ID_BLANK)
     {

@@ -87,6 +87,7 @@ public:
     bool IsCrystal();
     bool IsTree();
     bool IsFlammable();
+    bool IsAcceptSteam();
 
     float GetGrowthPercent();
     void FinalizeGrowth(uint32 ageMS);

@@ -1,12 +1,9 @@
 #include "GamePlayer.h"
 #include "../Context.h"
+#include "../Dialog/GameDialogs.h"
 #include "../Server/MasterBroadway.h"
 #include "../World/WorldManager.h"
 #include "Database/Table/PlayerDBTable.h"
-#include "Dialog/DropItemDialog.h"
-#include "Dialog/PlayerDialog.h"
-#include "Dialog/RegisterDialog.h"
-#include "Dialog/RenderWorldDialog.h"
 #include "IO/Log.h"
 #include "Item/ItemInfoManager.h"
 #include "Math/Math.h"
@@ -1037,6 +1034,124 @@ uint32 GamePlayer::NormalizeSkinColor(uint32 skinColor)
     }
 
     return 0x8295C3FF;
+}
+
+void GamePlayer::HandleGameDialog(TileInfo* pTile)
+{
+    if (!pTile)
+        return;
+
+    ItemInfo* pItem = GetItemInfoManager()->GetItemByID(pTile->GetDisplayedItem());
+    if (!pItem)
+        return;
+
+    if (pItem->type == ITEM_TYPE_SIGN)
+    {
+        SignDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_LOCK)
+    {
+        LockDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_ACHIEVEMENT)
+    {
+        AchievementBlockDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_OUIJA_BOARD)
+    {
+        OuijaBoardDialog::RequestMain(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_BATTLE_CAGE)
+    {
+        BattleCageDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_XENONITE)
+    {
+        XenoniteDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_MAILBOX)
+    {
+        MailboxBlockDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_CRYSTAL)
+    {
+        CrystalBlockDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_BULLETIN)
+    {
+        BulletinBlockDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pTile->IsTileExtraType(TILE_EXTRA_TYPE_DOOR))
+    {
+        DoorDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_DONATION_BOX)
+    {
+        DonationBoxDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_WEATHER_SPECIAL || pItem->type == ITEM_TYPE_WEATHER_SPECIAL2)
+    {
+        WeatherSpecialDialog::Request(this, pTile, pItem);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_MANNEQUIN)
+    {
+        MannequinDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_DRESSUP)
+    {
+        DressupDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_SPOTLIGHT)
+    {
+        SpotlightDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_DISPLAY_BLOCK)
+    {
+        DisplayBlockDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_SUCKER)
+    {
+        SuckerBlockDialog::Request(this, pTile);
+        return;
+    }
+
+    if (pItem->type == ITEM_TYPE_GATEWAY)
+    {
+        GatewayDialog::Request(this, pTile, pItem);
+        return;
+    }
 }
 
 void GamePlayer::ModifyInventoryItem(int32 itemID, int16 amount)

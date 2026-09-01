@@ -1,10 +1,6 @@
 #include "TileChangeRequest.h"
+#include "../../../Dialog/GameDialogs.h"
 #include "../../../Item/HarmonicCrystal.h"
-#include "../../../Player/Dialog/DisplayBlockDialog.h"
-#include "../../../Player/Dialog/DonationBoxDialog.h"
-#include "../../../Player/Dialog/DressupDialog.h"
-#include "../../../Player/Dialog/MannequinDialog.h"
-#include "../../../Player/Dialog/PlayerDialog.h"
 #include "Item/ItemInfoManager.h"
 #include "Utils/GrowUtils.h"
 
@@ -443,7 +439,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
                     if (pTileItem->type == ITEM_TYPE_MAILBOX || pTileItem->type == ITEM_TYPE_DONATION_BOX ||
                         pTileItem->type == ITEM_TYPE_MANNEQUIN || pTileItem->type == ITEM_TYPE_DRESSUP)
                     {
-                        PlayerDialog::Handle(pPlayer, pTile);
+                        pPlayer->HandleGameDialog(pTile);
                         return;
                     }
 
@@ -484,7 +480,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     {
         if (pTile->GetDisplayedItem() != ITEM_ID_BLANK)
         {
-            PlayerDialog::Handle(pPlayer, pTile);
+            pPlayer->HandleGameDialog(pTile);
         }
         return;
     }
@@ -977,7 +973,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
 
             if (pTileItem->type == ITEM_TYPE_SUCKER && tileHealthPercent == 1.0f)
             {
-                pWorld->GetSuckerBlockManager().TogglePlanting(pPlayer, pTile);
+                pWorld->GetSuckerBlockManager().ToggleRemote(pPlayer, pTile);
             }
         }
         else
@@ -1023,6 +1019,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
                         }
                         else
                         {
+                            pWorld->ThrowItemToPlayerFromPosition(pPlayer, pTile->GetWorldPos(), pDispItem->id, 1);
                             pPlayer->ModifyInventoryItem(pDispItem->id, 1);
                         }
 

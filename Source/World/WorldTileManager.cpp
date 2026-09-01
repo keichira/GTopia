@@ -630,13 +630,13 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
     int32 yEnd = Min(m_size.x, Max(rect.top, rect.bottom));
 
     float totalFgChance = 0.0f;
-    for (const auto& item : fgItems)
+    for (auto& item : fgItems)
     {
         totalFgChance += Max(0.0f, Min(100.0f, item.chance));
     }
 
     float totalBgChance = 0.0f;
-    for (const auto& item : bgItems)
+    for (auto& item : bgItems)
     {
         totalBgChance += Max(0.0f, Min(100.0f, item.chance));
     }
@@ -651,7 +651,7 @@ bool WorldTileManager::FillRectWith(const RectInt& rect, const TileMapFillVector
         float roll = RandomNextFloat() * totalChance;
         float chance = 0.f;
 
-        for (const auto& entry : items)
+        for (auto& entry : items)
         {
             chance += Max(0.0f, Min(100.0f, entry.chance));
             if (roll <= chance)

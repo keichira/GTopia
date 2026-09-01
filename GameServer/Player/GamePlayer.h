@@ -117,6 +117,8 @@ public:
 
     uint32 NormalizeSkinColor(uint32 skinColor);
 
+    void HandleGameDialog(TileInfo* pTile);
+
     void ModifyInventoryItem(int32 itemID, int16 amount);
     void TrashItem(int32 itemID, uint16 amount);
     void DropItem(int32 itemID, uint16 amount, bool openDialog);

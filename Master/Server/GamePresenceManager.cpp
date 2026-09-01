@@ -136,7 +136,7 @@ void GamePresenceManager::OnGameServerConnected(ServerInfo* pServer)
     std::vector<WorldPresenceSnapshotElement> snapshotList;
     snapshotList.reserve(m_worldSubs.size());
 
-    for (const auto& [worldID, worldData] : m_worldSubs)
+    for (auto& [worldID, worldData] : m_worldSubs)
     {
         snapshotList.push_back(worldData.info);
     }

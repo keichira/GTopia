@@ -401,6 +401,9 @@ void PlayerPlayModController::BuildActiveModsDialog(DialogBuilder& db)
 
         string label = pConfig->GetName();
         uint32 remainingSec = mod.GetRemainingSeconds();
+        if (mod.type == PLAYMOD_TYPE_CHARGING_GEIGER_COUNTER)
+        {
+        }
         if (remainingSec > 0)
         {
             label += " `o(`w" + Time::ConvertTimeToStr(remainingSec * 1000) + " `oleft)";

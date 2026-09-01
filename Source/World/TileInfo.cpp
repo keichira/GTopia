@@ -323,6 +323,20 @@ bool TileInfo::IsFlammable()
     return true;
 }
 
+bool TileInfo::IsAcceptSteam()
+{
+    int16 tileFg = GetFG();
+
+    if (m_type != ITEM_TYPE_STEAMPUNK && m_type != ITEM_TYPE_STEAM_LAVA_IF_ON && m_type != ITEM_TYPE_STEAM_ORGAN &&
+        tileFg != ITEM_ID_STEAM_DOOR && tileFg != ITEM_ID_STEAM_LAUNCHER && tileFg != ITEM_ID_STEAM_PIPE &&
+        tileFg != ITEM_ID_SPIRIT_STORAGE_UNIT && tileFg != ITEM_ID_STEAM_SPIKES && tileFg != ITEM_ID_STEAM_LAMP)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 float TileInfo::GetGrowthPercent()
 {
     if (!m_pExtraData)

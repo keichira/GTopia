@@ -3,23 +3,23 @@
 
 void State::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePacket* pPacket)
 {
-    if(!pPlayer || !pWorld || !pPacket)
+    if (!pPlayer || !pWorld || !pPacket)
         return;
 
-    if(IsNan(pPacket->field_8.x) || IsNan(pPacket->field_8.y))
+    if (IsNan(pPacket->field_8.x) || IsNan(pPacket->field_8.y))
         return;
 
-    if(IsNan(pPacket->field_9.x) || IsNan(pPacket->field_9.y))
+    if (IsNan(pPacket->field_9.x) || IsNan(pPacket->field_9.y))
         return;
 
-    if(pPacket->field_8.x == 0 || pPacket->field_8.y == 0)
+    if (pPacket->field_8.x == 0 || pPacket->field_8.y == 0)
         return;
 
-    if(pPacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT)) 
+    if (pPacket->HasFlag(GAME_PACKET_FLAG_FACING_LEFT))
     {
         pPlayer->GetCharData().SetCharFlag(CHARACTER_FLAG_FACING_LEFT);
     }
-    else 
+    else
     {
         pPlayer->GetCharData().RemoveCharFlag(CHARACTER_FLAG_FACING_LEFT);
     }

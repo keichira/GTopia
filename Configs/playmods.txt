@@ -92,3 +92,10 @@ set_timer|180|
 add_playmod|732|Ban|Reality flickers as you begin to wake up.|You are no longer banned. Now be good!|
 set_audio|gate_close.wav|
 set_char_flags|DUCT_TAPED|
+
+add_playmod|2204|Geiger Counter|You are detecting radiation...|Geiger Counter removed.|
+
+add_playmod|2204|Charging Geiger Counter|Your Geiger Counter is charging...|Geiger Counter is no longer charging!|
+
+add_playmod|2206|Irradiated|You are aglow with radiation!|You have recovered.|
+set_char_flags|IRRADIATED|

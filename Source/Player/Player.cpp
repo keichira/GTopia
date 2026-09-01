@@ -224,12 +224,6 @@ void Player::SendOnKilled()
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnKilled(), GetNetID());
 }
 
-void Player::SendOnPlanterActivated(int32 itemID, uint32 tileX, uint32 tileY)
-{
-    SendCallFunctionPacket(GetNetID(), VariantPacket::OnPlanterActivated(ToItemClientID(itemID), tileX, tileY),
-                           GetNetID());
-}
-
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;
@@ -367,6 +361,12 @@ void Player::SendOnSetClothing(Player* pPlayer)
 
     int32 netID = pPlayer ? pPlayer->GetNetID() : GetNetID();
     SendCallFunctionPacket(GetNetID(), data, netID);
+}
+
+void Player::SendOnPlanterActivated(int32 itemID, uint32 tileX, uint32 tileY)
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnPlanterActivated(ToItemClientID(itemID), tileX, tileY),
+                           GetNetID());
 }
 
 void Player::SendCharacterState(Player* pPlayer)

@@ -1,20 +1,20 @@
 #pragma once
 
-#include "Server/ServerBase.h"
-#include "Event/EventDispatcher.h"
 #include "../Player/GamePlayer.h"
-#include "../Command/CommandBase.h"
 #include "../Player/PlayerManager.h"
+#include "Event/EventDispatcher.h"
+#include "Server/ServerBase.h"
 
 class GameMessage_DialogReturn;
 
-class GameServer : public ServerBase {
+class GameServer : public ServerBase
+{
 public:
     GameServer();
     ~GameServer();
 
 public:
-    static GameServer* GetInstance() 
+    static GameServer* GetInstance()
     {
         static GameServer instance;
         return &instance;
@@ -30,33 +30,16 @@ public:
     void Update() override;
 
 public:
-    void ExecuteCommand(GamePlayer* pPlayer, std::vector<string>& args);
     void ForceSaveEverything();
 
 private:
-    template<void(*Function)(GamePlayer*, ParsedTextPacket<38>&)>
-    void RegisterMessagePacket(uint32 eventHash)
+    template <void (*Function)(GamePlayer*, ParsedTextPacket<38>&)> void RegisterMessagePacket(uint32 eventHash)
     {
-        m_messagePacket.Register(
-            eventHash,
-            Delegate<GamePlayer*, ParsedTextPacket<38>&>::Create<Function>()
-        );
-    }
-
-    template<class T>
-    void RegisterCommand()
-    {
-        for(auto& alias : T::GetInfo().aliases) {
-            m_commands.Register(
-                alias,
-                Delegate<GamePlayer*, std::vector<string>&>::Create<&T::Execute>()
-            );
-        }
+        m_messagePacket.Register(eventHash, Delegate<GamePlayer*, ParsedTextPacket<38>&>::Create<Function>());
     }
 
 private:
     EventDispatcher<uint32, GamePlayer*, ParsedTextPacket<38>&> m_messagePacket;
-    EventDispatcher<uint32, GamePlayer*, std::vector<string>&> m_commands;
 
     Timer m_playersLastUpdateTime;
 };

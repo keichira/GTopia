@@ -1,9 +1,10 @@
 #include "PlayerTrade.h"
-#include "Dialog/TradeDialog.h"
+#include "../Dialog/GameDialogs.h"
 #include "GamePlayer.h"
 #include "Item/ItemInfoManager.h"
 
-PlayerTrade::PlayerTrade(GamePlayer* pPlayer) : m_pPlayer(pPlayer), m_pPartner(nullptr), m_accepted(false), m_locked(false)
+PlayerTrade::PlayerTrade(GamePlayer* pPlayer)
+    : m_pPlayer(pPlayer), m_pPartner(nullptr), m_accepted(false), m_locked(false)
 {
     m_lastActionTimer.Set(0);
 }
@@ -96,7 +97,8 @@ void PlayerTrade::OnAddItem(ItemInfo* pItem, InventoryItemInfo* pInvItem, int32 
         PlayerTrade& partnerTradeMgr = m_pPartner->GetTradeManager();
         if (partnerTradeMgr.GetPartner() == m_pPlayer)
         {
-            string changeStatus = "`1TRADE CHANGE: `` " + m_pPartner->GetRawName() + " added `w" + ToString(count) + "`` " + pItem->name;
+            string changeStatus =
+                "`1TRADE CHANGE: `` " + m_pPartner->GetRawName() + " added `w" + ToString(count) + "`` " + pItem->name;
             m_pPartner->SendOnConsoleMessage(changeStatus);
         }
     }
@@ -125,8 +127,8 @@ bool PlayerTrade::RemoveFromItems(int32 itemID)
             PlayerTrade& partnerTradeMgr = m_pPartner->GetTradeManager();
             if (partnerTradeMgr.GetPartner() == m_pPlayer)
             {
-                string changeStatus =
-                    "`1TRADE CHANGE: `` " + m_pPartner->GetRawName() + " removed `w" + ToString(m_items[i].count) + "`` " + pItem->name;
+                string changeStatus = "`1TRADE CHANGE: `` " + m_pPartner->GetRawName() + " removed `w" +
+                                      ToString(m_items[i].count) + "`` " + pItem->name;
                 m_pPartner->SendOnConsoleMessage(changeStatus);
             }
         }
@@ -151,7 +153,8 @@ void PlayerTrade::SendTradeStatus(bool dealChanged, bool resetAccept, bool force
 
     if (m_pPartner)
     {
-        m_pPlayer->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``", GetStatusText(false));
+        m_pPlayer->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``",
+                                     GetStatusText(false));
 
         PlayerTrade& partnerTradeMgr = m_pPartner->GetTradeManager();
         if (partnerTradeMgr.GetPartner() == m_pPlayer)
@@ -177,7 +180,8 @@ void PlayerTrade::SendTradeStatus(bool dealChanged, bool resetAccept, bool force
                 partnerTradeMgr.SetDelayToAcceptButton();
             }
 
-            m_pPartner->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``", GetStatusText(false));
+            m_pPartner->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``",
+                                          GetStatusText(false));
         }
     }
 }
@@ -239,7 +243,8 @@ string PlayerTrade::CheckTradingItemsAndGetError()
             if (m_pPartner)
             {
                 if (m_pPartner->GetInventory().GetCountOfItem(item.itemID) + item.count > pItem->maxCanHold)
-                    return m_pPartner->GetRawName() + " is carrying too many " + pItem->name + " and can't fit that many in their backpack.";
+                    return m_pPartner->GetRawName() + " is carrying too many " + pItem->name +
+                           " and can't fit that many in their backpack.";
             }
 
             if (m_pPlayer->GetInventory().GetCountOfItem(item.itemID) + item.count > pItem->maxCanHold)
@@ -258,10 +263,12 @@ void PlayerTrade::SetDelayToAcceptButton(int32 delayMS)
         return;
 
     m_locked = true;
-    m_pPlayer->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``", GetStatusText(false));
+    m_pPlayer->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``",
+                                 GetStatusText(false));
 
     m_locked = false;
-    m_pPlayer->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``", GetStatusText(false));
+    m_pPlayer->SendOnTradeStatus(m_pPartner->GetNetID(), "", m_pPartner->GetRawName() + "'s offer.``",
+                                 GetStatusText(false));
 }
 
 void PlayerTrade::OnEndTrade(GamePlayer* pPlayer)
@@ -396,5 +403,6 @@ bool PlayerTrade::HasEnoughSpaceForItems()
     if (!m_pPlayer)
         return false;
 
-    return (m_pPlayer->GetInventory().GetInventorySize() - (m_pPlayer->GetInventory().GetItemsSize() + m_items.size())) >= 0;
+    return (m_pPlayer->GetInventory().GetInventorySize() -
+            (m_pPlayer->GetInventory().GetItemsSize() + m_items.size())) >= 0;
 }

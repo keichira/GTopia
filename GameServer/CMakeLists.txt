@@ -26,7 +26,7 @@ set(GAME_SERVER "${GAME_ROOT}/Server")
 set(GAME_EVENT "${GAME_ROOT}/Event")
 set(GAME_WORLD "${GAME_ROOT}/World")
 set(GAME_COMMAND "${GAME_ROOT}/Command")
-set(GAME_DIALOG "${GAME_PLAYER}/Dialog")
+set(GAME_DIALOG "${GAME_ROOT}/Dialog")
 set(GAME_STORE "${GAME_ROOT}/Store")
 set(GAME_ITEM "${GAME_ROOT}/Item")
 
@@ -64,14 +64,7 @@ set(GAME_FILES PRIVATE
     ${GAME_EVENT}/UDP/GamePacket/ObjectActivateRequest.cpp
     ${GAME_EVENT}/UDP/GamePacket/TileActivateRequest.cpp
 
-    ${GAME_COMMAND}/RenderWorld.cpp
-    ${GAME_COMMAND}/GiveItem.cpp
-    ${GAME_COMMAND}/Ghost.cpp
-    ${GAME_COMMAND}/TogglePlayMod.cpp
-    ${GAME_COMMAND}/Magic.cpp
-    ${GAME_COMMAND}/AgeWorld.cpp
-    ${GAME_COMMAND}/Emotes.cpp
-    ${GAME_COMMAND}/FindItem.cpp
+    ${GAME_COMMAND}/Commands.cpp
 
     ${SOURCE_WORLD}/TileExtra.cpp
     ${SOURCE_WORLD}/TileInfo.cpp
@@ -85,31 +78,8 @@ set(GAME_FILES PRIVATE
     ${GAME_WORLD}/WorldNPCManager.cpp
     ${GAME_WORLD}/WorldBossManager.cpp
 
-    ${GAME_DIALOG}/PlayerDialog.cpp
-    ${GAME_DIALOG}/SignDialog.cpp
-    ${GAME_DIALOG}/TrashDialog.cpp
-    ${GAME_DIALOG}/LockDialog.cpp
-    ${GAME_DIALOG}/RenderWorldDialog.cpp
-    ${GAME_DIALOG}/RegisterDialog.cpp
-    ${GAME_DIALOG}/DropItemDialog.cpp
-    ${GAME_DIALOG}/PopupDialog.cpp
-    ${GAME_DIALOG}/AchievementBlockDialog.cpp
-    ${GAME_DIALOG}/OuijaBoardDialog.cpp
-    ${GAME_DIALOG}/BattleCageDialog.cpp
-    ${GAME_DIALOG}/XenoniteDialog.cpp
-    ${GAME_DIALOG}/MailboxBlockDialog.cpp
-    ${GAME_DIALOG}/CrystalBlockDialog.cpp
-    ${GAME_DIALOG}/BulletinBlockDialog.cpp
-    ${GAME_DIALOG}/DoorDialog.cpp
-    ${GAME_DIALOG}/ItemFinderDialog.cpp
-    ${GAME_DIALOG}/TradeDialog.cpp
-    ${GAME_DIALOG}/DonationBoxDialog.cpp
-    ${GAME_DIALOG}/WeatherSpecialDialog.cpp
-    ${GAME_DIALOG}/MannequinDialog.cpp
-    ${GAME_DIALOG}/DressupDialog.cpp
-    ${GAME_DIALOG}/SpotlightDialog.cpp
-    ${GAME_DIALOG}/DisplayBlockDialog.cpp
-    ${GAME_DIALOG}/SuckerBlockDialog.cpp
+    ${GAME_DIALOG}/GameDialogs.cpp
+    ${GAME_DIALOG}/DialogManager.cpp
 
     ${SOURCE_PLAYER}/Role.cpp
     ${SOURCE_PLAYER}/RoleManager.cpp
