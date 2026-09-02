@@ -2,6 +2,7 @@
 
 #include "../Memory/MemoryBuffer.h"
 #include "../Memory/RingBuffer.h"
+#include "../Packet/TCPPacket.h"
 #include "../Utils/Variant.h"
 #include <mutex>
 
@@ -67,5 +68,6 @@ struct NetClient
 
     bool Send(const VariantVector& data);
     bool Send(void* pData, uint32 size);
+    bool Send(TCPPacketWriter& data);
     bool Send(uint16 packetID, const void* pData, uint32 size);
 };

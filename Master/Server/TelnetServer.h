@@ -1,13 +1,12 @@
 #pragma once
 
-#include "Precompiled.h"
-#include "Network/NetSocket.h"
-#include "Utils/Timer.h"
-#include "Network/NetEntity.h"
 #include "Event/EventDispatcher.h"
+#include "Network/NetEntity.h"
+#include "Network/NetSocket.h"
+#include "Precompiled.h"
+#include "Utils/Timer.h"
 
-template<typename T>
-class TelnetCommandBase;
+template <typename T> class TelnetCommandBase;
 
 struct TelnetClientConfig
 {
@@ -18,17 +17,18 @@ struct TelnetClientConfig
 
     bool IsTrustedIP(const string& ip)
     {
-        for(auto& trustedIP : allowedIPs) {
-            if(trustedIP == ip) {
+        for (auto& trustedIP : allowedIPs)
+        {
+            if (trustedIP == ip)
                 return true;
-            }
         }
 
         return false;
     }
 };
 
-class TelnetClient : public NetEntity {
+class TelnetClient : public NetEntity
+{
 public:
     TelnetClient(NetClient* pClient);
     ~TelnetClient();
@@ -47,8 +47,12 @@ public:
     void SetAuthed(bool authed) { m_authed = authed; }
     bool IsAuthed() const { return m_authed; }
 
-    void CloseConnection() { if(m_pClient) m_pClient->status = SOCKET_CLIENT_CLOSE; }
-    string GetIP() const { return m_pClient ? m_pClient->ip : ""; } 
+    void CloseConnection()
+    {
+        if (m_pClient)
+            m_pClient->status = SOCKET_CLIENT_CLOSE;
+    }
+    string GetIP() const { return m_pClient ? m_pClient->ip : ""; }
 
     void IncreasePassTry() { m_passTryCount++; }
     uint8 GetPassTryCount() const { return m_passTryCount; }
@@ -67,7 +71,8 @@ private:
     bool m_isBusy; // for async
 };
 
-class TelnetServer {
+class TelnetServer
+{
 public:
     TelnetServer();
     ~TelnetServer();
@@ -81,8 +86,6 @@ public:
 
 public:
     bool Init();
-    void RegisterCommands();
-
     void Kill();
 
     void Update();
@@ -103,22 +106,9 @@ public:
     void ApplyRateLimit(const string& ip);
 
     void HandleCommand(TelnetClient* pNetClient, const string& command);
-    void ExecuteCommand(TelnetClient* pNetClient, std::vector<string>& args);
 
     const string& GetHost() const { return m_host; }
     uint16 GetPort() const { return m_port; }
-
-private:
-    template<class T>
-    void RegisterCommand()
-    {
-        for(auto& alias : T::GetInfo().aliases) {
-            m_commands.Register(
-                alias,
-                Delegate<TelnetClient*, std::vector<string>&>::Create<&T::Execute>()
-            );
-        }
-    }
 
 private:
     string m_host;
@@ -132,8 +122,6 @@ private:
     std::unordered_map<uint32, TelnetClient*> m_clients;
     std::vector<string> m_trustedIPs;
     std::unordered_map<string, Timer> m_rateLimits;
-
-    EventDispatcher<uint32, TelnetClient*, std::vector<string>&> m_commands;
 };
 
 TelnetServer* GetTelnetServer();

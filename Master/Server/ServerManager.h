@@ -74,13 +74,43 @@ public:
 
     void SendPlayerPresenceSnapshot(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements);
     void SendPlayerPresenceUpdate(ServerInfo* pServer, const std::vector<PlayerPresencePacketElement>& elements);
-
-    void SendRawDataToAllGame(eTCPPacketType type, void* pData, uint32 size);
+    void SendWorldPresenceSnapshot(ServerInfo* pServer, const std::vector<WorldPresenceSnapshotElement>& elements);
+    void SendWorldPresenceSnapshotToAll(const WorldPresenceSnapshotElement& snapshotInfo);
+    void SendWorldPresenceUpdateToAll(const std::vector<WorldPresenceUpdateElement>& elements);
+    void SendWorldPresenceRemoveToAll(const std::vector<WorldPresenceRemoveElement>& elements);
 
 private:
-    template <void (*Function)(NetClient*, VariantVector&)> void RegisterEvent(eTCPPacketType packet)
+    template <void (*Function)(NetClient*, TCPPacketHeader&, TCPPacketReader&)>
+    void RegisterEvent(eTCPPacketType packet)
     {
-        m_events.Register(packet, Delegate<NetClient*, VariantVector&>::Create<Function>());
+        m_events.Register(packet, Delegate<NetClient*, TCPPacketHeader&, TCPPacketReader&>::Create<Function>());
+    }
+
+    template <typename T> void SendArray(ServerInfo* pServer, eTCPPacketType packetType, const std::vector<T>& elements)
+    {
+        if (!pServer || !pServer->pClient || elements.empty())
+            return;
+
+        TCPPacketWriter writer((uint16)packetType, (elements.size() * sizeof(T)) + sizeof(uint32));
+        writer.WriteArray(elements);
+        pServer->pClient->Send(writer);
+    }
+
+    template <typename T> void SendArrayToAll(eTCPPacketType packetType, const std::vector<T>& elements)
+    {
+        if (elements.empty() || m_servers.empty())
+            return;
+
+        TCPPacketWriter writer((uint16)packetType, (elements.size() * sizeof(T)) + sizeof(uint32));
+        writer.WriteArray(elements);
+
+        for (auto& [_, pServer] : m_servers)
+        {
+            if (!pServer || !pServer->pClient || pServer->serverType != CONFIG_SERVER_GAME)
+                continue;
+
+            pServer->pClient->Send(writer);
+        }
     }
 
 private:
@@ -91,7 +121,7 @@ private:
     std::unordered_map<uint32, ServerInfo*> m_pendingClients;
     std::unordered_map<uint16, ServerInfo*> m_servers;
 
-    EventDispatcher<int8, NetClient*, VariantVector&> m_events;
+    EventDispatcher<uint16, NetClient*, TCPPacketHeader&, TCPPacketReader&> m_events;
 };
 
 ServerManager* GetServerManager();

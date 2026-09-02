@@ -34,10 +34,10 @@ enet_income_cmd_type|3
 force_item_data_version|5
 
 # Supported Game Client Versions (Minimum 3.02 because of ZLib)
-android_supported_versions|3.02|5.48
-windows_supported_versions|3.02|5.48
-ios_supported_versions|3.02|5.48
-macos_supported_versions|3.02|5.48
+android_supported_versions|3.02|6.00
+windows_supported_versions|3.02|6.00
+ios_supported_versions|3.02|6.00
+macos_supported_versions|3.02|6.00
 
 # Admin Telnet Server For Master
 # 1 = Enabled, 0 = Disabled

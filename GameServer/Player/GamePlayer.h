@@ -13,6 +13,7 @@
 #include "Utils/Timer.h"
 
 class TileInfo;
+class TCPPacketReader;
 
 enum ePlayerState
 {
@@ -47,7 +48,7 @@ public:
     bool HasFlag(ePlayerFlags flag) const { return (m_flags & flag) != 0; }
 
     void StartLoginRequest(ParsedTextPacket<40>& packet);
-    void HandleCheckSession(VariantVector&& result);
+    void HandleCheckSession(TCPPacketReader& reader);
     void TransferToGame();
     void SaveToDatabase();
     void BuildForBulkDatabaseSave(VariantVector& outParams);
@@ -64,7 +65,7 @@ public:
 
     void SetTargetJoinWorld(const string& worldName, const string& doorID = "");
     void SendEnterDoorPacket(Vector2Float doorWorldPos);
-    void HandleRenderWorld(VariantVector&& result);
+    void HandleRenderWorld(int32 renderResult, TCPPacketReader& reader);
     void SendPositionToWorldPlayers();
 
     void SetJoiningWorld(bool joining) { m_joiningWorld = joining; }

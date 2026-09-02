@@ -16,8 +16,8 @@ uint16 GetSupportedItemDataVersion(float gameVersion);
 uint16 GetMinRequiredItemDataVersion(float a, float b, float c, float d);
 uint16 GetMaxRequiredItemDataVersion(float a, float b, float c, float d);
 int32 GetBaseItemID(int32 itemID);
-uint32 StrToConsumableFlag(const string& str);
 
+uint32 StrToConsumableFlag(const string& str);
 struct ItemsClientData
 {
     uint8* pItemData = nullptr;
@@ -25,14 +25,12 @@ struct ItemsClientData
     uint32 compressSize = 0;
     uint32 hash = 0;
 };
-
 enum eConsumableType
 {
     CONSUMABLE_TYPE_NONE = 0,
     CONSUMABLE_TYPE_CRAFT = 1,
     CONUMABLE_TYPE_SIZE = 2
 };
-
 enum eConsumableFlags
 {
     CONSUMABLE_FLAG_NEED_TARGET = 1 << 0,
@@ -40,7 +38,6 @@ enum eConsumableFlags
     CONSUMABLE_FLAG_NEED_TILE = 1 << 2,
     CONSUMABLE_FLAG_EQUIP = 1 << 3
 };
-
 struct ConsumableInfo
 {
     int32 itemID = 0;

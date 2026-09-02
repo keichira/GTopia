@@ -121,6 +121,23 @@ uint32 MemoryBuffer::WriteStringRaw(const string& pData)
     return strLen + sizeof(uint16);
 }
 
+void MemoryBuffer::Realloc(uint32 newSize)
+{
+    if (newSize <= m_bufferSize)
+        return;
+
+    uint8* pData = new uint8[newSize];
+
+    if (m_pBuffer && m_pos > 0)
+    {
+        memcpy(pData, m_pBuffer, m_pos);
+    }
+    SAFE_DELETE_ARRAY(m_pBuffer);
+
+    m_pBuffer = pData;
+    m_bufferSize = newSize;
+}
+
 uint32 MemoryBuffer::Seek(uint32 position)
 {
     if (m_countOnly)

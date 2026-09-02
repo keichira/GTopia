@@ -8,6 +8,7 @@
 #include "Item/ItemInfoManager.h"
 #include "Math/Math.h"
 #include "Math/Random.h"
+#include "Packet/TCPPacket.h"
 #include "Player/PlayModManager.h"
 #include "Player/PlayerTribute.h"
 #include "Player/RoleManager.h"
@@ -96,14 +97,21 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
     CRASH_SET("LastPlayerUserID", m_userID);
 }
 
-void GamePlayer::HandleCheckSession(VariantVector&& result)
+void GamePlayer::HandleCheckSession(TCPPacketReader& reader)
 {
-    bool foundSession = result[2].GetBool();
+    uint8 foundSession = 0;
+    uint32 worldInstanceID = 0;
+
+    if (!reader.Read<uint8>(foundSession))
+        return;
+
     if (!foundSession)
     {
         SendLogonFailWithLog("`4OOPS! ``Please re-connect server says you're not belong to this server");
         return;
     }
+
+    reader.Read<uint32>(worldInstanceID);
 
     if (GamePlayer* pTarget = GetPlayerManager()->IsPlayerAlreadyOn(this))
     {
@@ -115,7 +123,7 @@ void GamePlayer::HandleCheckSession(VariantVector&& result)
 
     if (m_loginDetail.loginMode == LOGON_MODE_TRANSFER)
     {
-        m_currentWorldID = result[3].GetUINT();
+        m_currentWorldID = worldInstanceID;
     }
 
     TransferToGame();
@@ -632,16 +640,21 @@ void GamePlayer::SendEnterDoorPacket(Vector2Float doorWorldPos)
     }
 }
 
-void GamePlayer::HandleRenderWorld(VariantVector&& result)
+void GamePlayer::HandleRenderWorld(int32 renderResult, TCPPacketReader& reader)
 {
     if (!HasState(PLAYER_STATE_RENDERING_WORLD))
         return;
 
-    int32 renderResult = result[2].GetINT();
-
     if (renderResult == TCP_RESULT_OK)
     {
-        World* pWorld = GetWorldManager()->GetWorldByDatabaseID(result[4].GetUINT());
+        uint32 databaseID = 0;
+        if (!reader.Read<uint32>(databaseID))
+        {
+            RemoveState(PLAYER_STATE_RENDERING_WORLD);
+            return;
+        }
+
+        World* pWorld = GetWorldManager()->GetWorldByDatabaseID(databaseID);
         if (!pWorld)
         {
             SendOnConsoleMessage("`oYour world \"`4<UNKNOWN>`o\" has been rendered!");

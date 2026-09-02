@@ -2,4 +2,4 @@
 
 #include "Network/NetClient.h"
 
-void TCPEvent_RenderWorld(NetClient* pClient, VariantVector& data);
+void TCPEvent_RenderWorld(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader);

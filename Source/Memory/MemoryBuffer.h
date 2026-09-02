@@ -45,6 +45,8 @@ public:
     uint32 ReadStringRaw(string& pDest);
     uint32 WriteStringRaw(const string& pData);
 
+    void Realloc(uint32 newSize);
+
 private:
     uint8* m_pBuffer;
     uint32 m_bufferSize;

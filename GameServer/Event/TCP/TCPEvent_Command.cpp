@@ -3,34 +3,37 @@
 #include "../../World/WorldManager.h"
 #include "Player/RoleManager.h"
 
-void TCPEvent_Command(NetClient* pClient, VariantVector& data)
+void TCPEvent_Command(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
     if (!pClient)
         return;
 
-    int32 commandType = data[1].GetINT();
+    int32 commandType = 0;
+    if (!reader.Read<int32>(commandType))
+        return;
 
     switch (commandType)
     {
         case TCP_COMMAND_SETROLE:
         {
-            TCPEvent_Command_SetRole(std::move(data));
+            TCPEvent_Command_SetRole(reader);
             break;
         }
     }
 }
 
-void TCPEvent_Command_SetRole(VariantVector&& data)
+void TCPEvent_Command_SetRole(TCPPacketReader& reader)
 {
-    if (data.size() < 4)
+    uint32 userID = 0;
+    uint32 roleID = 0;
+
+    if (!reader.Read<uint32>(userID) || !reader.Read<uint32>(roleID))
         return;
 
-    uint32 userID = data[2].GetUINT();
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(userID);
     if (!pPlayer)
         return;
 
-    uint32 roleID = data[3].GetUINT();
     Role* pRole = GetRoleManager()->GetRole(roleID);
     if (!pRole)
         return;

@@ -5,6 +5,7 @@
 #include "World/WorldBalancer.h"
 
 class ServerInfo;
+class TCPPacketReader;
 
 enum WorldState
 {
@@ -49,8 +50,8 @@ public:
     }
 
 public:
-    void HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& result);
-    void HandleWorldInit(VariantVector&& result);
+    void HandlePlayerJoinRequest(ServerInfo* pServer, TCPPacketReader& reader);
+    void HandleWorldInit(TCPPacketReader& reader);
     static void CheckWorldExistCB(QueryTaskResult&& result);
     static void CreateWorldCB(QueryTaskResult&& result);
 

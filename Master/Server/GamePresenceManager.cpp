@@ -7,9 +7,9 @@ GamePresenceManager::GamePresenceManager() {}
 
 GamePresenceManager::~GamePresenceManager() {}
 
-void GamePresenceManager::OnTCPPacket(NetClient* pClient, uint16 packetType, const std::vector<uint8>& data)
+void GamePresenceManager::OnTCPPacket(NetClient* pClient, uint16 packetType, TCPPacketReader& reader)
 {
-    if (!pClient || data.empty())
+    if (!pClient)
         return;
 
     ServerInfo* pServer = (ServerInfo*)pClient->data;
@@ -20,44 +20,38 @@ void GamePresenceManager::OnTCPPacket(NetClient* pClient, uint16 packetType, con
     {
         case TCP_PACKET_PLAYER_SUBSCRIBE:
         {
-            if (data.size() % sizeof(uint32) != 0)
-                return;
-
-            uint32 elementCount = (uint32)(data.size() / sizeof(uint32));
-            uint32* pUserIDs = (uint32*)(data.data());
-            std::vector<uint32> ids(pUserIDs, pUserIDs + elementCount);
-            PlayerSubscribe(pServer->serverID, ids);
+            std::vector<uint32> ids;
+            if (reader.ReadArray(ids) && !ids.empty())
+            {
+                PlayerSubscribe(pServer->serverID, ids);
+            }
             break;
         }
 
         case TCP_PACKET_PLAYER_UNSUBSCRIBE:
         {
-            if (data.size() % sizeof(uint32) != 0)
-                return;
-
-            uint32 elementCount = (uint32)(data.size() / sizeof(uint32));
-            uint32* pUserIDs = (uint32*)(data.data());
-            std::vector<uint32> ids(pUserIDs, pUserIDs + elementCount);
-            PlayerUnSubscribe(pServer->serverID, ids);
+            std::vector<uint32> ids;
+            if (reader.ReadArray(ids) && !ids.empty())
+            {
+                PlayerUnSubscribe(pServer->serverID, ids);
+            }
             break;
         }
 
         case TCP_PACKET_WORLD_UPDATE:
         {
-            if (data.size() % sizeof(WorldPresenceUpdateElement) != 0)
+            std::vector<WorldPresenceUpdateElement> elements;
+            if (!reader.ReadArray(elements) || elements.empty())
                 return;
 
-            uint32 count = (uint32)(data.size() / sizeof(WorldPresenceUpdateElement));
-            auto* pElements = (WorldPresenceUpdateElement*)data.data();
-
-            for (uint32 i = 0; i < count; ++i)
+            for (const auto& elem : elements)
             {
-                auto it = m_worldSubs.find(pElements[i].worldID);
+                auto it = m_worldSubs.find(elem.worldID);
                 if (it != m_worldSubs.end())
                 {
-                    it->second.info.playerCount = pElements[i].playerCount;
-                    it->second.info.isSignalJammed = pElements[i].isSignalJammed;
-                    m_dirtyWorlds.insert(pElements[i].worldID);
+                    it->second.info.playerCount = elem.playerCount;
+                    it->second.info.isSignalJammed = elem.isSignalJammed;
+                    m_dirtyWorlds.insert(elem.worldID);
                 }
             }
             break;
@@ -65,15 +59,18 @@ void GamePresenceManager::OnTCPPacket(NetClient* pClient, uint16 packetType, con
 
         case TCP_PACKET_WORLD_REMOVE:
         {
-            if (data.size() % sizeof(WorldPresenceRemoveElement) != 0)
-                return;
-
-            auto* pElem = (WorldPresenceRemoveElement*)data.data();
-            if (m_worldSubs.erase(pElem->worldID) > 0)
+            std::vector<WorldPresenceRemoveElement> elements;
+            if (reader.ReadArray(elements) && !elements.empty())
             {
-                m_dirtyWorlds.erase(pElem->worldID);
-                GetServerManager()->SendRawDataToAllGame(TCP_PACKET_WORLD_REMOVE, (void*)data.data(),
-                                                         (uint32)data.size());
+                for (const auto& elem : elements)
+                {
+                    if (m_worldSubs.erase(elem.worldID) > 0)
+                    {
+                        m_dirtyWorlds.erase(elem.worldID);
+                    }
+                }
+
+                GetServerManager()->SendWorldPresenceRemoveToAll(elements);
             }
             break;
         }
@@ -99,9 +96,7 @@ void GamePresenceManager::OnWorldCreated(uint32 worldID, const string& name, uin
     memset(data.info.name, 0, sizeof(data.info.name));
     strncpy(data.info.name, name.c_str(), sizeof(data.info.name) - 1);
 
-    std::vector<WorldPresenceSnapshotElement> broadcastVec = {data.info};
-    GetServerManager()->SendRawDataToAllGame(TCP_PACKET_WORLD_SNAPSHOT, (void*)broadcastVec.data(),
-                                             (uint32)(broadcastVec.size() * sizeof(WorldPresenceSnapshotElement)));
+    GetServerManager()->SendWorldPresenceSnapshotToAll(data.info);
 }
 
 void GamePresenceManager::OnGameServerDisconnect(uint16 serverID)
@@ -123,8 +118,7 @@ void GamePresenceManager::OnGameServerDisconnect(uint16 serverID)
 
     if (!removedWorlds.empty())
     {
-        GetServerManager()->SendRawDataToAllGame(TCP_PACKET_WORLD_REMOVE, (void*)removedWorlds.data(),
-                                                 (uint32)(removedWorlds.size() * sizeof(WorldPresenceRemoveElement)));
+        GetServerManager()->SendWorldPresenceRemoveToAll(removedWorlds);
     }
 }
 
@@ -141,8 +135,7 @@ void GamePresenceManager::OnGameServerConnected(ServerInfo* pServer)
         snapshotList.push_back(worldData.info);
     }
 
-    pServer->pClient->Send(TCP_PACKET_WORLD_SNAPSHOT, snapshotList.data(),
-                           (uint32)(snapshotList.size() * sizeof(WorldPresenceSnapshotElement)));
+    GetServerManager()->SendWorldPresenceSnapshot(pServer, snapshotList);
 }
 
 void GamePresenceManager::Update()
@@ -183,7 +176,7 @@ void GamePresenceManager::Update()
             if (!pServer)
                 continue;
 
-            GetServerManager()->SendPlayerPresenceUpdate(pServer, dataList);
+            pServerMgr->SendPlayerPresenceUpdate(pServer, dataList);
         }
 
         m_dirtyUsers.clear();
@@ -207,9 +200,7 @@ void GamePresenceManager::Update()
 
         if (!broadcastVec.empty())
         {
-            GetServerManager()->SendRawDataToAllGame(
-                TCP_PACKET_WORLD_UPDATE, (void*)broadcastVec.data(),
-                (uint32)(broadcastVec.size() * sizeof(WorldPresenceUpdateElement)));
+            GetServerManager()->SendWorldPresenceUpdateToAll(broadcastVec);
         }
 
         m_dirtyWorlds.clear();

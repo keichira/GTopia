@@ -6,16 +6,6 @@
 
 #define CONNECT_SOCKET_TIMEOUT_MS 5000
 
-struct TCPPacketEvent
-{
-    NetClient* pClient;
-    bool isRaw = false;
-    uint16 packetType = 0;
-    std::vector<uint8> rawData;
-    VariantVector data;
-    uint64 reqTime;
-};
-
 enum eBroadwayAuthState
 {
     BROADWAY_AUTH_NONE,
@@ -40,7 +30,8 @@ public:
     virtual void UpdateTCPLogic(uint64 maxTimeMS);
 
 protected:
-    bool Connect(const string& host, uint16 port, uint8 retryCount, NetClient** pClient, const volatile sig_atomic_t* shutdownFlag = nullptr);
+    bool Connect(const string& host, uint16 port, uint8 retryCount, NetClient** pClient,
+                 const volatile sig_atomic_t* shutdownFlag = nullptr);
 
 public:
     bool SendPacketRaw(NetClient* pClient, VariantVector& data);

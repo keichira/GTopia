@@ -4,6 +4,7 @@
 #include "Utils/Timer.h"
 #include <unordered_set>
 
+class TCPPacketReader;
 class NetClient;
 class ServerInfo;
 
@@ -33,7 +34,7 @@ public:
     }
 
 public:
-    void OnTCPPacket(NetClient* pClient, uint16 packetType, const std::vector<uint8>& data);
+    void OnTCPPacket(NetClient* pClient, uint16 packetType, TCPPacketReader& reader);
 
     void OnPlayerStatusChanged(uint32 userID, bool loggedOn);
     void OnWorldCreated(uint32 worldID, const string& name, uint16 serverID);

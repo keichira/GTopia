@@ -54,53 +54,42 @@ void MasterBroadway::UpdateTCPLogic(uint64 maxTimeMS)
     while (m_packetQueue.try_dequeue(event))
     {
         if (!event.pClient)
-        {
             continue;
-        }
 
-        int8 type = event.data[0].GetINT();
-        m_events.Dispatch(type, event.pClient, event.data);
+        TCPPacketReader reader(event.payload.data(), (uint32)(event.payload.size()));
+        m_events.Dispatch(event.header.packetID, event.pClient, event.header, reader);
 
         if (startTime.GetElapsedTime() >= maxTimeMS)
-        {
             break;
-        }
     }
 }
 
 void MasterBroadway::SendHelloPacket()
 {
     if (!m_pNetClient)
-    {
         return;
-    }
 
-    VariantVector data(1);
-    data[0] = TCP_PACKET_HELLO;
-
-    m_pNetClient->Send(data);
+    TCPPacketWriter writer(TCP_PACKET_HELLO);
+    m_pNetClient->Send(writer);
 }
 
 void MasterBroadway::SendAuthPacket(const string& authKey)
 {
     if (!m_pNetClient)
-    {
         return;
-    }
-
-    VariantVector packet(4);
-    packet[0] = TCP_PACKET_AUTH;
 
     /**
      * for now just send back the string
      * actually NetSocket was supporting TLS but removed it for now
      * planned to use HMAC for here for non-TLS socket but openssl lib is so big
      */
-    packet[1] = authKey;
-    packet[2] = (uint32)GetContext()->GetID();
-    packet[3] = CONFIG_SERVER_RENDERER;
 
-    m_pNetClient->Send(packet);
+    TCPPacketWriter writer(TCP_PACKET_AUTH);
+    writer.WriteString(authKey);
+    writer.Write<uint32>(GetContext()->GetID());
+    writer.Write<uint8>(CONFIG_SERVER_RENDERER);
+
+    m_pNetClient->Send(writer);
 }
 
 /**
@@ -109,27 +98,25 @@ void MasterBroadway::SendAuthPacket(const string& authKey)
  */
 void MasterBroadway::SendWorldRenderResult(bool succeed, uint32 userID, uint32 worldID)
 {
-    VariantVector data(5);
-    data[0] = TCP_PACKET_RENDER_WORLD;
-    data[1] = TCP_RENDER_RESULT;
-    data[2] = succeed ? TCP_RESULT_OK : TCP_RESULT_FAIL;
-    data[3] = userID;
-    data[4] = worldID;
+    if (!m_pNetClient)
+        return;
 
-    m_pNetClient->Send(data);
+    TCPPacketWriter writer(TCP_PACKET_RENDER_WORLD);
+    writer.Write<int32>(TCP_RENDER_RESULT);
+    writer.Write<uint8>(succeed ? TCP_RESULT_OK : TCP_RESULT_FAIL);
+    writer.Write(userID);
+    writer.Write(worldID);
+
+    m_pNetClient->Send(writer);
 }
 
 void MasterBroadway::SendServerKillPacket()
 {
     if (!m_pNetClient)
-    {
         return;
-    }
 
-    VariantVector data(2);
-    data[0] = TCP_PACKET_KILL_SERVER;
-
-    m_pNetClient->Send(data);
+    TCPPacketWriter writer(TCP_PACKET_KILL_SERVER);
+    m_pNetClient->Send(writer);
 }
 
 bool MasterBroadway::Connect(const string& host, uint16 port, uint8 retryCount,

@@ -3,6 +3,7 @@
 #include "../Player/GamePlayer.h"
 #include "Event/EventDispatcher.h"
 #include "Packet/NetPacket.h"
+#include "Packet/TCPPacket.h"
 #include "Precompiled.h"
 #include "World.h"
 #include "World/WorldBalancer.h"
@@ -25,8 +26,8 @@ public:
 public:
     void Kill();
 
-    void HandleWorldInit(VariantVector&& result);
-    void HandlePlayerJoin(VariantVector&& result);
+    void HandleWorldInit(TCPPacketReader& reader);
+    void HandlePlayerJoin(TCPPacketReader& reader);
     void PlayerJoinRequest(GamePlayer* pPlayer, const string& worldName);
 
     void UpdateWorlds();

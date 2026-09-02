@@ -1,12 +1,14 @@
 #include "TCPEvent_World.h"
 #include "../WorldRendererManager.h"
 
-void TCPEvent_RenderWorld(NetClient* pClient, VariantVector& data)
+void TCPEvent_RenderWorld(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 4)
+    if (!pClient)
         return;
 
-    int32 subType = data[1].GetINT();
+    int32 subType = 0;
+    if (!reader.Read<int32>(subType))
+        return;
 
     if (subType != TCP_RENDER_REQUEST)
     {
@@ -14,8 +16,11 @@ void TCPEvent_RenderWorld(NetClient* pClient, VariantVector& data)
         return;
     }
 
-    uint32 playerUserID = data[2].GetUINT();
-    uint32 worldID = data[3].GetUINT();
+    uint32 playerUserID = 0;
+    uint32 worldID = 0;
+
+    if (!reader.Read<uint32>(playerUserID) || !reader.Read<uint32>(worldID))
+        return;
 
     GetWorldRendererManager()->AddTask(playerUserID, worldID);
 }

@@ -29,7 +29,7 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
     float minVersion = 0.0f;
     float maxVersion = 0.0f;
 
-    /*switch(m_loginDetail.platformType)
+    switch (m_loginDetail.platformType)
     {
         case Proton::PLATFORM_ID_WINDOWS:
         {
@@ -58,15 +58,23 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
             maxVersion = pGameConfig->macosSupportedVersions[1];
             break;
         }
+
+        default:
+        {
+            SendLogonFailWithLog("`4Oops`o, unsupported platform.");
+            return;
+        }
     }
 
-    printf("%f %f\n", minVersion, maxVersion);
-
-    if(m_loginDetail.gameVersion > maxVersion || m_loginDetail.gameVersion < minVersion)
+    if (m_loginDetail.gameVersion < minVersion || m_loginDetail.gameVersion > maxVersion)
     {
-        SendLogonFailWithLog("`4Oops`o, your version is not supported");
+        char msg[128];
+        snprintf(msg, sizeof(msg), "`4Oops`o, your version is not supported. Supported versions: %.2f - %.2f",
+                 minVersion, maxVersion);
+
+        SendLogonFailWithLog(msg);
         return;
-    }*/
+    }
 
     LoginGetAccount();
 }

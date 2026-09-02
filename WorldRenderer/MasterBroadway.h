@@ -38,13 +38,14 @@ public:
     void SetAuthState(eBroadwayAuthState state) { m_authState = state; }
 
 private:
-    template <void (*Function)(NetClient*, VariantVector&)> void RegisterEvent(eTCPPacketType packet)
+    template <void (*Function)(NetClient*, TCPPacketHeader&, TCPPacketReader&)>
+    void RegisterEvent(eTCPPacketType packet)
     {
-        m_events.Register(packet, Delegate<NetClient*, VariantVector&>::Create<Function>());
+        m_events.Register(packet, Delegate<NetClient*, TCPPacketHeader&, TCPPacketReader&>::Create<Function>());
     }
 
 private:
-    EventDispatcher<int8, NetClient*, VariantVector&> m_events;
+    EventDispatcher<uint16, NetClient*, TCPPacketHeader&, TCPPacketReader&> m_events;
     NetClient* m_pNetClient;
     eBroadwayAuthState m_authState;
 };

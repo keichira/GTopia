@@ -4,22 +4,27 @@
 #include "../Server/GamePresenceManager.h"
 #include "../Server/ServerManager.h"
 #include "Database/Table/WorldDBTable.h"
+#include "Packet/TCPPacket.h"
 #include "Utils/StringUtils.h"
 
 WorldManager::WorldManager() {}
 
 WorldManager::~WorldManager() {}
 
-void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, VariantVector&& result)
+void WorldManager::HandlePlayerJoinRequest(ServerInfo* pServer, TCPPacketReader& reader)
 {
-    if (!pServer || result.size() < 3)
-    {
+    if (!pServer)
         return;
-    }
 
-    uint32 userID = result[1].GetUINT();
-    string worldName = ToUpper(result[2].GetString());
-    string doorID = ToUpper(result[3].GetString());
+    uint32 userID = 0;
+    string worldName;
+    string doorID;
+
+    if (!reader.Read<uint32>(userID) || !reader.ReadString(worldName) || !reader.ReadString(doorID))
+        return;
+
+    worldName = ToUpper(worldName);
+    doorID = ToUpper(doorID);
 
     WorldSession* pWorld = GetWorldByName(worldName);
     if (pWorld)
@@ -145,13 +150,13 @@ void WorldManager::CreateWorldSessionAndNotice(uint32 instanceID, uint32 databas
     GetServerManager()->SendWorldInitPacket(pTargetServer, worldName, instanceID, databaseID);
 }
 
-void WorldManager::HandleWorldInit(VariantVector&& result)
+void WorldManager::HandleWorldInit(TCPPacketReader& reader)
 {
-    if (result.size() < 3)
-        return;
+    int32 initResult = 0;
+    uint32 instanceID = 0;
 
-    int32 initResult = result[1].GetINT();
-    uint32 instanceID = result[2].GetUINT();
+    if (!reader.Read<int32>(initResult) || !reader.Read<uint32>(instanceID))
+        return;
 
     WorldSession* pWorld = GetWorldByInstanceID(instanceID);
     if (!pWorld)

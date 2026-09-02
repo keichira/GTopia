@@ -25,9 +25,11 @@ void SendUDPDisconnectPacket(uint32 netID);
 
 void SendUDPItemDataPacket(uint32 netID, float gameVersion, uint32 platformType, GameUpdatePacket* pGamePacket);
 void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32 netID = -1, int32 delay = -1);
-void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID = -1, int32 delay = -1);
+void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID = -1,
+                            int32 delay = -1);
 
-bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData, ENetPeer* pPeer);
+bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData,
+                       ENetPeer* pPeer);
 bool SendENetPacket(eMessagePacketType messageType, const char* message, ENetPeer* pPeer);
 
 const char* GetTextFromEnetPacket(uint8* pData, uint32 dataLength);

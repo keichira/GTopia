@@ -59,7 +59,7 @@ set(MASTER_FILES PRIVATE
     ${MASTER_SERVER}/TelnetServer.cpp
     ${MASTER_SERVER}/GamePresenceManager.cpp
 
-    ${MASTER_COMMAND}/Telnet/SetRole.cpp
+    ${MASTER_COMMAND}/Commands.cpp
 
     ${MASTER_ROOT}/Context.cpp
     ${MASTER_ROOT}/Main.cpp

@@ -38,7 +38,8 @@ public:
     void SendPlayerLeftWorld(uint32 playerUserID, uint32 worldInstanceID);
     void SendPlayerPresenceSubscribe(const std::vector<uint32>& ids);
     void SendPlayerPresenceUnsubscribe(const std::vector<uint32>& ids);
-    void SendRawPacket(eTCPPacketType type, void* pData, uint32 size);
+    void SendWorldPresenceRemove(const std::vector<WorldPresenceRemoveElement>& removeElems);
+    void SendWorldPresenceUpdate(const std::vector<WorldPresenceUpdateElement>& updateElems);
 
     bool IsConnected() { return m_pNetClient != nullptr; }
     bool Connect(const string& host, uint16 port, uint8 retryCount,
@@ -50,13 +51,24 @@ public:
     void SetAuthState(eBroadwayAuthState state) { m_authState = state; }
 
 private:
-    template <void (*Function)(NetClient*, VariantVector&)> void RegisterEvent(eTCPPacketType packet)
+    template <void (*Function)(NetClient*, TCPPacketHeader&, TCPPacketReader&)>
+    void RegisterEvent(eTCPPacketType packet)
     {
-        m_events.Register(packet, Delegate<NetClient*, VariantVector&>::Create<Function>());
+        m_events.Register(packet, Delegate<NetClient*, TCPPacketHeader&, TCPPacketReader&>::Create<Function>());
+    }
+
+    template <typename T> void SendArray(eTCPPacketType packetType, const std::vector<T>& elements)
+    {
+        if (!m_pNetClient || elements.empty())
+            return;
+
+        TCPPacketWriter writer((uint16)packetType, (elements.size() * sizeof(T)) + sizeof(uint32));
+        writer.WriteArray(elements);
+        m_pNetClient->Send(writer);
     }
 
 private:
-    EventDispatcher<int8, NetClient*, VariantVector&> m_events;
+    EventDispatcher<uint16, NetClient*, TCPPacketHeader&, TCPPacketReader&> m_events;
     Timer m_lastHearthBeatSentTime;
     Timer m_lastHearthBeatRecvTime;
     eBroadwayAuthState m_authState;

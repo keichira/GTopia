@@ -1,11 +1,9 @@
 #pragma once
 #include "Packet/GamePacket.h"
+#include "Packet/TCPPacket.h"
 #include "Precompiled.h"
 #include "Utils/Timer.h"
-#include <algorithm>
-#include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
 struct PlayerPresenceData
 {
@@ -40,7 +38,7 @@ public:
     void RequestPresenceForWorld(uint32 worldID, const std::vector<uint32>& userIDs);
     void ReleasePresence(const std::vector<uint32>& userIDs);
 
-    void OnTCPPacket(uint16 packetType, const std::vector<uint8>& data);
+    void OnTCPPacket(uint16 packetType, TCPPacketReader& reader);
     void HandleSnapshot(PlayerPresencePacketElement* pElements, uint32 elementCount);
 
     void Update();

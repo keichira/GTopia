@@ -2,16 +2,18 @@
 #include "../../Player/PlayerManager.h"
 #include "../../Server/ServerManager.h"
 
-void TCPEvent_PlayerEndSession(NetClient* pClient, VariantVector& data)
+void TCPEvent_PlayerEndSession(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 2)
+    if (!pClient)
         return;
 
     ServerInfo* pServer = (ServerInfo*)pClient->data;
     if (!pServer)
         return;
 
-    uint32 userID = data[1].GetUINT();
+    uint32 userID = 0;
+    if (!reader.Read<uint32>(userID))
+        return;
 
     PlayerSession* pPlayerSession = GetPlayerManager()->GetSessionByID(userID);
     if (pPlayerSession)
@@ -20,18 +22,21 @@ void TCPEvent_PlayerEndSession(NetClient* pClient, VariantVector& data)
     }
 }
 
-void TCPEvent_PlayerCheckSession(NetClient* pClient, VariantVector& data)
+void TCPEvent_PlayerCheckSession(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 4)
+    if (!pClient)
         return;
 
     ServerInfo* pServer = (ServerInfo*)pClient->data;
     if (!pServer)
         return;
 
-    int32 netID = data[1].GetINT();
-    uint32 userID = data[2].GetUINT();
-    uint32 token = data[3].GetUINT();
+    int32 netID = 0;
+    uint32 userID = 0;
+    uint32 token = 0;
+
+    if (!reader.Read<int32>(netID) || !reader.Read<uint32>(userID) || !reader.Read<uint32>(token))
+        return;
 
     PlayerSession* pPlayerSession = GetPlayerManager()->GetSessionByID(userID);
     bool hasSession = true;

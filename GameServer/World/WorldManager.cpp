@@ -24,14 +24,14 @@ WorldManager::~WorldManager()
     Kill();
 }
 
-void WorldManager::HandleWorldInit(VariantVector&& result)
+void WorldManager::HandleWorldInit(TCPPacketReader& reader)
 {
-    if (result.size() < 3)
-        return;
+    string worldName;
+    uint32 instanceID = 0;
+    uint32 databaseID = 0;
 
-    string worldName = result[1].GetString();
-    uint32 instanceID = result[2].GetUINT();
-    uint32 databaseID = result[3].GetUINT();
+    if (!reader.ReadString(worldName) || !reader.Read<uint32>(instanceID) || !reader.Read<uint32>(databaseID))
+        return;
 
     World* pWorld = new World();
     pWorld->SetInstanceID(instanceID);
@@ -83,13 +83,13 @@ void WorldManager::Kill()
     m_worldNameCache.clear();
 }
 
-void WorldManager::HandlePlayerJoin(VariantVector&& result)
+void WorldManager::HandlePlayerJoin(TCPPacketReader& reader)
 {
-    if (result.size() < 4)
-        return;
+    int32 oprResult = 0;
+    uint32 playerUserID = 0;
 
-    int32 oprResult = result[1].GetINT();
-    uint32 playerUserID = result[2].GetUINT();
+    if (!reader.Read<int32>(oprResult) || !reader.Read<uint32>(playerUserID))
+        return;
 
     if (oprResult != TCP_RESULT_OK)
     {
@@ -102,27 +102,30 @@ void WorldManager::HandlePlayerJoin(VariantVector&& result)
         return;
     }
 
-    if (result.size() < 7)
-        return;
+    uint32 serverID = 0;
+    uint32 worldID = 0;
+    string doorID;
+    string serverIP;
+    uint32 serverPort = 0;
 
-    uint32 serverID = result[3].GetUINT();
-    uint32 worldID = result[4].GetUINT();
+    if (!reader.Read<uint32>(serverID) || !reader.Read<uint32>(worldID) || !reader.ReadString(doorID) ||
+        !reader.ReadString(serverIP) || !reader.Read<uint32>(serverPort))
+    {
+        return;
+    }
 
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(playerUserID);
     if (!pPlayer)
         return;
 
-    pPlayer->GetLoginDetail().doorID = result[5].GetString();
+    pPlayer->GetLoginDetail().doorID = doorID;
 
     if (serverID != GetContext()->GetID())
     {
-        string serverIP = result[6].GetString();
-        uint16 serverPort = (uint16)result[7].GetUINT();
-
         PlayerLoginDetail& loginDetail = pPlayer->GetLoginDetail();
         loginDetail.loginMode = LOGON_MODE_TRANSFER;
 
-        pPlayer->SendOnSendToServer(serverPort, loginDetail.token, pPlayer->GetUserID(), serverIP,
+        pPlayer->SendOnSendToServer((uint16)serverPort, loginDetail.token, pPlayer->GetUserID(), serverIP,
                                     loginDetail.loginMode, loginDetail.doorID);
 
         pPlayer->LogOff(true, false, false, false);

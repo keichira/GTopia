@@ -1,24 +1,20 @@
-#include "SetRole.h"
-#include "../../Context.h"
-#include "../../Player/PlayerManager.h"
-#include "../../Server/ServerManager.h"
+#include "../Context.h"
+#include "../Player/PlayerManager.h"
+#include "../Server/ServerManager.h"
+#include "CommandManager.h"
 #include "Database/Table/PlayerDBTable.h"
 #include "Player/RoleManager.h"
 
-const TelnetCommandInfo& SetRole::GetInfo()
+TelnetCommandManager* GetTelnetCommandManager()
 {
-    static TelnetCommandInfo info = {"/setrole <userID> <roleID>", "Set player's RoleID", 4, {"setrole"_hash}};
-
-    return info;
+    return TelnetCommandManager::GetInstance();
 }
 
-void SetRoleUpdateRoleCB(QueryTaskResult&& result)
+static void SetRoleUpdateRoleCB(QueryTaskResult&& result)
 {
     TelnetClient* pNetClient = GetTelnetServer()->GetClientByNetID(result.ownerID);
     if (!pNetClient)
-    {
         return;
-    }
 
     if (result.status != QUERY_STATUS_OK)
     {
@@ -48,7 +44,7 @@ void SetRoleUpdateRoleCB(QueryTaskResult&& result)
     pNetClient->SetBusy(false);
 }
 
-void SetRoleCheckPlayerCB(QueryTaskResult&& result)
+static void SetRoleCheckPlayerCB(QueryTaskResult&& result)
 {
     TelnetClient* pNetClient = GetTelnetServer()->GetClientByNetID(result.ownerID);
     if (!pNetClient)
@@ -89,7 +85,7 @@ void SetRoleCheckPlayerCB(QueryTaskResult&& result)
     }
 }
 
-void SetRole::Execute(TelnetClient* pNetClient, std::vector<string>& args)
+MAKE_COMMAND(SetRole, "/setrole <userID> <roleID>", "Set player's RoleID", 4, "setrole"_hash)
 {
     if (!pNetClient || args.empty() || !CheckPerm(pNetClient))
     {
@@ -136,4 +132,9 @@ void SetRole::Execute(TelnetClient* pNetClient, std::vector<string>& args)
     req.callback = &SetRoleCheckPlayerCB;
 
     DatabasePlayerExec(GetContext()->GetDatabasePool(), req);
+}
+
+void TelnetCommandManager::RegisterAllCommands()
+{
+    Register<Command_SetRole>();
 }

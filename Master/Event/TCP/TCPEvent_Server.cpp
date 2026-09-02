@@ -2,7 +2,7 @@
 #include "../../Server/ServerManager.h"
 #include "Utils/StringUtils.h"
 
-void TCPEvent_Hello(NetClient* pClient, VariantVector& data)
+void TCPEvent_Hello(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
     if (!pClient)
         return;
@@ -19,15 +19,15 @@ void TCPEvent_Hello(NetClient* pClient, VariantVector& data)
     }
 
     string authKey = ToHex(bytes, sizeof(bytes));
-    XorCipher(authKey, SOCKET_AUTH_SECRET_KEY);
+    // XorCipher(authKey, SOCKET_AUTH_SECRET_KEY);
 
     pServer->authKey = authKey;
     GetServerManager()->SendHelloPacket(pServer, authKey);
 }
 
-void TCPEvent_Auth(NetClient* pClient, VariantVector& data)
+void TCPEvent_Auth(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 4)
+    if (!pClient)
         return;
 
     ServerInfo* pServer = (ServerInfo*)pClient->data;
@@ -46,17 +46,20 @@ void TCPEvent_Auth(NetClient* pClient, VariantVector& data)
         return;
     }
 
-    string authKey = data[1].GetString();
-    XorCipher(authKey, SOCKET_AUTH_SECRET_KEY);
+    string authKey;
+    uint32 serverID = 0;
+    int32 serverType = 0;
+
+    if (!reader.ReadString(authKey) || !reader.Read<uint32>(serverID) || !reader.Read<int32>(serverType))
+        return;
+
+    // XorCipher(authKey, SOCKET_AUTH_SECRET_KEY);
 
     bool authed = true;
     if (pServer->authKey.size() != authKey.size() || pServer->authKey != authKey)
     {
         authed = false;
     }
-
-    uint32 serverID = data[2].GetUINT();
-    int32 serverType = data[3].GetINT();
 
     if (!authed || !GetServerManager()->AddServer(pServer, (uint16)serverID, (int8)serverType))
     {
@@ -70,21 +73,27 @@ void TCPEvent_Auth(NetClient* pClient, VariantVector& data)
     GetServerManager()->SendAuthPacket(pServer, true);
 }
 
-void TCPEvent_HeartBeat(NetClient* pClient, VariantVector& data)
+void TCPEvent_HeartBeat(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 3)
+    if (!pClient)
         return;
 
     ServerInfo* pServer = (ServerInfo*)pClient->data;
     if (!pServer)
         return;
 
-    pServer->playerCount = data[1].GetUINT();
-    pServer->worldCount = data[2].GetUINT();
+    uint32 playerCount = 0;
+    uint32 worldCount = 0;
+
+    if (!reader.Read<uint32>(playerCount) || !reader.Read<uint32>(worldCount))
+        return;
+
+    pServer->playerCount = playerCount;
+    pServer->worldCount = worldCount;
     pServer->lastHeartbeatTime.Reset();
 }
 
-void TCPEvent_KillServer(NetClient* pClient, VariantVector& data)
+void TCPEvent_KillServer(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
     if (!pClient)
         return;

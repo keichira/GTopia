@@ -2,12 +2,14 @@
 #include "../../Player/PlayerManager.h"
 #include "../../World/WorldManager.h"
 
-void TCPEvent_RenderWorld(NetClient* pClient, VariantVector& data)
+void TCPEvent_RenderWorld(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 4)
+    if (!pClient)
         return;
 
-    int32 subType = data[1].GetINT();
+    int32 subType = 0;
+    if (!reader.Read<int32>(subType))
+        return;
 
     if (subType != TCP_RENDER_RESULT)
     {
@@ -15,27 +17,31 @@ void TCPEvent_RenderWorld(NetClient* pClient, VariantVector& data)
         return;
     }
 
-    uint32 playerUserID = data[3].GetUINT();
+    int32 result = 0;
+    uint32 playerUserID = 0;
+
+    if (!reader.Read<int32>(result) || !reader.Read<uint32>(playerUserID))
+        return;
 
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByUserID(playerUserID);
     if (pPlayer)
     {
-        pPlayer->HandleRenderWorld(std::move(data));
+        pPlayer->HandleRenderWorld(result, reader);
     }
 }
 
-void TCPEvent_WorldInit(NetClient* pClient, VariantVector& data)
+void TCPEvent_WorldInit(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 3)
+    if (!pClient)
         return;
 
-    GetWorldManager()->HandleWorldInit(std::move(data));
+    GetWorldManager()->HandleWorldInit(reader);
 }
 
-void TCPEvent_WorldSendPlayer(NetClient* pClient, VariantVector& data)
+void TCPEvent_WorldSendPlayer(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 4)
+    if (!pClient)
         return;
 
-    GetWorldManager()->HandlePlayerJoin(std::move(data));
+    GetWorldManager()->HandlePlayerJoin(reader);
 }

@@ -2,19 +2,18 @@
 #include "../../Player/GamePlayer.h"
 #include "../../Player/PlayerManager.h"
 
-void TCPEvent_PlayerCheckSession(NetClient* pClient, VariantVector& data)
+void TCPEvent_PlayerCheckSession(NetClient* pClient, TCPPacketHeader& header, TCPPacketReader& reader)
 {
-    if (!pClient || data.size() < 2)
+    if (!pClient)
         return;
 
-    int32 playerNetID = data[1].GetINT();
-
-    if (playerNetID <= 0)
+    int32 playerNetID = 0;
+    if (!reader.Read<int32>(playerNetID) || playerNetID <= 0)
         return;
 
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(playerNetID);
     if (!pPlayer)
         return;
 
-    pPlayer->HandleCheckSession(std::move(data));
+    pPlayer->HandleCheckSession(reader);
 }

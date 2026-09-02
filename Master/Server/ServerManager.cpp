@@ -66,22 +66,24 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
 
     while (m_packetQueue.try_dequeue(event))
     {
-        if (!event.pClient)
+        if (!event.pClient || event.pClient->status == SOCKET_CLIENT_CLOSE)
             continue;
 
-        ServerInfo* pServerInfo = (ServerInfo*)event.pClient->data;
+        ServerInfo* pServerInfo = (ServerInfo*)(event.pClient->data);
         if (!pServerInfo)
         {
             event.pClient->status = SOCKET_CLIENT_CLOSE;
             continue;
         }
 
-        if (event.packetType != TCP_PACKET_HEARTBEAT)
+        uint16 packetID = event.header.packetID;
+
+        if (packetID != TCP_PACKET_HEARTBEAT)
         {
-            LOGGER_LOG_DEBUG("Received TCP Packet %d (IsRaw: %d)", event.packetType, event.isRaw ? 1 : 0);
+            LOGGER_LOG_DEBUG("Received TCP Packet %d (Size: %u)", packetID, event.header.bodySize);
         }
 
-        if (event.packetType != TCP_PACKET_HELLO && event.packetType != TCP_PACKET_AUTH)
+        if (packetID != TCP_PACKET_HELLO && packetID != TCP_PACKET_AUTH)
         {
             if (!pServerInfo->authed)
             {
@@ -91,17 +93,16 @@ void ServerManager::UpdateTCPLogic(uint64 maxTimeMS)
             }
         }
 
-        if (event.isRaw)
+        TCPPacketReader reader(event.payload.data(), (uint32)(event.payload.size()));
+
+        if (packetID == TCP_PACKET_PLAYER_SUBSCRIBE || packetID == TCP_PACKET_PLAYER_UNSUBSCRIBE ||
+            packetID == TCP_PACKET_WORLD_UPDATE || packetID == TCP_PACKET_WORLD_REMOVE)
         {
-            if (event.packetType == TCP_PACKET_PLAYER_SUBSCRIBE || event.packetType == TCP_PACKET_PLAYER_UNSUBSCRIBE ||
-                event.packetType == TCP_PACKET_WORLD_UPDATE || event.packetType == TCP_PACKET_WORLD_REMOVE)
-            {
-                GetGamePresenceManager()->OnTCPPacket(event.pClient, event.packetType, event.rawData);
-            }
+            GetGamePresenceManager()->OnTCPPacket(event.pClient, packetID, reader);
         }
         else
         {
-            m_events.Dispatch(event.packetType, event.pClient, event.data);
+            m_events.Dispatch(packetID, event.pClient, event.header, reader);
         }
 
         if (startTime.GetElapsedTime() >= maxTimeMS)
@@ -139,9 +140,7 @@ ServerInfo* ServerManager::GetServerByID(uint16 serverID)
 {
     auto it = m_servers.find(serverID);
     if (it == m_servers.end())
-    {
         return nullptr;
-    }
 
     return it->second;
 }
@@ -149,18 +148,14 @@ ServerInfo* ServerManager::GetServerByID(uint16 serverID)
 void ServerManager::SendWorldPlayerFailPacket(ServerInfo* pServer, uint32 playerUserID, const string& message)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(4);
+    TCPPacketWriter writer(TCP_PACKET_WORLD_SEND_PLAYER);
+    writer.Write<int32>(TCP_RESULT_FAIL);
+    writer.Write<uint32>(playerUserID);
+    writer.WriteString(message);
 
-    data[0] = TCP_PACKET_WORLD_SEND_PLAYER;
-    data[1] = TCP_RESULT_FAIL;
-    data[2] = playerUserID;
-    data[3] = message;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 playerUserID, uint32 serverID,
@@ -168,22 +163,18 @@ void ServerManager::SendWorldPlayerSuccessPacket(ServerInfo* pServer, uint32 pla
                                                  uint16 serverPort)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(8);
+    TCPPacketWriter writer(TCP_PACKET_WORLD_SEND_PLAYER, 256);
+    writer.Write<int32>(TCP_RESULT_OK);
+    writer.Write(playerUserID);
+    writer.Write(serverID);
+    writer.Write(instanceID);
+    writer.WriteString(doorID);
+    writer.WriteString(serverIP);
+    writer.Write<uint32>(serverPort);
 
-    data[0] = TCP_PACKET_WORLD_SEND_PLAYER;
-    data[1] = TCP_RESULT_OK;
-    data[2] = playerUserID;
-    data[3] = serverID;
-    data[4] = instanceID;
-    data[5] = doorID;
-    data[6] = serverIP;
-    data[7] = (uint32)serverPort;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& worldName, uint32 instanceID,
@@ -192,165 +183,135 @@ void ServerManager::SendWorldInitPacket(ServerInfo* pServer, const string& world
     if (!pServer || !pServer->pClient)
         return;
 
-    VariantVector data(5);
+    TCPPacketWriter writer(TCP_PACKET_WORLD_INIT);
+    writer.WriteString(worldName);
+    writer.Write(instanceID);
+    writer.Write(databaseID);
+    writer.Write(pServer->serverID);
 
-    data[0] = TCP_PACKET_WORLD_INIT;
-    data[1] = worldName;
-    data[2] = instanceID;
-    data[3] = databaseID;
-    data[4] = pServer->serverID;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendAuthPacket(ServerInfo* pServer, bool succeed)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(2);
+    TCPPacketWriter writer(TCP_PACKET_AUTH);
+    writer.Write<uint8>(succeed ? 1 : 0);
 
-    data[0] = TCP_PACKET_AUTH;
-    data[1] = succeed;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendRenderResult(ServerInfo* pServer, int32 result, uint32 playerUserID, uint32 databaseID)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(5);
+    TCPPacketWriter writer(TCP_PACKET_RENDER_WORLD);
+    writer.Write<int32>(TCP_RENDER_RESULT);
+    writer.Write(result);
+    writer.Write(playerUserID);
+    writer.Write(databaseID);
 
-    data[0] = TCP_PACKET_RENDER_WORLD;
-    data[1] = TCP_RENDER_RESULT;
-    data[2] = result;
-    data[3] = playerUserID;
-    data[4] = databaseID;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendRenderRequest(ServerInfo* pServer, uint32 playerUserID, uint32 worldID)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(4);
+    TCPPacketWriter writer(TCP_PACKET_RENDER_WORLD);
+    writer.Write<int32>(TCP_RENDER_REQUEST);
+    writer.Write(playerUserID);
+    writer.Write(worldID);
 
-    data[0] = TCP_PACKET_RENDER_WORLD;
-    data[1] = TCP_RENDER_REQUEST;
-    data[2] = playerUserID;
-    data[3] = worldID;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendHeartBeat(ServerInfo* pServer, uint32 totalPlayer)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(4);
+    TCPPacketWriter writer(TCP_PACKET_HEARTBEAT);
+    writer.Write(totalPlayer);
 
-    data[0] = TCP_PACKET_HEARTBEAT;
-    data[1] = totalPlayer;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendCommandSetRole(ServerInfo* pServer, uint32 userID, uint32 roleID)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(4);
-    data[0] = TCP_PACKET_COMMAND;
-    data[1] = TCP_COMMAND_SETROLE;
-    data[2] = userID;
-    data[3] = roleID;
+    TCPPacketWriter writer(TCP_PACKET_COMMAND);
+    writer.Write<int32>(TCP_COMMAND_SETROLE);
+    writer.Write(userID);
+    writer.Write(roleID);
 
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendPlayerSessionCheck(ServerInfo* pServer, bool hasSession, int32 playerNetID,
                                            uint32 worldInstanceID)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(4);
+    TCPPacketWriter writer(TCP_PACKET_PLAYER_CHECK_SESSION);
+    writer.Write(playerNetID);
+    writer.Write<uint8>(hasSession ? 1 : 0);
+    writer.Write(worldInstanceID);
 
-    data[0] = TCP_PACKET_PLAYER_CHECK_SESSION;
-    data[1] = playerNetID;
-    data[2] = hasSession;
-    data[3] = worldInstanceID;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendHelloPacket(ServerInfo* pServer, const string& authKey)
 {
     if (!pServer || !pServer->pClient)
-    {
         return;
-    }
 
-    VariantVector data(2);
+    TCPPacketWriter writer(TCP_PACKET_HELLO);
+    writer.WriteString(authKey);
 
-    data[0] = TCP_PACKET_HELLO;
-    data[1] = authKey;
-
-    pServer->pClient->Send(data);
+    pServer->pClient->Send(writer);
 }
 
 void ServerManager::SendPlayerPresenceSnapshot(ServerInfo* pServer,
                                                const std::vector<PlayerPresencePacketElement>& elements)
 {
-    if (!pServer || !pServer->pClient || elements.empty())
-        return;
-
-    uint32 totalByteSize = (uint32)(elements.size() * sizeof(PlayerPresencePacketElement));
-    pServer->pClient->Send(TCP_PACKET_PLAYER_SNAPSHOT, elements.data(), totalByteSize);
+    SendArray(pServer, TCP_PACKET_PLAYER_SNAPSHOT, elements);
 }
 
 void ServerManager::SendPlayerPresenceUpdate(ServerInfo* pServer,
                                              const std::vector<PlayerPresencePacketElement>& elements)
 {
-    if (!pServer || !pServer->pClient)
-        return;
-
-    uint32 totalByteSize = (uint32)(elements.size() * sizeof(PlayerPresencePacketElement));
-    pServer->pClient->Send(TCP_PACKET_PLAYER_UPDATE, elements.data(), totalByteSize);
+    SendArray(pServer, TCP_PACKET_PLAYER_UPDATE, elements);
 }
 
-void ServerManager::SendRawDataToAllGame(eTCPPacketType type, void* pData, uint32 size)
+void ServerManager::SendWorldPresenceSnapshot(ServerInfo* pServer,
+                                              const std::vector<WorldPresenceSnapshotElement>& elements)
 {
-    if (!pData || size == 0)
-        return;
-
-    for (auto& [_, pServer] : m_servers)
-    {
-        if (!pServer || !pServer->pClient || pServer->serverType != CONFIG_SERVER_GAME)
-            continue;
-
-        pServer->pClient->Send(type, pData, size);
-    }
+    SendArray(pServer, TCP_PACKET_WORLD_SNAPSHOT, elements);
 }
 
+void ServerManager::SendWorldPresenceSnapshotToAll(const WorldPresenceSnapshotElement& snapshotInfo)
+{
+    std::vector<WorldPresenceSnapshotElement> vec = {snapshotInfo};
+    SendArrayToAll(TCP_PACKET_WORLD_SNAPSHOT, vec);
+}
+
+void ServerManager::SendWorldPresenceUpdateToAll(const std::vector<WorldPresenceUpdateElement>& elements)
+{
+    SendArrayToAll(TCP_PACKET_WORLD_UPDATE, elements);
+}
+
+void ServerManager::SendWorldPresenceRemoveToAll(const std::vector<WorldPresenceRemoveElement>& elements)
+{
+    SendArrayToAll(TCP_PACKET_WORLD_REMOVE, elements);
+}
 bool ServerManager::AddServer(ServerInfo* pServer, uint16 serverID, int8 serverType)
 {
     if (!pServer || !pServer->pClient)
