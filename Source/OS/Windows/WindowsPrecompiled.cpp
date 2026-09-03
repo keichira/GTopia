@@ -125,8 +125,8 @@ std::wstring UTF8ToUTF16(const string& str)
         return std::wstring();
 
     int size = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, NULL, 0);
-    if (size == 0)
-        return false;
+    if (size <= 0)
+        return std::wstring();
 
     std::wstring result(size, 0);
     MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, &result[0], size);
@@ -161,4 +161,9 @@ bool CreateDir(const string& path)
 void GetTimeLocal(tm* outTime, const time_t* timer)
 {
     localtime_s(outTime, timer);
+}
+
+void GetTimeUTC(tm* outTime, const time_t* timer)
+{
+    gmtime_s(outTime, timer);
 }

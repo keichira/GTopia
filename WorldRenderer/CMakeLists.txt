@@ -3,6 +3,9 @@ project(WorldRenderer)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Needed for HTTPS requests
+option(NETHTTP_USE_CURL "Use libcurl for HTTP requests on non Windows" OFF)
+
 if(MSVC)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /D_NDEBUG /O2")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /D_NDEBUG /O2")
@@ -56,9 +59,23 @@ set(WORLD_RENDERER_FILES PRIVATE
     ${WORLD_RENDERER_ROOT}/WeatherRenderer.cpp
     ${WORLD_RENDERER_ROOT}/WorldRendererManager.cpp
 
+    ${SOURCE_NETWORK}/NetHTTP.cpp
+    ${SOURCE_NETWORK}/DiscordWebhook.cpp
+
     ${WORLD_RENDERER_ROOT}/Context.cpp
     ${WORLD_RENDERER_ROOT}/Main.cpp
 )
+
+if(WIN32)
+    list(APPEND GAME_FILES ${SOURCE_NETWORK}/NetHTTP_WinHTTP.cpp)
+else()
+    if(NETHTTP_USE_CURL)
+        find_package(CURL REQUIRED)
+        list(APPEND GAME_FILES ${SOURCE_NETWORK}/NetHTTP_Curl.cpp)
+    else()
+        list(APPEND GAME_FILES ${SOURCE_NETWORK}/NetHTTP_Socket.cpp)
+    endif()
+endif()
 
 add_executable(WorldRenderer)
 add_default_sources(WorldRenderer)
@@ -76,13 +93,22 @@ target_include_directories(WorldRenderer PRIVATE
     ${THIRD_PARTY_BLEND2D}
 )
 
+if(NOT WIN32 AND NETHTTP_USE_CURL)
+    target_include_directories(GameServer PRIVATE ${CURL_INCLUDE_DIRS})
+    target_compile_definitions(GameServer PRIVATE NETHTTP_USE_CURL)
+endif()
+
 target_link_libraries(WorldRenderer PRIVATE
     blend2d::blend2d
 )
 
 if(WIN32)
-    target_link_libraries(WorldRenderer PRIVATE
-        winmm ws2_32
+    target_link_libraries(GameServer PRIVATE
+        winmm ws2_32 winhttp
     )
-    target_compile_definitions(WorldRenderer PRIVATE WIN32_LEAN_AND_MEAN)
-endif(WIN32)
+    target_compile_definitions(GameServer PRIVATE WIN32_LEAN_AND_MEAN)
+else()
+    if(NETHTTP_USE_CURL)
+        target_link_libraries(GameServer PRIVATE ${CURL_LIBRARIES})
+    endif()
+endif()

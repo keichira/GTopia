@@ -1,18 +1,18 @@
 #pragma once
 
+#include "../IO/File.h"
 #include "../Precompiled.h"
-#include "NetSocket.h"
-#include "IO/File.h"
+#include <map>
 
-/**
- * 
- * Currently some parts are broken
- * gonna fix it later
- * 
- */
-
+#if !defined(_WIN32) && !defined(NETHTTP_USE_CURL)
+#define NETHTTP_USE_SOCKET 1
 #define HTTP_TIMEOUT_MS 12 * 1000
 #define HTTP_CLIENT_CONNECT_MS 5 * 1000
+
+#include "NetSocket.h"
+#endif
+
+string EncodeURL(const string& str);
 
 enum eHTTPError
 {
@@ -34,24 +34,22 @@ enum eHTTPState
     HTTP_STATE_COMPLETE
 };
 
-class NetHTTP {
+class NetHTTP
+{
 public:
     NetHTTP();
     ~NetHTTP();
 
-public:
     void Init(const string& server);
     void Kill();
-
-    void OnConnect(NetClient* pClient);
-    void OnDisconnect(NetClient* pClient);
-    void OnDataReceive(NetClient* pClient);
+    void Clear();
 
     bool Get(const string& path);
-
-    void AddPostData(const string& key, const string& value);
     bool Post(const string& path);
 
+    void SetHeader(const string& key, const string& value) { m_headers[key] = value; }
+    void SetBody(const string& body) { m_postData = body; }
+    void AddPostData(const string& key, const string& value);
     bool SetOutputFile(const string& filePath);
 
     string GetHeader() const { return m_header; }
@@ -59,30 +57,41 @@ public:
     uint16 GetStatus() const { return m_status; }
     eHTTPError GetError() const { return m_error; }
 
-private:
-    void Update(const string& headerToSend);
-    void ParseHeader(const string& header);
-    void Clear();
-    void Error(eHTTPError error);
+    void HandleDataReceive(const char* data, uint32 size);
+    void HandleHeaderReceive(const char* data, uint32 size);
 
 private:
-    NetSocket m_netSocket;
-    NetClient* m_pNetClient;
+    bool ExecuteRequest(const string& method, const string& path);
+    void Error(eHTTPError error);
+
+#if NETHTTP_USE_SOCKET
+    void OnConnect(NetClient* pClient);
+    void OnDisconnect(NetClient* pClient);
+    void OnDataReceive(NetClient* pClient);
+    void ParseHeader(const string& header);
+    void UpdateSocketRequest(const string& requestToSend);
+#endif
+
+private:
     string m_server;
-    string m_path;
     uint16 m_port;
+    bool m_isSSL;
 
     string m_header;
     string m_body;
-    bool m_chunked;
-    uint32 m_contentLength;
+    string m_postData;
     uint16 m_status;
 
-    string m_postData;
-    File m_file;
-    
-    eHTTPState m_state;
-    eHTTPError m_error;
-};
+    std::map<string, string> m_headers;
 
-string EncodeURL(const string& str);
+    File m_file;
+    eHTTPError m_error;
+
+#ifdef NETHTTP_USE_SOCKET
+    NetSocket m_netSocket;
+    NetClient* m_pNetClient;
+    eHTTPState m_state;
+    bool m_chunked;
+    uint32 m_contentLength;
+#endif
+};

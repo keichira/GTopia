@@ -50,6 +50,13 @@ struct NetThresholdConfigSchema
     uint32 panicBurst = 0;
 };
 
+struct DiscordWebhookConfigSchema
+{
+    int32 serverType = 0;
+    string customID;
+    string webhookURL;
+};
+
 class GameConfig
 {
 public:
@@ -62,7 +69,8 @@ public:
     uint16 LoadServersClient(const string& filePath, uint16 serverID);
 
 private:
-    void AddServer(uint16 serverID, const string& lanIP, const string& wanIP, uint16 tcpStart, uint16 udpStart, eConfigServerType serverType);
+    void AddServer(uint16 serverID, const string& lanIP, const string& wanIP, uint16 tcpStart, uint16 udpStart,
+                   eConfigServerType serverType);
 
 public:
     std::vector<ServerConfigSchema> servers;
@@ -96,4 +104,6 @@ public:
 
     uint32 maxNpcPerWorld = 20;
     NetThresholdConfigSchema netThreshold;
+
+    std::vector<DiscordWebhookConfigSchema> discordWebhooks;
 };

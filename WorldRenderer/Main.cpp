@@ -3,6 +3,7 @@
 #include "Item/ItemInfoManager.h"
 #include "MasterBroadway.h"
 #include "Math/Random.h"
+#include "Network/DiscordWebhook.h"
 #include "Utils/ResourceManager.h"
 #include "Utils/StringUtils.h"
 #include "Utils/Timer.h"
@@ -116,11 +117,8 @@ int main(int argc, char const* argv[])
     ResourceManager* pResMgr = GetResourceManager();
     pResMgr->SetResourcePath(pGameConfig->rendererStaticPath);
 
-    if (!GetItemInfoManager()->Load(GetProgramPath() + "/items.txt"))
-    {
-        LOGGER_LOG_ERROR_ASAP("Failed to load items.txt");
-        return 0;
-    }
+    GetDiscordWebhookManager()->RegisterFromConfig(pGameConfig->discordWebhooks, CONFIG_SERVER_RENDERER);
+    LOGGER_LOG_INFO("Registered %d Discord webhooks.", GetDiscordWebhookManager()->GetWebhookCount());
 
     auto renderServerInfo = pGameConfig->servers[1];
     if (!GetMasterBroadway()->Init(renderServerInfo.lanIP, renderServerInfo.tcpPort, 0))
@@ -139,6 +137,12 @@ int main(int argc, char const* argv[])
     {
         LOGGER_LOG_ERROR_ASAP("Master Server connection or authentication failed. Aborting startup.");
         GetMasterBroadway()->Kill();
+        return 0;
+    }
+
+    if (!GetItemInfoManager()->Load(GetProgramPath() + "/items.txt"))
+    {
+        LOGGER_LOG_ERROR_ASAP("Failed to load items.txt");
         return 0;
     }
 
@@ -178,6 +182,7 @@ int main(int argc, char const* argv[])
     GetMasterBroadway()->Kill();
     GetResourceManager()->Kill();
     GetContext()->Kill();
+    GetDiscordWebhookManager()->Kill();
     GetLog()->Flush();
     GetLog()->Kill();
     return 0;

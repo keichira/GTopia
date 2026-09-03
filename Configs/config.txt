@@ -43,6 +43,11 @@ macos_supported_versions|3.02|6.00
 # 1 = Enabled, 0 = Disabled
 enable_telnet_server|0
 
+# Discord Webhook
+# server_type -> (1 - game server) - (2 - world renderer)
+# add_discord_webhook|server_type|customID (string)|webhook_url|
+# EXAMPLE -> add_discord_webhook|1|status|https://discord.com/api/webhooks/...|
+
 # Network Burst/Threshold
 # Mostly depends on your cpu, templates are representative
 

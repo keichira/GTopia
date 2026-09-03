@@ -4,6 +4,7 @@
 #include "Item/ItemInfoManager.h"
 #include "Math/Math.h"
 #include "Math/Random.h"
+#include "Network/DiscordWebhook.h"
 #include "Player/AchievementManager.h"
 #include "Player/PlayModManager.h"
 #include "Player/PlayerTribute.h"
@@ -440,6 +441,9 @@ int main(int argc, char const* argv[])
         return 0;
     }
 
+    GetDiscordWebhookManager()->RegisterFromConfig(pGameConfig->discordWebhooks, CONFIG_SERVER_GAME);
+    LOGGER_LOG_INFO("Registered %d Discord webhooks.", GetDiscordWebhookManager()->GetWebhookCount());
+
     auto gameServerInfo = pGameConfig->servers[1];
     if (!GetMasterBroadway()->Init(gameServerInfo.lanIP, gameServerInfo.tcpPort, 0))
     {
@@ -542,6 +546,7 @@ int main(int argc, char const* argv[])
 
     GetGameServer()->Kill();
     GetMasterBroadway()->Kill();
+    GetDiscordWebhookManager()->Kill();
     GetContext()->Kill();
 
     GetLog()->Kill();

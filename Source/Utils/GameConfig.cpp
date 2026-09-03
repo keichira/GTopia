@@ -226,6 +226,24 @@ bool GameConfig::LoadConfig(const string& filePath)
         {
             netThreshold.panicBurst = line.GetUInt(1);
         }
+
+        if (key == "add_discord_webhook")
+        {
+            if (line.Require(3))
+            {
+                int32 serverType = line.GetUInt(1, 3);
+
+                if (serverType > 2)
+                    continue;
+
+                DiscordWebhookConfigSchema webhook;
+                webhook.serverType = serverType;
+                webhook.customID = line.GetString(2);
+                webhook.webhookURL = line.GetString(3);
+
+                discordWebhooks.push_back(std::move(webhook));
+            }
+        }
     }
 
     return true;

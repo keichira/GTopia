@@ -131,3 +131,8 @@ void GetTimeLocal(tm* outTime, const time_t* timer)
 {
     localtime_r(timer, outTime);
 }
+
+void GetTimeUTC(tm* outTime, const time_t* timer)
+{
+    gmtime_r(timer, outTime);
+}

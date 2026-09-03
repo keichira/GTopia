@@ -3,6 +3,9 @@ project(GameServer)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Needed for HTTPS requests
+option(NETHTTP_USE_CURL "Use libcurl for HTTP requests on non Windows" OFF)
+
 if(MSVC)
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /D_NDEBUG /O2")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /D_NDEBUG /O2")
@@ -110,9 +113,23 @@ set(GAME_FILES PRIVATE
     ${GAME_SERVER}/UserCacheManager.cpp
     ${GAME_SERVER}/GamePresenceManager.cpp
 
+    ${SOURCE_NETWORK}/NetHTTP.cpp
+    ${SOURCE_NETWORK}/DiscordWebhook.cpp
+
     ${GAME_ROOT}/Context.cpp
     ${GAME_ROOT}/Main.cpp
 )
+
+if(WIN32)
+    list(APPEND GAME_FILES ${SOURCE_NETWORK}/NetHTTP_WinHTTP.cpp)
+else()
+    if(NETHTTP_USE_CURL)
+        find_package(CURL REQUIRED)
+        list(APPEND GAME_FILES ${SOURCE_NETWORK}/NetHTTP_Curl.cpp)
+    else()
+        list(APPEND GAME_FILES ${SOURCE_NETWORK}/NetHTTP_Socket.cpp)
+    endif()
+endif()
 
 add_executable(GameServer)
 add_default_sources(GameServer)
@@ -132,23 +149,34 @@ target_include_directories(GameServer PRIVATE
     ${MYSQL_INCLUDE_DIR}
 )
 
+if(NOT WIN32 AND NETHTTP_USE_CURL)
+    target_include_directories(GameServer PRIVATE ${CURL_INCLUDE_DIRS})
+    target_compile_definitions(GameServer PRIVATE NETHTTP_USE_CURL)
+endif()
+
 target_link_libraries(GameServer PRIVATE
     ${MYSQL_LIB}
 )
 
 if(WIN32)
     target_link_libraries(GameServer PRIVATE
-        winmm ws2_32
+        winmm ws2_32 winhttp
     )
     target_compile_definitions(GameServer PRIVATE WIN32_LEAN_AND_MEAN)
-endif(WIN32)
+else()
+    if(NETHTTP_USE_CURL)
+        target_link_libraries(GameServer PRIVATE ${CURL_LIBRARIES})
+    endif()
+endif()
 
-copy_dll(GameServer "${MYSQL_LIB_DIR}/libmysql.dll")
+if(WIN32)
+    copy_dll(GameServer "${MYSQL_LIB_DIR}/libmysql.dll")
 
-file(GLOB OPENSSL_DLLS
-    "${MYSQL_LIB_DIR}/../bin/libcrypto*.dll"
-    "${MYSQL_LIB_DIR}/../bin/libssl*.dll"
-)
-foreach(DLL ${OPENSSL_DLLS})
-    copy_dll(GameServer "${DLL}")
-endforeach()
+    file(GLOB OPENSSL_DLLS
+        "${MYSQL_LIB_DIR}/../bin/libcrypto*.dll"
+        "${MYSQL_LIB_DIR}/../bin/libssl*.dll"
+    )
+    foreach(DLL ${OPENSSL_DLLS})
+        copy_dll(GameServer "${DLL}")
+    endforeach()
+endif()

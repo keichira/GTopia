@@ -29,6 +29,7 @@ string GetLoadAvgString();
 string GetFileNameFromPath(const string& path);
 bool CreateDir(const string& path);
 void GetTimeLocal(tm* outTime, const time_t* timer);
+void GetTimeUTC(tm* outTime, const time_t* timer);
 
 #ifdef _WIN32
 std::wstring UTF8ToUTF16(const string& str);
