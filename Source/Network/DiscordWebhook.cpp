@@ -15,24 +15,23 @@ DiscordWebhook::~DiscordWebhook() {}
 void DiscordWebhook::SetWebhookUrl(const string& webhookUrl)
 {
     m_webhookUrl = webhookUrl;
-    m_host = webhookUrl;
+    string temp = m_webhookUrl;
 
-    usize protoLen = 0;
-    if (m_host.find("https://") == 0)
-        m_host = m_host.substr(8);
-    else if (m_host.find("http://") == 0)
-        m_host = m_host.substr(7);
+    if (temp.find("https://") == 0)
+        temp = temp.substr(8);
+    else if (temp.find("http://") == 0)
+        temp = temp.substr(7);
 
-    usize pathPos = m_host.find("/");
+    usize pathPos = temp.find("/");
 
     if (pathPos != string::npos)
     {
-        m_host = m_host.substr(0, pathPos);
-        m_path = m_host.substr(pathPos);
+        m_host = temp.substr(0, pathPos);
+        m_path = temp.substr(pathPos);
     }
     else
     {
-        m_host = m_host;
+        m_host = temp;
         m_path = "/";
     }
 

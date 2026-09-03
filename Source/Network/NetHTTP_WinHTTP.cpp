@@ -72,18 +72,16 @@ bool NetHTTP::ExecuteRequest(const string& method, const string& path)
 
     if (dwFlags & WINHTTP_FLAG_SECURE)
     {
-        DWORD dwSecFlags = SECURITY_FLAG_IGNORE_UNKNOWN_CA | SECURITY_FLAG_IGNORE_CERT_CN_INVALID;
+        DWORD dwSecFlags = 0;
         WinHttpSetOption(hRequest, WINHTTP_OPTION_SECURITY_FLAGS, &dwSecFlags, sizeof(dwSecFlags));
     }
 
-    std::wstring wHeaders;
     for (auto& [key, val] : m_headers)
     {
-        wHeaders += UTF8ToUTF16(key + ": " + val + "\r\n");
+        std::wstring wHeader = UTF8ToUTF16(key + ": " + val + "\r\n");
+        WinHttpAddRequestHeaders(hRequest, wHeader.c_str(), (DWORD)-1L,
+                                 WINHTTP_ADDREQ_FLAG_ADD | WINHTTP_ADDREQ_FLAG_REPLACE);
     }
-
-    LPCWSTR pHeadersPtr = wHeaders.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : wHeaders.c_str();
-    DWORD dwHeadersLen = wHeaders.empty() ? 0 : (DWORD)-1L; // woah...
 
     LPVOID pPostData = WINHTTP_NO_REQUEST_DATA;
     DWORD dwPostLen = 0;
@@ -94,7 +92,7 @@ bool NetHTTP::ExecuteRequest(const string& method, const string& path)
         dwPostLen = (DWORD)m_postData.size();
     }
 
-    BOOL bResults = WinHttpSendRequest(hRequest, pHeadersPtr, dwHeadersLen, pPostData, dwPostLen, dwPostLen, 0);
+    BOOL bResults = WinHttpSendRequest(hRequest, WINHTTP_NO_ADDITIONAL_HEADERS, 0, pPostData, dwPostLen, dwPostLen, 0);
     if (bResults)
     {
         bResults = WinHttpReceiveResponse(hRequest, NULL);
@@ -133,9 +131,7 @@ bool NetHTTP::ExecuteRequest(const string& method, const string& path)
     WinHttpCloseHandle(hConnect);
     WinHttpCloseHandle(hSession);
 
-    if (m_status == 0)
-        Error(HTTP_ERROR_FAIL_CONNECT);
-    else if (m_status >= 400 && m_status < 500)
+    if (m_status >= 400 && m_status < 500)
         Error(HTTP_ERROR_CLIENT);
     else if (m_status >= 500)
         Error(HTTP_ERROR_SERVER);
