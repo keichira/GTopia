@@ -239,16 +239,11 @@ void TileInfo::PunchTile(uint32 damage)
     uint16 itemToDamage = GetDisplayedItem();
 
     if (itemToDamage == ITEM_ID_BLANK)
-    {
-        LOGGER_LOG_WARN("Mate we are damaging nothingness?");
         return;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemToDamage);
     if (!pItem)
-    {
         return;
-    }
 
     if (m_lastDamageTime.GetElapsedTime() >= pItem->restoreTime * 1000)
     {

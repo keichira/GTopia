@@ -57,15 +57,38 @@ bool ENetServer::Update(ENetEvent* pEvent)
     if (!m_pHost || !pEvent)
         return false;
 
-    return enet_host_service(m_pHost, pEvent, 0) > 0;
+    return enet_host_check_events(m_pHost, pEvent) > 0;
+}
+
+void ENetServer::Service()
+{
+    if (!m_pHost)
+        return;
+
+    enet_host_service(m_pHost, nullptr, 0);
+}
+
+void ENetServer::Wait(uint32 timeoutMS)
+{
+    if (!m_pHost)
+        return;
+
+    enet_uint32 condition = ENET_SOCKET_WAIT_RECEIVE;
+    enet_socket_wait(m_pHost->socket, &condition, timeoutMS);
+}
+
+void ENetServer::Flush()
+{
+    if (m_pHost)
+    {
+        enet_host_flush(m_pHost);
+    }
 }
 
 void ENetServer::SetENetIncomeCmdType(ENetHostIncomeCommandType type)
 {
     if (!m_pHost)
-    {
         return;
-    }
 
     m_pHost->incomeCommandType = type;
 }

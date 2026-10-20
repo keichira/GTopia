@@ -481,26 +481,15 @@ void WorldManager::OnHandleGamePacket(NetworkEvent& event)
 
     GameUpdatePacket* pGamePacket = GetGamePacketFromEnetPacket(event.pPacket->payload, event.pPacket->dataLength);
     if (!pGamePacket)
-    {
-        gPacketPool.Release(event.pPacket);
         return;
-    }
 
     GamePlayer* pPlayer = GetPlayerManager()->GetPlayerByNetID(event.netID);
     if (!pPlayer || !pPlayer->HasState(PLAYER_STATE_IN_GAME))
-    {
-        gPacketPool.Release(event.pPacket);
         return;
-    }
 
     World* pWorld = GetWorldByInstanceID(pPlayer->GetCurrentWorld());
     if (!pWorld)
-    {
-        gPacketPool.Release(event.pPacket);
         return;
-    }
-
-    CRASH_SET("LastGamePacket", pGamePacket->type);
 
     if (pGamePacket->type != NET_GAME_PACKET_NPC && pGamePacket->type != NET_GAME_PACKET_PING_REPLY &&
         pGamePacket->type != NET_GAME_PACKET_PING_REQUEST && pGamePacket->type != NET_GAME_PACKET_SET_ICON_STATE)
@@ -512,12 +501,10 @@ void WorldManager::OnHandleGamePacket(NetworkEvent& event)
     {
         pPlayer->SetIconState(pGamePacket->field_11);
         pWorld->SendGamePacketToAll(pGamePacket, pPlayer);
-        gPacketPool.Release(event.pPacket);
         return;
     }
 
     m_packetEvents.Dispatch((eGamePacketType)pGamePacket->type, pPlayer, pWorld, pGamePacket);
-    gPacketPool.Release(event.pPacket);
 }
 
 void WorldManager::SaveAllToDatabase()

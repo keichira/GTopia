@@ -101,8 +101,6 @@ void GamePlayer::StartLoginRequest(ParsedTextPacket<40>& packet)
     m_userID = m_loginDetail.user;
     GetMasterBroadway()->SendCheckSessionPacket(GetNetID(), m_loginDetail.user, m_loginDetail.token,
                                                 GetContext()->GetID());
-
-    CRASH_SET("LastPlayerUserID", m_userID);
 }
 
 void GamePlayer::HandleCheckSession(TCPPacketReader& reader)
@@ -703,7 +701,7 @@ void GamePlayer::SendPositionToWorldPlayers()
         packet.SetFlag(GAME_PACKET_FLAG_FACING_LEFT);
     }
 
-    pWorld->SendGamePacketToAll(&packet, this);
+    pWorld->SendGamePacketToAll(&packet, this, nullptr);
 }
 
 Vector2Float GamePlayer::GetWorldPosCenter()
@@ -1206,9 +1204,7 @@ int32 GamePlayer::ModifyInventoryItem(int32 itemID, int16 amount)
         return -count;
     }
     else
-    {
         return m_inventory.AddItem(pItem->id, amount, this);
-    }
 }
 
 void GamePlayer::TrashItem(int32 itemID, uint16 amount)

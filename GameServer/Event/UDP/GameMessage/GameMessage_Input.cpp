@@ -55,6 +55,9 @@ void GameMessage_Input(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         GetCommandManager()->ExecuteCommand(pPlayer, args);
         return;
     }
+
+    // used for benchmark, not implemented yet
+    // pWorld->SendTalkBubbleAndConsoleToAll(text, false, pPlayer);
 }
 
 void GameMessage_Wrench(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)

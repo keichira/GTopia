@@ -1,5 +1,6 @@
 #include "Timer.h"
 #include "StringUtils.h"
+#include <chrono>
 #include <ctime>
 
 Timer::Timer() : m_startTime(GetTick()), m_isSet(false) {}
@@ -147,4 +148,10 @@ string Time::FormatTimeToStr(time_t targetTime)
 string Time::FormatTimeToStr(uint64 unixTime)
 {
     return FormatTimeToStr((time_t)(unixTime));
+}
+
+uint64 Time::GetTimeNowUS()
+{
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch())
+        .count();
 }

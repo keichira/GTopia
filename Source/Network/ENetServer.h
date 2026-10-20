@@ -18,6 +18,9 @@ public:
     bool Init(const string& host, uint16 port, uint32 maxPeer = ENET_PROTOCOL_MAXIMUM_PEER_ID);
     void Kill();
     bool Update(ENetEvent* pEvent);
+    void Service();
+    void Wait(uint32 timeoutMS);
+    void Flush();
     void SetENetIncomeCmdType(ENetHostIncomeCommandType type);
 
     EventQueue& GetEvents() { return m_eventQueue; }

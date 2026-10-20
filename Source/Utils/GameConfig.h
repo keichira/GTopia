@@ -39,17 +39,6 @@ struct WorldBalanceConfigSchema
     string holidayKey;
 };
 
-struct NetThresholdConfigSchema
-{
-    uint32 heavyQueueSize = 0;
-    uint32 panicQueueSize = 0;
-    uint32 heavyCpuPermille = 0;
-    uint32 panicCpuPermille = 0;
-    uint32 normalBurst = 0;
-    uint32 heavyBurst = 0;
-    uint32 panicBurst = 0;
-};
-
 struct DiscordWebhookConfigSchema
 {
     int32 serverType = 0;
@@ -101,7 +90,6 @@ public:
     std::vector<WorldBalanceConfigSchema> balancedWorlds;
 
     uint32 maxNpcPerWorld = 20;
-    NetThresholdConfigSchema netThreshold;
 
     std::vector<DiscordWebhookConfigSchema> discordWebhooks;
     string luaScriptsPath;

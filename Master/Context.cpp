@@ -80,20 +80,6 @@ bool Context::LoadDatabaseModules()
     return true;
 }
 
-void Context::SetupNetBurstFromConfig()
-{
-    if (!m_pGameConfig)
-        return;
-
-    gNetBurstConfig.threshold.heavyQueueSize = m_pGameConfig->netThreshold.heavyQueueSize;
-    gNetBurstConfig.threshold.panicQueueSize = m_pGameConfig->netThreshold.panicQueueSize;
-    gNetBurstConfig.threshold.heavyCpuPermille = m_pGameConfig->netThreshold.heavyCpuPermille;
-    gNetBurstConfig.threshold.panicCpuPermille = m_pGameConfig->netThreshold.panicBurst;
-    gNetBurstConfig.normalBurst = m_pGameConfig->netThreshold.normalBurst;
-    gNetBurstConfig.heavyBurst = m_pGameConfig->netThreshold.heavyBurst;
-    gNetBurstConfig.panicBurst = m_pGameConfig->netThreshold.panicBurst;
-}
-
 Context* GetContext()
 {
     return Context::GetInstance();

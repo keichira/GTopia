@@ -133,8 +133,6 @@ void GameServer::OnEventReceive(NetworkEvent& event)
                     m_messagePacket.Dispatch(packetType, pPlayer, packet);
                 }
             }
-
-            CRASH_SET("LastTextPacket", textFromPacket);
             break;
         }
 
@@ -270,29 +268,42 @@ void GameServer::Update()
         return;
 
     Context* pContext = GetContext();
+    bool isShutting = GetContext()->IsShutting();
+    bool needFlush = false;
 
-    uint32 currentCpuPermille = pContext->GetRuntimeStats().GetPerfStats().netCpuPermille;
-    usize outgoingQueueSize = gPacketOutgoingQueue.size_approx();
-
-    uint32 currentBurstLimit = 0;
-    bool isPanicMode = false;
-
-    EvaluateNetHealth(outgoingQueueSize, currentCpuPermille, currentBurstLimit, isPanicMode);
-
-    if (pContext->IsShutting())
-    {
-        currentBurstLimit = 5000;
-    }
-
+    uint64 sendStartUS = 0;
+    uint32 processedEvents = 0;
     uint32 processedSends = 0;
     NetworkEvent outEvent;
 
-    while (processedSends < currentBurstLimit && gPacketOutgoingQueue.try_dequeue(outEvent))
+    while ((isShutting || !BudgetExpired(processedSends, sendStartUS)) && gPacketOutgoingQueue.try_dequeue(outEvent))
     {
+        processedEvents++;
+
+        if (!outEvent.targets.empty())
+        {
+            ENetPacket* pPacket = outEvent.pENetPacket;
+            if (pPacket)
+            {
+                for (uint32 id : outEvent.targets)
+                {
+                    auto it = m_connectionMap.find(id);
+                    if (it != m_connectionMap.end() && it->second.pPeer)
+                    {
+                        if (enet_peer_send(it->second.pPeer, 0, pPacket) == 0)
+                            processedSends++;
+                    }
+                }
+                if (pPacket->referenceCount == 0)
+                    enet_packet_destroy(pPacket);
+            }
+            continue;
+        }
+
         processedSends++;
 
         auto it = m_connectionMap.find(outEvent.netID);
-        ENetPeer* pPeer = (it != m_connectionMap.end()) ? it->second : nullptr;
+        ENetPeer* pPeer = (it != m_connectionMap.end()) ? it->second.pPeer : nullptr;
 
         if (!pPeer)
         {
@@ -340,6 +351,9 @@ void GameServer::Update()
 
                     enet_peer_send(pPeer, 0, pItemPacket);
                 }
+                else
+                    LOGGER_LOG_ERROR("[ITEMDATA] no client data for ver=%f platform=%d netID=%u", pGamePacket->field_10,
+                                     pGamePacket->field_11, outEvent.netID)
             }
 
             gPacketPool.Release(outEvent.pPacket);
@@ -353,15 +367,20 @@ void GameServer::Update()
         }
     }
 
-    if (pContext->IsShutting())
+    if (isShutting)
+    {
+        m_pENetServer->Flush();
         return;
+    }
+
+    m_pENetServer->Service();
 
     uint32 processedReceives = 0;
+    uint64 recvStartUS = Time::GetTimeNowUS();
+    uint64 nowMS = Time::GetSystemTime();
     ENetEvent inEvent;
 
-    uint32 recvLimit = isPanicMode ? gNetBurstConfig.panicBurst : currentBurstLimit;
-
-    while (!pContext->IsShutting() && processedReceives < recvLimit && m_pENetServer->Update(&inEvent))
+    while (!BudgetExpired(processedReceives, recvStartUS) && m_pENetServer->Update(&inEvent))
     {
         processedReceives++;
         if (!inEvent.peer)
@@ -376,7 +395,7 @@ void GameServer::Update()
                     newConnID = ++m_lastConnectionID;
 
                 inEvent.peer->data = (void*)(uintptr_t)newConnID;
-                m_connectionMap[newConnID] = inEvent.peer;
+                m_connectionMap[newConnID] = PeerConnection{inEvent.peer, nowMS, 0};
 
                 NetworkEvent netEvent;
                 netEvent.type = ENET_EVENT_TYPE_CONNECT;
@@ -391,6 +410,33 @@ void GameServer::Update()
                 if (!inEvent.packet || inEvent.packet->dataLength < 4)
                 {
                     enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                uint32 netID = (uint32)(uintptr_t)inEvent.peer->data;
+                auto connIt = m_connectionMap.find(netID);
+                if (connIt == m_connectionMap.end())
+                {
+                    enet_packet_destroy(inEvent.packet);
+                    continue;
+                }
+
+                PeerConnection& conn = connIt->second;
+                if (nowMS - conn.startMS >= 1000)
+                {
+                    conn.startMS = nowMS;
+                    conn.packetCount = 0;
+                }
+
+                if (++conn.packetCount > 200)
+                {
+                    LOGGER_LOG_DEBUG("[DROP] netID=%u rate limited (%u/s)", netID, conn.packetCount);
+                    enet_packet_destroy(inEvent.packet);
+                    if (conn.packetCount > 200 * 4)
+                    {
+                        KickPeer(netID, conn.pPeer);
+                        needFlush = true;
+                    }
                     continue;
                 }
 
@@ -450,6 +496,9 @@ void GameServer::Update()
             }
         }
     }
+
+    if (needFlush)
+        m_pENetServer->Flush();
 }
 
 void GameServer::ForceSaveEverything()

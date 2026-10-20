@@ -77,11 +77,7 @@ void Player::SendOnChangeSkin(uint32 skinColor, Player* pPlayer)
 
 void Player::SendOnTalkBubble(const string& message, bool stackMessages, Player* pPlayer)
 {
-    /**
-     * check growmojis, player_chat= in here
-     */
     uint32 talkerNetID = pPlayer ? (uint32)pPlayer->GetNetID() : (uint32)GetNetID();
-
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnTalkBubble(talkerNetID, message, stackMessages));
 }
 
@@ -349,37 +345,9 @@ void Player::SendInventoryPacket()
 
 void Player::SendOnSetClothing(Player* pPlayer)
 {
-    auto clothes = pPlayer ? pPlayer->GetInventory().GetClothes() : m_inventory.GetClothes();
-
-    VariantVector data(6);
-    data[0] = "OnSetClothing";
-    data[1] = Vector3Float(ToItemClientID(clothes[BODY_PART_HAT]), ToItemClientID(clothes[BODY_PART_SHIRT]),
-                           ToItemClientID(clothes[BODY_PART_PANT]));
-    data[2] = Vector3Float(ToItemClientID(clothes[BODY_PART_SHOE]), ToItemClientID(clothes[BODY_PART_FACEITEM]),
-                           ToItemClientID(clothes[BODY_PART_HAND]));
-    data[3] = Vector3Float(ToItemClientID(clothes[BODY_PART_BACK]), ToItemClientID(clothes[BODY_PART_HAIR]),
-                           ToItemClientID(clothes[BODY_PART_CHESTITEM]));
-
-    data[4] = pPlayer ? (int32)pPlayer->GetCharData().GetSkinColor() : (int32)m_characterData.GetSkinColor();
-
-    bool isInvis = true;
-
-    if (m_loginDetail.gameVersion < 2.62)
-    {
-        data[5] = uint32(isInvis ? 1 : 0);
-    }
-    else if (m_loginDetail.protocol < 32)
-    {
-        data[5] = Vector3Float(isInvis ? 1.0 : 0.0, 0, 0);
-    }
-    else
-    {
-        float artifact = ToItemClientID(clothes[BODY_PART_ARTIFACT]);
-        data[5] = Vector3Float(artifact, isInvis ? 1.0 : 0.0, 0);
-    }
-
-    int32 netID = pPlayer ? pPlayer->GetNetID() : GetNetID();
-    SendCallFunctionPacket(GetNetID(), data, netID);
+    Player* pTarget = pPlayer ? pPlayer : this;
+    int32 format = GetClothingFormat(m_loginDetail.gameVersion, m_loginDetail.protocol);
+    SendCallFunctionPacket(GetNetID(), BuildClothingVariant(pTarget, format), pTarget->GetNetID());
 }
 
 void Player::SendOnPlanterActivated(int32 itemID, uint32 tileX, uint32 tileY)
@@ -413,5 +381,59 @@ void Player::SendCharacterState(Player* pPlayer)
 void Player::SendOnSetPos(float x, float y, Player* pPlayer)
 {
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnSetPos(x, y), pPlayer ? pPlayer->GetNetID() : -1);
+}
+
+GameUpdatePacket Player::BuildCharacterStatePacket(Player* pPlayer)
+{
+    CharacterData& charData = pPlayer->GetCharData();
+
+    GameUpdatePacket packet;
+    packet.type = NET_GAME_PACKET_SET_CHARACTER_STATE;
+    packet.field_4 = pPlayer->GetNetID();
+    packet.field_1 = charData.punchType;
+    packet.field_2 = charData.buildRange;
+    packet.field_3 = charData.punchRange;
+    packet.flags = charData.char2State;
+    packet.field_6 = charData.waterSpeed;
+    packet.field_7 = charData.charState;
+    packet.field_8.x = charData.speed;
+    packet.field_8.y = charData.punchPower;
+    packet.field_9.x = charData.accel;
+    packet.field_9.y = charData.gravity;
+    return packet;
+}
+
+int32 Player::GetClothingFormat(float gameVersion, uint32 protocol)
+{
+    if (gameVersion < 2.62f)
+        return 0;
+    if (protocol < 32)
+        return 1;
+    return 2;
+}
+
+VariantVector Player::BuildClothingVariant(Player* pPlayer, int32 format)
+{
+    auto clothes = pPlayer->GetInventory().GetClothes();
+
+    VariantVector data(6);
+    data[0] = "OnSetClothing";
+    data[1] = Vector3Float(ToItemClientID(clothes[BODY_PART_HAT]), ToItemClientID(clothes[BODY_PART_SHIRT]),
+                           ToItemClientID(clothes[BODY_PART_PANT]));
+    data[2] = Vector3Float(ToItemClientID(clothes[BODY_PART_SHOE]), ToItemClientID(clothes[BODY_PART_FACEITEM]),
+                           ToItemClientID(clothes[BODY_PART_HAND]));
+    data[3] = Vector3Float(ToItemClientID(clothes[BODY_PART_BACK]), ToItemClientID(clothes[BODY_PART_HAIR]),
+                           ToItemClientID(clothes[BODY_PART_CHESTITEM]));
+    data[4] = (int32)pPlayer->GetCharData().GetSkinColor();
+
+    bool isInvis = true;
+    if (format == 0)
+        data[5] = uint32(isInvis ? 1 : 0);
+    else if (format == 1)
+        data[5] = Vector3Float(isInvis ? 1.0 : 0.0, 0, 0);
+    else
+        data[5] = Vector3Float((float)ToItemClientID(clothes[BODY_PART_ARTIFACT]), isInvis ? 1.0 : 0.0, 0);
+
+    return data;
 }
 #endif

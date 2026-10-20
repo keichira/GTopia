@@ -34,7 +34,6 @@ public:
     DatabasePool* GetDatabasePool() { return m_pDbPool; }
 
     bool LoadDatabaseModules();
-    void SetupNetBurstFromConfig();
 
 private:
     DatabasePool* m_pDbPool;

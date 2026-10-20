@@ -17,7 +17,7 @@ echo.
 echo Select build mode:
 echo 1) Debug
 echo 2) Release
-set /p mode_choice=Build Mode: 
+set /p mode_choice=Build Mode:
 
 if "%mode_choice%"=="1" set MODE=Debug
 if "%mode_choice%"=="2" set MODE=Release
@@ -32,7 +32,7 @@ cd /d "%BUILD_DIR%"
 
 echo Building %PROJECT% (%MODE%)
 cmake ../.. -DCMAKE_BUILD_TYPE=%MODE% -DPROJECT_TO_BUILD=%PROJECT%
-cmake --build .
+cmake --build . --config %MODE%
 
 echo.
 echo %PROJECT% build completed!

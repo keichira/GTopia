@@ -36,6 +36,7 @@ public:
     static int32 GetDaysInMonth(int32 year, int32 month);
     static string FormatTimeToStr(time_t targetTime);
     static string FormatTimeToStr(uint64 unixTime);
+    static uint64 GetTimeNowUS();
 
 private:
     Timer m_timer;

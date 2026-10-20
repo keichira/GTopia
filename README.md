@@ -79,7 +79,7 @@ Guides live in the [`Docs/`](Docs/) folder. Start with the **[Documentation Inde
 ## 🧩 How it works
 
 - **Master Server** – handles player logins and manages all game servers and world renderer server.
-- **Game Server** – runs the gameplay. Players reach it through the Master Server only.
+- **Game Server** – runs the gameplay. Players reach it through the Master Server only. **[Benchmark.md](Docs/Benchmark.md)**.
 - **World Renderer** – draws worlds using data from the Master Server and database.
 
 ---

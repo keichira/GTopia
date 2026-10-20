@@ -101,6 +101,8 @@ public:
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
     // void SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y);
 
+    void SendPlaySFXToAll(const string& audio, int32 delay = -1);
+    void SendPlaySFXToAll(std::vector<uint32>&& targets, const string& audio, int32 delay = -1);
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void SendGamePacketToGroup(std::vector<GamePlayer*> players, GameUpdatePacket* pPacket,
                                uint8* pExtraData = nullptr);
@@ -176,6 +178,7 @@ public:
     Timer& GetOfflineTime() { return m_worldOfflineTime; }
 
     std::vector<GamePlayer*>& GetPlayers() { return m_players; }
+    std::vector<uint32> GetPlayerNetIDList(GamePlayer* pExcept = nullptr);
 
     std::vector<uint32> GetRequiredPresenceUserIDs();
     std::vector<uint32> GetActivePresenceUserIDs();
@@ -190,6 +193,13 @@ private:
     void DropObject(const WorldObject& obj);
     void RemoveObject(uint32 objectID);
     void ModifyObject(const WorldObject& obj);
+
+    struct ClothingTargets
+    {
+        std::vector<uint32> byFormat[3];
+    };
+    ClothingTargets GroupByClothingFormat(GamePlayer* pExcept = nullptr);
+    void SendClothingMulti(const ClothingTargets& groups, GamePlayer* pSubject);
 
 private:
     uint32 m_databaseID;

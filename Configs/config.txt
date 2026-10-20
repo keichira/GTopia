@@ -75,33 +75,3 @@ balance_world|WOLFWORLD|||8|1||
 # after that every "fossil_spawn_seconds" it gonna choose random world and random rock in that world if available to change it with fossil rock
 fossil_spawn_seconds|500
 fossil_spawn_min_world|6
-
-# Network Burst/Threshold
-# Mostly depends on your cpu, templates are representative
-
-# LowEnd
-# net_heavy_queue|150
-# net_panic_queue|400
-# net_heavy_permille|500
-# net_panic_permille|750
-# net_normal_burst|32
-# net_heavy_burst|128
-# net_panic_burst|256
-
-# MidTier
-net_heavy_queue|300
-net_panic_queue|1000
-net_heavy_permille|600
-net_panic_permille|850
-net_normal_burst|64
-net_heavy_burst|256
-net_panic_burst|1024
-
-# HighEnd
-# net_heavy_queue|1000
-# net_panic_queue|5000
-# net_heavy_permille|800
-# net_panic_permille|950
-# net_normal_burst|128
-# net_heavy_burst|512
-# net_panic_burst|4096

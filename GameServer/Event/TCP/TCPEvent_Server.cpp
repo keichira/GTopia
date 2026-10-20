@@ -98,7 +98,6 @@ void TCPEvent_ReloadFile(NetClient* pClient, TCPPacketHeader& header, TCPPacketR
             return;
         }
 
-        GetContext()->SetupNetBurstFromConfig();
         LOGGER_LOG_INFO("Reloaded config.txt");
     }
     if (fileType == "news")

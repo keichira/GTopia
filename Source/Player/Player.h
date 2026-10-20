@@ -14,6 +14,8 @@
 #include <memory>
 #endif
 
+class GameUpdatePacket;
+
 // change this for news, lazy
 enum ePlayerLogonMode
 {
@@ -155,6 +157,9 @@ public:
     void SendOnPlanterActivated(int32 itemID, uint32 tileX, uint32 tileY);
     void SendCharacterState(Player* pPlayer = nullptr);
     void SendOnSetPos(float x, float y, Player* pPlayer = nullptr);
+    static GameUpdatePacket BuildCharacterStatePacket(Player* pPlayer);
+    static VariantVector BuildClothingVariant(Player* pPlayer, int32 format);
+    static int32 GetClothingFormat(float gameVersion, uint32 protocol);
 #endif
 
 protected:

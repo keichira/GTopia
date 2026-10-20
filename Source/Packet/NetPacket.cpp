@@ -1,75 +1,8 @@
 #include "NetPacket.h"
 #include "../Proton/ProtonUtils.h"
+#include "../Utils/Timer.h"
 
 moodycamel::ConcurrentQueue<NetworkEvent> gPacketOutgoingQueue;
-
-void SendUDPPacketRaw(uint32 netID, eMessagePacketType msgType, void* pData, uint32 dataSize, uint8* pExtraData)
-{
-    if (!pData || dataSize == 0)
-        return;
-
-    uint32 extraSize = 0;
-    if (msgType == NET_MESSAGE_GAME_PACKET)
-    {
-        GameUpdatePacket* pGamePacket = (GameUpdatePacket*)(pData);
-        if (pGamePacket->flags & GAME_PACKET_FLAG_EXTENDED_DATA)
-        {
-            extraSize = pGamePacket->extraDataSize;
-        }
-    }
-
-    if (extraSize > 0 && !pExtraData)
-        return;
-
-    ENetPacket* pPacket = enet_packet_create(nullptr, dataSize + 5 + extraSize, ENET_PACKET_FLAG_RELIABLE);
-    if (!pPacket)
-        return;
-
-    uint8* pCur = pPacket->data;
-    memcpy(pCur, &msgType, 4);
-    pCur += 4;
-    memcpy(pCur, pData, dataSize);
-    pCur += dataSize;
-
-    if (extraSize > 0)
-    {
-        memcpy(pCur, pExtraData, extraSize);
-        pCur += extraSize;
-    }
-
-    NetworkEvent netEvent;
-    netEvent.netID = netID;
-    netEvent.pENetPacket = pPacket;
-
-    gPacketOutgoingQueue.enqueue(std::move(netEvent));
-}
-
-void SendUDPPacket(uint32 netID, eMessagePacketType messageType, const char* message, uint32 dataSize)
-{
-    if (!message)
-        return;
-
-    if (dataSize == 0)
-    {
-        dataSize = strlen(message);
-    }
-
-    ENetPacket* pPacket = enet_packet_create(nullptr, dataSize + 5, ENET_PACKET_FLAG_RELIABLE);
-    if (!pPacket)
-        return;
-
-    uint8* pCur = pPacket->data;
-    memcpy(pCur, &messageType, 4);
-    pCur += 4;
-    memcpy(pCur, message, dataSize);
-    pCur += dataSize;
-
-    NetworkEvent netEvent;
-    netEvent.netID = netID;
-    netEvent.pENetPacket = pPacket;
-
-    gPacketOutgoingQueue.enqueue(std::move(netEvent));
-}
 
 void SendUDPDisconnectPacket(uint32 netID)
 {
@@ -110,74 +43,202 @@ void SendUDPItemDataPacket(uint32 netID, float gameVersion, uint32 platformType,
     gPacketOutgoingQueue.enqueue(std::move(netEvent));
 }
 
-void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32 netID, int32 delay)
+static void PushOut(NetworkEvent&& e)
 {
-    if (data.empty())
-        return;
-
-    uint32 extraSize = Proton::GetMemEstiamte(data);
-
-    ENetPacket* pPacket =
-        enet_packet_create(nullptr, sizeof(GameUpdatePacket) + 5 + extraSize, ENET_PACKET_FLAG_RELIABLE);
-    if (!pPacket)
-        return;
-
-    GameUpdatePacket gamePacket;
-    gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
-    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    gamePacket.field_4 = netID;
-    gamePacket.field_7 = delay;
-    gamePacket.extraDataSize = extraSize;
-
-    uint8* pCur = pPacket->data;
-    uint32 msgType = NET_MESSAGE_GAME_PACKET;
-
-    memcpy(pCur, &msgType, 4);
-    pCur += 4;
-    memcpy(pCur, &gamePacket, sizeof(GameUpdatePacket));
-    pCur += sizeof(GameUpdatePacket);
-
-    uint32 writtenSize = 0;
-    Proton::SerializeToMem(data, &writtenSize, pCur);
-
-    NetworkEvent netEvent;
-    netEvent.netID = senderNetID;
-    netEvent.pENetPacket = pPacket;
-
-    gPacketOutgoingQueue.enqueue(std::move(netEvent));
+    gPacketOutgoingQueue.enqueue(std::move(e));
 }
 
-void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID, int32 delay)
+static ENetPacket* BuildRaw(eMessagePacketType msgType, void* pData, uint32 dataSize, uint8* pExtraData)
+{
+    if (!pData || dataSize == 0)
+        return nullptr;
+
+    uint32 extraSize = 0;
+    if (msgType == NET_MESSAGE_GAME_PACKET)
+    {
+        GameUpdatePacket* pGP = (GameUpdatePacket*)pData;
+        if (pGP->flags & GAME_PACKET_FLAG_EXTENDED_DATA)
+            extraSize = pGP->extraDataSize;
+    }
+    if (extraSize > 0 && !pExtraData)
+        return nullptr;
+
+    ENetPacket* pPacket = enet_packet_create(nullptr, dataSize + 5 + extraSize, ENET_PACKET_FLAG_RELIABLE);
+    if (!pPacket)
+        return nullptr;
+
+    uint8* pCur = pPacket->data;
+    memcpy(pCur, &msgType, 4);
+    pCur += 4;
+    memcpy(pCur, pData, dataSize);
+    pCur += dataSize;
+    if (extraSize > 0)
+    {
+        memcpy(pCur, pExtraData, extraSize);
+        pCur += extraSize;
+    }
+    *pCur = 0; // terminator, enet_packet_create doesn't zero memory
+    return pPacket;
+}
+
+static ENetPacket* BuildText(eMessagePacketType type, const char* message, uint32 dataSize)
+{
+    if (!message)
+        return nullptr;
+    if (dataSize == 0)
+        dataSize = (uint32)strlen(message);
+
+    ENetPacket* pPacket = enet_packet_create(nullptr, dataSize + 5, ENET_PACKET_FLAG_RELIABLE);
+    if (!pPacket)
+        return nullptr;
+
+    uint8* pCur = pPacket->data;
+    memcpy(pCur, &type, 4);
+    pCur += 4;
+    memcpy(pCur, message, dataSize);
+    pCur += dataSize;
+    *pCur = 0;
+    return pPacket;
+}
+
+static ENetPacket* BuildCallFunction(uint8* pExtraData, uint32 extraSize, int32 netID, int32 delay)
 {
     if (!pExtraData || extraSize == 0)
-        return;
+        return nullptr;
 
     ENetPacket* pPacket =
         enet_packet_create(nullptr, sizeof(GameUpdatePacket) + 5 + extraSize, ENET_PACKET_FLAG_RELIABLE);
     if (!pPacket)
-        return;
+        return nullptr;
 
-    GameUpdatePacket gamePacket;
-    gamePacket.type = NET_GAME_PACKET_CALL_FUNCTION;
-    gamePacket.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
-    gamePacket.field_4 = netID;
-    gamePacket.field_7 = delay;
-    gamePacket.extraDataSize = extraSize;
+    GameUpdatePacket gp;
+    gp.type = NET_GAME_PACKET_CALL_FUNCTION;
+    gp.flags |= GAME_PACKET_FLAG_EXTENDED_DATA;
+    gp.field_4 = netID;
+    gp.field_7 = delay;
+    gp.extraDataSize = extraSize;
 
     uint8* pCur = pPacket->data;
     uint32 msgType = NET_MESSAGE_GAME_PACKET;
-
     memcpy(pCur, &msgType, 4);
     pCur += 4;
-    memcpy(pCur, &gamePacket, sizeof(GameUpdatePacket));
+    memcpy(pCur, &gp, sizeof(GameUpdatePacket));
     pCur += sizeof(GameUpdatePacket);
     memcpy(pCur, pExtraData, extraSize);
+    pCur += extraSize;
+    *pCur = 0;
+    return pPacket;
+}
 
-    NetworkEvent netEvent;
-    netEvent.netID = senderNetID;
-    netEvent.pENetPacket = pPacket;
+static ENetPacket* BuildCallFunction(const VariantVector& data, int32 netID, int32 delay)
+{
+    if (data.empty())
+        return nullptr;
 
-    gPacketOutgoingQueue.enqueue(std::move(netEvent));
+    uint32 extraSize = Proton::GetMemEstiamte(data);
+    std::vector<uint8> tmp(extraSize); // serialize once into a scratch buffer
+    uint32 written = 0;
+    Proton::SerializeToMem(data, &written, tmp.data());
+    return BuildCallFunction(tmp.data(), extraSize, netID, delay);
+}
+
+// ---------------- single ----------------
+void SendUDPPacketRaw(uint32 netID, eMessagePacketType t, void* d, uint32 n, uint8* x)
+{
+    ENetPacket* p = BuildRaw(t, d, n, x);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.netID = netID;
+    e.pENetPacket = p;
+    PushOut(std::move(e));
+}
+
+void SendUDPPacket(uint32 netID, eMessagePacketType t, const char* msg, uint32 n)
+{
+    ENetPacket* p = BuildText(t, msg, n);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.netID = netID;
+    e.pENetPacket = p;
+    PushOut(std::move(e));
+}
+
+void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32 netID, int32 delay)
+{
+    ENetPacket* p = BuildCallFunction(data, netID, delay);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.netID = senderNetID;
+    e.pENetPacket = p;
+    PushOut(std::move(e));
+}
+
+void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtra, uint32 extraSize, int32 netID, int32 delay)
+{
+    ENetPacket* p = BuildCallFunction(pExtra, extraSize, netID, delay);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.netID = senderNetID;
+    e.pENetPacket = p;
+    PushOut(std::move(e));
+}
+
+// ---------------- multi ----------------
+void SendUDPPacketRawMulti(std::vector<uint32>&& targets, eMessagePacketType t, void* d, uint32 n, uint8* x)
+{
+    if (targets.empty())
+        return;
+    ENetPacket* p = BuildRaw(t, d, n, x);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.pENetPacket = p;
+    e.targets = std::move(targets);
+    PushOut(std::move(e));
+}
+
+void SendUDPPacketMulti(std::vector<uint32>&& targets, eMessagePacketType t, const char* msg, uint32 n)
+{
+    if (targets.empty())
+        return;
+    ENetPacket* p = BuildText(t, msg, n);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.pENetPacket = p;
+    e.targets = std::move(targets);
+    PushOut(std::move(e));
+}
+
+void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, const VariantVector& data, int32 netID, int32 delay)
+{
+    if (targets.empty())
+        return;
+    ENetPacket* p = BuildCallFunction(data, netID, delay);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.pENetPacket = p;
+    e.targets = std::move(targets);
+    PushOut(std::move(e));
+}
+
+void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, uint8* pExtra, uint32 extraSize, int32 netID,
+                                 int32 delay)
+{
+    if (targets.empty())
+        return;
+    ENetPacket* p = BuildCallFunction(pExtra, extraSize, netID, delay);
+    if (!p)
+        return;
+    NetworkEvent e;
+    e.pENetPacket = p;
+    e.targets = std::move(targets);
+    PushOut(std::move(e));
 }
 
 /*bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData, ENetPeer*

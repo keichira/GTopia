@@ -8,7 +8,7 @@ This guide provides an in-depth overview of managing item data using `items.txt`
 
 To simplify item management. Allowing server administrators to view, edit, add, or remove items easily—the server utilizes `items.txt` instead of the raw binary `items.dat`.
 
-* **Supported `items.dat` Versions:** `0` through `26`.
+* **Supported `items.dat` Versions:** `0` through `27`.
 
 ### How to Generate `items.txt`
 1. Run the **Setup Script**.

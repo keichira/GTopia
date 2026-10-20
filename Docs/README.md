@@ -13,6 +13,7 @@ Welcome! Pick a guide below. For installing, running or understand what things u
 | [Discord Bot](../DiscordBot/README.md) | Discord bot setup, ranks and command handling |
 | [Holiday System](HolidaySystem.md) | Auto and main holidays. e.g comet, winterfest... |
 | [Stats System](StatsSystem.md) | Server stats system |
+| [Benchmark](Benchmark.md) | Single game server synthetic benchmark results |
 
 ## Lua Scripting
 

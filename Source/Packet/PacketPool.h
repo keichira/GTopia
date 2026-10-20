@@ -1,13 +1,15 @@
 #pragma once
 
 #include "../Precompiled.h"
+#include <atomic>
 #include <concurrentqueue.h>
 
 struct PooledPacket
 {
     uint32 dataLength = 0;
-    uint8* payload;
+    uint8* payload = nullptr;
     uint32 maxBufferSize = 0;
+    std::atomic<bool> inUse{false};
 };
 
 struct PacketPoolConfig
@@ -25,7 +27,8 @@ struct PacketPoolConfig
     uint32 hugePacketSize = 0;
 };
 
-class PacketPool {
+class PacketPool
+{
 public:
     PacketPool();
     ~PacketPool();

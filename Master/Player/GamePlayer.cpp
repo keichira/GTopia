@@ -277,7 +277,6 @@ void GamePlayer::IdentifierUpdateResultCB(QueryTaskResult&& result)
     if (!pPlayer)
         return;
 
-    CRASH_SET("LastPlayerUserID", pPlayer->GetUserID());
     pPlayer->SendToGame();
 }
 

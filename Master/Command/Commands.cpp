@@ -1111,10 +1111,7 @@ MAKE_COMMAND(CReload, "/creload <config|news|playmods|roles|wiki|consumable|stor
         if (!GetContext()->GetGameConfig()->LoadConfig(GetProgramPath() + "/config.txt"))
             LOGGER_LOG_ERROR("Received reload file packet but failed to reload config.txt")
         else
-        {
-            GetContext()->SetupNetBurstFromConfig();
             LOGGER_LOG_INFO("Reloaded config.txt");
-        }
     }
     else if (ctx.args[1] == "playmods")
     {

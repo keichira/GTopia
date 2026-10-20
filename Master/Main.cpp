@@ -15,6 +15,13 @@
 #include "Utils/Timer.h"
 #include "World/WorldManager.h"
 
+// clang-format off
+#ifdef _WIN32
+#include <windows.h>
+#include <timeapi.h>
+#endif
+// clang-format on
+
 bool firstCallShutdown = false;
 
 void ForceSaveEverything()
@@ -46,11 +53,6 @@ void DatabaseThreadFunc()
         if (pWorker)
         {
             pWorker->Update();
-            CRASH_SET("DatabaseConnected", pWorker->IsConnected());
-        }
-        else
-        {
-            CRASH_SET("DatabaseConnected", false);
         }
 
         if (logTimer.GetElapsedTime() >= 5000)
@@ -69,33 +71,36 @@ void EventThreadFunc()
     AdminServer* pAdminServer = GetAdminServer();
     Context* pContext = GetContext();
 
-    uint64 lastCalculateTime = Time::GetSystemTime();
-    uint64 totalWorkTime = 0;
+    uint64 windowStart = Time::GetTimeNowUS();
+    uint64 busyUS = 0;
+    uint32 passes = 0;
 
     while (pContext->IsRunning())
     {
-        uint64 currentTime = Time::GetSystemTime();
-
-        uint32 elapsedMs = (uint32)(currentTime - lastCalculateTime);
-        if (elapsedMs >= 1000)
-        {
-            uint32 permille = (uint32)((totalWorkTime * 1000) / elapsedMs);
-            pContext->GetRuntimeStats().GetPerfStats().netCpuPermille = Min(permille, 1000u);
-
-            totalWorkTime = 0;
-            lastCalculateTime = currentTime;
-        }
-
-        uint64 workStart = Time::GetSystemTime();
-
+        uint64 workStart = Time::GetTimeNowUS();
         pGameServer->Update();
         pServerMgr->Update(false);
         pAdminServer->Update();
+        busyUS += Time::GetTimeNowUS() - workStart;
+        ++passes;
 
-        uint64 workEnd = Time::GetSystemTime();
-        totalWorkTime += (workEnd - workStart);
+        pGameServer->WaitForNetwork();
 
-        SleepMS(1);
+        uint64 now = Time::GetTimeNowUS();
+        uint64 windowUS = now - windowStart;
+        if (windowUS >= 1000000)
+        {
+            pContext->GetRuntimeStats().GetPerfStats().netCpuPermille = Min((uint32)((busyUS * 1000) / windowUS), 1000);
+
+            if (passes < 500 && passes > 200)
+            {
+                LOGGER_LOG_WARN("[NET] event loop ran only %u passes, timer resolution problem?", passes);
+            }
+
+            passes = 0;
+            busyUS = 0;
+            windowStart = now;
+        }
     }
 }
 
@@ -120,6 +125,7 @@ void RunGameLoop()
     while (pContext->IsRunning())
     {
         uint64 loopIterStart = Time::GetSystemTime();
+        uint64 loopStartUS = Time::GetTimeNowUS();
         now = loopIterStart;
         uint32 loops = 0;
 
@@ -141,12 +147,11 @@ void RunGameLoop()
 
         while (now >= nextTick && loops < MAX_CATCHUP_TICKS)
         {
-            uint64 tickStart = Time::GetSystemTime();
-
+            uint64 tickStartUS = Time::GetTimeNowUS();
             pGameServer->UpdateGameLogic(GAME_TICK_MS);
 
-            uint64 tickEnd = Time::GetSystemTime();
-            uint32 tickDur = (uint32)(tickEnd - tickStart);
+            uint64 tickUS = Time::GetTimeNowUS() - tickStartUS;
+            uint32 tickDur = (uint32)(tickUS / 1000);
 
             tickDurSum += tickDur;
             ++tickCount;
@@ -170,8 +175,8 @@ void RunGameLoop()
         if (now >= nextTick)
             nextTick = now + GAME_TICK_MS;
 
-        uint64 loopIterEnd = Time::GetSystemTime();
-        totalWorkTimeInInterval += (loopIterEnd - loopIterStart);
+        uint64 loopWorkUS = Time::GetTimeNowUS() - loopStartUS;
+        totalWorkTimeInInterval += loopWorkUS;
 
         if (now - lastPerfUpdateTime >= PERF_SAMPLE_INTERVAL_MS)
         {
@@ -200,6 +205,10 @@ void RunGameLoop()
 
 int main(int argc, char const* argv[])
 {
+#ifdef _WIN32
+    timeBeginPeriod(1);
+#endif
+
     SystemSignal::RegisterShutdownHook(GetContext()->GetShutdownFlag());
 
     if (!GetLog()->InitFile(GetProgramPath() + "/logs/log_MASTER.txt"))
@@ -293,8 +302,6 @@ int main(int argc, char const* argv[])
     GetWorldManager()->SetBalancerGameConfig(GetContext()->GetGameConfig());
     GetWorldManager()->RegisterBalancedWorldsFromConfig();
 
-    GetContext()->SetupNetBurstFromConfig();
-
     if (!GetGameServer()->Init(masterServerInfo.wanIP, masterServerInfo.udpPort))
     {
         LOGGER_LOG_ERROR_FLUSH("Failed to initialize game server on %s:%d", masterServerInfo.wanIP.c_str(),
@@ -353,5 +360,9 @@ int main(int argc, char const* argv[])
 
     mysql_library_end();
     SystemSignal::SignalShutdownComplete();
+
+#ifdef _WIN32
+    timeEndPeriod(1);
+#endif
     return 0;
 }

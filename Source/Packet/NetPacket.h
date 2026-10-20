@@ -14,6 +14,8 @@ struct NetworkEvent
     PooledPacket* pPacket = nullptr;   // for incoming pooled packets
     uint32 host = 0;
 
+    std::vector<uint32> targets;
+
     bool shouldDisconnect = false;
     bool isItemData = false;
 };
@@ -28,6 +30,15 @@ void SendUDPItemDataPacket(uint32 netID, float gameVersion, uint32 platformType,
 void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32 netID = -1, int32 delay = -1);
 void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID = -1,
                             int32 delay = -1);
+
+void SendUDPPacketRawMulti(std::vector<uint32>&& targets, eMessagePacketType msgType, void* pData, uint32 dataSize,
+                           uint8* pExtraData);
+void SendUDPPacketMulti(std::vector<uint32>&& targets, eMessagePacketType msgType, const char* message,
+                        uint32 dataSize = 0);
+void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, const VariantVector& data, int32 netID = -1,
+                                 int32 delay = -1);
+void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, uint8* pExtraData, uint32 extraSize, int32 netID = -1,
+                                 int32 delay = -1);
 
 // do not use due thread safety
 /*bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData,

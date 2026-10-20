@@ -16,9 +16,7 @@ GamePlayer* PlayerManager::GetPlayerByNetID(uint32 netID)
 {
     auto it = m_gamePlayers.find(netID);
     if (it != m_gamePlayers.end())
-    {
         return it->second;
-    }
 
     return nullptr;
 }

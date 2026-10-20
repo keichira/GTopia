@@ -44,6 +44,33 @@ void ServerBase::SetENetIncomeCmdType(uint8 type)
         m_pENetServer->SetENetIncomeCmdType(ENET_HOST_INCOME_CMD_BOTH);
 }
 
+void ServerBase::WaitForNetwork()
+{
+    if (!m_pENetServer)
+        return;
+
+    if (gPacketOutgoingQueue.size_approx() == 0)
+        m_pENetServer->Wait(1);
+}
+
+void ServerBase::KickPeer(uint32 netID, ENetPeer* pPeer)
+{
+    if (pPeer)
+    {
+        pPeer->data = nullptr;
+        enet_peer_disconnect_now(pPeer, 0);
+    }
+
+    m_connectionMap.erase(netID);
+    NetworkEvent netEvent{ENET_EVENT_TYPE_DISCONNECT, netID, nullptr, nullptr};
+    m_networkQueue.enqueue(std::move(netEvent));
+}
+
+bool ServerBase::BudgetExpired(uint32 processed, uint64 startUS)
+{
+    return (processed & 31) == 31 && Time::GetTimeNowUS() - startUS >= 4000;
+}
+
 void ServerBase::UpdateGameLogic(uint64 maxTimeMS)
 {
     Timer startTime;

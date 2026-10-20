@@ -190,31 +190,6 @@ bool GameConfig::LoadConfig(const string& filePath)
             maxNpcPerWorld = line.GetUInt(1, 20);
         }
 
-        if (key == "net_panic_queue")
-        {
-            netThreshold.panicQueueSize = line.GetUInt(1);
-        }
-
-        if (key == "net_panic_permille")
-        {
-            netThreshold.panicCpuPermille = line.GetUInt(1);
-        }
-
-        if (key == "net_normal_burst")
-        {
-            netThreshold.normalBurst = line.GetUInt(1);
-        }
-
-        if (key == "net_heavy_burst")
-        {
-            netThreshold.heavyBurst = line.GetUInt(1);
-        }
-
-        if (key == "net_panic_burst")
-        {
-            netThreshold.panicBurst = line.GetUInt(1);
-        }
-
         if (key == "add_discord_webhook")
         {
             if (line.Require(3))

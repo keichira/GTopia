@@ -31,8 +31,6 @@ public:
     GameConfig* GetGameConfig() { return m_pGameConfig; }
     DatabasePool* GetDatabasePool() { return m_pDbPool; }
 
-    void SetupNetBurstFromConfig();
-
 private:
     DatabasePool* m_pDbPool;
     GameConfig* m_pGameConfig;
