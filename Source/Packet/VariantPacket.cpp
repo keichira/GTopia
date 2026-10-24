@@ -244,6 +244,11 @@ VariantVector OnRaceEnd(uint32 timeMS)
     return {"OnRaceEnd", timeMS};
 }
 
+VariantVector OnEmoticonDataChanged(uint32 unk, const string& emoticonData)
+{
+    return {"OnEmoticonDataChanged", unk, emoticonData};
+}
+
 VariantVector OnStoreRequest(const string& storeData)
 {
     return {"OnStoreRequest", storeData};

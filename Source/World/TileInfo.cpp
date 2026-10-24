@@ -275,15 +275,11 @@ float TileInfo::GetHealthPercent()
     uint16 itemToDamage = GetDisplayedItem();
 
     if (itemToDamage == ITEM_ID_BLANK)
-    {
         return 1.0f;
-    }
 
     ItemInfo* pItem = GetItemInfoManager()->GetItemByID(itemToDamage);
     if (!pItem)
-    {
         return 1.0f;
-    }
 
     if (m_lastDamageTime.GetElapsedTime() >= pItem->restoreTime * 1000)
     {

@@ -230,6 +230,11 @@ void Player::SendOnRaceEnd(uint32 timeMS)
     SendCallFunctionPacket(GetNetID(), VariantPacket::OnRaceEnd(timeMS));
 }
 
+void Player::SendOnEmoticonDataChanged(const string& emoticonData)
+{
+    SendCallFunctionPacket(GetNetID(), VariantPacket::OnEmoticonDataChanged(0, emoticonData));
+}
+
 void Player::SendFakePingReply()
 {
     GameUpdatePacket packet;

@@ -116,6 +116,7 @@ public:
     void SendOnKilled();
     void SendOnRaceStart();
     void SendOnRaceEnd(uint32 timeMS);
+    void SendOnEmoticonDataChanged(const string& emoticonData);
     void SendFakePingReply();
 
     void PlaySFX(const string& fileName, int32 delay = -1);

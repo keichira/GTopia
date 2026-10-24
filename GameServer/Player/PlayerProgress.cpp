@@ -1,12 +1,57 @@
 #include "PlayerProgress.h"
-#include "AchievementManager.h"
-#include "Math/Math.h"
-#include "GamePlayer.h"
 #include "../World/WorldManager.h"
+#include "AchievementManager.h"
+#include "GamePlayer.h"
 #include "Item/ItemInfoManager.h"
+#include "Math/Math.h"
 
-PlayerProgress::PlayerProgress(GamePlayer* pPlayer)
-: m_pPlayer(pPlayer), m_version(PLAYER_PROGRESS_VERSION)
+struct GrowmojiInfo
+{
+    eGrowmoji id;
+    const char* code;
+    const char* glyph;
+};
+
+GrowmojiInfo sGrowmojis[] = {
+#define X(name, code, glyph) {GROWMOJI_##name, code, glyph},
+    GROWMOJI_LIST(X)
+#undef X
+};
+
+static const uint32 MAX_GROWMOJI_CODE_LENGTH = 15;
+
+static eGrowmoji FindGrowmoji(const string& text, int32 start, int32 length)
+{
+    for (GrowmojiInfo& growmoji : sGrowmojis)
+    {
+        if (text.compare(start, length, growmoji.code) == 0)
+            return growmoji.id;
+    }
+
+    return GROWMOJI_COUNT;
+}
+
+static void SerializeBlocks(MemoryBuffer& memBuffer, bool write, uint32* data, uint32 currentCount)
+{
+    uint16 count = (uint16)currentCount;
+    memBuffer.ReadWrite(count, write);
+
+    if (write)
+    {
+        memBuffer.ReadWriteRaw(data, sizeof(uint32) * count, true);
+        return;
+    }
+
+    std::vector<uint32> temp(count, 0);
+    if (count > 0)
+        memBuffer.ReadWriteRaw(temp.data(), sizeof(uint32) * count, false);
+
+    uint32 copyCount = count < currentCount ? count : currentCount;
+    for (uint32 i = 0; i < copyCount; ++i)
+        data[i] = temp[i];
+}
+
+PlayerProgress::PlayerProgress(GamePlayer* pPlayer) : m_pPlayer(pPlayer), m_version(PLAYER_PROGRESS_VERSION)
 {
     memset(m_progressData, 0, sizeof(m_progressData));
     memset(m_achieves, 0, sizeof(m_achieves));
@@ -16,25 +61,39 @@ PlayerProgress::PlayerProgress(GamePlayer* pPlayer)
 
 void PlayerProgress::Serialize(MemoryBuffer& memBuffer, bool write)
 {
-    memBuffer.ReadWrite(m_version, write);
+    uint16 version = write ? (uint16)PLAYER_PROGRESS_VERSION : (uint16)0;
+    memBuffer.ReadWrite(version, write);
 
-    uint16 progressCount = PLAYER_PROGRESS_COUNT;
-    memBuffer.ReadWrite(progressCount, write);
-    memBuffer.ReadWriteRaw(m_progressData, sizeof(uint32) * progressCount, write);
+    SerializeBlocks(memBuffer, write, m_progressData, PLAYER_PROGRESS_COUNT);
+    SerializeBlocks(memBuffer, write, m_achieves, ACHIEVEMENT_BLOCK_COUNT);
 
-    uint16 achieveBlockCount = ACHIEVEMENT_BLOCK_COUNT;
-    memBuffer.ReadWrite(achieveBlockCount, write);
-    memBuffer.ReadWriteRaw(m_achieves, sizeof(uint32) * achieveBlockCount, write);
+    if (write)
+    {
+        SerializeBlocks(memBuffer, write, m_growmojis, GROWMOJI_BLOCK_COUNT);
+    }
+    else if (version >= 2)
+    {
+        memset(m_growmojis, 0, sizeof(m_growmojis));
+        SerializeBlocks(memBuffer, write, m_growmojis, GROWMOJI_BLOCK_COUNT);
+    }
+
+    if (!write)
+        m_version = PLAYER_PROGRESS_VERSION;
+
+    GiveGrowmoji(GROWMOJI_BHEART);
+    GiveGrowmoji(GROWMOJI_ALIEN);
+    GiveGrowmoji(GROWMOJI_LIGHTBULB);
 }
 
 uint32 PlayerProgress::GetMemEstimate()
 {
-    return sizeof(m_version) + sizeof(uint16) + sizeof(m_progressData) + sizeof(uint16) + sizeof(m_achieves);
+    return sizeof(m_version) + sizeof(uint16) + sizeof(m_progressData) + sizeof(uint16) + sizeof(m_achieves) +
+           sizeof(uint16) + sizeof(m_growmojis);
 }
 
 uint32 PlayerProgress::GetProgress(ePlayerProgress progress) const
 {
-    if(progress >= PLAYER_PROGRESS_COUNT)
+    if (progress >= PLAYER_PROGRESS_COUNT)
         return 0;
 
     return m_progressData[progress];
@@ -42,10 +101,10 @@ uint32 PlayerProgress::GetProgress(ePlayerProgress progress) const
 
 void PlayerProgress::AddProgress(ePlayerProgress progress, uint32 count)
 {
-    if(progress >= PLAYER_PROGRESS_COUNT)
+    if (progress >= PLAYER_PROGRESS_COUNT)
         return;
 
-    if(m_progressData[progress] >= 999999999)
+    if (m_progressData[progress] >= 999999999)
         return;
 
     m_progressData[progress] += count;
@@ -54,7 +113,7 @@ void PlayerProgress::AddProgress(ePlayerProgress progress, uint32 count)
 
 void PlayerProgress::SetProgress(ePlayerProgress progress, uint32 value)
 {
-    if(progress >= PLAYER_PROGRESS_COUNT)
+    if (progress >= PLAYER_PROGRESS_COUNT)
         return;
 
     m_progressData[progress] = value;
@@ -63,7 +122,7 @@ void PlayerProgress::SetProgress(ePlayerProgress progress, uint32 value)
 
 bool PlayerProgress::HasAchievement(eAchievement achievement)
 {
-    if(achievement >= ACHIEVEMENT_COUNT)
+    if (achievement >= ACHIEVEMENT_COUNT)
         return false;
 
     int32 index = (int32)achievement;
@@ -72,22 +131,22 @@ bool PlayerProgress::HasAchievement(eAchievement achievement)
 
 float PlayerProgress::GetAchievementProgress(eAchievement achievement)
 {
-    if(achievement >= ACHIEVEMENT_COUNT)
+    if (achievement >= ACHIEVEMENT_COUNT)
         return 0.0f;
 
-    if(HasAchievement(achievement))
+    if (HasAchievement(achievement))
         return 100.0f;
 
     AchievementInfo* pAchieve = GetAchievementManager()->GetAchievement(achievement);
-    if(!pAchieve)
+    if (!pAchieve)
         return 0.0f;
 
-    if(pAchieve->achievementType == ACHIEVE_TYPE_EVENT)
+    if (pAchieve->achievementType == ACHIEVE_TYPE_EVENT)
         return 0.0f;
 
-    if(pAchieve->achievementType == ACHIEVE_TYPE_STAT)
+    if (pAchieve->achievementType == ACHIEVE_TYPE_STAT)
     {
-        if(pAchieve->requiredValue == 0)
+        if (pAchieve->requiredValue == 0)
             return 0.0f;
 
         uint32 progress = Min(pAchieve->requiredValue, GetProgress(pAchieve->progressType));
@@ -100,46 +159,46 @@ float PlayerProgress::GetAchievementProgress(eAchievement achievement)
 void PlayerProgress::UnlockAchievement(eAchievement achievement)
 {
     AchievementInfo* pAchievement = GetAchievementManager()->GetAchievement(achievement);
-    if(!pAchievement)
+    if (!pAchievement)
         return;
 
-    if(HasAchievement(achievement))
+    if (HasAchievement(achievement))
         return;
 
     UnlockAchievementRaw(achievement);
-    
-    if(m_pPlayer)
+
+    if (m_pPlayer)
     {
         m_pPlayer->GiveXP(100);
 
         World* pWorld = GetWorldManager()->GetWorldByInstanceID(m_pPlayer->GetCurrentWorld());
-        
-        if(!pWorld)
+
+        if (!pWorld)
         {
             m_pPlayer->SendOnConsoleMessage("You got the achievement \"" + pAchievement->name + "\"!");
             return;
         }
 
         pWorld->SendParticleEffectToAll(PARTICLE_EFFECT_ACHIEVE, m_pPlayer->GetWorldPos());
-        pWorld->SendTalkBubbleAndConsoleToAll(
-            m_pPlayer->GetDisplayName(false) + " `5earned the achievement \"" + pAchievement->name + "\"!``", false, m_pPlayer
-        );
+        pWorld->SendTalkBubbleAndConsoleToAll(m_pPlayer->GetDisplayName(false) + " `5earned the achievement \"" +
+                                                  pAchievement->name + "\"!``",
+                                              false, m_pPlayer);
     }
 }
 
 void PlayerProgress::CheckAchieveAndUnlockIfPossibleByProgress(ePlayerProgress progress)
 {
-    if(progress >= PLAYER_PROGRESS_COUNT)
+    if (progress >= PLAYER_PROGRESS_COUNT)
         return;
 
     auto achieves = GetAchievementManager()->GetAchievesByProgress(progress);
-    
-    for(auto& pAchieve : achieves)
+
+    for (auto& pAchieve : achieves)
     {
-        if(!pAchieve || HasAchievement(pAchieve->achievement))
+        if (!pAchieve || HasAchievement(pAchieve->achievement))
             continue;
 
-        if(GetAchievementProgress(pAchieve->achievement) >= 100.0f)
+        if (GetAchievementProgress(pAchieve->achievement) >= 100.0f)
         {
             UnlockAchievement(pAchieve->achievement);
         }
@@ -158,7 +217,7 @@ bool PlayerProgress::HasTitle(ePlayerTitle title)
 
 void PlayerProgress::ModifyOwnedTitle(ePlayerTitle title, bool add)
 {
-    if(add)
+    if (add)
         m_progressData[PLAYER_PROGRESS_TITLES] |= title;
     else
         m_progressData[PLAYER_PROGRESS_TITLES] &= ~title;
@@ -171,10 +230,91 @@ bool PlayerProgress::IsTitleActive(ePlayerTitle title)
 
 void PlayerProgress::ModifyTitleActivation(ePlayerTitle title, bool activate)
 {
-    if(activate)
+    if (activate)
         m_progressData[PLAYER_PROGRESS_ACTIVE_TITLES] |= title;
     else
         m_progressData[PLAYER_PROGRESS_ACTIVE_TITLES] &= ~title;
+}
+
+bool PlayerProgress::HasGrowmoji(eGrowmoji emo) const
+{
+    if (emo >= GROWMOJI_COUNT)
+        return false;
+
+    return (m_growmojis[emo / 32] & (1 << (emo % 32))) != 0;
+}
+
+void PlayerProgress::GiveGrowmoji(eGrowmoji emo)
+{
+    if (emo >= GROWMOJI_COUNT)
+        return;
+
+    m_growmojis[emo / 32] |= (1 << (emo % 32));
+}
+
+void PlayerProgress::RemoveGrowmoji(eGrowmoji emo)
+{
+    if (emo >= GROWMOJI_COUNT)
+        return;
+
+    m_growmojis[emo / 32] &= ~(1 << (emo % 32));
+}
+
+eGrowmoji PlayerProgress::FindEmoticonByCode(const string& code)
+{
+    for (GrowmojiInfo& growmoji : sGrowmojis)
+    {
+        if (code == growmoji.code)
+            return growmoji.id;
+    }
+
+    return GROWMOJI_COUNT;
+}
+
+bool PlayerProgress::CanUseGrowmojisInText(const string& text)
+{
+    int32 length = text.size();
+
+    for (int32 start = 0; start < length; ++start)
+    {
+        if (text[start] != '(')
+            continue;
+
+        for (int32 end = start + 1; end < length && end - start < MAX_GROWMOJI_CODE_LENGTH; ++end)
+        {
+            if (text[end] == '(')
+                break;
+
+            if (text[end] != ')')
+                continue;
+
+            eGrowmoji growmoji = FindGrowmoji(text, start, end - start + 1);
+            if (growmoji != GROWMOJI_COUNT && !HasGrowmoji(growmoji))
+                return false;
+
+            break;
+        }
+    }
+
+    return true;
+}
+
+string PlayerProgress::GetEmoticonPacket()
+{
+    string out;
+    out.reserve(GROWMOJI_COUNT * 20);
+
+    for (GrowmojiInfo& growmoji : sGrowmojis)
+    {
+        out += growmoji.code;
+        out += '|';
+        out += growmoji.glyph;
+        out += '|';
+        out += HasGrowmoji(growmoji.id) ? '1' : '0';
+        out += '&';
+    }
+
+    return out;
 }
 
 uint16 PlayerProgress::BuildAchievementsDialog(DialogBuilder& db, bool onlyAchieved)
@@ -182,16 +322,16 @@ uint16 PlayerProgress::BuildAchievementsDialog(DialogBuilder& db, bool onlyAchie
     uint32 count = 0;
     AchievementManager* pAchiMgr = GetAchievementManager();
 
-    for(uint16 i = 0; i < ACHIEVEMENT_COUNT; ++i)
+    for (uint16 i = 0; i < ACHIEVEMENT_COUNT; ++i)
     {
-        if(onlyAchieved && !HasAchievement((eAchievement)i))
+        if (onlyAchieved && !HasAchievement((eAchievement)i))
             continue;
 
         AchievementInfo* pConfig = pAchiMgr->GetAchievement((eAchievement)i);
-        if(!pConfig)
+        if (!pConfig)
             continue;
 
-        if(GetAchievementProgress((eAchievement)i) >= 100.0f)
+        if (GetAchievementProgress((eAchievement)i) >= 100.0f)
         {
             db.AddAchieveButton(pConfig->name, "Earned for " + pConfig->description, i);
         }
@@ -206,17 +346,18 @@ string PlayerProgress::GetBattlePetName(int32 slot)
 {
     int32 slotStart = PLAYER_PROGRESS_PET_1_0 + 3 * slot;
 
-    if(slotStart + 2 >= PLAYER_PROGRESS_COUNT)
+    if (slotStart + 2 >= PLAYER_PROGRESS_COUNT)
         return "???";
 
-    return GetFullBattlePetName(m_progressData[slotStart], m_progressData[slotStart + 1], m_progressData[slotStart + 2]);
+    return GetFullBattlePetName(m_progressData[slotStart], m_progressData[slotStart + 1],
+                                m_progressData[slotStart + 2]);
 }
 
 bool PlayerProgress::IsBattleLeashFull()
 {
-    for(int32 i = PLAYER_PROGRESS_PET_1_0; i < PLAYER_PROGRESS_PET_2_2 + 1; ++i)
+    for (int32 i = PLAYER_PROGRESS_PET_1_0; i < PLAYER_PROGRESS_PET_2_2 + 1; ++i)
     {
-        if(m_progressData[i] == ITEM_ID_BLANK)
+        if (m_progressData[i] == ITEM_ID_BLANK)
             return false;
     }
 
@@ -225,7 +366,7 @@ bool PlayerProgress::IsBattleLeashFull()
 
 void PlayerProgress::UnlockAchievementRaw(eAchievement achievement)
 {
-    if(achievement >= ACHIEVEMENT_COUNT)
+    if (achievement >= ACHIEVEMENT_COUNT)
         return;
 
     int32 index = (int32)achievement;

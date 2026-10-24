@@ -12,14 +12,13 @@
 #include "Math/Math.h"
 #include "Math/Rect.h"
 #include "Math/WeightRand.h"
-#include "Packet/NetPacket.h"
 #include "Utils/GrowUtils.h"
 #include "WorldManager.h"
 
 World::World()
     : m_databaseID(0), m_state(WORLD_STATE_LOADING), m_instanceID(0), m_balancerType(-1), m_suckerManager(this),
-      m_minWorldVersionInWorld(14), m_maxWorldVersionInWorld(14), m_maxGameVersionInWorld(99.f),
-      m_minGameVersionInWorld(99.f)
+      m_steamManager(this), m_minWorldVersionInWorld(14), m_maxWorldVersionInWorld(14), m_maxGameVersionInWorld(99.f),
+      m_minGameVersionInWorld(99.f), m_playerNetIDSnapshot(std::make_shared<const std::vector<uint32>>())
 {
     m_pNpcManager = new WorldNPCManager(this);
     m_pBossManager = new WorldBossManager(this);
@@ -250,6 +249,8 @@ void World::Update()
         {
             UpdatePresenceNeededThings(true);
         }
+
+        m_steamManager.Update();
     }
 
     GetGamePresenceManager()->UpdateLocalWorldPresence(
@@ -350,6 +351,7 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     uint16 playerWorldVersion = pPlayer->GetWorldVersion();
     WorldClientVersionKey key{playerWorldVersion, loginDetail.gameVersion};
     m_versionBuckets[key].push_back(pPlayer);
+    RecalculateWorldVersionBounds();
 
     uint32 worldMemSize = GetMemEstimate(false, playerWorldVersion, loginDetail.gameVersion);
     MemoryBuffer memBuffer(worldMemSize);
@@ -374,10 +376,6 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
     pPlayer->SendOnSetClothing();
     pPlayer->SendCharacterState();
 
-    pPlayer->SendOnSpawn(pPlayer->GetSpawnData(true));
-    pPlayer->SendOnSetClothing();
-    pPlayer->SendCharacterState();
-
     if (newJoin)
     {
         GetMasterBroadway()->SendPlayerJoinedWorld(pPlayer->GetUserID(), GetInstanceID());
@@ -388,32 +386,22 @@ void World::AddPlayer(GamePlayer* pPlayer, bool newJoin)
         "`5<" + playerDisplayName + " `5entered, `w" + ToString(GetPlayerCount() - 1) + " `5others here``>";
     pPlayer->ToggleBattlePetLeash(false);
 
-    std::vector<uint32> others = GetPlayerNetIDList(pPlayer);
-    if (!others.empty())
-    {
-        SendCallFunctionPacketMulti(std::vector<uint32>(others), VariantPacket::OnSpawn(pPlayer->GetSpawnData(false)));
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnSpawn(pPlayer->GetSpawnData(false)));
 
-        SendClothingMulti(GroupByClothingFormat(pPlayer), pPlayer);
+    SendClothingMulti(GroupByClothingFormat(pPlayer), pPlayer);
 
-        GameUpdatePacket statePacket = Player::BuildCharacterStatePacket(pPlayer);
-        SendUDPPacketRawMulti(std::vector<uint32>(others), NET_MESSAGE_GAME_PACKET, &statePacket,
-                              sizeof(GameUpdatePacket), nullptr);
+    GameUpdatePacket statePacket = Player::BuildCharacterStatePacket(pPlayer);
+    SendUDPPacketRawMulti(m_playerNetIDSnapshot, NET_MESSAGE_GAME_PACKET, &statePacket, sizeof(GameUpdatePacket),
+                          nullptr);
 
-        SendCallFunctionPacketMulti(std::vector<uint32>(others),
-                                    VariantPacket::OnTalkBubble((uint32)pPlayer->GetNetID(), joinNotifyOtherMsg, true));
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot,
+                                VariantPacket::OnTalkBubble((uint32)pPlayer->GetNetID(), joinNotifyOtherMsg, true));
 
-        SendCallFunctionPacketMulti(std::move(others), VariantPacket::OnConsoleMessage(joinNotifyOtherMsg));
-    }
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnConsoleMessage(joinNotifyOtherMsg));
 
-    for (GamePlayer* pWorldPlayer : m_players)
-    {
-        if (pWorldPlayer && pWorldPlayer != pPlayer)
-        {
-            pPlayer->SendOnSpawn(pWorldPlayer->GetSpawnData(false));
-            pPlayer->SendOnSetClothing(pWorldPlayer);
-            pPlayer->SendCharacterState(pWorldPlayer);
-        }
-    }
+    auto next = std::make_shared<std::vector<uint32>>(*m_playerNetIDSnapshot);
+    next->push_back(pPlayer->GetNetID());
+    m_playerNetIDSnapshot = std::move(next);
 
     pPlayer->PlaySFX("door_open.wav");
 
@@ -488,24 +476,19 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
     auto self = std::find(m_players.begin(), m_players.end(), pPlayer);
     bool wasInWorld = (self != m_players.end());
 
-    std::vector<uint32> others = GetPlayerNetIDList(pPlayer);
-
     if (wasInWorld)
     {
         pPlayer->SendOnRemove(pPlayer->GetNetID());
     }
 
-    if (!others.empty())
-    {
-        SendCallFunctionPacketMulti(std::vector<uint32>(others), VariantPacket::OnRemove(pPlayer->GetNetID()));
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnRemove(pPlayer->GetNetID()));
 
-        string leftMsg =
-            "<" + pPlayer->GetDisplayName(true) + "`5 left. `w" + ToString(GetPlayerCount() - 1) + "`5 others here>``";
-        SendCallFunctionPacketMulti(std::vector<uint32>(others),
-                                    VariantPacket::OnTalkBubble((uint32)pPlayer->GetNetID(), leftMsg, false));
+    string leftMsg =
+        "<" + pPlayer->GetDisplayName(true) + "`5 left. `w" + ToString(GetPlayerCount() - 1) + "`5 others here>``";
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot,
+                                VariantPacket::OnTalkBubble((uint32)pPlayer->GetNetID(), leftMsg, false));
 
-        SendPlaySFXToAll(std::move(others), "door_shut.wav");
-    }
+    PlaySFXForEveryone("door_shut.wav");
 
     pPlayer->ClosePaginatedDialog();
 
@@ -515,23 +498,21 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
         m_players.pop_back();
 
         WorldClientVersionKey key{pPlayer->GetWorldVersion(), pPlayer->GetLoginDetail().gameVersion};
-        auto it = m_versionBuckets.find(key);
-        if (it != m_versionBuckets.end())
+        for (auto it = m_versionBuckets.begin(); it != m_versionBuckets.end();)
         {
             auto& vec = it->second;
-            auto playerIt = std::find(vec.begin(), vec.end(), pPlayer);
-
-            if (playerIt != vec.end())
-            {
-                *playerIt = vec.back();
-                vec.pop_back();
-            }
-
-            if (vec.empty())
-            {
-                m_versionBuckets.erase(it);
-            }
+            vec.erase(std::remove(vec.begin(), vec.end(), pPlayer), vec.end());
+            it = vec.empty() ? m_versionBuckets.erase(it) : std::next(it);
         }
+
+        auto next = std::make_shared<std::vector<uint32>>(*m_playerNetIDSnapshot);
+        auto it = std::find(next->begin(), next->end(), pPlayer->GetNetID());
+        if (it != next->end())
+        {
+            *it = next->back();
+            next->pop_back();
+        }
+        m_playerNetIDSnapshot = std::move(next);
 
         RecalculateWorldVersionBounds();
 
@@ -558,12 +539,11 @@ void World::PlayerLeaveWorld(GamePlayer* pPlayer, bool hardLeave)
 
 void World::RemoveAllPlayers()
 {
-    for (auto& pPlayer : m_players)
+    auto players = m_players;
+    for (auto& pPlayer : players)
     {
-        if (!pPlayer)
-            continue;
-
-        PlayerLeaveWorld(pPlayer, false);
+        if (pPlayer)
+            PlayerLeaveWorld(pPlayer, false);
     }
 }
 
@@ -587,33 +567,33 @@ void World::SendSkinColorUpdateToAll(GamePlayer* pPlayer)
     if (!pPlayer)
         return;
 
-    auto targets = GetPlayerNetIDList();
-    if (targets.empty())
-        return;
-
     uint32 skinColor = pPlayer->GetCharData().GetSkinColor();
-    SendCallFunctionPacketMulti(std::move(targets), VariantPacket::OnChangeSkin(skinColor), pPlayer->GetNetID());
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnChangeSkin(skinColor), pPlayer->GetNetID());
 }
 
 void World::SendConsoleMessageToAll(const string& message)
 {
-    std::vector<uint32> targets = GetPlayerNetIDList();
-    if (targets.empty())
-        return;
-
-    SendCallFunctionPacketMulti(std::move(targets), VariantPacket::OnConsoleMessage(message));
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnConsoleMessage(message));
 }
 
 void World::SendTalkBubbleAndConsoleToAll(const string& message, bool stackBubble, GamePlayer* pPlayer)
 {
-    std::vector<uint32> targets = GetPlayerNetIDList();
-    if (targets.empty())
+    if (pPlayer && !pPlayer->GetProgressData().CanUseGrowmojisInText(message))
         return;
 
-    SendCallFunctionPacketMulti(std::vector<uint32>(targets), VariantPacket::OnConsoleMessage(message));
-
-    uint32 talkerNetID = pPlayer ? (uint32)pPlayer->GetNetID() : 0;
-    SendCallFunctionPacketMulti(std::move(targets), VariantPacket::OnTalkBubble(talkerNetID, message, stackBubble));
+    if (pPlayer)
+    {
+        SendCallFunctionPacketMulti(
+            m_playerNetIDSnapshot,
+            VariantPacket::OnConsoleMessage("<`w" + pPlayer->GetDisplayName(true) + "``> " + message));
+        SendCallFunctionPacketMulti(m_playerNetIDSnapshot,
+                                    VariantPacket::OnTalkBubble(pPlayer->GetNetID(), message, stackBubble));
+    }
+    else
+    {
+        SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnConsoleMessage(message));
+        SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnTalkBubble(0, message, stackBubble));
+    }
 }
 
 void World::SendNameChangeToAll(GamePlayer* pPlayer, bool checkWorld)
@@ -621,12 +601,8 @@ void World::SendNameChangeToAll(GamePlayer* pPlayer, bool checkWorld)
     if (!pPlayer)
         return;
 
-    uint32 size = 0;
-    uint8* pData =
-        Proton::SerializeToMem(VariantPacket::OnNameChanged(pPlayer->GetDisplayName(checkWorld)), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID());
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot,
+                                VariantPacket::OnNameChanged(pPlayer->GetDisplayName(checkWorld)), pPlayer->GetNetID());
 }
 
 void World::SendClothUpdateToAll(GamePlayer* pPlayer)
@@ -643,7 +619,7 @@ void World::SendSetCharPacketToAll(GamePlayer* pPlayer)
         return;
 
     GameUpdatePacket packet = Player::BuildCharacterStatePacket(pPlayer);
-    SendUDPPacketRawMulti(GetPlayerNetIDList(), NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr);
+    SendUDPPacketRawMulti(m_playerNetIDSnapshot, NET_MESSAGE_GAME_PACKET, &packet, sizeof(GameUpdatePacket), nullptr);
 }
 
 void World::SendParticleEffectToAll(float coordX, float coordY, uint32 particleType, float particleSize, int32 delay)
@@ -752,10 +728,14 @@ void World::SendTileUpdate(uint16 tileX, uint16 tileY)
             cache[cacheIdx].size = memBuffer.GetOffset();
         }
 
-        if (cacheIdx != -1)
+        if (cacheIdx == -1)
         {
-            packet.extraDataSize = cache[cacheIdx].size;
-            SendGamePacketToGroup(playerGroup, &packet, cache[cacheIdx].buffer.data());
+            uint32 size = pTile->GetMemEstimate(false, eqVer, verBucket.gameVersion);
+            MemoryBuffer memBuffer(size);
+            pTile->Serialize(memBuffer, true, false, eqVer, verBucket.gameVersion);
+            packet.extraDataSize = memBuffer.GetOffset();
+            SendGamePacketToGroup(playerGroup, &packet, memBuffer.GetData());
+            continue;
         }
     }
 }
@@ -769,6 +749,9 @@ void World::SendTileUpdateMultiple(const std::vector<TileInfo*>& tiles)
     bool allTilesSupported = true;
     for (TileInfo* pTile : tiles)
     {
+        if (!pTile)
+            continue;
+
         if (pTile->HasExtra())
         {
             if (m_minGameVersionInWorld < GetTileExtraMinGameVersion(pTile->GetTileExtraType()))
@@ -907,20 +890,14 @@ void World::SendPlayerDataConfigToAll(GamePlayer* pPlayer)
     bool hasMState = pRole->HasPerm("state.mod"_hash);
     bool hasSmState = pRole->HasPerm("state.smod"_hash);
 
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnDataConfig(hasMState, hasSmState), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID());
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnDataConfig(hasMState, hasSmState),
+                                pPlayer->GetNetID());
 }
 
 void World::SendParticleEffectToAll(eParticleEffect effectType, const Vector2Float& pos, int32 delayMs, float angle)
 {
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnParticleEffect(effectType, pos, angle), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, -1, delayMs);
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnParticleEffect(effectType, pos, angle), -1,
+                                delayMs);
 }
 
 void World::SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer)
@@ -952,13 +929,8 @@ void World::SendHarvestTreeToAll(TileInfo* pTile, GamePlayer* pPlayer)
 
 void World::PlaySFXForEveryone(const string& fileName, int32 delay)
 {
-    for (auto& pWorldPlayer : m_players)
-    {
-        if (pWorldPlayer)
-        {
-            pWorldPlayer->PlaySFX(fileName, delay);
-        }
-    }
+    string packet = "action|play_sfx\nfile|audio/" + fileName + "\ndelayMS|" + ToString(delay) + "\n";
+    SendUDPPacketMulti(m_playerNetIDSnapshot, NET_MESSAGE_GAME_MESSAGE, packet.c_str(), packet.size());
 }
 
 void World::SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio, int32 delay)
@@ -966,11 +938,8 @@ void World::SendPlayPositionedToAll(GamePlayer* pPlayer, const string& audio, in
     if (!pPlayer)
         return;
 
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnPlayPositioned(audio), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID(), delay);
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnPlayPositioned(audio), pPlayer->GetNetID(),
+                                delay);
 }
 
 void World::SendOnActionToAll(GamePlayer* pPlayer, const string& action)
@@ -978,22 +947,12 @@ void World::SendOnActionToAll(GamePlayer* pPlayer, const string& action)
     if (!pPlayer)
         return;
 
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnAction(action), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID());
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnAction(action), pPlayer->GetNetID());
 }
 
 void World::SendOnAddNotificationToAll(const string& image, const string& message, const string& audio, bool isTip)
 {
-    for (auto& pWorldPlayer : m_players)
-    {
-        if (pWorldPlayer)
-        {
-            pWorldPlayer->SendOnAddNotification(image, message, audio, isTip);
-        }
-    }
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnAddNotification(image, message, audio, isTip));
 }
 
 void World::SendOnCountryStateToAll(GamePlayer* pPlayer)
@@ -1001,11 +960,8 @@ void World::SendOnCountryStateToAll(GamePlayer* pPlayer)
     if (!pPlayer)
         return;
 
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnCountryState(pPlayer->GetCountryData()), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID());
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnCountryState(pPlayer->GetCountryData()),
+                                pPlayer->GetNetID());
 }
 
 void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldPos, int32 delayMS)
@@ -1014,12 +970,8 @@ void World::SendPositionCorrectionToAll(GamePlayer* pPlayer, Vector2Float worldP
         return;
 
     pPlayer->SetWorldPos(worldPos.x, worldPos.y);
-
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnSetPos(worldPos.x, worldPos.y), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID(), delayMS);
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnSetPos(worldPos.x, worldPos.y),
+                                pPlayer->GetNetID(), delayMS);
 }
 
 void World::SendOnBillboardChangeToAll(GamePlayer* pPlayer)
@@ -1029,17 +981,14 @@ void World::SendOnBillboardChangeToAll(GamePlayer* pPlayer)
 
     PlayerExtraData& extraData = pPlayer->GetExtraData();
 
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(
+    SendCallFunctionPacketMulti(
+        m_playerNetIDSnapshot,
         VariantPacket::OnBillboardChange(
             pPlayer->GetNetID(), extraData.Get(PLAYER_EXTRA_BILLBOARD_ITEM_ID).GetINT(),
             extraData.Get(PLAYER_EXTRA_BILLBOARD_SHOW).GetBool(), extraData.Get(PLAYER_EXTRA_BILLBOARD_PRICE).GetINT(),
             extraData.Get(PLAYER_EXTRA_BILLBOARD_IS_LOCK_PER).GetBool(),
             extraData.Get(PLAYER_EXTRA_BILLBOARD_IS_BUY).GetBool(), pPlayer->GetLoginDetail().protocol),
-        &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size, pPlayer->GetNetID());
-    SAFE_DELETE_ARRAY(pData);
+        pPlayer->GetNetID());
 }
 
 void World::SendOnPlanterActivatedToAll()
@@ -1062,11 +1011,7 @@ void World::SendOnPlanterActivatedToAll()
         }
     }
 
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnPlanterActivated(itemID, tileX, tileY), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size);
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnPlanterActivated(itemID, tileX, tileY));
 }
 
 void World::SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
@@ -1104,7 +1049,7 @@ void World::SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int
     SendGamePacketToAll(&packet);
 }
 
-/*void World::SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y)
+void World::SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y)
 {
     GameUpdatePacket packet;
     packet.type = NET_GAME_PACKET_STEAM;
@@ -1114,33 +1059,16 @@ void World::SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int
     packet.field_4 = -1;
 
     SendGamePacketToAll(&packet);
-}*/
-
-void World::SendPlaySFXToAll(const string& audio, int32 delay)
-{
-    auto targets = GetPlayerNetIDList();
-    if (targets.empty())
-        return;
-
-    SendPlaySFXToAll(std::move(targets), audio, delay);
-}
-
-void World::SendPlaySFXToAll(std::vector<uint32>&& targets, const string& audio, int32 delay)
-{
-    if (targets.empty())
-        return;
-
-    string packet = "action|play_sfx\nfile|audio/" + audio + "\ndelayMS|" + ToString(delay) + "\n";
-    SendUDPPacketMulti(std::move(targets), NET_MESSAGE_GAME_MESSAGE, packet.c_str(), packet.size());
 }
 
 void World::SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe, uint8* pExtraData)
 {
-    auto targets = GetPlayerNetIDList(pExceptMe);
-    if (targets.empty())
-        return;
-
-    SendUDPPacketRawMulti(std::move(targets), NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket), pExtraData);
+    if (pExceptMe)
+        SendUDPPacketRawMulti(GetPlayerNetIDList(pExceptMe), NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket),
+                              pExtraData);
+    else
+        SendUDPPacketRawMulti(m_playerNetIDSnapshot, NET_MESSAGE_GAME_PACKET, pPacket, sizeof(GameUpdatePacket),
+                              pExtraData);
 }
 
 void World::SendGamePacketToGroup(std::vector<GamePlayer*> players, GameUpdatePacket* pPacket, uint8* pExtraData)
@@ -1163,13 +1091,7 @@ void World::SendGamePacketToGroup(std::vector<GamePlayer*> players, GameUpdatePa
 
 void World::SendCurrentWeatherToAll()
 {
-    HolidayManager* pHolidayManager = GetHolidayManager();
-
-    uint32 size = 0;
-    uint8* pData = Proton::SerializeToMem(VariantPacket::OnSetCurrentWeather(GetCurrentWeather()), &size, nullptr);
-
-    SendCallFunctionPacketMulti(GetPlayerNetIDList(), pData, size);
-    SAFE_DELETE_ARRAY(pData);
+    SendCallFunctionPacketMulti(m_playerNetIDSnapshot, VariantPacket::OnSetCurrentWeather(GetCurrentWeather()));
 }
 
 void World::HandleTilePackets(GameUpdatePacket* pGamePacket)
@@ -2788,6 +2710,7 @@ void World::OnPlantSeed(GamePlayer* pPlayer, TileInfo* pTile, ItemInfo* pSeed, G
             return;
         }
 
+        pPlayer->ModifyInventoryItem(pSeed->id, -1);
         pTileExtra->crystals += gHarmonicCrystal.GetCrystalCodeFromID(pSeed->id);
 
         if (pTileExtra->crystals.size() == 5)
@@ -3050,7 +2973,7 @@ void World::OnHarvestTree(GamePlayer* pPlayer, TileInfo* pTile)
 
     if (pItem->farmablity > 0)
     {
-        for (uint8 i = 0; i < fruitCount; ++i)
+        for (int32 i = 0; i < fruitCount; ++i)
         {
             DropOrSuckObjectOnTile(pTile, pItemFruit->id, RandomRangeInt(1, pItemFruit->farmablity),
                                    GetRandomItemDropOffset(), true);

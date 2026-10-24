@@ -129,7 +129,7 @@ void EventThreadFunc()
             pContext->GetRuntimeStats().GetPerfStats().netCpuPermille =
                 Min((uint32)((busyUS * 1000) / windowUS), 1000u);
 
-            if (passes < 500 && passes > 200)
+            if (passes < 500 && passes > 350) // reduce the log
             {
                 LOGGER_LOG_WARN("[NET] event loop ran only %u passes, timer resolution problem?", passes);
             }

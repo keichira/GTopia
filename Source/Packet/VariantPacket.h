@@ -51,4 +51,5 @@ VariantVector OnBillboardChange(int32 netID, int32 itemID, bool showBoard, float
 VariantVector OnPlanterActivated(uint32 itemID, uint32 tileX, uint32 tileY);
 VariantVector OnRaceStart();
 VariantVector OnRaceEnd(uint32 timeMS);
+VariantVector OnEmoticonDataChanged(uint32 unk, const string& emoticonData);
 } // namespace VariantPacket

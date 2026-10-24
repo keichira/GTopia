@@ -5,6 +5,9 @@
 #include "PacketPool.h"
 #include <concurrentqueue.h>
 #include <enet/enet.h>
+#include <memory>
+
+using NetTargets = std::shared_ptr<const std::vector<uint32>>;
 
 struct NetworkEvent
 {
@@ -14,7 +17,7 @@ struct NetworkEvent
     PooledPacket* pPacket = nullptr;   // for incoming pooled packets
     uint32 host = 0;
 
-    std::vector<uint32> targets;
+    NetTargets targets;
 
     bool shouldDisconnect = false;
     bool isItemData = false;
@@ -31,19 +34,70 @@ void SendCallFunctionPacket(uint32 senderNetID, const VariantVector& data, int32
 void SendCallFunctionPacket(uint32 senderNetID, uint8* pExtraData, uint32 extraSize, int32 netID = -1,
                             int32 delay = -1);
 
-void SendUDPPacketRawMulti(std::vector<uint32>&& targets, eMessagePacketType msgType, void* pData, uint32 dataSize,
+void SendUDPPacketRawMulti(NetTargets targets, eMessagePacketType messageType, void* pData, uint32 dataSize,
                            uint8* pExtraData);
-void SendUDPPacketMulti(std::vector<uint32>&& targets, eMessagePacketType msgType, const char* message,
-                        uint32 dataSize = 0);
-void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, const VariantVector& data, int32 netID = -1,
-                                 int32 delay = -1);
-void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, uint8* pExtraData, uint32 extraSize, int32 netID = -1,
+void SendUDPPacketMulti(NetTargets targets, eMessagePacketType messageType, const char* message, uint32 dataSize = 0);
+void SendCallFunctionPacketMulti(NetTargets targets, const VariantVector& data, int32 netID = -1, int32 delay = -1);
+void SendCallFunctionPacketMulti(NetTargets targets, uint8* pExtraData, uint32 extraSize, int32 netID = -1,
                                  int32 delay = -1);
 
-// do not use due thread safety
-/*bool SendENetPacketRaw(eMessagePacketType messageType, void* pData, uint32 dataSize, uint8* pExtraData,
-                       ENetPeer* pPeer);
-bool SendENetPacket(eMessagePacketType messageType, const char* message, ENetPeer* pPeer);*/
+inline NetTargets MakeNetTargets(std::vector<uint32>&& targets)
+{
+    return std::make_shared<const std::vector<uint32>>(std::move(targets));
+}
+
+inline NetTargets MakeNetTargets(const std::vector<uint32>& targets)
+{
+    return std::make_shared<const std::vector<uint32>>(targets);
+}
+
+inline void SendUDPPacketRawMulti(std::vector<uint32>&& targets, eMessagePacketType messageType, void* pData,
+                                  uint32 dataSize, uint8* pExtraData)
+{
+    SendUDPPacketRawMulti(MakeNetTargets(std::move(targets)), messageType, pData, dataSize, pExtraData);
+}
+
+inline void SendUDPPacketRawMulti(const std::vector<uint32>& targets, eMessagePacketType messageType, void* pData,
+                                  uint32 dataSize, uint8* pExtraData)
+{
+    SendUDPPacketRawMulti(MakeNetTargets(targets), messageType, pData, dataSize, pExtraData);
+}
+
+inline void SendUDPPacketMulti(std::vector<uint32>&& targets, eMessagePacketType messageType, const char* message,
+                               uint32 dataSize = 0)
+{
+    SendUDPPacketMulti(MakeNetTargets(std::move(targets)), messageType, message, dataSize);
+}
+
+inline void SendUDPPacketMulti(const std::vector<uint32>& targets, eMessagePacketType messageType, const char* message,
+                               uint32 dataSize = 0)
+{
+    SendUDPPacketMulti(MakeNetTargets(targets), messageType, message, dataSize);
+}
+
+inline void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, const VariantVector& data, int32 netID = -1,
+                                        int32 delay = -1)
+{
+    SendCallFunctionPacketMulti(MakeNetTargets(std::move(targets)), data, netID, delay);
+}
+
+inline void SendCallFunctionPacketMulti(const std::vector<uint32>& targets, const VariantVector& data, int32 netID = -1,
+                                        int32 delay = -1)
+{
+    SendCallFunctionPacketMulti(MakeNetTargets(targets), data, netID, delay);
+}
+
+inline void SendCallFunctionPacketMulti(std::vector<uint32>&& targets, uint8* pExtraData, uint32 extraSize,
+                                        int32 netID = -1, int32 delay = -1)
+{
+    SendCallFunctionPacketMulti(MakeNetTargets(std::move(targets)), pExtraData, extraSize, netID, delay);
+}
+
+inline void SendCallFunctionPacketMulti(const std::vector<uint32>& targets, uint8* pExtraData, uint32 extraSize,
+                                        int32 netID = -1, int32 delay = -1)
+{
+    SendCallFunctionPacketMulti(MakeNetTargets(targets), pExtraData, extraSize, netID, delay);
+}
 
 const char* GetTextFromEnetPacket(uint8* pData, uint32 dataLength);
 uint32 GetMessageTypeFromEnetPacket(uint8* pData, uint32 dataLength);

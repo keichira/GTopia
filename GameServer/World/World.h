@@ -1,11 +1,13 @@
 #pragma once
 
+#include "../Item/SteamManager.h"
 #include "../Item/SuckerBlockManager.h"
 #include "../Player/GamePlayer.h"
 #include "Database/Table/WorldDBTable.h"
 #include "Item/ItemInfoManager.h"
 #include "Network/IPTracker.h"
 #include "Packet/GamePacket.h"
+#include "Packet/NetPacket.h"
 #include "PetBattleManager.h"
 #include "Precompiled.h"
 #include "World/WorldInfo.h"
@@ -99,10 +101,8 @@ public:
     void SendNPCPacketToAll(eNpcEvent eventType, uint8 npcID, uint8 npcType, const Vector2Float& pos,
                             const Vector2Float& dest, float speed, int32 val1, int32 val2);
     void SendBattlePetPacketToAll(eBattlePetEvent eventType, int32 netID, int32 petID);
-    // void SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y);
+    void SendSteamPacketToAll(eSteamEvent eventType, int32 x, int32 y);
 
-    void SendPlaySFXToAll(const string& audio, int32 delay = -1);
-    void SendPlaySFXToAll(std::vector<uint32>&& targets, const string& audio, int32 delay = -1);
     void SendGamePacketToAll(GameUpdatePacket* pPacket, GamePlayer* pExceptMe = nullptr, uint8* pExtraData = nullptr);
     void SendGamePacketToGroup(std::vector<GamePlayer*> players, GameUpdatePacket* pPacket,
                                uint8* pExtraData = nullptr);
@@ -188,6 +188,7 @@ public:
 
     IPTracker& GetBannedPlayers() { return m_bannedPlayers; };
     SuckerBlockManager& GetSuckerBlockManager() { return m_suckerManager; }
+    SteamManager& GetSteamManager() { return m_steamManager; }
 
 private:
     void DropObject(const WorldObject& obj);
@@ -208,6 +209,7 @@ private:
     WorldNPCManager* m_pNpcManager;
     WorldBossManager* m_pBossManager;
     SuckerBlockManager m_suckerManager;
+    SteamManager m_steamManager;
 
     eWorldState m_state;
     std::vector<GamePlayer*> m_players;
@@ -225,6 +227,8 @@ private:
         }
     };
     std::map<WorldClientVersionKey, std::vector<GamePlayer*>> m_versionBuckets;
+
+    NetTargets m_playerNetIDSnapshot;
 
     uint16 m_minWorldVersionInWorld;
     uint16 m_maxWorldVersionInWorld;

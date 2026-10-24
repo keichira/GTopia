@@ -123,5 +123,53 @@ void TileActivateRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdate
             pPlayer->OnRaceEnd();
             return;
         }
+
+        case ITEM_ID_STEAM_REVOLVER:
+        {
+            if (pTile->GetHealthPercent() >= 1.0f && pTile->GetLastInteractionTimer().GetElapsedTime() > 1500)
+            {
+                pTile->GetLastInteractionTimer().Reset();
+                Vector2Int& vTilePos = pTile->GetPos();
+
+                TileInfo* pTop = pWorld->GetTileManager()->GetTile(vTilePos.x, vTilePos.y - 1);
+                TileInfo* pBottom = pWorld->GetTileManager()->GetTile(vTilePos.x, vTilePos.y + 1);
+
+                if (pTop && pTop->IsAcceptSteam())
+                {
+                    pWorld->SendSteamPacketToAll(STEAM_EVENT_START_UP, vTilePos.x, vTilePos.y);
+                    pWorld->GetSteamManager().AddNode(vTilePos.x, vTilePos.y, 3);
+                }
+                else if (pBottom && pBottom->IsAcceptSteam())
+                {
+                    pWorld->SendSteamPacketToAll(STEAM_EVENT_START_DOWN, vTilePos.x, vTilePos.y);
+                    pWorld->GetSteamManager().AddNode(vTilePos.x, vTilePos.y, 1);
+                }
+            }
+            return;
+        }
+
+        case ITEM_ID_STEAM_LAUNCHER:
+        {
+            if (pTile->HasFlag(TILE_FLAG_IS_ON))
+            {
+                Vector2Int& vTilePos = pTile->GetPos();
+                pWorld->SendSteamPacketToAll(STEAM_EVENT_LAUNCHED, vTilePos.x, vTilePos.y);
+                pTile->RemoveFlag(TILE_FLAG_IS_ON);
+            }
+            return;
+        }
+
+        case ITEM_ID_STEAM_STOMPER:
+        {
+            if (pTile->GetHealthPercent() >= 1.0f && pTile->GetLastInteractionTimer().GetElapsedTime() > 1500)
+            {
+                pTile->GetLastInteractionTimer().Reset();
+                Vector2Int& vTilePos = pTile->GetPos();
+
+                pWorld->SendSteamPacketToAll(STEAM_EVENT_START_DOWN, vTilePos.x, vTilePos.y);
+                pWorld->GetSteamManager().AddNode(vTilePos.x, vTilePos.y, 1);
+            }
+            return;
+        }
     }
 }

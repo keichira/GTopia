@@ -158,12 +158,12 @@ void GameServer::Update()
     {
         processedEvents++;
 
-        if (!outEvent.targets.empty())
+        if (outEvent.targets && !outEvent.targets->empty())
         {
             ENetPacket* pPacket = outEvent.pENetPacket;
             if (pPacket)
             {
-                for (uint32 id : outEvent.targets)
+                for (uint32 id : *outEvent.targets)
                 {
                     auto it = m_connectionMap.find(id);
                     if (it != m_connectionMap.end() && it->second.pPeer)

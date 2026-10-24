@@ -261,9 +261,7 @@ void RemoveGTColorCodes(string& str)
 void RemoveGTColorCodes(char* str)
 {
     if (!str)
-    {
         return;
-    }
 
     char* src = str;
     char* out = str;
@@ -275,6 +273,44 @@ void RemoveGTColorCodes(char* str)
             src += 2;
             continue;
         }
+
+        *out++ = *src++;
+    }
+
+    *out = '\0';
+}
+
+void GTRemoveDangerousFromChat(string& str)
+{
+    GTRemoveDangerousFromChat(&str[0]);
+    str.resize(strlen(&str[0]));
+}
+
+void GTRemoveDangerousFromChat(char* str)
+{
+    if (!str)
+        return;
+
+    char* src = str;
+    char* out = str;
+
+    while (*src)
+    {
+        if (*src < 0x1F || *src > 0x7F)
+            continue;
+
+        if (*src == '`' && *(src + 1))
+        {
+            bool validCode = (*(src + 1) >= '0' && *(src + 1) <= '9') || strchr("!@#$^&wobpqertasc", *(src + 1));
+            if (!validCode)
+            {
+                src += 2;
+                continue;
+            }
+        }
+
+        if (*src == '|')
+            continue;
 
         *out++ = *src++;
     }

@@ -70,7 +70,7 @@ CREATE TABLE `Bans` (
   `ID` int UNSIGNED NOT NULL AUTO_INCREMENT,
   `UserID` int UNSIGNED DEFAULT '0',
   `BannerID` int UNSIGNED DEFAULT '0',
-  `Reason` char(256) DEFAULT '',
+  `Reason` char(255) DEFAULT '',
   `BannedTime` datetime NOT NULL,
   `ExpireTime` datetime NOT NULL,
   `ModType` int DEFAULT '0',

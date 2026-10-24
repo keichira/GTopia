@@ -38,10 +38,11 @@ void GameMessage_Input(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         return;
 
     auto pText = packet.Find("text"_hash);
-    if (!pText)
+    if (!pText || pText->valueSize == 0)
         return;
 
-    string text(pText->value, pText->valueSize);
+    int32 textLen = Min(120, pText->valueSize);
+    string text(pText->value, textLen);
 
     RemoveExtraWhiteSpaces(text);
     if (text.empty())
@@ -56,8 +57,51 @@ void GameMessage_Input(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)
         return;
     }
 
-    // used for benchmark, not implemented yet
-    // pWorld->SendTalkBubbleAndConsoleToAll(text, false, pPlayer);
+    GTRemoveDangerousFromChat(text);
+
+    string plainText = text;
+    RemoveGTColorCodes(plainText);
+
+    if (plainText.empty() || plainText == " ")
+        return;
+
+    TileInfo* pWorldLockTile = pWorld->GetTileManager()->GetKeyTile(KEY_TILE_WORLD_LOCK);
+    if (pWorldLockTile && pWorldLockTile->GetFG() == ITEM_ID_ROYAL_LOCK)
+    {
+        TileExtra_Lock* pTileExtra = pWorldLockTile->GetExtra<TileExtra_Lock>();
+        if (pTileExtra && pTileExtra->HasFlag(TILE_EXTRA_LOCK_SILENCE) && !pTileExtra->HasAccess(pPlayer->GetUserID()))
+        {
+            pPlayer->SendOnTalkBubble("`1(Peasants must not speak)``", false);
+            return;
+        }
+    }
+
+    if (pPlayer->GetModController().HasPlayMod(PLAYMOD_TYPE_DUCT_TAPE) ||
+        pPlayer->GetInventory().GetClothByPart(BODY_PART_FACEITEM) == ITEM_ID_IRON_MASK)
+    {
+        for (auto& c : plainText)
+        {
+            if (c >= 'a' && c <= 'z')
+            {
+                c = (RandomRangeInt(0, 1) == 0) ? 'f' : 'm';
+            }
+            else if (c >= 'A' && c <= 'Z')
+            {
+                c = (RandomRangeInt(0, 1) == 0) ? 'F' : 'M';
+            }
+            else if ((c < '!' || c > '\'') && c != '?')
+            {
+                c = ' ';
+            }
+        }
+    }
+
+    Role* pRole = pPlayer->GetRole();
+    string message = text;
+    if (pRole && pRole->GetChatColor() != '\0')
+        message = "`" + string(1, pRole->GetChatColor()) + text;
+
+    pWorld->SendTalkBubbleAndConsoleToAll(message, false, pPlayer);
 }
 
 void GameMessage_Wrench(GamePlayer* pPlayer, ParsedTextPacket<38>& packet)

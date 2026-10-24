@@ -280,12 +280,12 @@ void GameServer::Update()
     {
         processedEvents++;
 
-        if (!outEvent.targets.empty())
+        if (outEvent.targets && !outEvent.targets->empty())
         {
             ENetPacket* pPacket = outEvent.pENetPacket;
             if (pPacket)
             {
-                for (uint32 id : outEvent.targets)
+                for (uint32 id : *outEvent.targets)
                 {
                     auto it = m_connectionMap.find(id);
                     if (it != m_connectionMap.end() && it->second.pPeer)
@@ -343,11 +343,14 @@ void GameServer::Update()
                     pGamePacket->field_10 = 0;
                     pGamePacket->field_11 = 0;
 
-                    ENetPacket* pItemPacket = enet_packet_create(
-                        nullptr, outEvent.pPacket->dataLength + pClientData->size, ENET_PACKET_FLAG_RELIABLE);
-                    memcpy(pItemPacket->data, outEvent.pPacket->payload, outEvent.pPacket->dataLength);
-                    memcpy(pItemPacket->data + outEvent.pPacket->dataLength - 1, pClientData->pItemData,
-                           pClientData->compressSize == 0 ? pClientData->size : pClientData->compressSize);
+                    uint32 headerSize = 4 + sizeof(GameUpdatePacket);
+                    uint32 dataSize = (pClientData->compressSize == 0) ? pClientData->size : pClientData->compressSize;
+
+                    ENetPacket* pItemPacket =
+                        enet_packet_create(nullptr, headerSize + dataSize + 1, ENET_PACKET_FLAG_RELIABLE);
+                    memcpy(pItemPacket->data, outEvent.pPacket->payload, headerSize);
+                    memcpy(pItemPacket->data + headerSize, pClientData->pItemData, dataSize);
+                    pItemPacket->data[headerSize + dataSize] = 0;
 
                     enet_peer_send(pPeer, 0, pItemPacket);
                 }

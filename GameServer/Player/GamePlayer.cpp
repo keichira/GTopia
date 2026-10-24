@@ -471,11 +471,15 @@ void GamePlayer::OnEnterGameCB(QueryTaskResult&& result)
     }
 
     pPlayer->SendGems(true);
-
     pPlayer->SetSearchName(ToLower(pPlayer->GetRawName()));
-    pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
+
+    if (loginDetail.protocol > 207)
+        pPlayer->SendSetHasGrowID(true);
+    else
+        pPlayer->SendSetHasGrowID(pPlayer->HasGrowID() ? true : false);
 
     pPlayer->SendInventoryPacket();
+    pPlayer->SendOnEmoticonDataChanged(pPlayer->GetProgressData().GetEmoticonPacket());
 
     if (loginDetail.gameVersion >= 5.47)
     {

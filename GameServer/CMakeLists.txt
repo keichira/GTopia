@@ -119,6 +119,7 @@ set(GAME_FILES PRIVATE
     ${GAME_STORE}/StoreManager.cpp
     ${GAME_ITEM}/HarmonicCrystal.cpp
     ${GAME_ITEM}/SuckerBlockManager.cpp
+    ${GAME_ITEM}/SteamManager.cpp
 
     ${SOURCE_NETWORK}/IPTracker.cpp
 

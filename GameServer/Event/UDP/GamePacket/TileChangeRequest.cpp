@@ -1089,7 +1089,7 @@ void TileChangeRequest::Execute(GamePlayer* pPlayer, World* pWorld, GameUpdatePa
     }
 
     pPacket->field_4 = pPlayer->GetNetID();
-    pWorld->SendGamePacketToAll(pPacket);
+    pWorld->SendGamePacketToAll(pPacket, pItem->id == ITEM_ID_FIST ? nullptr : pPlayer);
 
     if (needToSendTileUpdate)
         pWorld->SendTileUpdate(pTile);

@@ -58,6 +58,9 @@ void StripWhiteSpace(string& str);
 void RemoveGTColorCodes(string& str);
 void RemoveGTColorCodes(char* str);
 
+void GTRemoveDangerousFromChat(string& str);
+void GTRemoveDangerousFromChat(char* str);
+
 void StrCopyFast(char* pDest, const char* pSrc, usize destSize);
 
 enum eToIntResult

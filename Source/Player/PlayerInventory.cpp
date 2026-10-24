@@ -452,13 +452,9 @@ uint32 PlayerInventory::GetMemEstimate(bool database)
     }
 
     if (database || m_version != INVENTORY_VERSION_LEGACY)
-    {
         memEstimate += sizeof(uint16);
-    }
     else
-    {
         memEstimate += sizeof(uint8);
-    }
 
     return memEstimate;
 }
@@ -466,8 +462,6 @@ uint32 PlayerInventory::GetMemEstimate(bool database)
 void PlayerInventory::SetVersion(uint32 protocol)
 {
     m_version = protocol >= INVENTORY_PROTOCOL_BIG_BACKPACK ? INVENTORY_VERSION_BIG : INVENTORY_VERSION_LEGACY;
-
-    m_version = 0;
 }
 
 uint32 PlayerInventory::GetOverflowCount() const

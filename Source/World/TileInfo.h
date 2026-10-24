@@ -121,6 +121,8 @@ public:
     bool HasExtra() { return m_pExtraData != nullptr; }
     bool IsTileExtraType(eTileExtraType type);
 
+    Timer& GetLastInteractionTimer() { return m_lastInteractionTimer; }
+
 private:
     TempTileData* m_tileData;
     Vector2Int m_pos;
@@ -130,7 +132,7 @@ private:
     Timer m_lastDamageTime;
     uint8 m_type;
 
-    Timer m_lastInteractionTime; // todo
+    Timer m_lastInteractionTimer; // todo
 
     TileExtra* m_pExtraData;
 };
